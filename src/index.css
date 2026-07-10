@@ -1,0 +1,31 @@
+@import url('https://fonts.googleapis.com/css2?family=Almendra:ital,wght@0,400;0,700;1,400&family=Cinzel:wght@400;600;700;800;900&family=EB+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=MedievalSharp&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Cinzel", Georgia, serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  --font-gothic: "Almendra", serif;
+  --font-medieval: "MedievalSharp", cursive;
+}
+
+/* Custom smooth scrollbars to complement the sleek medieval theme */
+::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(15, 10, 8, 0.95); /* Deep antique wood */
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(146, 100, 48, 0.6); /* Muted brass/bronze */
+  border-radius: 4px;
+  border: 1px solid rgba(60, 40, 20, 0.4);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(197, 137, 64, 0.85); /* Bright warm brass */
+}
+

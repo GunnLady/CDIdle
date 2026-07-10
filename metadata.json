@@ -1,0 +1,6 @@
+{
+  "name": "IddleCityDonjon",
+  "description": "Un jeu incrémental fantasy mêlant la gestion et l'expansion d'une colonie médiévale à l'exploration automatisée d'un donjon infini avec des héros de toutes races et classes.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
