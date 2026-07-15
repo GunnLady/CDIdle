@@ -7,6 +7,10 @@
     "dev": "vite --port=3000 --host=0.0.0.0",
     "build": "vite build",
     "preview": "vite preview",
+    "board": "node workboard/server/server.mjs",
+    "board:validate": "node workboard/scripts/validate.mjs",
+    "board:sync": "node workboard/scripts/sync-github.mjs",
+    "board:sync:apply": "node workboard/scripts/sync-github.mjs --apply",
     "clean": "rm -rf dist server.js",
     "lint": "tsc --noEmit"
   },
