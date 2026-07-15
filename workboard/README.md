@@ -5,6 +5,9 @@ alimente par des tickets Markdown. Il constitue la source de verite pour le
 contenu et les dependances des tickets. Les Issues GitHub en sont un miroir de
 collaboration.
 
+Le plan approuve qui gouverne ces tickets est conserve dans
+[`docs/fullstack-authoritative-plan.md`](../docs/fullstack-authoritative-plan.md).
+
 ## Demarrage
 
 ```powershell
