@@ -20,6 +20,7 @@ import { getBuildingMaxLevel } from "../src/data/buildings";
 import { makeCitizens, makeHero, makeStoredItem } from "./fixtures/game";
 import { createInitialGameState, splitGameState, validateGameState } from "../src/domain/gameState";
 import { isCommandSuccess, validateCommandEnvelope, type CommandEnvelope } from "../src/domain/commands";
+import { fixedClock, seededRng } from "../src/domain/random";
 
 const hero = (id: string, strength: number, agility: number): Hero => ({
   id,
@@ -133,6 +134,18 @@ describe("API command contracts", () => {
   it("returns field-level errors for malformed envelopes", () => {
     const errors = validateCommandEnvelope({ commandId: "", idempotencyKey: "", expectedRevision: -1, command: {} as never });
     expect(errors.map((error) => error.field)).toEqual(expect.arrayContaining(["commandId", "idempotencyKey", "expectedRevision", "command.type"]));
+  });
+});
+
+describe("clock and RNG contracts", () => {
+  it("allows deterministic time in tests", () => {
+    expect(fixedClock(1_700_000_000_000).now()).toBe(1_700_000_000_000);
+  });
+
+  it("replays the same seeded random sequence", () => {
+    const first = seededRng(42);
+    const second = seededRng(42);
+    expect([first.next(), first.nextInt(10), first.next()]).toEqual([second.next(), second.nextInt(10), second.next()]);
   });
 });
 
