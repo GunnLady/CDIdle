@@ -48,6 +48,7 @@
     .summary { display: block; margin-top: 8px; color: var(--muted); font-size: 12px; line-height: 1.35; font-weight: 500; }
     .meta { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 10px; }
     .pill { padding: 3px 6px; border-radius: 999px; color: var(--muted); background: #112534; font-size: 10px; }
+    .tag-pill { color: #b8e6ff; background: #17445a; }
     .empty { color: #607588; font-size: 12px; padding: 12px 3px; }
     #details { min-height: 0; overflow: auto; padding: 18px 18px 88px; background: rgba(7,16,24,.92); }
     .detail-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
@@ -175,6 +176,7 @@
       return `<button class="card ${ticket.id === selectedId ? "selected" : ""}" data-id="${escapeHtml(ticket.id)}"><span class="ticket-id">${escapeHtml(ticket.id)}</span>
         <strong class="ticket-title">${escapeHtml(ticket.title)}</strong><span class="meta">
         <span class="pill">${escapeHtml(ticket.metadata.priority)}</span><span class="pill">${escapeHtml(ticket.metadata.area)}</span>
+        ${(Array.isArray(ticket.metadata.tags) ? ticket.metadata.tags : []).map(tag => `<span class="pill tag-pill">${escapeHtml(tag)}</span>`).join("")}
         <span class="pill">${escapeHtml(ticket.metadata.size)}</span></span>
         <span class="summary">${escapeHtml(summary(ticket))}</span></button>`;
     }
@@ -196,6 +198,7 @@
           <span class="pill">${escapeHtml(ticket.status)}</span>
           <span class="pill">${escapeHtml(ticket.metadata.area)}</span>
           <span class="pill">${escapeHtml(ticket.metadata.priority)}</span>
+          ${(Array.isArray(ticket.metadata.tags) ? ticket.metadata.tags : []).map(tag => `<span class="pill tag-pill">${escapeHtml(tag)}</span>`).join("")}
         </div>
         <h2 class="detail-title">${escapeHtml(ticket.title)}</h2>
         <p class="detail-lead">${escapeHtml(ticket.sections["Resultat utilisateur"] || ticket.sections.Objectif || "")}</p>
