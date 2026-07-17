@@ -5,6 +5,19 @@ import type { Rng } from "./random";
 
 export const recruitmentCost = (heroCount: number): number => 100 + Math.max(0, heroCount) * 150;
 
+export type HeroEligibilityError = "INSUFFICIENT_GOLD" | "GUILD_REQUIRED" | "CAPACITY_REACHED";
+export function recruitmentEligibility(heroCount: number, gold: number, guildLevel: number): { ok: true; cost: number; capacity: number } | { ok: false; error: HeroEligibilityError; cost: number; capacity: number } {
+  const cost = recruitmentCost(heroCount);
+  const capacity = Math.max(0, guildLevel) + 2;
+  if (gold < cost) return { ok: false, error: "INSUFFICIENT_GOLD", cost, capacity };
+  if (guildLevel < 1) return { ok: false, error: "GUILD_REQUIRED", cost, capacity };
+  if (heroCount >= capacity) return { ok: false, error: "CAPACITY_REACHED", cost, capacity };
+  return { ok: true, cost, capacity };
+}
+
+export function dismissHero(heroes: Hero[], heroId: string): Hero[] { return heroes.filter((hero) => hero.id !== heroId); }
+export function canActivateHero(hero: Hero, activeHeroCount: number): boolean { return !hero.isActive && hero.currentHp > 0 && activeHeroCount < 4; }
+
 export function growHeroStats(baseStats: HeroStats, classType: ClassType, rng: Rng): HeroStats {
   const keys: (keyof HeroStats)[] = ["str", "agi", "end", "int", "wiz", "dex", "luk"];
   const classInfo = CLASS_INFO_LIST.find((entry) => entry.type === classType);

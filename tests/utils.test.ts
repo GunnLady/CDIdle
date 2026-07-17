@@ -22,7 +22,7 @@ import { createInitialGameState, splitGameState, validateGameState } from "../sr
 import { isCommandSuccess, validateCommandEnvelope, type CommandEnvelope } from "../src/domain/commands";
 import { fixedClock, seededRng } from "../src/domain/random";
 import { allocateCitizen, townRates, unlockDistrict, upgradeBuilding, type TownState } from "../src/domain/town";
-import { addHeroExperience, recruitmentCost } from "../src/domain/hero";
+import { addHeroExperience, canActivateHero, dismissHero, recruitmentCost, recruitmentEligibility } from "../src/domain/hero";
 
 const hero = (id: string, strength: number, agility: number): Hero => ({
   id,
@@ -206,6 +206,15 @@ describe("hero domain", () => {
     const leveled = addHeroExperience(hero, 100, seededRng(7), {});
     expect(leveled.level).toBe(10);
     expect(leveled.classType).toBe("Novice");
+  });
+
+  it("enforces recruitment and active-party invariants", () => {
+    expect(recruitmentEligibility(0, 99, 1)).toMatchObject({ ok: false, error: "INSUFFICIENT_GOLD" });
+    expect(recruitmentEligibility(0, 100, 0)).toMatchObject({ ok: false, error: "GUILD_REQUIRED" });
+    expect(recruitmentEligibility(3, 1000, 1)).toMatchObject({ ok: false, error: "CAPACITY_REACHED" });
+    expect(canActivateHero(makeHero({ currentHp: 0 }), 0)).toBe(false);
+    expect(canActivateHero(makeHero({ currentHp: 10 }), 4)).toBe(false);
+    expect(dismissHero([makeHero({ id: "a" }), makeHero({ id: "b" })], "a")).toHaveLength(1);
   });
 });
 

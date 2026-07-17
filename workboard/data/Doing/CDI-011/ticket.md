@@ -10,7 +10,7 @@ source: Plan fullstack autoritaire approuve le 2026-07-15
 depends_on: ["CDI-007", "CDI-009"]
 blocks: ["CDI-014", "CDI-015", "CDI-016", "CDI-026", "CDI-037", "CDI-038"]
 github_issue: null
-related_docs: ["docs/fullstack-authoritative-plan.md"]
+related_docs: ["docs/fullstack-authoritative-plan.md", "docs/architecture/hero-domain-audit.md"]
 ---
 
 # CDI-011 — Domaine heros/recrutement/progression
@@ -48,9 +48,9 @@ Ce ticket depend de : ["CDI-007", "CDI-009"].
 
 ## Criteres d'acceptation
 
-- [ ] Le perimetre est implemente sans regression hors domaine.
-- [ ] Les invariants sont couverts par des tests reproductibles.
-- [ ] Les preuves et la documentation sont fournies.
+- [x] Le perimetre est implemente sans regression hors domaine.
+- [x] Les invariants sont couverts par des tests reproductibles.
+- [x] Les preuves et la documentation sont fournies.
 
 ## Tests
 
