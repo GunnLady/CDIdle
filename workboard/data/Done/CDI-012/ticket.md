@@ -1,7 +1,7 @@
 ---
 id: CDI-012
 title: Domaine inventaire/equipement
-status: Doing
+status: Done
 area: domain
 priority: P1
 size: L
