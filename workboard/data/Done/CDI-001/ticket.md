@@ -1,7 +1,7 @@
 ---
 id: CDI-001
 title: ADR et contrat du depot
-status: ToDo
+status: Done
 area: architecture
 priority: P0
 size: M
