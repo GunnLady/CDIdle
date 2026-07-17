@@ -1,7 +1,7 @@
 ---
 id: CDI-013
 title: Domaine forge/recyclage
-status: Done
+status: Doing
 area: domain
 priority: P1
 size: L
@@ -10,7 +10,7 @@ source: Plan fullstack autoritaire approuve le 2026-07-15
 depends_on: ["CDI-009", "CDI-012"]
 blocks: ["CDI-028", "CDI-037"]
 github_issue: null
-related_docs: ["docs/fullstack-authoritative-plan.md", "docs/architecture/forge-domain.md"]
+related_docs: ["docs/fullstack-authoritative-plan.md", "docs/architecture/forge-domain.md", "docs/architecture/forge-domain-audit.md"]
 ---
 
 # CDI-013 — Domaine forge/recyclage
