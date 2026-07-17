@@ -24,7 +24,7 @@ import { fixedClock, seededRng } from "../src/domain/random";
 import { allocateCitizen, townRates, unlockDistrict, upgradeBuilding, type TownState } from "../src/domain/town";
 import { addHeroExperience, canActivateHero, dismissHero, recruitmentCost, recruitmentEligibility } from "../src/domain/hero";
 import { addStack, removeStack, type InventoryState } from "../src/domain/inventory";
-import { applyUpgradeCost, startBasicCraft } from "../src/domain/forge";
+import { applyUpgradeCost, recycleItem, startBasicCraft } from "../src/domain/forge";
 
 const hero = (id: string, strength: number, agility: number): Hero => ({
   id,
@@ -249,6 +249,14 @@ describe("forge domain", () => {
     const result = applyUpgradeCost(materials, "uncommon");
     expect(result.ok && result.materials[0].count).toBe(1);
     expect(materials[0].count).toBe(3);
+  });
+
+  it("recycles an item only when the forge is unlocked", () => {
+    const items = [{ itemId: "wooden_sword", rarity: "common" as const, count: 1 }];
+    expect(recycleItem(items, [], false, "wooden_sword", "common")).toEqual({ ok: false, error: "FORGE_LOCKED" });
+    const result = recycleItem(items, [], true, "wooden_sword", "common");
+    expect(result.ok).toBe(true);
+    expect(items[0].count).toBe(1);
   });
 });
 
