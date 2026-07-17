@@ -8,7 +8,7 @@ size: S
 risk: low
 source: Audit du prototype CDIdle du 2026-07-15
 depends_on: ["CDI-002"]
-blocks: []
+blocks: ["CDI-007"]
 github_issue: "https://github.com/mathrondot-collab/CDIdle/issues/6"
 related_docs: ["src/components/DungeonPanel.tsx", "src/utils/dungeonHelpers.ts"]
 ---
