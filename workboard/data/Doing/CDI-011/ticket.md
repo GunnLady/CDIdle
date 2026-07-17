@@ -1,7 +1,7 @@
 ---
 id: CDI-011
 title: Domaine heros/recrutement/progression
-status: Done
+status: Doing
 area: domain
 priority: P1
 size: L
