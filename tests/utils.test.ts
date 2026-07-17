@@ -193,6 +193,20 @@ describe("hero domain", () => {
     expect(leveled.xp).toBe(0);
     expect(leveled.xpNeeded).toBeGreaterThan(0);
   });
+
+  it("recovers part of the hero health after a level-up", () => {
+    const hero = makeHero({ id: "hero-hp", currentHp: 1 });
+    const leveled = addHeroExperience(hero, hero.xpNeeded, seededRng(7));
+    expect(leveled.currentHp).toBeGreaterThan(hero.currentHp);
+    expect(leveled.currentHp).toBeLessThanOrEqual(leveled.calculatedStats.maxHp);
+  });
+
+  it("does not evolve a Novice without an eligible profession building", () => {
+    const hero = makeHero({ id: "hero-novice", level: 9, xp: 0, xpNeeded: 100 });
+    const leveled = addHeroExperience(hero, 100, seededRng(7), {});
+    expect(leveled.level).toBe(10);
+    expect(leveled.classType).toBe("Novice");
+  });
 });
 
 describe("API command contracts", () => {
