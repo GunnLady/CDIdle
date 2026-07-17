@@ -1,7 +1,7 @@
 ---
 id: CDI-010
 title: Domaine ville/citoyens/districts
-status: Later
+status: Doing
 area: domain
 priority: P1
 size: L
