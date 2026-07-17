@@ -6,7 +6,7 @@ area: domain
 priority: P2
 size: M
 risk: medium
-source: Extension utilisateur hors premiere vague
+source: Extension utilisateur hors tickets P1
 depends_on: ["CDI-011"]
 blocks: []
 github_issue: null
@@ -43,9 +43,9 @@ depassement du niveau 10.
 ## Hors perimetre
 
 - Ne pas modifier les classes, batiments ou statistiques de base.
-- Ne pas bloquer la premiere vague de tickets.
+- Ne pas bloquer les tickets P1.
 
-## Contrat d implementation
+## Contrat d'implementation
 
 - La formule choisie est documentee et deterministe.
 - Aucun Novice n est force vers une classe indisponible.
@@ -53,9 +53,9 @@ depassement du niveau 10.
 
 ## Dependances
 
-CDI-011 doit etre termine. Ce ticket est additionnel et hors premiere vague.
+CDI-011 doit etre termine. Ce ticket est additionnel et ne bloque pas les tickets P1.
 
-## Criteres d acceptation
+## Criteres d'acceptation
 
 - [ ] Une formule de poids ou de seuil est choisie et justifiee.
 - [ ] Les cas sans classe admissible restent en attente sans erreur.
