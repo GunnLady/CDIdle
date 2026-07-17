@@ -115,7 +115,6 @@ export const getBuildingMaxLevel = (buildingId: string): number => {
     case "maison_chef": // Maison du chef
     case "guilde":      // Campement (was guilde)
     return 5;
-    case "guilde":      // Campement (was guilde)
     case "academie":    // Atelier d'arcane (was caserne)
     case "temple":      // Église (was temple)
     case "cercle":      // Cercle druidique (was academie)      

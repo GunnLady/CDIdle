@@ -15,6 +15,7 @@ import {
   selectBestHeroForEncounter,
 } from "../src/utils/dungeonHelpers";
 import type { Hero } from "../src/types";
+import { getBuildingMaxLevel } from "../src/data/buildings";
 import { makeCitizens, makeHero, makeStoredItem } from "./fixtures/game";
 
 const hero = (id: string, strength: number, agility: number): Hero => ({
@@ -37,7 +38,13 @@ const hero = (id: string, strength: number, agility: number): Hero => ({
 } as unknown as Hero);
 
 describe("gameCalculations", () => {
-  it.todo("CDI-005 : verrouiller la limite du Campement et supprimer la branche guilde morte");
+  it("respecte les niveaux maximums des batiments", () => {
+    expect(getBuildingMaxLevel("habitation")).toBe(10);
+    expect(getBuildingMaxLevel("maison_chef")).toBe(5);
+    expect(getBuildingMaxLevel("guilde")).toBe(5);
+    expect(getBuildingMaxLevel("forge")).toBe(1);
+    expect(getBuildingMaxLevel("inconnu")).toBe(10);
+  });
   it("calcule l'XP de base et applique le multiplicateur de classe", () => {
     expect(calculateXpNeeded(1, "Novice")).toBe(100);
     expect(calculateXpNeeded(2, "Novice")).toBe(100);
