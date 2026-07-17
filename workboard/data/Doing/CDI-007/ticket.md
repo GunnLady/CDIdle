@@ -1,7 +1,7 @@
 ---
 id: CDI-007
 title: GameStateV1 canonique
-status: Later
+status: Doing
 area: domain
 priority: P1
 size: L
@@ -74,4 +74,3 @@ Une implementation trop large creerait des dependances implicites.
 ## Handoff
 
 Fournir fichiers, commandes, resultats, risques residuels et decisions a transmettre.
-
