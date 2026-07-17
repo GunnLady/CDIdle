@@ -1,7 +1,7 @@
 ---
 id: CDI-008
 title: Contrats API et commandes
-status: Doing
+status: Done
 area: domain
 priority: P1
 size: L
@@ -48,9 +48,9 @@ Ce ticket depend de : ["CDI-007"].
 
 ## Criteres d'acceptation
 
-- [ ] Le perimetre est implemente sans regression hors domaine.
-- [ ] Les invariants sont couverts par des tests reproductibles.
-- [ ] Les preuves et la documentation sont fournies.
+- [x] Le perimetre est implemente sans regression hors domaine.
+- [x] Les invariants sont couverts par des tests reproductibles.
+- [x] Les preuves et la documentation sont fournies.
 
 ## Tests
 
