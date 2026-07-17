@@ -1,7 +1,7 @@
 ---
 id: CDI-005
 title: Corriger le niveau maximal de guilde
-status: Doing
+status: Done
 area: gameplay
 priority: P1
 size: S
