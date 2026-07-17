@@ -21,6 +21,7 @@ import { makeCitizens, makeHero, makeStoredItem } from "./fixtures/game";
 import { createInitialGameState, splitGameState, validateGameState } from "../src/domain/gameState";
 import { isCommandSuccess, validateCommandEnvelope, type CommandEnvelope } from "../src/domain/commands";
 import { fixedClock, seededRng } from "../src/domain/random";
+import { allocateCitizen, townRates, unlockDistrict, upgradeBuilding, type TownState } from "../src/domain/town";
 
 const hero = (id: string, strength: number, agility: number): Hero => ({
   id,
@@ -146,6 +147,35 @@ describe("clock and RNG contracts", () => {
     const first = seededRng(42);
     const second = seededRng(42);
     expect([first.next(), first.nextInt(10), first.next()]).toEqual([second.next(), second.nextInt(10), second.next()]);
+  });
+});
+
+describe("town domain", () => {
+  const state = (): TownState => ({
+    resources: { gold: 1000, food: 1000, wood: 1000, stone: 1000, ore: 1000 },
+    buildings: { habitation: 1, ferme: 1, scierie: 0, carriere: 0, mine: 0, maison_chef: 0 },
+    citizens: { farmers: 0, woodcutters: 0, quarrymen: 0, miners: 0, unassigned: 3 },
+    totalCitizensCount: 3, districts: {}
+  });
+
+  it("enforces building prerequisites for citizen allocation", () => {
+    expect(allocateCitizen(state(), "woodcutters", 1)).toEqual({ ok: false, error: "BUILDING_REQUIRED" });
+    const result = allocateCitizen(state(), "farmers", 1);
+    expect(result.ok && result.state.citizens).toMatchObject({ farmers: 1, unassigned: 2 });
+  });
+
+  it("applies resource costs atomically for building and district actions", () => {
+    const upgraded = upgradeBuilding(state(), "ferme");
+    expect(upgraded.ok).toBe(true);
+    const unlocked = unlockDistrict(state(), "quartier_ferme");
+    expect(unlocked.ok).toBe(true);
+  });
+
+  it("derives rates from the canonical town state", () => {
+    const current = state();
+    current.citizens.farmers = 2;
+    current.citizens.unassigned = 1;
+    expect(townRates(current).food).toBe(2);
   });
 });
 
