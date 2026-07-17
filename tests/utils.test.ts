@@ -24,6 +24,7 @@ import { fixedClock, seededRng } from "../src/domain/random";
 import { allocateCitizen, townRates, unlockDistrict, upgradeBuilding, type TownState } from "../src/domain/town";
 import { addHeroExperience, canActivateHero, dismissHero, recruitmentCost, recruitmentEligibility } from "../src/domain/hero";
 import { addStack, removeStack, type InventoryState } from "../src/domain/inventory";
+import { applyUpgradeCost, startBasicCraft } from "../src/domain/forge";
 
 const hero = (id: string, strength: number, agility: number): Hero => ({
   id,
@@ -229,6 +230,25 @@ describe("inventory domain", () => {
     expect(removeStack(added.state, "wooden_sword", "common", 3)).toEqual({ ok: false, error: "ITEM_NOT_FOUND" });
     const removed = removeStack(added.state, "wooden_sword", "common", 1);
     expect(removed.ok && removed.state.storedItems[0].count).toBe(1);
+  });
+});
+
+describe("forge domain", () => {
+  it("rejects locked or underfunded craft without mutating materials", () => {
+    const materials = [{ materialId: "metal_scrap", rarity: "common" as const, count: 6 }];
+    expect(startBasicCraft(materials, false, true)).toEqual({ ok: false, error: "FORGE_LOCKED" });
+    expect(startBasicCraft(materials, true, true)).toEqual({ ok: false, error: "INSUFFICIENT_MATERIALS" });
+    expect(materials[0].count).toBe(6);
+  });
+
+  it("consumes only the selected upgrade cost", () => {
+    const materials = [
+      { materialId: "refined_metal", rarity: "uncommon" as const, count: 3 },
+      { materialId: "enchanted_fragment", rarity: "rare" as const, count: 1 }
+    ];
+    const result = applyUpgradeCost(materials, "uncommon");
+    expect(result.ok && result.materials[0].count).toBe(1);
+    expect(materials[0].count).toBe(3);
   });
 });
 
