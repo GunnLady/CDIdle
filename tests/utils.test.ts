@@ -11,6 +11,7 @@ import {
 } from "../src/utils/gameCalculations";
 import {
   getEncounterDetails,
+  getEncounterStatPresentation,
   rollEncounterForgeMaterial,
   selectBestHeroForEncounter,
 } from "../src/utils/dungeonHelpers";
@@ -89,7 +90,19 @@ describe("gameCalculations", () => {
 });
 
 describe("dungeonHelpers", () => {
-  it.todo("CDI-006 : comparer les six libellés UI aux couples canoniques");
+  it("derive les six presentations UI depuis les couples canoniques", () => {
+    const cases = [
+      ["trap", "agi", "dex", "AGI", "DEX"],
+      ["enigma", "int", "wiz", "INT", "SAG"],
+      ["ambush", "agi", "luk", "AGI", "CHA"],
+      ["ritual", "dex", "wiz", "DEX", "SAG"],
+      ["obstacle", "str", "agi", "FOR", "AGI"],
+      ["negotiation", "wiz", "luk", "SAG", "CHA"],
+    ] as const;
+    for (const [type, statA, statB, labelA, labelB] of cases) {
+      expect(getEncounterStatPresentation(type)).toMatchObject({ statA, statB, labelA, labelB });
+    }
+  });
   it("retourne les statistiques attendues pour un piège", () => {
     expect(getEncounterDetails("trap")).toMatchObject({ statA: "agi", statB: "dex" });
   });

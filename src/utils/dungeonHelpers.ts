@@ -152,6 +152,30 @@ export function getEncounterDetails(type: DungeonEncounterType) {
   }
 }
 
+const ENCOUNTER_STAT_LABELS = {
+  str: { short: "FOR", icon: "⚔️" },
+  agi: { short: "AGI", icon: "⚡" },
+  end: { short: "END", icon: "🛡️" },
+  int: { short: "INT", icon: "🧠" },
+  wiz: { short: "SAG", icon: "🔮" },
+  dex: { short: "DEX", icon: "🎯" },
+  luk: { short: "CHA", icon: "🍀" },
+} as const;
+
+export function getEncounterStatPresentation(type: DungeonEncounterType) {
+  const details = getEncounterDetails(type);
+  if (!details) return null;
+  const first = ENCOUNTER_STAT_LABELS[details.statA];
+  const second = ENCOUNTER_STAT_LABELS[details.statB];
+  return {
+    statA: details.statA,
+    statB: details.statB,
+    labelA: first.short,
+    labelB: second.short,
+    stats: `${first.icon} ${first.short} + ${second.icon} ${second.short}`,
+  };
+}
+
 export function selectBestHeroForEncounter(
   slayers: Hero[],
   statA: "str" | "agi" | "end" | "int" | "wiz" | "dex" | "luk",

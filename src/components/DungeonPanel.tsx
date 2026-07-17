@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { Hero, Monster, BattleLogEntry, DungeonEncounterType } from "../types";
 import { getHeroAttributes } from "../utils/gameCalculations";
+import { getEncounterDetails, getEncounterStatPresentation } from "../utils/dungeonHelpers";
 
 interface DungeonPanelProps {
   heroes: Hero[];
@@ -207,7 +208,7 @@ export default function DungeonPanel({
     }
   };
 
-  const getEncounterUIInfo = (type: DungeonEncounterType) => {
+  const getEncounterUIInfoLegacy = (type: DungeonEncounterType) => {
     switch (type) {
       case "trap":
         return { name: "Salle Piégée", emoji: "⚙️", stats: "⚡ AGI + 🎯 DEX", color: "text-amber-400 border-amber-900/40 bg-amber-950/10" };
@@ -228,6 +229,12 @@ export default function DungeonPanel({
       default:
         return { name: "Épreuve Inconnue", emoji: "❓", stats: "???", color: "text-slate-400 border-slate-900 bg-slate-950/10" };
     }
+  };
+
+  const getEncounterUIInfo = (type: DungeonEncounterType) => {
+    const info = getEncounterUIInfoLegacy(type);
+    const presentation = getEncounterStatPresentation(type);
+    return presentation ? { ...info, stats: presentation.stats } : info;
   };
 
   interface RoomGroup {
@@ -419,45 +426,34 @@ export default function DungeonPanel({
     }
     
     // STAT CHECK EVENT (TRAP, ENIGMA, AMBUSH, RITUAL, OBSTACLE, NEGOTIATION)
-    let statA = "agi";
-    let statB = "dex";
+    const encounterDetails = getEncounterDetails(type);
+    let statA = encounterDetails?.statA ?? "agi";
+    let statB = encounterDetails?.statB ?? "dex";
     let desc = "";
     let dangerMsg = "";
     let successMsg = "";
     
     if (type === "trap") {
-      statA = "agi";
-      statB = "dex";
       desc = "Un grincement sinistre résonne : des lames circulaires et des dards empoisonnés menacent de découper l'escouade.";
       dangerMsg = "Échec : L'escouade subit de cuisants dégâts de piège (45% PV perdus !).";
       successMsg = "Réussite : Évite le piège, gagne de l'expérience et des matériaux de forge.";
     } else if (type === "enigma") {
-      statA = "int";
-      statB = "wis";
       desc = "Une imposante porte runique bloque l'accès, exigeant la résolution d'une formule astrale gravée sur la pierre.";
       dangerMsg = "Échec : La décharge runique draine l'énergie magique (-10 PM à toute l'équipe).";
       successMsg = "Réussite : Ouvre la porte, gagne de l'Or, de l'expérience et +15 PM.";
     } else if (type === "ambush") {
-      statA = "agi";
-      statB = "cha";
       desc = "Des bandits se tapissent dans les ombres des arches, prêts à fondre sur votre expédition sans crier gare.";
       dangerMsg = "Échec : Embuscade réussie ! Vos héros subissent des blessures (20% PV perdus).";
       successMsg = "Réussite : Repère l'embuscade et pille les cachettes des bandits (+Or bonus).";
     } else if (type === "ritual") {
-      statA = "dex";
-      statB = "wis";
       desc = "Un autel mystique pulse d'une magie chaotique instable, prête à éclater ou à régénérer vos esprits.";
       dangerMsg = "Échec : Retour de flamme magique (-15 PM et 10% PV perdus).";
       successMsg = "Réussite : Stabilise les flux cosmiques, restaurant le mana du groupe.";
     } else if (type === "obstacle") {
-      statA = "str";
-      statB = "agi";
       desc = "Un colossal éboulement obstrue la voie. Il faut déplacer de lourds blocs rocheux ou escalader avec agilité.";
       dangerMsg = "Échec : Épuisement général et écorchures (20% PV perdus).";
       successMsg = "Réussite : Dégage la voie avec brio, gagne de l'Exp et des matériaux.";
     } else if (type === "negotiation") {
-      statA = "wis";
-      statB = "cha";
       desc = "Une entité spectrale exige un lourd tribut ou accepte de marchander des faveurs contre une diplomatie habile.";
       dangerMsg = "Échec : L'entité hostile dérobe 20 Or avant de s'évanouir dans les limbes.";
       successMsg = "Réussite : Convainc le spectre et obtient une bourse d'Or substantielle.";
