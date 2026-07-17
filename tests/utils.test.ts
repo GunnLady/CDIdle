@@ -22,6 +22,7 @@ import { createInitialGameState, splitGameState, validateGameState } from "../sr
 import { isCommandSuccess, validateCommandEnvelope, type CommandEnvelope } from "../src/domain/commands";
 import { fixedClock, seededRng } from "../src/domain/random";
 import { allocateCitizen, townRates, unlockDistrict, upgradeBuilding, type TownState } from "../src/domain/town";
+import { addHeroExperience, recruitmentCost } from "../src/domain/hero";
 
 const hero = (id: string, strength: number, agility: number): Hero => ({
   id,
@@ -176,6 +177,21 @@ describe("town domain", () => {
     current.citizens.farmers = 2;
     current.citizens.unassigned = 1;
     expect(townRates(current).food).toBe(2);
+  });
+});
+
+describe("hero domain", () => {
+  it("calculates recruitment costs predictably", () => {
+    expect(recruitmentCost(0)).toBe(100);
+    expect(recruitmentCost(3)).toBe(550);
+  });
+
+  it("levels heroes with an injected deterministic RNG", () => {
+    const hero = makeHero({ id: "hero-1" });
+    const leveled = addHeroExperience(hero, hero.xpNeeded, seededRng(7));
+    expect(leveled.level).toBe(hero.level + 1);
+    expect(leveled.xp).toBe(0);
+    expect(leveled.xpNeeded).toBeGreaterThan(0);
   });
 });
 
