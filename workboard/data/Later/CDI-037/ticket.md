@@ -57,3 +57,55 @@ dépend implicitement de l’horloge ou de l’aléatoire global.
 
 Les contrats CDI-009 et les domaines CDI-010 à CDI-016 doivent être disponibles
 avant l’audit final.
+
+## Resultat utilisateur
+
+Le domaine est reproductible en test et aucune mutation metier ne depend
+implicitement de l horloge ou de l aleatoire global.
+
+## Contexte
+
+CDI-009 fournit les contrats injectables ; ce ticket verifie leur adoption
+complete apres migration des domaines.
+
+## Perimetre autorise
+
+- Auditer les acces directs et migrer les appels metier.
+- Ajouter les controles et tests deterministes necessaires.
+
+## Hors perimetre
+
+- Ne pas changer les probabilites ni reecrire le gameplay.
+- Ne pas implementer la persistance serveur de la graine.
+
+## Contrat d'implementation
+
+- Les dependances non deterministes sont explicites et injectees.
+- Les frontieres systeme sont les seules a fournir l heure et l aleatoire reels.
+
+## Dependances
+
+Les contrats CDI-009 et les domaines CDI-010 a CDI-016 doivent etre disponibles.
+
+## Criteres d'acceptation
+
+- [ ] L inventaire des usages est documente et chaque usage est classe.
+- [ ] Les domaines concernes recoivent `Clock`/`Rng` explicitement.
+- [ ] Les tests metier sont reproductibles avec une horloge et une graine controlees.
+- [ ] La CI detecte les nouveaux acces interdits dans le domaine.
+
+## Validation manuelle
+
+Verifier qu un meme seed et une meme horloge rejouent les memes mutations.
+
+## Preservation
+
+Conserver les probabilites et les contrats fonctionnels existants.
+
+## Risques
+
+Une migration partielle pourrait laisser des divergences entre domaines.
+
+## Handoff
+
+Fournir l inventaire, les usages migres et les exceptions justifiees.

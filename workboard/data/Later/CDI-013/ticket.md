@@ -8,7 +8,7 @@ size: L
 risk: medium
 source: Plan fullstack autoritaire approuve le 2026-07-15
 depends_on: ["CDI-009", "CDI-012"]
-blocks: ["CDI-028"]
+blocks: ["CDI-028", "CDI-037"]
 github_issue: null
 related_docs: ["docs/fullstack-authoritative-plan.md"]
 ---
@@ -74,4 +74,3 @@ Une implementation trop large creerait des dependances implicites.
 ## Handoff
 
 Fournir fichiers, commandes, resultats, risques residuels et decisions a transmettre.
-
