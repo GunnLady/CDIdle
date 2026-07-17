@@ -10,7 +10,7 @@ source: Plan fullstack autoritaire approuve le 2026-07-15
 depends_on: ["CDI-007"]
 blocks: ["CDI-013", "CDI-015", "CDI-027", "CDI-037"]
 github_issue: null
-related_docs: ["docs/fullstack-authoritative-plan.md", "docs/architecture/inventory-domain.md"]
+related_docs: ["docs/fullstack-authoritative-plan.md", "docs/architecture/inventory-domain.md", "docs/architecture/inventory-equipment-audit.md"]
 ---
 
 # CDI-012 — Domaine inventaire/equipement
