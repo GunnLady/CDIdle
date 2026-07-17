@@ -23,6 +23,7 @@ import { isCommandSuccess, validateCommandEnvelope, type CommandEnvelope } from 
 import { fixedClock, seededRng } from "../src/domain/random";
 import { allocateCitizen, townRates, unlockDistrict, upgradeBuilding, type TownState } from "../src/domain/town";
 import { addHeroExperience, canActivateHero, dismissHero, recruitmentCost, recruitmentEligibility } from "../src/domain/hero";
+import { addStack, removeStack, type InventoryState } from "../src/domain/inventory";
 
 const hero = (id: string, strength: number, agility: number): Hero => ({
   id,
@@ -215,6 +216,19 @@ describe("hero domain", () => {
     expect(canActivateHero(makeHero({ currentHp: 0 }), 0)).toBe(false);
     expect(canActivateHero(makeHero({ currentHp: 10 }), 4)).toBe(false);
     expect(dismissHero([makeHero({ id: "a" }), makeHero({ id: "b" })], "a")).toHaveLength(1);
+  });
+});
+
+describe("inventory domain", () => {
+  const state: InventoryState = { heroes: [], storedItems: [] };
+  it("adds and removes stacks atomically", () => {
+    const added = addStack(state, "wooden_sword", "common", 2);
+    expect(added.ok).toBe(true);
+    expect(state.storedItems).toEqual([]);
+    if (!added.ok) return;
+    expect(removeStack(added.state, "wooden_sword", "common", 3)).toEqual({ ok: false, error: "ITEM_NOT_FOUND" });
+    const removed = removeStack(added.state, "wooden_sword", "common", 1);
+    expect(removed.ok && removed.state.storedItems[0].count).toBe(1);
   });
 });
 
