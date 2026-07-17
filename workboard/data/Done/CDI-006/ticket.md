@@ -1,7 +1,7 @@
 ---
 id: CDI-006
 title: Aligner les statistiques affichees du Donjon
-status: Later
+status: Done
 area: gameplay
 priority: P1
 size: S
