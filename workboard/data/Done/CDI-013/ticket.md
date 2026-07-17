@@ -1,7 +1,7 @@
 ---
 id: CDI-013
 title: Domaine forge/recyclage
-status: Doing
+status: Done
 area: domain
 priority: P1
 size: L
