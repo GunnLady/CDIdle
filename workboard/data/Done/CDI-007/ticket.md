@@ -1,7 +1,7 @@
 ---
 id: CDI-007
 title: GameStateV1 canonique
-status: Doing
+status: Done
 area: domain
 priority: P1
 size: L
