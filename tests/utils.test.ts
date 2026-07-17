@@ -19,6 +19,7 @@ import type { Hero } from "../src/types";
 import { getBuildingMaxLevel } from "../src/data/buildings";
 import { makeCitizens, makeHero, makeStoredItem } from "./fixtures/game";
 import { createInitialGameState, splitGameState, validateGameState } from "../src/domain/gameState";
+import { isCommandSuccess, validateCommandEnvelope, type CommandEnvelope } from "../src/domain/commands";
 
 const hero = (id: string, strength: number, agility: number): Hero => ({
   id,
@@ -116,6 +117,38 @@ describe("GameStateV1", () => {
       "activeDungeonRoom must be an integer between 1 and 50",
       "citizen allocations must equal totalCitizensCount"
     ]));
+  });
+});
+
+describe("API command contracts", () => {
+  it("validates revision and idempotency metadata", () => {
+    const envelope: CommandEnvelope = {
+      commandId: "cmd-1", idempotencyKey: "idem-1", expectedRevision: 4,
+      command: { type: "building.upgrade", buildingId: "habitation" }
+    };
+    expect(validateCommandEnvelope(envelope)).toEqual([]);
+    expect(isCommandSuccess({ ok: true, revision: 5, state: {}, commandId: "cmd-1", replayed: false })).toBe(true);
+  });
+
+  it("returns field-level errors for malformed envelopes", () => {
+    const errors = validateCommandEnvelope({ commandId: "", idempotencyKey: "", expectedRevision: -1, command: {} as never });
+    expect(errors.map((error) => error.field)).toEqual(expect.arrayContaining(["commandId", "idempotencyKey", "expectedRevision", "command.type"]));
+  });
+});
+
+describe("API command contracts", () => {
+  it("validates revision and idempotency metadata", () => {
+    const envelope: CommandEnvelope = {
+      commandId: "cmd-1", idempotencyKey: "idem-1", expectedRevision: 4,
+      command: { type: "building.upgrade", buildingId: "habitation" }
+    };
+    expect(validateCommandEnvelope(envelope)).toEqual([]);
+    expect(isCommandSuccess({ ok: true, revision: 5, state: {}, commandId: "cmd-1", replayed: false })).toBe(true);
+  });
+
+  it("returns field-level errors for malformed envelopes", () => {
+    const errors = validateCommandEnvelope({ commandId: "", idempotencyKey: "", expectedRevision: -1, command: {} as never });
+    expect(errors.map((error) => error.field)).toEqual(expect.arrayContaining(["commandId", "idempotencyKey", "expectedRevision", "command.type"]));
   });
 });
 
