@@ -1,7 +1,7 @@
 ---
 id: CDI-004
 title: Hygiene dependances et configuration
-status: Later
+status: Done
 area: tooling
 priority: P1
 size: M
@@ -57,11 +57,11 @@ CDI-003 doit etre `Done` afin que chaque nettoyage soit protege par la CI standa
 
 ## Criteres d'acceptation
 
-- [ ] Toutes les dependances restantes ont un usage documentable.
-- [ ] L'application se construit avec une configuration fournie par `.env.example`.
-- [ ] Aucun secret serveur n'est present dans le depot ou le bundle.
-- [ ] Firebase continue de fonctionner comme avant jusqu'au cutover planifie.
-- [ ] Les artefacts supprimes n'ont aucun consommateur.
+- [x] Toutes les dependances restantes ont un usage documentable.
+- [x] L'application se construit avec une configuration fournie par `.env.example`.
+- [x] Aucun secret serveur n'est present dans le depot ou le bundle.
+- [x] Firebase continue de fonctionner comme avant jusqu'au cutover planifie.
+- [x] Les artefacts supprimes n'ont aucun consommateur.
 
 ## Tests
 
@@ -85,4 +85,4 @@ CDI-003 doit etre `Done` afin que chaque nettoyage soit protege par la CI standa
 
 ## Handoff
 
-Fournir la matrice dependance vers usage/preuve, les fichiers de configuration touches, les commandes executees et toute dependance conservee par prudence.
+Fournir la matrice dependance vers usage/preuve, les fichiers de configuration touches, les commandes executees et toute dependance conservee par prudence. Resultat : six candidates inutilisees retirees, Firebase externalise via VITE_FIREBASE_*, artefacts AI Studio supprimes, check et audit production OK.

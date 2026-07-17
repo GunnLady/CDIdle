@@ -2,20 +2,24 @@ import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
-// Configuration loaded from firebase-applet-config.json
 const firebaseConfig = {
-  apiKey: "[REDACTED-REVOKE-ME]",
-  authDomain: "majestic-fragment-0jlsj.firebaseapp.com",
-  projectId: "majestic-fragment-0jlsj",
-  storageBucket: "majestic-fragment-0jlsj.firebasestorage.app",
-  messagingSenderId: "1002054909655",
-  appId: "1:1002054909655:web:a037c95fed75fd4212fa92"
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
 };
+
+const missingConfig = Object.entries(firebaseConfig)
+  .filter(([, value]) => !value)
+  .map(([key]) => key);
+if (import.meta.env.DEV && missingConfig.length > 0) {
+  throw new Error(`Configuration Firebase manquante: ${missingConfig.join(", ")}. Copiez .env.example vers .env.local.`);
+}
 
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
-
-// Initialize Firestore on the custom database id
 export const db = getFirestore(app, "ai-studio-816036e6-d0e7-466c-96c3-50e874ec98eb");
 
 export default app;
