@@ -18,6 +18,7 @@ import {
 import type { Hero } from "../src/types";
 import { getBuildingMaxLevel } from "../src/data/buildings";
 import { makeCitizens, makeHero, makeStoredItem } from "./fixtures/game";
+import { createInitialGameState, splitGameState, validateGameState } from "../src/domain/gameState";
 
 const hero = (id: string, strength: number, agility: number): Hero => ({
   id,
@@ -86,6 +87,35 @@ describe("gameCalculations", () => {
     const unequipped = unequipItem(equipped, storage, "mainHand");
     expect(unequipped.equipment?.mainHand).toBeNull();
     expect(storage).toHaveLength(1);
+  });
+});
+
+describe("GameStateV1", () => {
+  it("creates a valid isolated initial state", () => {
+    const state = createInitialGameState();
+    expect(validateGameState(state)).toEqual([]);
+    expect(state.totalCitizensCount).toBe(3);
+    expect(state.activeDungeonRoom).toBe(1);
+    state.resources.gold = 0;
+    expect(createInitialGameState().resources.gold).toBe(75);
+  });
+
+  it("separates persistent data from runtime-only combat data", () => {
+    const state = createInitialGameState();
+    const split = splitGameState(state);
+    expect(split.persistent).not.toHaveProperty("battleLogs");
+    expect(split.persistent).not.toHaveProperty("currentMonster");
+    expect(split.transient).toMatchObject({ combatTimer: 2, autoExplore: true });
+  });
+
+  it("reports broken invariants with actionable paths", () => {
+    const state = createInitialGameState();
+    state.activeDungeonRoom = 51;
+    state.citizens.unassigned = 0;
+    expect(validateGameState(state)).toEqual(expect.arrayContaining([
+      "activeDungeonRoom must be an integer between 1 and 50",
+      "citizen allocations must equal totalCitizensCount"
+    ]));
   });
 });
 
