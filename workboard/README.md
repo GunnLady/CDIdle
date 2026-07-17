@@ -49,9 +49,29 @@ workboard/data/
 npm run board:validate
 ```
 
+## Creation par API
+
+`POST /api/tickets` accepte soit `{ "markdown": "..." }`, soit un ticket
+structure avec `id`, `title`, `status`, `area`, `priority`, `size`, `risk`,
+`source`, `depends_on`, `blocks`, `related_docs` et un objet `sections`.
+Le serveur genere les sections manquantes, ecrit le fichier puis refuse toute
+creation qui rendrait le Workboard invalide.
+
 Le validateur controle les champs et sections obligatoires, les identifiants,
 les chemins, le graphe de dependances, les cycles, les liens `blocks`, les
 statuts executables et la limite WIP.
+
+## Promotion Git et CI
+
+Un ticket ne peut passer en `Done` qu'apres :
+
+1. execution locale de `npm run check` et des tests propres au ticket ;
+2. commit Git dedie contenant uniquement le perimetre du ticket ;
+3. push de la branche vers le depot distant ;
+4. CI GitHub verte sur le commit pousse.
+
+Le handoff doit fournir le hash du commit, le lien du push ou de la PR et le
+resultat de la CI. Une erreur CI laisse le ticket en `Doing` ou `Paused`.
 
 ## Synchronisation GitHub
 

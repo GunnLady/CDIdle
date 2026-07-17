@@ -177,8 +177,8 @@ export async function saveTicketMarkdown(id, markdown) {
   return findTicket(id);
 }
 
-export async function createTicket(markdown) {
-  if (typeof markdown !== "string") throw boardError(400, "markdown doit etre une chaine");
+export async function createTicket(input) {
+  const markdown = typeof input === "string" ? input : structuredTicketMarkdown(input);
   const preview = parseTicket(markdown, "Later", "preview");
   const id = preview.metadata.id;
   const status = preview.metadata.status;
@@ -195,6 +195,41 @@ export async function createTicket(markdown) {
     throw boardError(400, validation.errors.join("\n"));
   }
   return findTicket(id);
+}
+
+function structuredTicketMarkdown(ticket) {
+  if (!ticket || typeof ticket !== "object") throw boardError(400, "ticket doit etre un objet ou un markdown");
+  const required = ["id", "title", "status", "area", "priority", "size", "risk", "source"];
+  const missing = required.filter((field) => !String(ticket[field] ?? "").trim());
+  if (missing.length) throw boardError(400, `champs manquants: ${missing.join(", ")}`);
+  const list = (value) => Array.isArray(value) ? value : [];
+  const sections = ticket.sections && typeof ticket.sections === "object" ? ticket.sections : {};
+  const defaults = {
+    "Objectif": "A definir.",
+    "Resultat utilisateur": "A definir.",
+    "Contexte": "A definir.",
+    "Perimetre autorise": "- A definir.",
+    "Hors perimetre": "- A definir.",
+    "Contrat d'implementation": "- A definir.",
+    "Dependances": list(ticket.depends_on).length ? list(ticket.depends_on).map((id) => `- ${id}`).join("\\n") : "Aucune.",
+    "Criteres d'acceptation": "- [ ] A definir.",
+    "Tests": "- npm test -- --run\\n- npm run board:validate",
+    "Validation manuelle": "A definir.",
+    "Preservation": "- A definir.",
+    "Risques": "- A definir.",
+    "Handoff": "Fournir les fichiers modifies, les commandes executees et leurs resultats.",
+  };
+  const metadata = [
+    ["id", ticket.id], ["title", ticket.title], ["status", ticket.status],
+    ["area", ticket.area], ["priority", ticket.priority], ["size", ticket.size],
+    ["risk", ticket.risk], ["source", ticket.source],
+    ["depends_on", list(ticket.depends_on)], ["blocks", list(ticket.blocks)],
+    ["github_issue", ticket.github_issue ?? null], ["related_docs", list(ticket.related_docs)],
+  ];
+  const scalar = (value) => typeof value === "string" ? value.replace(/\n/g, " ") : JSON.stringify(value);
+  const frontmatter = metadata.map(([key, value]) => `${key}: ${Array.isArray(value) ? JSON.stringify(value) : scalar(value)}`).join("\\n");
+  const body = REQUIRED_SECTIONS.map((name) => `## ${name}\\n\\n${String(sections[name] ?? defaults[name]).trim()}`).join("\\n\\n");
+  return `---\\n${frontmatter}\\n---\\n\\n# ${ticket.id} — ${ticket.title}\\n\\n${body}\\n`;
 }
 
 export async function moveTicket(id, targetStatus) {

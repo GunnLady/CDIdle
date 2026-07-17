@@ -32,7 +32,7 @@ const server = http.createServer(async (request, response) => {
     }
     if (request.method === "POST" && url.pathname === "/api/tickets") {
       const body = await readJsonBody(request);
-      sendJson(response, { ticket: await createTicket(body.markdown) }, 201);
+      sendJson(response, { ticket: await createTicket(body.markdown ?? body.ticket ?? body) }, 201);
       return;
     }
     const ticketMatch = url.pathname.match(/^\/api\/tickets\/([^/]+)$/);

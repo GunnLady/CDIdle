@@ -15,9 +15,10 @@
       --muted: #91a5b7;
       --accent: #62d4b3;
       --danger: #ff7e8b;
+      --card: rgba(7,17,26,.88);
     }
     * { box-sizing: border-box; }
-    body { margin: 0; min-height: 100vh; background: radial-gradient(circle at 15% 0%, #143348 0, transparent 30%), #071018; }
+    body { margin: 0; height: 100vh; overflow: hidden; background: radial-gradient(circle at 15% 0%, #143348 0, transparent 30%), #071018; }
     header { display: flex; align-items: center; gap: 16px; padding: 22px 28px 16px; position: sticky; top: 0; z-index: 3; backdrop-filter: blur(18px); background: rgba(7,16,24,.82); border-bottom: 1px solid var(--line); }
     h1 { font-size: 21px; margin: 0; letter-spacing: .02em; }
     .eyebrow { color: var(--accent); font-size: 11px; font-weight: 800; letter-spacing: .16em; text-transform: uppercase; }
@@ -29,22 +30,39 @@
     button:hover { border-color: var(--accent); }
     button.primary { color: #061611; background: var(--accent); border-color: var(--accent); }
     button.danger { color: #ffd7dc; border-color: #7d3441; background: #3a1720; }
-    #validation { margin: 16px 28px 0; padding: 10px 13px; border: 1px solid var(--line); border-radius: 10px; color: var(--muted); background: rgba(10, 24, 35, .72); }
+    #validation { margin: 0; padding: 10px 28px; border-bottom: 1px solid var(--line); color: var(--muted); background: rgba(10, 24, 35, .72); }
     #validation.ok { color: #91e6c9; border-color: rgba(98,212,179,.35); }
     #validation.error { color: #ffabb4; border-color: rgba(255,126,139,.45); }
-    main { display: grid; grid-template-columns: repeat(5, minmax(245px, 1fr)); gap: 14px; padding: 18px 28px 32px; overflow-x: auto; align-items: start; }
-    .column { min-height: calc(100vh - 170px); background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 12px; box-shadow: 0 16px 50px rgba(0,0,0,.18); }
+    .layout { display: grid; grid-template-columns: minmax(860px, 1fr) 430px; height: calc(100vh - 113px); min-height: 0; }
+    main { display: grid; grid-template-columns: repeat(5, minmax(245px, 1fr)); gap: 14px; padding: 18px; overflow: auto; align-items: start; border-right: 1px solid var(--line); }
+    .column { min-height: calc(100vh - 155px); background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 12px; box-shadow: 0 16px 50px rgba(0,0,0,.18); }
     .column-head { display: flex; align-items: center; margin-bottom: 12px; padding: 2px 3px; }
     .column h2 { font-size: 13px; margin: 0; letter-spacing: .08em; text-transform: uppercase; }
     .count { margin-left: auto; color: var(--muted); font-size: 12px; }
     .cards { display: grid; gap: 10px; }
-    .card { width: 100%; text-align: left; border: 1px solid var(--line); border-radius: 11px; padding: 12px; background: rgba(7,17,26,.88); box-shadow: 0 7px 22px rgba(0,0,0,.18); }
+    .card { width: 100%; text-align: left; border: 1px solid var(--line); border-left: 5px solid var(--accent); border-radius: 11px; padding: 12px; background: var(--card); box-shadow: 0 7px 22px rgba(0,0,0,.18); }
     .card:hover { transform: translateY(-1px); }
+    .card.selected { outline: 2px solid rgba(98,212,179,.35); border-color: rgba(98,212,179,.45); }
     .ticket-id { color: var(--accent); font-size: 11px; font-weight: 900; letter-spacing: .08em; }
-    .ticket-title { display: block; margin-top: 6px; line-height: 1.35; font-size: 14px; }
+    .ticket-title { display: block; margin-top: 6px; line-height: 1.25; font-size: 15px; }
+    .summary { display: block; margin-top: 8px; color: var(--muted); font-size: 12px; line-height: 1.35; font-weight: 500; }
     .meta { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 10px; }
     .pill { padding: 3px 6px; border-radius: 999px; color: var(--muted); background: #112534; font-size: 10px; }
     .empty { color: #607588; font-size: 12px; padding: 12px 3px; }
+    #details { min-height: 0; overflow: auto; padding: 18px 18px 88px; background: rgba(7,16,24,.92); }
+    .detail-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+    .detail-title { margin: 0 0 10px; font-size: 20px; line-height: 1.22; }
+    .detail-lead { margin: 0 0 16px; color: #c5d3df; line-height: 1.45; }
+    .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; margin: 12px 0 18px; }
+    .info { border: 1px solid var(--line); border-radius: 10px; padding: 10px; background: rgba(10,24,35,.72); min-width: 0; }
+    .label { display: block; margin-bottom: 6px; color: var(--muted); font-size: 11px; font-weight: 900; letter-spacing: .06em; text-transform: uppercase; }
+    .value { overflow-wrap: anywhere; font-size: 13px; }
+    .section { margin: 17px 0; }
+    .section h3 { margin: 0 0 8px; color: var(--accent); font-size: 12px; text-transform: uppercase; letter-spacing: .06em; }
+    .section-body { margin: 0; color: #dce6ee; white-space: pre-wrap; line-height: 1.45; font-size: 13px; }
+    #detailEditor { display: block; width: 100%; min-height: 320px; padding: 14px; resize: vertical; font-family: "Cascadia Code", Consolas, monospace; font-size: 12px; line-height: 1.5; }
+    .detail-actions { position: sticky; bottom: 0; display: flex; align-items: center; gap: 10px; margin: 18px -18px -88px; padding: 12px 18px; border-top: 1px solid var(--line); background: rgba(7,16,24,.96); }
+    .detail-empty { color: var(--muted); padding: 18px 0; }
     dialog { width: min(920px, calc(100vw - 32px)); height: min(830px, calc(100vh - 32px)); padding: 0; border: 1px solid #35546b; border-radius: 16px; color: #e8eef5; background: #0b1822; box-shadow: 0 30px 100px #000; }
     dialog::backdrop { background: rgba(1,7,12,.78); backdrop-filter: blur(5px); }
     .dialog-head, .dialog-actions { display: flex; align-items: center; gap: 10px; padding: 15px 17px; border-bottom: 1px solid var(--line); }
@@ -53,7 +71,7 @@
     #modalTitle { margin: 0; font-size: 16px; }
     #moveStatus { padding: 9px; }
     .error-message { color: var(--danger); white-space: pre-wrap; font-size: 12px; }
-    @media (max-width: 900px) { header { flex-wrap: wrap; } #search { width: 100%; order: 5; } main { grid-template-columns: repeat(5, 280px); } }
+    @media (max-width: 1180px) { .layout { grid-template-columns: 1fr; overflow: auto; } header { flex-wrap: wrap; } #search { width: 100%; order: 5; } main { grid-template-columns: repeat(5, 280px); min-height: 620px; border-right: 0; } #details { border-top: 1px solid var(--line); min-height: 560px; } }
   </style>
 </head>
 <body>
@@ -65,7 +83,10 @@
     <button id="newTicket" class="primary">Nouveau ticket</button>
   </header>
   <div id="validation">Chargement du Workboard...</div>
-  <main id="board"></main>
+  <div class="layout">
+    <main id="board"></main>
+    <aside id="details"><div class="detail-empty">Chargement du detail...</div></aside>
+  </div>
 
   <dialog id="dialog">
     <div class="dialog-head">
@@ -83,6 +104,7 @@
   <script type="module">
     const statuses = ["ToDo", "Doing", "Later", "Paused", "Done"];
     const boardElement = document.querySelector("#board");
+    const detailsElement = document.querySelector("#details");
     const validationElement = document.querySelector("#validation");
     const dialog = document.querySelector("#dialog");
     const editor = document.querySelector("#editor");
@@ -92,8 +114,12 @@
     const deleteButton = document.querySelector("#delete");
     const moveButton = document.querySelector("#move");
     let state = { columns: [] };
+    let selectedId = null;
     let selected = null;
     let mode = "edit";
+    let detailDirty = false;
+    let refreshTimer = null;
+    const AUTO_REFRESH_MS = 10000;
 
     moveStatus.innerHTML = statuses.map(status => `<option>${status}</option>`).join("");
     document.querySelector("#refresh").addEventListener("click", load);
@@ -105,10 +131,27 @@
     deleteButton.addEventListener("click", remove);
 
     await load();
+    startAutoRefresh();
+    document.addEventListener("visibilitychange", () => {
+      if (document.hidden) clearAutoRefresh();
+      else { load({ automatic: true }); startAutoRefresh(); }
+    });
 
-    async function load() {
+    function startAutoRefresh() {
+      clearAutoRefresh();
+      refreshTimer = setInterval(() => load({ automatic: true }), AUTO_REFRESH_MS);
+    }
+
+    function clearAutoRefresh() {
+      if (refreshTimer) { clearInterval(refreshTimer); refreshTimer = null; }
+    }
+
+    async function load({ automatic = false } = {}) {
+      if (automatic && (detailDirty || dialog.open)) return;
       try {
         state = await request("/api/board");
+        const tickets = allTickets();
+        if (!tickets.some(ticket => ticket.id === selectedId)) selectedId = tickets[0]?.id ?? null;
         renderValidation(state.validation);
         render();
       } catch (error) {
@@ -120,18 +163,126 @@
     function render() {
       const query = document.querySelector("#search").value.trim().toLowerCase();
       boardElement.innerHTML = state.columns.map(column => {
-        const tickets = column.tickets.filter(ticket => !query || `${ticket.id} ${ticket.title} ${ticket.metadata.area}`.toLowerCase().includes(query));
+        const tickets = column.tickets.filter(ticket => !query || `${ticket.id} ${ticket.title} ${ticket.metadata.area} ${ticket.markdown}`.toLowerCase().includes(query));
         return `<section class="column"><div class="column-head"><h2>${column.name}</h2><span class="count">${tickets.length}</span></div>
           <div class="cards">${tickets.map(card).join("") || '<div class="empty">Aucun ticket</div>'}</div></section>`;
       }).join("");
-      boardElement.querySelectorAll(".card").forEach(button => button.addEventListener("click", () => openTicket(button.dataset.id)));
+      boardElement.querySelectorAll(".card").forEach(button => button.addEventListener("click", () => selectTicket(button.dataset.id)));
+      renderDetails();
     }
 
     function card(ticket) {
-      return `<button class="card" data-id="${escapeHtml(ticket.id)}"><span class="ticket-id">${escapeHtml(ticket.id)}</span>
+      return `<button class="card ${ticket.id === selectedId ? "selected" : ""}" data-id="${escapeHtml(ticket.id)}"><span class="ticket-id">${escapeHtml(ticket.id)}</span>
         <strong class="ticket-title">${escapeHtml(ticket.title)}</strong><span class="meta">
         <span class="pill">${escapeHtml(ticket.metadata.priority)}</span><span class="pill">${escapeHtml(ticket.metadata.area)}</span>
-        <span class="pill">${escapeHtml(ticket.metadata.size)}</span></span></button>`;
+        <span class="pill">${escapeHtml(ticket.metadata.size)}</span></span>
+        <span class="summary">${escapeHtml(summary(ticket))}</span></button>`;
+    }
+
+    function selectTicket(id) {
+      selectedId = id;
+      render();
+    }
+
+    function renderDetails() {
+      detailDirty = false;
+      const ticket = allTickets().find(candidate => candidate.id === selectedId);
+      if (!ticket) {
+        detailsElement.innerHTML = '<div class="detail-empty">Selectionne un ticket pour voir ses sections.</div>';
+        return;
+      }
+      detailsElement.innerHTML = `<div class="detail-chips">
+          <span class="pill">${escapeHtml(ticket.id)}</span>
+          <span class="pill">${escapeHtml(ticket.status)}</span>
+          <span class="pill">${escapeHtml(ticket.metadata.area)}</span>
+          <span class="pill">${escapeHtml(ticket.metadata.priority)}</span>
+        </div>
+        <h2 class="detail-title">${escapeHtml(ticket.title)}</h2>
+        <p class="detail-lead">${escapeHtml(ticket.sections["Resultat utilisateur"] || ticket.sections.Objectif || "")}</p>
+        <div class="detail-grid">
+          ${info("Source", ticket.metadata.source)}
+          ${info("Dossier", ticket.folder)}
+        </div>
+        ${section("Objectif", ticket.sections.Objectif)}
+        ${section("Taches", taskBody(ticket))}
+        ${section("Criteres d'acceptation", ticket.sections["Criteres d'acceptation"])}
+        ${section("Tests", ticket.sections.Tests)}
+        ${section("Validation manuelle", ticket.sections["Validation manuelle"])}
+        ${section("Dependances", dependencies(ticket))}
+        <label class="label" for="detailEditor">Markdown</label>
+        <textarea id="detailEditor" spellcheck="false">${escapeHtml(ticket.markdown)}</textarea>
+        <div class="detail-actions">
+          <button id="detailDelete" class="danger">Supprimer</button>
+          <select id="detailStatus">${statuses.map(status => `<option ${status === ticket.status ? "selected" : ""}>${status}</option>`).join("")}</select>
+          <button id="detailMove">Deplacer</button>
+          <span id="detailError" class="error-message"></span>
+          <div class="spacer"></div>
+          <button id="detailRevert">Revert</button>
+          <button id="detailSave" class="primary">Save</button>
+        </div>`;
+      wireDetails(ticket);
+    }
+
+    function wireDetails(ticket) {
+      document.querySelector("#detailEditor").addEventListener("input", () => { detailDirty = true; });
+      document.querySelector("#detailSave").addEventListener("click", async () => {
+        try {
+          document.querySelector("#detailError").textContent = "";
+          await request(`/api/tickets/${encodeURIComponent(ticket.id)}`, { method: "PUT", body: JSON.stringify({ markdown: document.querySelector("#detailEditor").value }) });
+          await load();
+        } catch (error) { document.querySelector("#detailError").textContent = error.message; }
+      });
+      document.querySelector("#detailRevert").addEventListener("click", renderDetails);
+      document.querySelector("#detailMove").addEventListener("click", async () => {
+        try {
+          document.querySelector("#detailError").textContent = "";
+          await request(`/api/tickets/${encodeURIComponent(ticket.id)}/move`, { method: "POST", body: JSON.stringify({ status: document.querySelector("#detailStatus").value }) });
+          await load();
+        } catch (error) { document.querySelector("#detailError").textContent = error.message; }
+      });
+      document.querySelector("#detailDelete").addEventListener("click", async () => {
+        if (!confirm(`Supprimer definitivement ${ticket.id} ?`)) return;
+        try {
+          await request(`/api/tickets/${encodeURIComponent(ticket.id)}`, { method: "DELETE" });
+          selectedId = null;
+          await load();
+        } catch (error) { document.querySelector("#detailError").textContent = error.message; }
+      });
+    }
+
+    function summary(ticket) {
+      return firstLine(ticket.sections["Resultat utilisateur"] || ticket.sections.Objectif || "");
+    }
+
+    function taskBody(ticket) {
+      return [
+        ["Portee", ticket.sections["Perimetre autorise"]],
+        ["Implementation", ticket.sections["Contrat d'implementation"]],
+        ["Handoff", ticket.sections.Handoff],
+      ].filter(([, body]) => String(body || "").trim()).map(([title, body]) => `${title}\n${body}`).join("\n\n");
+    }
+
+    function dependencies(ticket) {
+      const depends = Array.isArray(ticket.metadata.depends_on) ? ticket.metadata.depends_on.join(", ") : "";
+      const blocks = Array.isArray(ticket.metadata.blocks) ? ticket.metadata.blocks.join(", ") : "";
+      return `Attend: ${depends || "aucune"}\nDebloque: ${blocks || "aucun"}`;
+    }
+
+    function info(label, value) {
+      return `<div class="info"><span class="label">${escapeHtml(label)}</span><div class="value">${escapeHtml(value ?? "null")}</div></div>`;
+    }
+
+    function section(title, body) {
+      if (!String(body || "").trim()) return "";
+      return `<section class="section"><h3>${escapeHtml(title)}</h3><p class="section-body">${escapeHtml(body)}</p></section>`;
+    }
+
+    function allTickets() {
+      return state.columns.flatMap(column => column.tickets);
+    }
+
+    function firstLine(value) {
+      return String(value || "").split(/\r?\n/).find(line => line.trim())?.trim() ?? "";
     }
 
     async function openTicket(id) {
