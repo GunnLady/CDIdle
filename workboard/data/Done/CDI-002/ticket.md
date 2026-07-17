@@ -1,14 +1,14 @@
 ---
 id: CDI-002
 title: Harnais de caracterisation
-status: Later
+status: Done
 area: testing
 priority: P0
 size: L
 risk: medium
 source: Plan fullstack autoritaire approuve le 2026-07-15
 depends_on: ["CDI-001"]
-blocks: ["CDI-003", "CDI-005", "CDI-006"]
+blocks: ["CDI-003", "CDI-005", "CDI-006", "CDI-009"]
 github_issue: "https://github.com/mathrondot-collab/CDIdle/issues/2"
 related_docs: ["docs/architecture/README.md", "README.md"]
 ---
@@ -57,11 +57,11 @@ CDI-001 doit etre `Done` afin que les tests distinguent clairement comportement 
 
 ## Criteres d'acceptation
 
-- [ ] `npm test -- --run` reussit sans reseau et sans ordre de test implicite.
-- [ ] Les principales fonctions pures disposent de cas nominaux et de bords.
-- [ ] Un smoke test charge l'application avec des doubles Firebase controles.
-- [ ] Les fixtures sont reutilisables par les futurs tickets de domaine.
-- [ ] Aucun comportement joueur n'est modifie.
+- [x] `npm test -- --run` reussit sans reseau et sans ordre de test implicite.
+- [x] Les principales fonctions pures disposent de cas nominaux et de bords.
+- [x] Un smoke test React charge avec des doubles Firebase controles.
+- [x] Les fixtures sont reutilisables par les futurs tickets de domaine.
+- [x] Aucun comportement joueur n'est modifie.
 
 ## Tests
 
@@ -86,4 +86,4 @@ CDI-001 doit etre `Done` afin que les tests distinguent clairement comportement 
 
 ## Handoff
 
-Fournir la liste des comportements caracterises, les fixtures ajoutees, les commandes avec resultats, la couverture obtenue a titre informatif et les coutures encore difficiles a tester.
+Fournir la liste des comportements caracterises, les fixtures ajoutees, les commandes avec resultats, la couverture obtenue a titre informatif et les coutures encore difficiles a tester. Resultat : 9 tests passent, 2 todo intentionnels pour CDI-005 et CDI-006 ; lint, coverage et validation Workboard passent.

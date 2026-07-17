@@ -1,0 +1,101 @@
+import { describe, expect, it, vi } from "vitest";
+import {
+  calculateXpNeeded,
+  calculateRates,
+  getAvailableTier1Classes,
+  addItemToStorage,
+  removeItemFromStorage,
+  getStoredItemStack,
+  equipItem,
+  unequipItem,
+} from "../src/utils/gameCalculations";
+import {
+  getEncounterDetails,
+  rollEncounterForgeMaterial,
+  selectBestHeroForEncounter,
+} from "../src/utils/dungeonHelpers";
+import type { Hero } from "../src/types";
+import { makeCitizens, makeHero, makeStoredItem } from "./fixtures/game";
+
+const hero = (id: string, strength: number, agility: number): Hero => ({
+  id,
+  name: id,
+  race: "Humain",
+  isActive: true,
+  baseStats: {
+    str: strength,
+    agi: agility,
+    end: 1,
+    int: 1,
+    wiz: 1,
+    dex: 1,
+    luk: 1,
+  },
+  equipment: { mainHand: null, offHand: null, armor: null, accessory: null },
+  passiveSkills: [],
+  activeSkills: [],
+} as unknown as Hero);
+
+describe("gameCalculations", () => {
+  it.todo("CDI-005 : verrouiller la limite du Campement et supprimer la branche guilde morte");
+  it("calcule l'XP de base et applique le multiplicateur de classe", () => {
+    expect(calculateXpNeeded(1, "Novice")).toBe(100);
+    expect(calculateXpNeeded(2, "Novice")).toBe(100);
+    expect(calculateXpNeeded(2, "Guerrier")).toBe(125);
+  });
+
+  it("ne débloque aucune classe sans bâtiment requis", () => {
+    expect(getAvailableTier1Classes({})).toEqual([]);
+  });
+
+  it("calcule les ressources des citoyens et les bonus de district", () => {
+    const rates = calculateRates(
+      makeCitizens({ woodcutters: 2, farmers: 1, miners: 1 }),
+      { scierie: 3, ferme: 4, mine: 2, maison_chef: 1 },
+      { quartier_bois: true },
+      true,
+    );
+    expect(rates.wood).toBeCloseTo(7.416, 6);
+    expect(rates.food).toBeCloseTo(4.12, 6);
+    expect(rates.ore).toBeCloseTo(2.06, 6);
+    expect(rates.stone).toBe(0);
+  });
+
+  it("empile et retire les objets par id, rareté et modificateurs", () => {
+    const storage = [makeStoredItem({ count: 2 })];
+    addItemToStorage(storage, "wooden_sword", "common", 3);
+    expect(getStoredItemStack(storage, "wooden_sword", "common")?.count).toBe(5);
+    removeItemFromStorage(storage, "wooden_sword", "common", 5);
+    expect(storage).toHaveLength(0);
+  });
+
+  it("équipe puis déséquipe un objet en conservant le stockage", () => {
+    const storage = [makeStoredItem({ itemId: "starter_sword" })];
+    const hero = makeHero();
+    const equipped = equipItem(hero, storage, "starter_sword", "common");
+    expect(equipped.equipment?.mainHand?.itemId).toBe("starter_sword");
+    expect(storage).toHaveLength(0);
+    const unequipped = unequipItem(equipped, storage, "mainHand");
+    expect(unequipped.equipment?.mainHand).toBeNull();
+    expect(storage).toHaveLength(1);
+  });
+});
+
+describe("dungeonHelpers", () => {
+  it.todo("CDI-006 : comparer les six libellés UI aux couples canoniques");
+  it("retourne les statistiques attendues pour un piège", () => {
+    expect(getEncounterDetails("trap")).toMatchObject({ statA: "agi", statB: "dex" });
+  });
+
+  it("sélectionne le héros au meilleur score", () => {
+    const result = selectBestHeroForEncounter([hero("weak", 2, 2), hero("strong", 8, 7)], "str", "agi");
+    expect(result?.bestHero.id).toBe("strong");
+    expect(result?.bestScore).toBe(15);
+  });
+
+  it("reste déterministe avec un aléatoire contrôlé", () => {
+    vi.spyOn(Math, "random").mockReturnValue(0.1);
+    expect(rollEncounterForgeMaterial(1)).toMatchObject({ materialId: "refined_metal", rarity: "uncommon" });
+    vi.restoreAllMocks();
+  });
+});
