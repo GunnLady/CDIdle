@@ -26,7 +26,7 @@ import { addHeroExperience, canActivateHero, dismissHero, recruitmentCost, recru
 import { addStack, removeStack, type InventoryState } from "../src/domain/inventory";
 import { applyUpgradeCost, recycleItem, startBasicCraft } from "../src/domain/forge";
 import { advanceRoom, changeFloor, validateDungeonProgress, type DungeonProgressState } from "../src/domain/dungeonProgression";
-import { calculateMultiStrikeChance, resolveBasicAttack, resolveCombatRound, resolveMultiStrikeCount, retreatCombat, type CombatState } from "../src/domain/combat";
+import { calculateMultiStrikeChance, resolveBasicAttack, resolveCombatRound, resolveMultiStrikeCount, resolveSkill, retreatCombat, type CombatState } from "../src/domain/combat";
 
 const hero = (id: string, strength: number, agility: number): Hero => ({
   id,
@@ -334,6 +334,25 @@ describe("combat domain", () => {
     if (retreat.ok) expect(retreat.state.outcome).toBe("retreated");
     if (!defeat.ok) return;
     expect(resolveCombatRound(defeat.state, seededRng(4))).toEqual({ ok: false, error: "ALREADY_FINISHED" });
+  });
+
+  it("resolves skill damage, hit count, mana and cooldown atomically", () => {
+    const skill = { id: "double-flame", name: "Double flame", description: "", type: "active" as const, target: "single_enemy" as const, manaCost: 4, cooldownRounds: 2, effect: { type: "damage" as const, damageType: "fire" as const, scalingStat: "magicDamage", power: 1, hitCount: 2 } };
+    const actor = { id: "hero", mana: 10, maxMana: 10, stats: { magicDamage: 5 }, cooldowns: {} };
+    const result = resolveSkill(skill, actor, [{ ...target, hp: 20 }]);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.resolution.actor).toMatchObject({ mana: 6, cooldowns: { "double-flame": 2 } });
+    expect(result.resolution.events).toHaveLength(2);
+    expect(result.resolution.targets[0].hp).toBe(16);
+    expect(resolveSkill(skill, result.resolution.actor, result.resolution.targets)).toEqual({ ok: false, error: "ON_COOLDOWN" });
+  });
+
+  it("rejects skills before mutating mana when unavailable", () => {
+    const skill = { id: "heal", name: "Heal", description: "", type: "active" as const, target: "single_ally" as const, manaCost: 5, effect: { type: "heal" as const, scalingStat: "magicDamage", power: 2 } };
+    const actor = { id: "hero", mana: 2, maxMana: 10, stats: { magicDamage: 5 }, cooldowns: {} };
+    expect(resolveSkill(skill, actor, [{ ...target, hp: 10 }])).toEqual({ ok: false, error: "INSUFFICIENT_MANA" });
+    expect(actor.mana).toBe(2);
   });
 });
 

@@ -1,4 +1,4 @@
-import type { DamageType } from "../types";
+import type { DamageType, SkillEffect, SkillInfo, SkillTarget } from "../types";
 import type { Rng } from "./random";
 
 export const MAX_BASIC_ATTACK_STRIKES = 3;
@@ -59,6 +59,33 @@ export interface CombatState {
 
 export type CombatRoundError = "INVALID_STATE" | "ALREADY_FINISHED" | "NO_LIVING_HERO";
 export type CombatRoundResult = { ok: true; state: CombatState } | { ok: false; error: CombatRoundError };
+
+export interface SkillActorState {
+  id: string;
+  mana: number;
+  maxMana: number;
+  stats: Record<string, number>;
+  cooldowns: Record<string, number>;
+}
+
+export interface CombatSkillEvent {
+  kind: "damage" | "heal" | "modifier";
+  skillId: string;
+  actorId: string;
+  targetId: string;
+  amount: number;
+  targetHpAfter?: number;
+  effectType: SkillEffect["type"];
+}
+
+export interface SkillResolution {
+  actor: SkillActorState;
+  targets: CombatTarget[];
+  events: CombatSkillEvent[];
+}
+
+export type SkillError = "INVALID_SKILL" | "INSUFFICIENT_MANA" | "ON_COOLDOWN" | "INVALID_TARGET";
+export type SkillResult = { ok: true; resolution: SkillResolution } | { ok: false; error: SkillError };
 
 export type CombatError = "INVALID_ATTACKER" | "INVALID_TARGET";
 export type CombatResult = { ok: true; result: BasicAttackResult } | { ok: false; error: CombatError };
@@ -207,4 +234,59 @@ export function retreatCombat(state: CombatState): CombatRoundResult {
   if (validateCombatState(state).length > 0) return { ok: false, error: "INVALID_STATE" };
   if (state.outcome !== "active") return { ok: false, error: "ALREADY_FINISHED" };
   return { ok: true, state: { ...state, heroes: state.heroes.map((hero) => ({ ...hero })), enemy: { ...state.enemy }, outcome: "retreated" } };
+}
+
+function skillTargets(target: SkillTarget | undefined, targets: CombatTarget[]): CombatTarget[] {
+  if (target === "all_enemies" || target === "all_allies") return targets.filter((candidate) => candidate.hp > 0);
+  const firstLiving = targets.find((candidate) => candidate.hp > 0);
+  return firstLiving ? [firstLiving] : [];
+}
+
+function skillStat(actor: SkillActorState, scalingStat: string): number {
+  return Number.isFinite(actor.stats[scalingStat]) ? actor.stats[scalingStat] : 0;
+}
+
+export function resolveSkill(skill: SkillInfo, actor: SkillActorState, targets: CombatTarget[]): SkillResult {
+  const manaCost = skill.manaCost ?? 0;
+  const cooldown = actor.cooldowns[skill.id] ?? 0;
+  if (skill.type !== "active") return { ok: false, error: "INVALID_SKILL" };
+  if (actor.mana < manaCost) return { ok: false, error: "INSUFFICIENT_MANA" };
+  if (cooldown > 0) return { ok: false, error: "ON_COOLDOWN" };
+  const selectedTargets = skillTargets(skill.target, targets);
+  if (selectedTargets.length === 0) return { ok: false, error: "INVALID_TARGET" };
+
+  const actorAfter = {
+    ...actor,
+    mana: actor.mana - manaCost,
+    cooldowns: { ...actor.cooldowns, ...(skill.cooldownRounds ? { [skill.id]: skill.cooldownRounds } : {}) },
+  };
+  const events: CombatSkillEvent[] = [];
+  const nextTargets = targets.map((target) => ({ ...target }));
+  const effect = skill.effect;
+  if (effect.type === "damage") {
+    const amount = Math.max(0, Math.floor(skillStat(actor, effect.scalingStat) * effect.power));
+    const hitCount = Math.max(1, effect.hitCount);
+    selectedTargets.forEach((selected) => {
+      const index = nextTargets.findIndex((target) => target.id === selected.id);
+      if (index < 0) return;
+      for (let hit = 0; hit < hitCount; hit += 1) {
+        const damage = damageAfterDefense(amount, effect.damageType, nextTargets[index]);
+        nextTargets[index] = { ...nextTargets[index], hp: Math.max(0, nextTargets[index].hp - damage) };
+        events.push({ kind: "damage", skillId: skill.id, actorId: actor.id, targetId: selected.id, amount: damage, targetHpAfter: nextTargets[index].hp, effectType: effect.type });
+        if (nextTargets[index].hp === 0) break;
+      }
+    });
+  } else if (effect.type === "heal") {
+    const amount = Math.max(0, Math.floor(skillStat(actor, effect.scalingStat) * effect.power));
+    selectedTargets.forEach((selected) => {
+      const index = nextTargets.findIndex((target) => target.id === selected.id);
+      if (index < 0) return;
+      const healed = Math.min(amount, nextTargets[index].maxHp - nextTargets[index].hp);
+      nextTargets[index] = { ...nextTargets[index], hp: nextTargets[index].hp + healed };
+      events.push({ kind: "heal", skillId: skill.id, actorId: actor.id, targetId: selected.id, amount: healed, targetHpAfter: nextTargets[index].hp, effectType: effect.type });
+    });
+  } else {
+    selectedTargets.forEach((target) => events.push({ kind: "modifier", skillId: skill.id, actorId: actor.id, targetId: target.id, amount: 0, effectType: effect.type }));
+  }
+  return { ok: true, resolution: { actor: actorAfter, targets: nextTargets, events } };
 }
