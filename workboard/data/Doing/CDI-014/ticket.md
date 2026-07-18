@@ -10,7 +10,7 @@ source: Plan fullstack autoritaire approuve le 2026-07-15
 depends_on: ["CDI-007", "CDI-009", "CDI-011"]
 blocks: ["CDI-015", "CDI-029", "CDI-037"]
 github_issue: null
-related_docs: ["docs/fullstack-authoritative-plan.md"]
+related_docs: ["docs/fullstack-authoritative-plan.md", "docs/architecture/dungeon-progression.md"]
 ---
 
 # CDI-014 — Domaine progression de donjon
@@ -48,9 +48,9 @@ Ce ticket depend de : ["CDI-007", "CDI-009", "CDI-011"].
 
 ## Criteres d'acceptation
 
-- [ ] Le perimetre est implemente sans regression hors domaine.
-- [ ] Les invariants sont couverts par des tests reproductibles.
-- [ ] Les preuves et la documentation sont fournies.
+- [x] Le perimetre est implemente sans regression hors domaine.
+- [x] Les invariants sont couverts par des tests reproductibles.
+- [x] Les preuves et la documentation sont fournies.
 
 ## Tests
 

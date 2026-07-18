@@ -25,6 +25,7 @@ import { allocateCitizen, townRates, unlockDistrict, upgradeBuilding, type TownS
 import { addHeroExperience, canActivateHero, dismissHero, recruitmentCost, recruitmentEligibility } from "../src/domain/hero";
 import { addStack, removeStack, type InventoryState } from "../src/domain/inventory";
 import { applyUpgradeCost, recycleItem, startBasicCraft } from "../src/domain/forge";
+import { advanceRoom, changeFloor, validateDungeonProgress, type DungeonProgressState } from "../src/domain/dungeonProgression";
 
 const hero = (id: string, strength: number, agility: number): Hero => ({
   id,
@@ -257,6 +258,22 @@ describe("forge domain", () => {
     const result = recycleItem(items, [], true, "wooden_sword", "common");
     expect(result.ok).toBe(true);
     expect(items[0].count).toBe(1);
+  });
+});
+
+describe("dungeon progression domain", () => {
+  const state: DungeonProgressState = { activeFloor: 2, activeRoom: 49, highestFloorReached: 2 };
+  it("advances rooms and unlocks the next floor at room 50", () => {
+    const room50 = advanceRoom(state);
+    expect(room50.ok && room50.state).toMatchObject({ activeFloor: 2, activeRoom: 50, highestFloorReached: 2 });
+    if (!room50.ok) return;
+    expect(advanceRoom(room50.state)).toEqual({ ok: true, state: { activeFloor: 3, activeRoom: 1, highestFloorReached: 3 } });
+  });
+
+  it("keeps floor navigation bounded and validates state", () => {
+    expect(changeFloor({ activeFloor: 1, activeRoom: 1, highestFloorReached: 1 }, "prev")).toEqual({ ok: false, error: "ALREADY_AT_LOWEST_FLOOR" });
+    expect(changeFloor(state, "next")).toEqual({ ok: false, error: "FLOOR_NOT_REACHED" });
+    expect(validateDungeonProgress({ activeFloor: 0, activeRoom: 51, highestFloorReached: 0 })).toHaveLength(2);
   });
 });
 
