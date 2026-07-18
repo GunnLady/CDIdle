@@ -26,7 +26,7 @@ import { addHeroExperience, canActivateHero, dismissHero, recruitmentCost, recru
 import { addStack, removeStack, type InventoryState } from "../src/domain/inventory";
 import { applyUpgradeCost, recycleItem, startBasicCraft } from "../src/domain/forge";
 import { advanceRoom, changeFloor, validateDungeonProgress, type DungeonProgressState } from "../src/domain/dungeonProgression";
-import { calculateMultiStrikeChance, decrementCooldowns, interruptCombat, resolveBasicAttack, resolveCombatRound, resolveMultiStrikeCount, resolveSkill, retreatCombat, type CombatState } from "../src/domain/combat";
+import { calculateMultiStrikeChance, decrementCooldowns, interruptCombat, replayCombatRound, resolveBasicAttack, resolveCombatRound, resolveMultiStrikeCount, resolveSkill, retreatCombat, type CombatState } from "../src/domain/combat";
 
 const hero = (id: string, strength: number, agility: number): Hero => ({
   id,
@@ -369,6 +369,16 @@ describe("combat domain", () => {
   it("stops an endless combat at the round limit", () => {
     const state: CombatState = { round: 100, heroes: [combatant("hero", 10, 1)], enemy: combatant("enemy", 10, 1), outcome: "active", transcript: [] };
     expect(resolveCombatRound(state, seededRng(9))).toEqual({ ok: false, error: "ROUND_LIMIT_REACHED" });
+  });
+
+  it("replays a round only when its transcript matches", () => {
+    const state: CombatState = { round: 0, heroes: [combatant("hero", 10, 1)], enemy: combatant("enemy", 4, 5), outcome: "active", transcript: [] };
+    const first = resolveCombatRound(state, seededRng(11));
+    expect(first.ok).toBe(true);
+    if (!first.ok) return;
+    const events = first.state.transcript;
+    expect(replayCombatRound(state, seededRng(11), events).ok).toBe(true);
+    expect(replayCombatRound(state, seededRng(11), events.slice(1))).toEqual({ ok: false, error: "TRANSCRIPT_MISMATCH" });
   });
 });
 

@@ -59,7 +59,7 @@ export interface CombatState {
   transcript: CombatTranscriptEvent[];
 }
 
-export type CombatRoundError = "INVALID_STATE" | "ALREADY_FINISHED" | "NO_LIVING_HERO" | "ROUND_LIMIT_REACHED";
+export type CombatRoundError = "INVALID_STATE" | "ALREADY_FINISHED" | "NO_LIVING_HERO" | "ROUND_LIMIT_REACHED" | "TRANSCRIPT_MISMATCH";
 export type CombatRoundResult = { ok: true; state: CombatState } | { ok: false; error: CombatRoundError };
 
 export interface SkillActorState {
@@ -234,6 +234,14 @@ export function resolveCombatRound(state: CombatState, rng: Rng): CombatRoundRes
   const updatedHeroes = heroes.map((hero) => hero.id === targetHero.id ? { ...hero, hp: enemyAttack.result.target.hp } : hero);
   const outcome: CombatOutcome = updatedHeroes.some((hero) => hero.hp > 0) ? "active" : "defeat";
   return { ok: true, state: { round, heroes: updatedHeroes, enemy, outcome, transcript } };
+}
+
+export function replayCombatRound(state: CombatState, rng: Rng, expectedEvents: CombatTranscriptEvent[]): CombatRoundResult {
+  const result = resolveCombatRound(state, rng);
+  if (!result.ok) return result;
+  const produced = result.state.transcript.slice(state.transcript.length);
+  if (JSON.stringify(produced) !== JSON.stringify(expectedEvents)) return { ok: false, error: "TRANSCRIPT_MISMATCH" };
+  return result;
 }
 
 export function decrementCooldowns(cooldowns: Record<string, number>): Record<string, number> {
