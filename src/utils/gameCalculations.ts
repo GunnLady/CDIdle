@@ -101,7 +101,7 @@ export function scaleModifierByRarity(modifier: Modifier, rarity: Rarity): Modif
   };
 }
 
-const WEAPON_POOL = ["physicalDamage", "magicDamage", "criticalChance", "speed"];
+const WEAPON_POOL = ["physicalDamage", "magicDamage", "criticalChance", "speed", "dodgeChance"];
 const ARMOR_POOL = [
   "maxHp",
   "maxMana",
@@ -803,6 +803,10 @@ export function equipItem(
   const resolvedItem = getItemById(itemId);
   if (!resolvedItem) return hero;
 
+  if (hero.level < (resolvedItem.requiredLevel ?? 1)) {
+    return hero;
+  }
+
   // Check stack in storage
   const stack = getStoredItemStack(storedItems, itemId, rarity, modifiers);
   if (!stack || stack.count <= 0) {
@@ -1064,6 +1068,26 @@ export function applyMonsterDefenseOrResistance(damage: number, damageType: Dama
   }
 }
 
+export function applySplitDamageDefenseOrResistance(
+  damage: number,
+  damageTypes: DamageType[],
+  monster: Monster
+): number {
+  if (damageTypes.length === 0) {
+    return applyMonsterDefenseOrResistance(damage, "physical", monster);
+  }
+  if (damageTypes.length === 1) {
+    return applyMonsterDefenseOrResistance(damage, damageTypes[0], monster);
+  }
+
+  const splitDamage = damage / damageTypes.length;
+  const totalDamage = damageTypes.reduce(
+    (total, damageType) => total + applyMonsterDefenseOrResistance(splitDamage, damageType, monster),
+    0
+  );
+  return Math.max(1, Math.round(totalDamage));
+}
+
 export function calculateBasicAttackDamage(hero: Hero, monster: Monster): number {
   const weapon = getHeroMainHandWeapon(hero);
   const weaponDamageRoll = rollWeaponDamage(weapon);
@@ -1078,16 +1102,15 @@ export function calculateBasicAttackDamage(hero: Hero, monster: Monster): number
     damageAfterCrit = Math.floor(rawDamage * 1.5);
   }
 
-  // Damage type
-  let damageType: DamageType = "physical";
+  let damageTypes: DamageType[] = ["physical"];
   if (weapon) {
     const dTypes = getWeaponDamageTypes(weapon);
     if (dTypes && dTypes.length > 0) {
-      damageType = dTypes[0];
+      damageTypes = dTypes;
     }
   }
 
-  return applyMonsterDefenseOrResistance(damageAfterCrit, damageType, monster);
+  return applySplitDamageDefenseOrResistance(damageAfterCrit, damageTypes, monster);
 }
 
 export const FORGE_MATERIALS: ForgeMaterial[] = [

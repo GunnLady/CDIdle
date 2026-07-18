@@ -25,6 +25,7 @@ import { CLASS_INFO_LIST, RACE_INFO_LIST } from "../data/gameData";
 import { getSkillById } from "../data/skills";
 import { getItemById } from "../data/items";
 import { getHeroStats, getHeroAttributes, getAvailableTier1Classes, resolveEquippedItem, isMainHandTwoHanded, resolveWeaponDamageTypes, applyItemRarityScaling } from "../utils/gameCalculations";
+import HeroPortrait from "./HeroPortrait";
 
 function getTargetLabel(target?: string): string {
   if (!target) return "";
@@ -314,18 +315,28 @@ export default function HeroPanel({
                           <span className={`text-[9px] font-mono uppercase px-1.5 py-0.5 rounded border ${rarityColorClass}`}>
                             {item.rarity}
                           </span>
-                          {onEquipItem && (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                onEquipItem(hero.id, item.id, rarity, entry.modifiers);
-                                setActiveEquipSelector(null);
-                              }}
-                              className="text-[10px] bg-[#8c5a2b] hover:bg-[#ab733c] text-white border border-[#caa050]/50 px-2.5 py-1 rounded-lg transition font-serif font-semibold cursor-pointer select-none"
-                            >
-                              Équiper
-                            </button>
-                          )}
+                          {onEquipItem && (() => {
+                            const isLevelTooLow = hero.level < (item.requiredLevel ?? 1);
+                            return (
+                              <button
+                                type="button"
+                                disabled={isLevelTooLow}
+                                onClick={() => {
+                                  if (isLevelTooLow) return;
+                                  onEquipItem(hero.id, item.id, rarity, entry.modifiers);
+                                  setActiveEquipSelector(null);
+                                }}
+                                className={`text-[10px] border px-2.5 py-1 rounded-lg transition font-serif font-semibold ${
+                                  isLevelTooLow
+                                    ? "bg-[#18110e]/60 border-[#2a1d15] text-[#7c6d5f] cursor-not-allowed opacity-60"
+                                    : "bg-[#8c5a2b] hover:bg-[#ab733c] text-white border-[#caa050]/50 cursor-pointer select-none"
+                                }`}
+                                title={isLevelTooLow ? `Niveau requis : ${item.requiredLevel}` : undefined}
+                              >
+                                {isLevelTooLow ? "Niveau insuffisant" : "Équiper"}
+                              </button>
+                            );
+                          })()}
                         </div>
                       </div>
 
@@ -681,10 +692,13 @@ export default function HeroPanel({
                     <div className="min-h-[220px]">
                       {activeTab === "overview" && (
                         <div className="space-y-4">
-                          {/* Flavored Race description text quote */}
-                          <p className="text-xs sm:text-[13px] leading-relaxed text-[#dfdbc7] italic text-center px-1">
-                            « {raceBonus?.description} »
-                          </p>
+                          <div className="flex flex-col items-center justify-center p-4 bg-[#110a06]/40 rounded-2xl border border-[#302117]/60">
+                            <HeroPortrait hero={hero} size="lg" noBorder noBg noPadding className="shadow-lg" />
+                            <span className="text-[10px] text-[#caa050]/70 font-serif tracking-widest uppercase mt-2">Profil de {hero.name}</span>
+                            <p className="text-xs sm:text-[13px] leading-relaxed text-[#dfdbc7] italic text-center px-1 mt-2.5 max-w-[280px]">
+                              « {raceBonus?.description} »
+                            </p>
+                          </div>
 
                           {/* Specialization info for Novices */}
                           {hero.classType === "Novice" && (

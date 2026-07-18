@@ -147,5 +147,33 @@ export const WEAPON_INFO_LIST: WeaponInfo[] = [
     handedness: "one_handed",
     description: "Arme mécanique compacte utilisée par les artificiers, projetant des charges métalliques ou énergétiques grâce à un système d’engrenages instable.",
     damageTypes: ["physical"]
+  },
+  {
+    id: "dual_swords",
+    name: "Épées jumelles",
+    handedness: "dual_wield",
+    description: "Deux épées utilisées ensemble, offrant un style de combat équilibré basé sur les enchaînements et la pression constante.",
+    damageTypes: ["physical"]
+  },
+  {
+    id: "dual_sabers",
+    name: "Sabres jumeaux",
+    handedness: "dual_wield",
+    description: "Deux sabres légers maniés avec fluidité, spécialisés dans les attaques rapides, les esquives et les frappes précises.",
+    damageTypes: ["physical"]
+  },
+  {
+    id: "dual_axes",
+    name: "Haches jumelles",
+    handedness: "dual_wield",
+    description: "Deux haches de combat utilisées pour des assauts agressifs, brutaux et difficiles à interrompre.",
+    damageTypes: ["physical"]
+  },
+  {
+    id: "dual_daggers",
+    name: "Dagues jumelles",
+    handedness: "dual_wield",
+    description: "Deux dagues rapides et précises, idéales pour multiplier les coups critiques et exploiter les ouvertures.",
+    damageTypes: ["physical"]
   }
 ];

@@ -10,7 +10,7 @@ source: Plan fullstack autoritaire approuve le 2026-07-15
 depends_on: ["CDI-009", "CDI-011", "CDI-012", "CDI-014"]
 blocks: ["CDI-029", "CDI-037"]
 github_issue: null
-related_docs: ["docs/fullstack-authoritative-plan.md", "docs/architecture/dungeon-progression-audit.md"]
+related_docs: ["docs/fullstack-authoritative-plan.md", "docs/architecture/dungeon-progression-audit.md", "docs/architecture/zero-rebase-audit.md"]
 ---
 
 # CDI-015 — Moteur de combat et transcript

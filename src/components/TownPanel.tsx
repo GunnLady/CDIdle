@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
   Home,
   Grape,
@@ -40,7 +40,8 @@ import {
   checkBuildingUnlocked,
   getBuildingMaxLevel,
   getBuildingUpgradeCost,
-  BUILDING_UNLOCKS
+  BUILDING_UNLOCKS,
+  ITEM_LIBRARY
 } from "../data/gameData";
 import { formatResourceValue } from "./IconDetails";
 import {
@@ -108,6 +109,15 @@ export default function TownPanel({
   const [upgradeAccepted, setUpgradeAccepted] = useState<boolean>(false);
   const [chosenModifierStat, setChosenModifierStat] = useState<string | undefined>(undefined);
   const [craftError, setCraftError] = useState<string | null>(null);
+
+  const craftableItems = useMemo(() => {
+    const baseList = [...BASIC_FORGE_CRAFTABLE_ITEMS];
+    const extraBlueprints = itemBlueprints
+      .filter((blueprint) => blueprint.unlocked && !baseList.some((item) => item.id === blueprint.itemId))
+      .map((blueprint) => ITEM_LIBRARY.find((item) => item.id === blueprint.itemId))
+      .filter((item): item is ItemInfo => Boolean(item));
+    return [...baseList, ...extraBlueprints];
+  }, [itemBlueprints]);
 
   const getCompatibleModifiers = (itemType: string): string[] => {
     if (itemType === "weapon") {
@@ -880,7 +890,7 @@ export default function TownPanel({
                     📜 Plans d'Artisanat de Novice
                   </h4>
                   <div className="space-y-2 max-h-[350px] overflow-y-auto pr-1">
-                    {BASIC_FORGE_CRAFTABLE_ITEMS.map((item) => {
+                    {craftableItems.map((item) => {
                       const isUnlocked = (itemBlueprints || []).some(b => b.itemId === item.id && b.unlocked);
                       const isSelected = selectedBlueprintId === item.id;
 
@@ -936,7 +946,7 @@ export default function TownPanel({
                   {activeCraftPreview === null ? (
                     // Idle state: Show selected blueprint details & base craft button
                     (() => {
-                      const selectedBlueprint = BASIC_FORGE_CRAFTABLE_ITEMS.find(item => item.id === selectedBlueprintId);
+                      const selectedBlueprint = craftableItems.find(item => item.id === selectedBlueprintId);
                       if (!selectedBlueprint) {
                         return (
                           <div className="text-center py-12 text-xs text-[#a89078] font-mono">

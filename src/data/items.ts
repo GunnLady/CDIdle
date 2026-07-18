@@ -1,143 +1,99 @@
 import { ItemInfo } from "../types";
+import { TIER1_ITEM_WPN_LIST } from "./items_weapons_tier1";
+import { TIER1_ITEM_ARMOR_LIST } from "./items_armors_tier1";
+import { TIER1_ITEM_OFFHAND_LIST } from "./items_offhands_tier1";
+import { TIER1_ITEM_ACC_LIST } from "./items_accessories_tier1";
+import { HIGH_TIER_ITEM_LIST } from "./items_high_tier";
+import { createWeapon, createOffhand, createArmor } from "./itemBuilders";
+
+export { TIER1_ITEM_WPN_LIST, TIER1_ITEM_ARMOR_LIST, TIER1_ITEM_OFFHAND_LIST, TIER1_ITEM_ACC_LIST, HIGH_TIER_ITEM_LIST };
 
 export const NOVICE_BASIC_ITEM_LIST: ItemInfo[] = [
-  {
-    id: "starter_sword",
-    name: "Épée de départ",
-    itemType: "weapon",
-    weaponTypeId: "sword",
-    rarity: "common",
-    requiredLevel: 1,
-    description: "Une épée simple et fiable pour les premiers combats.",
-    damageRange: {
-      min: 1,
-      max: 3
-    },
-    attackSpeed: 1,
-    damageTypes: ["physical"],
-    modifiers: [
-      {
-        stat: "physicalDamage",
-        type: "flat",
-        value: 1
-      }
+  createWeapon(
+    "starter_sword",
+    "Épée de départ",
+    "sword",
+    "common",
+    1,
+    "Une épée simple et fiable pour les premiers combats.",
+    1, 3,
+    1,
+    [{ stat: "physicalDamage", value: 1 }]
+  ),
+  createWeapon(
+    "quick_dagger",
+    "Dague vive",
+    "dagger",
+    "common",
+    1,
+    "Une dague légère, facile à manier et rapide à dégainer.",
+    1, 2,
+    1.2,
+    [{ stat: "criticalChance", type: "percent", value: 1 }]
+  ),
+  createWeapon(
+    "woodcutter_axe",
+    "Hache de bûcheron",
+    "axe",
+    "common",
+    1,
+    "Une hache simple, plus habituée au bois qu’aux monstres, mais assez solide pour se défendre.",
+    2, 4,
+    0.9,
+    [{ stat: "physicalDamage", value: 2 }]
+  ),
+  createOffhand(
+    "wooden_shield",
+    "Bouclier en bois",
+    "shield",
+    "common",
+    1,
+    "Un bouclier simple offrant une protection de base.",
+    [{ stat: "physicalDefense", value: 1 }]
+  ),
+  createArmor(
+    "traveler_clothes",
+    "Tenue de voyageur",
+    "cloth_armor",
+    "common",
+    1,
+    "Une tenue légère et pratique pour partir à l’aventure.",
+    [{ stat: "maxMana", type: "percent", value: 3 }]
+  ),
+  createArmor(
+    "simple_leather_armor",
+    "Armure de cuir simple",
+    "leather_armor",
+    "common",
+    1,
+    "Une armure légère offrant une protection correcte sans gêner les mouvements.",
+    [
+      { stat: "physicalDefense", type: "percent", value: 5 },
+      { stat: "dodgeChance", type: "percent", value: 3 }
     ]
-  },
-  {
-    id: "quick_dagger",
-    name: "Dague vive",
-    itemType: "weapon",
-    weaponTypeId: "dagger",
-    rarity: "common",
-    requiredLevel: 1,
-    description: "Une dague légère, facile à manier et rapide à dégainer.",
-    damageRange: {
-      min: 1,
-      max: 2
-    },
-    attackSpeed: 1.2,
-    damageTypes: ["physical"],
-    modifiers: [
-      {
-        stat: "criticalChance",
-        type: "percent",
-        value: 1
-      }
-    ]
-  },
-  {
-    id: "woodcutter_axe",
-    name: "Hache de bûcheron",
-    itemType: "weapon",
-    weaponTypeId: "axe",
-    rarity: "common",
-    requiredLevel: 1,
-    description: "Une hache simple, plus habituée au bois qu’aux monstres, mais assez solide pour se défendre.",
-    damageRange: {
-      min: 2,
-      max: 4
-    },
-    attackSpeed: 0.9,
-    damageTypes: ["physical"],
-    modifiers: [
-      {
-        stat: "physicalDamage",
-        type: "flat",
-        value: 2
-      }
-    ]
-  },
-  {
-    id: "wooden_shield",
-    name: "Bouclier en bois",
-    itemType: "offhand",
-    offHandTypeId: "shield",
-    rarity: "common",
-    requiredLevel: 1,
-    description: "Un bouclier simple offrant une protection de base.",
-    modifiers: [
-      {
-        stat: "physicalDefense",
-        type: "flat",
-        value: 1
-      }
-    ]
-  },
-  {
-    id: "traveler_clothes",
-    name: "Tenue de voyageur",
-    itemType: "armor",
-    armorTypeId: "cloth_armor",
-    rarity: "common",
-    requiredLevel: 1,
-    description: "Une tenue légère et pratique pour partir à l’aventure.",
-    modifiers: [
-      {
-        stat: "maxMana",
-        type: "percent",
-        value: 3
-      }
-    ]
-  },
-  {
-    id: "simple_leather_armor",
-    name: "Armure de cuir simple",
-    itemType: "armor",
-    armorTypeId: "leather_armor",
-    rarity: "common",
-    requiredLevel: 1,
-    description: "Une armure légère offrant une protection correcte sans gêner les mouvements.",
-    modifiers: [
-      {
-        stat: "physicalDefense",
-        type: "percent",
-        value: 5
-      },
-      {
-        stat: "dodgeChance",
-        type: "percent",
-        value: 3
-      }
-    ]
-  },
-  {
-    id: "novice_mystic_robe",
-    name: "Robe mystique de novice",
-    itemType: "armor",
-    armorTypeId: "magic_robe",
-    rarity: "common",
-    requiredLevel: 1,
-    description: "Une robe simple imprégnée d’une faible énergie mystique, offrant une légère protection contre les forces arcaniques et naturelles.",
-    modifiers: [
+  ),
+  createArmor(
+    "novice_mystic_robe",
+    "Robe mystique de novice",
+    "magic_robe",
+    "common",
+    1,
+    "Une robe simple imprégnée d’une faible énergie mystique, offrant une légère protection contre les forces arcaniques et naturelles.",
+    [
       { stat: "maxMana", type: "percent", value: 5 },
-      { stat: "arcaneResistance", type: "flat", value: 5 },
-      { stat: "natureResistance", type: "flat", value: 5 }
+      { stat: "arcaneResistance", value: 5 },
+      { stat: "natureResistance", value: 5 }
     ]
-  }
+  )
 ];
 
 export const ITEM_LIBRARY: ItemInfo[] = [
-  ...NOVICE_BASIC_ITEM_LIST
+  ...NOVICE_BASIC_ITEM_LIST,
+  ...TIER1_ITEM_WPN_LIST,
+  ...TIER1_ITEM_ARMOR_LIST,
+  ...TIER1_ITEM_OFFHAND_LIST,
+  ...TIER1_ITEM_ACC_LIST,
+  ...HIGH_TIER_ITEM_LIST
 ];
 
 export const ITEMS_BY_ID: Record<string, ItemInfo> = Object.fromEntries(

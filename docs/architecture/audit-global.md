@@ -11,6 +11,7 @@ Seuls les fichiers dont le nom se termine par `-audit.md` sont référencés ici
 - [inventory-equipment-audit.md](inventory-equipment-audit.md)
 - [forge-domain-audit.md](forge-domain-audit.md)
 - [dungeon-progression-audit.md](dungeon-progression-audit.md)
+- [zero-rebase-audit.md](zero-rebase-audit.md)
 
 Les documents de contrat ou de domaine (`game-state-v1.md`, `town-domain.md`,
 etc.) ne sont pas des audits et restent référencés uniquement par leurs tickets.

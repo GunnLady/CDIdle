@@ -311,19 +311,37 @@ export default function StoragePanel({
                         <span className="text-[9px] text-[#caa050] font-bold uppercase tracking-wider block font-serif">
                           Équiper sur quel aventurier ?
                         </span>
-                        <div className="grid grid-cols-2 gap-1 max-h-24 overflow-y-auto">
-                          {heroes.map((hero) => (
-                            <button
-                              key={hero.id}
-                              onClick={() => {
-                                onEquipItem(hero.id, stack.itemId, stack.rarity, stack.modifiers);
-                                setEquippingItemId(null);
-                              }}
-                              className="text-[10px] text-left p-1 bg-[#100805] hover:bg-[#caa050]/20 border border-[#3e2b1f] hover:border-[#caa050]/60 text-[#dfdbc7] rounded font-serif truncate cursor-pointer"
-                            >
-                              ⚔️ {hero.name} (Niv.{hero.level})
-                            </button>
-                          ))}
+                        <div className="grid grid-cols-2 gap-1 max-h-32 overflow-y-auto">
+                          {heroes.map((hero) => {
+                            const requiredLevel = getItemById(stack.itemId)?.requiredLevel ?? 1;
+                            const isLevelTooLow = hero.level < requiredLevel;
+                            return (
+                              <button
+                                key={hero.id}
+                                disabled={isLevelTooLow}
+                                onClick={() => {
+                                  if (isLevelTooLow) return;
+                                  onEquipItem(hero.id, stack.itemId, stack.rarity, stack.modifiers);
+                                  setEquippingItemId(null);
+                                }}
+                                className={`text-[10px] text-left p-1 rounded font-serif transition-all duration-150 ${
+                                  isLevelTooLow
+                                    ? "bg-[#18110e]/60 border border-[#2a1d15] text-[#7c6d5f] cursor-not-allowed opacity-60"
+                                    : "bg-[#100805] hover:bg-[#caa050]/20 border border-[#3e2b1f] hover:border-[#caa050]/60 text-[#dfdbc7] cursor-pointer"
+                                }`}
+                                title={isLevelTooLow ? `Niveau requis : ${requiredLevel}` : undefined}
+                              >
+                                <span className="block truncate">
+                                  {isLevelTooLow ? "🚫 " : "⚔️ "}{hero.name} (Niv.{hero.level})
+                                </span>
+                                {isLevelTooLow && (
+                                  <span className="text-[8px] text-red-400 font-sans italic block mt-0.5">
+                                    (Req. Niv.{requiredLevel})
+                                  </span>
+                                )}
+                              </button>
+                            );
+                          })}
                         </div>
                         <button
                           onClick={() => setEquippingItemId(null)}

@@ -30,7 +30,7 @@ import {
 } from "../data/gameData";
 import { BUILDINGS_LIST } from "../data/buildings";
 import { getItemById } from "../data/items";
-import { getHeroStats, getHeroAttributes, refreshHeroDerivedStats, generateNoviceStats, generateSingleNoviceHero as generateSingleNoviceHeroUtil, growHeroBaseStats, calculateXpNeeded, evaluateAutomaticClassChange, unequipItem, equipItem, addItemToStorage, calculateBasicAttackDamage, getHeroMainHandWeapon, getWeaponDamageTypes, rollWeaponDamage, applyMonsterDefenseOrResistance, scrapItemFromStorage, FORGE_MATERIALS, DEFAULT_UNLOCKED_ITEM_BLUEPRINTS, areModifiersEqual } from "../utils/gameCalculations";
+import { getHeroStats, getHeroAttributes, refreshHeroDerivedStats, generateNoviceStats, generateSingleNoviceHero as generateSingleNoviceHeroUtil, growHeroBaseStats, calculateXpNeeded, evaluateAutomaticClassChange, unequipItem, equipItem, addItemToStorage, calculateBasicAttackDamage, getHeroMainHandWeapon, getWeaponDamageTypes, rollWeaponDamage, applyMonsterDefenseOrResistance, applySplitDamageDefenseOrResistance, scrapItemFromStorage, FORGE_MATERIALS, DEFAULT_UNLOCKED_ITEM_BLUEPRINTS, areModifiersEqual } from "../utils/gameCalculations";
 import {
   rollEncounterForgeMaterial,
   getRandomDungeonEncounterType,
@@ -937,31 +937,41 @@ export function useDungeonSystem({
 
           if (!skillUsed) {
             const weapon = getHeroMainHandWeapon(hero);
-            const weaponDamageRoll = rollWeaponDamage(weapon);
-            const rawDamage = calculatedStats.physicalDamage + weaponDamageRoll;
-
-            const critChance = calculatedStats.criticalChance / 100;
-            const isCrit = Math.random() < critChance;
-            let damageAfterCrit = rawDamage;
-            if (isCrit) {
-              damageAfterCrit = Math.floor(rawDamage * 1.5);
-            }
-
-            let damageType: DamageType = "physical";
-            if (weapon) {
-              const dTypes = getWeaponDamageTypes(weapon);
-              if (dTypes && dTypes.length > 0) {
-                damageType = dTypes[0];
+            const attackSpeed = weapon?.attackSpeed ?? 1;
+            const multiStrikeChance = Math.max(
+              0,
+              (attackSpeed - 1) * 100 + calculatedStats.speed
+            );
+            let strikes = 1;
+            let remainingChance = multiStrikeChance;
+            while (remainingChance > 0 && strikes < 3) {
+              if (remainingChance >= 100) {
+                strikes += 1;
+                remainingChance -= 100;
+              } else {
+                if (Math.random() < remainingChance / 100) strikes += 1;
+                break;
               }
             }
 
-            const finalDmg = applyMonsterDefenseOrResistance(damageAfterCrit, damageType, monster);
-            totalStrikeDmg += finalDmg;
+            for (let strike = 1; strike <= strikes; strike += 1) {
+              const weaponDamageRoll = rollWeaponDamage(weapon);
+              const rawDamage = calculatedStats.physicalDamage + weaponDamageRoll;
+              const critChance = calculatedStats.criticalChance / 100;
+              const isCrit = Math.random() < critChance;
+              const damageAfterCrit = isCrit ? Math.floor(rawDamage * 1.5) : rawDamage;
+              const damageTypes = weapon && getWeaponDamageTypes(weapon).length > 0
+                ? getWeaponDamageTypes(weapon)
+                : ["physical" as DamageType];
+              const finalDmg = applySplitDamageDefenseOrResistance(damageAfterCrit, damageTypes, monster);
+              totalStrikeDmg += finalDmg;
 
-            if (isCrit) {
-              addLog(`⚔️ [Coup critique 🍀] ${hero.name} assène un coup dévastateur à ${monster.name} pour ${finalDmg} dégâts.`, "combat-hero");
-            } else {
-              addLog(`🗡️ ${hero.name} attaque ${monster.name} pour ${finalDmg} dégâts.`, "combat-hero");
+              const prefix = strikes > 1 ? `⚡ [Frappe agile ${strike}/${strikes}] ` : "";
+              if (isCrit) {
+                addLog(`${prefix}⚔️ [Coup critique 🍀] ${hero.name} assène un coup dévastateur à ${monster.name} pour ${finalDmg} dégâts.`, "combat-hero");
+              } else {
+                addLog(`${prefix}🗡️ ${hero.name} attaque ${monster.name} pour ${finalDmg} dégâts.`, "combat-hero");
+              }
             }
           }
         }

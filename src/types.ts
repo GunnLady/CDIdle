@@ -127,6 +127,11 @@ export interface Hero {
   currentMana: number;
   baseStats: HeroStats;
   gender?: "Male" | "Female";
+  /**
+   * Optional visual selector for the client portrait.  The value is display-only
+   * and must ultimately be supplied by the authoritative game state.
+   */
+  spriteIndex?: number;
   isElite?: boolean;
   isActive: boolean; // in raid party
   status: "idle" | "exploring" | "resting";
