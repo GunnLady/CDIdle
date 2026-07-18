@@ -35,6 +35,11 @@ Ce ticket fait partie du catalogue approuve et ses dependants attendent ses cont
   le flux autoritaire.
 - Implementer la retraite, les recompenses/loot, et l'auto-exploration
   uniquement en ligne.
+- Mettre en place la migration hybride 2C a court terme : le client peut
+  previsualiser le combat, mais le serveur valide les degats, le transcript,
+  les recompenses et la progression.
+- Livrer ensuite la cible 2B : resolution complete du combat par le serveur,
+  le client ne faisant que soumettre les commandes et afficher l'etat signe.
 
 ## Hors perimetre
 
@@ -47,6 +52,8 @@ Ce ticket fait partie du catalogue approuve et ses dependants attendent ses cont
 - Validation reproductible sans reseau reel.
 - Une commande repetee ne doit ni avancer deux fois la salle ni distribuer deux
   fois les recompenses.
+- La resolution serveur 2B doit rester la source d'autorite finale meme
+  pendant la phase hybride 2C.
 
 ## Dependances
 

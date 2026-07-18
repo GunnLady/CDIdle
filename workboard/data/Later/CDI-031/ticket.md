@@ -31,6 +31,9 @@ Ce ticket fait partie du catalogue approuve et ses dependants attendent ses cont
 
 - Implementer uniquement le domaine indique.
 - Ajouter les tests deterministes et la documentation necessaire.
+- Verrouiller toute mutation de combat, loot et progression hors ligne.
+- Permettre la reprise d'une commande interrompue via idempotence et revision
+  attendue, sans double application ni perte de transcript.
 
 ## Hors perimetre
 

@@ -33,6 +33,8 @@ Ce ticket fait partie du catalogue approuve et ses dependants attendent ses cont
 - Ajouter les tests deterministes et la documentation necessaire.
 - Prendre en charge le contrat des encounters et la production d'un transcript
   deterministe, y compris les cas de succes, d'echec et d'interruption.
+- Representer les buffs et debuffs comme des modificateurs temporaires par
+  combattant, avec duree en rounds, expiration et trace dans le transcript.
 
 ## Hors perimetre
 
@@ -44,6 +46,9 @@ Ce ticket fait partie du catalogue approuve et ses dependants attendent ses cont
 - Etat canonique, erreurs explicites et mutations idempotentes.
 - Validation reproductible sans reseau reel.
 - Le resultat d'un encounter doit etre rejouable a seed et etat identiques.
+- `attackSpeed` est une cadence : `1` vaut un coup par tick, `0.8` est plus
+  lent et `1.5` plus rapide ; cette cadence est combinee a `speed` pour le
+  calcul des frappes supplementaires.
 
 ## Dependances
 

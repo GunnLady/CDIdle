@@ -82,6 +82,10 @@ complete apres migration des domaines.
 
 - Les dependances non deterministes sont explicites et injectees.
 - Les frontieres systeme sont les seules a fournir l heure et l aleatoire reels.
+- La migration hybride 2C de CDI-029 doit converger vers une resolution 2B
+  entierement cote serveur.
+- Le `Rng` injecte doit etre utilise par la resolution serveur 2B ; `Math.random`
+  est interdit dans les mutations de combat, loot et progression.
 
 ## Dependances
 
