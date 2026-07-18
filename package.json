@@ -8,6 +8,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "board": "node workboard/server/server.mjs",
+    "board:start": "powershell -NoProfile -ExecutionPolicy Bypass -File workboard/scripts/start.ps1",
     "board:validate": "node workboard/scripts/validate.mjs",
     "board:sync": "node workboard/scripts/sync-github.mjs",
     "board:sync:apply": "node workboard/scripts/sync-github.mjs --apply",

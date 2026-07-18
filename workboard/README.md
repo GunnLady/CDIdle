@@ -14,6 +14,16 @@ Le plan approuve qui gouverne ces tickets est conserve dans
 npm run board
 ```
 
+Pour un demarrage idempotent (ne relance pas un serveur deja actif), utiliser :
+
+```powershell
+npm run board:start
+```
+
+Ajouter `-Open` a `workboard/scripts/start.ps1` pour ouvrir automatiquement
+l'interface dans Google Chrome. La commande attend la reponse `/health` avant
+de rendre la main et signale clairement un conflit de port.
+
 Puis ouvrir `http://127.0.0.1:4173/`. Le serveur ecoute exclusivement sur
 `127.0.0.1` et n'expose aucun jeton GitHub au navigateur.
 
