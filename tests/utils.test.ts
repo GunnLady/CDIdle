@@ -26,7 +26,7 @@ import { addHeroExperience, canActivateHero, dismissHero, recruitmentCost, recru
 import { addStack, removeStack, type InventoryState } from "../src/domain/inventory";
 import { applyUpgradeCost, recycleItem, startBasicCraft } from "../src/domain/forge";
 import { advanceRoom, changeFloor, validateDungeonProgress, type DungeonProgressState } from "../src/domain/dungeonProgression";
-import { calculateMultiStrikeChance, resolveBasicAttack, resolveMultiStrikeCount } from "../src/domain/combat";
+import { calculateMultiStrikeChance, resolveBasicAttack, resolveCombatRound, resolveMultiStrikeCount, retreatCombat, type CombatState } from "../src/domain/combat";
 
 const hero = (id: string, strength: number, agility: number): Hero => ({
   id,
@@ -308,6 +308,32 @@ describe("combat domain", () => {
     if (!result.ok) return;
     expect(result.result.hits[0]).toMatchObject({ damage: 3, targetHpAfter: 17 });
     expect(target.hp).toBe(20);
+  });
+
+  const combatant = (id: string, hp: number, attack: number) => ({
+    id, hp, maxHp: hp, attackSpeed: 1, speed: 0, attack, damageMin: 0, damageMax: 0,
+    criticalChance: 0, damageTypes: ["physical" as const], physicalDefense: 0, resistances: {},
+  });
+
+  it("resolves a round, records both sides and ends on victory", () => {
+    const state: CombatState = { round: 0, heroes: [combatant("hero", 10, 5)], enemy: combatant("enemy", 4, 1), outcome: "active", transcript: [] };
+    const result = resolveCombatRound(state, seededRng(3));
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.state.outcome).toBe("victory");
+    expect(result.state.transcript).toHaveLength(1);
+    expect(state.enemy.hp).toBe(4);
+  });
+
+  it("supports defeat and idempotent retreat outcomes", () => {
+    const state: CombatState = { round: 0, heroes: [combatant("hero", 2, 1)], enemy: combatant("enemy", 10, 5), outcome: "active", transcript: [] };
+    const defeat = resolveCombatRound(state, seededRng(4));
+    expect(defeat.ok && defeat.state.outcome).toBe("defeat");
+    const retreat = retreatCombat(state);
+    expect(retreat.ok).toBe(true);
+    if (retreat.ok) expect(retreat.state.outcome).toBe("retreated");
+    if (!defeat.ok) return;
+    expect(resolveCombatRound(defeat.state, seededRng(4))).toEqual({ ok: false, error: "ALREADY_FINISHED" });
   });
 });
 
