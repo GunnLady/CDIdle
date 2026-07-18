@@ -16,8 +16,8 @@ configuration locale/reproductible. Aucun secret OAuth n'est versionné.
 - `public.revoke_allowlisted_email(text)` est réservé à `service_role` et
   désactive l'entrée de façon idempotente.
 - Google est activable via variables d'environnement dans `supabase/config.toml`.
-- Les 10 assertions pgTAP de CDI-019 passent avec les 23 assertions de CDI-018
-  (33 tests au total).
+- Les 12 assertions pgTAP de CDI-019 passent avec les 23 assertions de CDI-018
+  (35 tests au total).
 
 ## Écarts réels corrigés
 
@@ -25,6 +25,7 @@ configuration locale/reproductible. Aucun secret OAuth n'est versionné.
 | --- | --- |
 | La fonction de hook pouvait entrer en conflit avec le nom de colonne `email`. | Variable renommée `normalized_email` et test de régression ajouté. |
 | Une révocation administrative devait éviter l'accès direct de rôles applicatifs à l'allowlist. | Fonction dédiée `revoke_allowlisted_email`, privilèges limités à `service_role`. |
+| L'effet réel de la révocation sur le hook n'était pas couvert. | Scénario pgTAP ajouté : révocation puis refus de l'inscription. |
 
 ## Écarts déjà prévus dans des tickets futurs
 
@@ -36,7 +37,7 @@ configuration locale/reproductible. Aucun secret OAuth n'est versionné.
 
 ## Conclusion
 
-Le périmètre CDI-019 est couvert localement. Aucun écart réel restant n'a été
-identifié dans ce ticket. La vérification de la CI distante après le push reste
+Le périmètre CDI-019 est couvert localement après correction de l'écart de test
+révélé par l'audit post-push. La vérification de la CI distante après le push reste
 à faire via le connecteur/API GitHub ; si l'API ne remonte pas les runs déclenchés
 par un push, le résultat distant sera déclaré inconnu, sans consultation du site.

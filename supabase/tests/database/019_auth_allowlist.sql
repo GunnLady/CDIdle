@@ -1,4 +1,4 @@
-select plan(10);
+select plan(12);
 
 select is(
   public.before_user_created(jsonb_build_object(
@@ -64,5 +64,19 @@ select ok(exists (
     and proname = 'before_user_created'
     and prosecdef
 ), 'le hook est security definer');
+
+select ok(
+  public.revoke_allowlisted_email('LOCAL@EXAMPLE.TEST'),
+  'la révocation désactive une entrée existante'
+);
+select ok(
+  (public.before_user_created(jsonb_build_object(
+    'user', jsonb_build_object(
+      'email', 'local@example.test',
+      'app_metadata', jsonb_build_object('provider', 'google')
+    )
+  )) #>> '{error,message}') = 'This email is not allowlisted.',
+  'une adresse révoquée est refusée par le hook'
+);
 
 select * from finish();
