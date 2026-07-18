@@ -29,6 +29,20 @@ et une référence persistante du projet.
 - Pour une action asynchrone, préciser ce qui peut réellement être surveillé et
   ce qui ne continuera pas après la fin du tour courant.
 
+## Contexte global du projet
+
+- Le plan fullstack autoritaire approuvé est la référence produit et
+  technique ; les tickets Workboard le découpent sans le réinterpréter.
+- Le Workboard Markdown versionné est la source de vérité des tickets ; GitHub
+  Issues en est le miroir de collaboration.
+- L'architecture cible est Supabase Free (staging et production), Google OAuth
+  avec allowlist, backend autoritaire et lecture hors connexion sans mutation.
+- Les tickets doivent rester dans leur périmètre et respecter leurs
+  dépendances ; les sujets d'un ticket ultérieur ne doivent pas être anticipés.
+- Le statut `Doing` signifie travail en cours. `Done` exige l'implémentation,
+  les preuves, l'intégration attendue, les contrôles verts, le push et la CI
+  vérifiée.
+
 ## Référence de consigne
 
 La consigne active est : « dire exactement ce qui est vrai, vérifier avant

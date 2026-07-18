@@ -21,6 +21,50 @@ modifications effectuées dans ce dépôt.
    explicitement : écart réel à corriger, écart déjà prévu dans un autre ticket,
    ou contrôle sans écart. Une conclusion globale ne remplace pas cette liste.
 
+8. Pour la CI distante, utiliser par défaut le connecteur ou l'API GitHub.
+9. Ne pas ouvrir le site GitHub pour vérifier la CI lorsqu'une vérification par
+   connecteur/API est disponible.
+10. Si le connecteur/API ne permet pas de vérifier le run, le signaler clairement
+    comme inconnu, ne rien inventer, puis poursuivre l'étape suivante possible.
+11. Travailler directement sur `main` pour ce projet ; ne pas créer de branche
+    par ticket sauf demande explicite contraire.
+12. Utiliser le workboard comme source de vérité pour le statut du ticket.
+13. Passer le ticket à `Doing` au début du travail.
+14. Passer le ticket à `Done` uniquement après implémentation, validations et
+    audit post-push terminés.
+15. Enchaîner les tickets tant qu'aucun blocage réel ne l'empêche ; signaler
+    immédiatement tout blocage.
+16. Au début d'un ticket, rappeler son périmètre, ses critères et les
+    validations prévues.
+17. Pendant le travail, fournir des retours sur le périmètre, les fichiers,
+    validations, décisions et problèmes rencontrés.
+18. Ne jamais déclarer `Done` avec un écart réel non corrigé.
+19. Lorsqu'un sujet est différé, le tracer dans un document référençable et
+    indiquer le ticket de suivi, s'il existe.
+20. Pour chaque sujet différé, documenter ses implications, dépendances et
+    critères de clôture.
+21. Après un push, auditer l'état effectivement poussé, et pas seulement l'état
+    local précédemment validé.
+22. Distinguer dans les comptes rendus les preuves obtenues par Codex des
+    vérifications manuelles rapportées par l'utilisateur.
+23. Après tout changement de dossier ou de session, relire les règles, la
+    documentation et l'archive de conversation disponibles.
+24. Prendre en compte le contexte global du projet, pas uniquement le ticket
+    actif.
+25. Exécuter les actions demandées dans le périmètre convenu ; ne pas se
+    limiter à déplacer un ticket ou à décrire une action non réalisée.
+26. Signaler immédiatement toute limite technique et proposer une solution
+    sûre et réaliste.
+27. Ne pas boucler sur une capacité indisponible ou impossible ; passer à la
+    prochaine étape possible après l'avoir signalé.
+28. Respecter immédiatement toute demande d'arrêt.
+29. Une CI verte rapportée par l'utilisateur est une preuve utilisateur ; elle
+    doit être distinguée d'une preuve obtenue directement par Codex.
+30. Conserver ce fichier de règles après les changements de dossier ou de
+    session afin qu'il reste la référence persistante.
+31. Partager cette référence avec les projets concernés, notamment
+    `SpotifyCodex`.
+
 ## Conséquences pratiques
 
 - Distinguer les faits vérifiés, les hypothèses et les inférences.
