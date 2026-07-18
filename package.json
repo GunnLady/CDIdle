@@ -14,6 +14,7 @@
     "board:sync": "node workboard/scripts/sync-github.mjs",
     "board:sync:apply": "node workboard/scripts/sync-github.mjs --apply",
     "supabase:verify": "node supabase/verify-local.mjs",
+    "supabase:revoke-allowlist": "node supabase/scripts/revoke-allowlist.mjs",
     "test:db": "npx supabase test db",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src tests",
