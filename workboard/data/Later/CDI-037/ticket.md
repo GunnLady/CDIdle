@@ -9,6 +9,7 @@ risk: medium
 source: Extension utilisateur du plan fullstack autoritaire
 depends_on: ["CDI-009", "CDI-010", "CDI-011", "CDI-012", "CDI-013", "CDI-014", "CDI-015", "CDI-016"]
 blocks: []
+attack_speed_rng_note: "Remplacer Math.random dans le calcul des frappes multiples attackSpeed + speed par le Rng injecte, en conservant la formule et le plafond de trois frappes."
 github_issue: null
 tags: ["analyse"]
 related_docs: ["docs/fullstack-authoritative-plan.md", "docs/architecture/clock-rng.md", "docs/architecture/dungeon-progression-audit.md", "docs/architecture/zero-rebase-audit.md"]
