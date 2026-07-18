@@ -2,6 +2,7 @@ import type { DamageType, SkillEffect, SkillInfo, SkillTarget } from "../types";
 import type { Rng } from "./random";
 
 export const MAX_BASIC_ATTACK_STRIKES = 3;
+export const MAX_COMBAT_ROUNDS = 100;
 
 export interface BasicAttackProfile {
   id: string;
@@ -47,17 +48,18 @@ export interface CombatantState extends BasicAttackProfile {
   resistances: Partial<Record<Exclude<DamageType, "physical">, number>>;
 }
 
-export type CombatOutcome = "active" | "victory" | "defeat" | "retreated";
+export type CombatOutcome = "active" | "victory" | "defeat" | "retreated" | "interrupted";
 
 export interface CombatState {
   round: number;
   heroes: CombatantState[];
   enemy: CombatantState;
   outcome: CombatOutcome;
+  interruptionReason?: string;
   transcript: CombatHit[];
 }
 
-export type CombatRoundError = "INVALID_STATE" | "ALREADY_FINISHED" | "NO_LIVING_HERO";
+export type CombatRoundError = "INVALID_STATE" | "ALREADY_FINISHED" | "NO_LIVING_HERO" | "ROUND_LIMIT_REACHED";
 export type CombatRoundResult = { ok: true; state: CombatState } | { ok: false; error: CombatRoundError };
 
 export interface SkillActorState {
@@ -210,6 +212,7 @@ function appendTranscript(transcript: CombatHit[], hits: CombatHit[]): CombatHit
 export function resolveCombatRound(state: CombatState, rng: Rng): CombatRoundResult {
   if (validateCombatState(state).length > 0) return { ok: false, error: "INVALID_STATE" };
   if (state.outcome !== "active") return { ok: false, error: "ALREADY_FINISHED" };
+  if (state.round >= MAX_COMBAT_ROUNDS) return { ok: false, error: "ROUND_LIMIT_REACHED" };
   const livingHero = state.heroes.find((hero) => hero.hp > 0);
   if (!livingHero) return { ok: false, error: "NO_LIVING_HERO" };
 
@@ -230,10 +233,23 @@ export function resolveCombatRound(state: CombatState, rng: Rng): CombatRoundRes
   return { ok: true, state: { round, heroes: updatedHeroes, enemy, outcome, transcript } };
 }
 
+export function decrementCooldowns(cooldowns: Record<string, number>): Record<string, number> {
+  return Object.fromEntries(Object.entries(cooldowns)
+    .map(([skillId, turns]) => [skillId, Math.max(0, turns - 1)] as const)
+    .filter(([, turns]) => turns > 0));
+}
+
 export function retreatCombat(state: CombatState): CombatRoundResult {
   if (validateCombatState(state).length > 0) return { ok: false, error: "INVALID_STATE" };
   if (state.outcome !== "active") return { ok: false, error: "ALREADY_FINISHED" };
   return { ok: true, state: { ...state, heroes: state.heroes.map((hero) => ({ ...hero })), enemy: { ...state.enemy }, outcome: "retreated" } };
+}
+
+export function interruptCombat(state: CombatState, reason: string): CombatRoundResult {
+  if (validateCombatState(state).length > 0) return { ok: false, error: "INVALID_STATE" };
+  if (state.outcome !== "active") return { ok: false, error: "ALREADY_FINISHED" };
+  if (reason.trim().length === 0) return { ok: false, error: "INVALID_STATE" };
+  return { ok: true, state: { ...state, heroes: state.heroes.map((hero) => ({ ...hero })), enemy: { ...state.enemy }, outcome: "interrupted", interruptionReason: reason } };
 }
 
 function skillTargets(target: SkillTarget | undefined, targets: CombatTarget[]): CombatTarget[] {

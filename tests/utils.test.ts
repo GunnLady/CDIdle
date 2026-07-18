@@ -26,7 +26,7 @@ import { addHeroExperience, canActivateHero, dismissHero, recruitmentCost, recru
 import { addStack, removeStack, type InventoryState } from "../src/domain/inventory";
 import { applyUpgradeCost, recycleItem, startBasicCraft } from "../src/domain/forge";
 import { advanceRoom, changeFloor, validateDungeonProgress, type DungeonProgressState } from "../src/domain/dungeonProgression";
-import { calculateMultiStrikeChance, resolveBasicAttack, resolveCombatRound, resolveMultiStrikeCount, resolveSkill, retreatCombat, type CombatState } from "../src/domain/combat";
+import { calculateMultiStrikeChance, decrementCooldowns, interruptCombat, resolveBasicAttack, resolveCombatRound, resolveMultiStrikeCount, resolveSkill, retreatCombat, type CombatState } from "../src/domain/combat";
 
 const hero = (id: string, strength: number, agility: number): Hero => ({
   id,
@@ -353,6 +353,21 @@ describe("combat domain", () => {
     const actor = { id: "hero", mana: 2, maxMana: 10, stats: { magicDamage: 5 }, cooldowns: {} };
     expect(resolveSkill(skill, actor, [{ ...target, hp: 10 }])).toEqual({ ok: false, error: "INSUFFICIENT_MANA" });
     expect(actor.mana).toBe(2);
+  });
+
+  it("ticks cooldowns without mutating the source and supports interruption", () => {
+    const cooldowns = { slash: 2, guard: 1 };
+    expect(decrementCooldowns(cooldowns)).toEqual({ slash: 1 });
+    expect(cooldowns).toEqual({ slash: 2, guard: 1 });
+    const state: CombatState = { round: 0, heroes: [combatant("hero", 10, 1)], enemy: combatant("enemy", 10, 1), outcome: "active", transcript: [] };
+    const interrupted = interruptCombat(state, "connection-lost");
+    expect(interrupted.ok).toBe(true);
+    if (interrupted.ok) expect(interrupted.state).toMatchObject({ outcome: "interrupted", interruptionReason: "connection-lost" });
+  });
+
+  it("stops an endless combat at the round limit", () => {
+    const state: CombatState = { round: 100, heroes: [combatant("hero", 10, 1)], enemy: combatant("enemy", 10, 1), outcome: "active", transcript: [] };
+    expect(resolveCombatRound(state, seededRng(9))).toEqual({ ok: false, error: "ROUND_LIMIT_REACHED" });
   });
 });
 
