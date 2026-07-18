@@ -10,7 +10,7 @@ source: Plan fullstack autoritaire approuve le 2026-07-15
 depends_on: ["CDI-014", "CDI-015", "CDI-022", "CDI-026", "CDI-027"]
 blocks: ["CDI-031", "CDI-033"]
 github_issue: null
-related_docs: ["docs/fullstack-authoritative-plan.md"]
+related_docs: ["docs/fullstack-authoritative-plan.md", "docs/architecture/dungeon-progression-audit.md"]
 ---
 
 # CDI-029 — Donjon et combat autoritaires
@@ -31,6 +31,10 @@ Ce ticket fait partie du catalogue approuve et ses dependants attendent ses cont
 
 - Implementer uniquement le domaine indique.
 - Ajouter les tests deterministes et la documentation necessaire.
+- Integrer la progression canonique CDI-014 avec les encounters CDI-015 dans
+  le flux autoritaire.
+- Implementer la retraite, les recompenses/loot, et l'auto-exploration
+  uniquement en ligne.
 
 ## Hors perimetre
 
@@ -41,6 +45,8 @@ Ce ticket fait partie du catalogue approuve et ses dependants attendent ses cont
 
 - Etat canonique, erreurs explicites et mutations idempotentes.
 - Validation reproductible sans reseau reel.
+- Une commande repetee ne doit ni avancer deux fois la salle ni distribuer deux
+  fois les recompenses.
 
 ## Dependances
 
@@ -74,4 +80,3 @@ Une implementation trop large creerait des dependances implicites.
 ## Handoff
 
 Fournir fichiers, commandes, resultats, risques residuels et decisions a transmettre.
-

@@ -10,7 +10,7 @@ source: Plan fullstack autoritaire approuve le 2026-07-15
 depends_on: ["CDI-009", "CDI-011", "CDI-012", "CDI-014"]
 blocks: ["CDI-029", "CDI-037"]
 github_issue: null
-related_docs: ["docs/fullstack-authoritative-plan.md"]
+related_docs: ["docs/fullstack-authoritative-plan.md", "docs/architecture/dungeon-progression-audit.md"]
 ---
 
 # CDI-015 — Moteur de combat et transcript
@@ -31,6 +31,8 @@ Ce ticket fait partie du catalogue approuve et ses dependants attendent ses cont
 
 - Implementer uniquement le domaine indique.
 - Ajouter les tests deterministes et la documentation necessaire.
+- Prendre en charge le contrat des encounters et la production d'un transcript
+  deterministe, y compris les cas de succes, d'echec et d'interruption.
 
 ## Hors perimetre
 
@@ -41,6 +43,7 @@ Ce ticket fait partie du catalogue approuve et ses dependants attendent ses cont
 
 - Etat canonique, erreurs explicites et mutations idempotentes.
 - Validation reproductible sans reseau reel.
+- Le resultat d'un encounter doit etre rejouable a seed et etat identiques.
 
 ## Dependances
 

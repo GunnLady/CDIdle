@@ -11,7 +11,7 @@ depends_on: ["CDI-009", "CDI-010", "CDI-011", "CDI-012", "CDI-013", "CDI-014", "
 blocks: []
 github_issue: null
 tags: ["analyse"]
-related_docs: ["docs/fullstack-authoritative-plan.md", "docs/architecture/clock-rng.md"]
+related_docs: ["docs/fullstack-authoritative-plan.md", "docs/architecture/clock-rng.md", "docs/architecture/dungeon-progression-audit.md"]
 ---
 
 # CDI-037 — Audit global et migration horloge/RNG
