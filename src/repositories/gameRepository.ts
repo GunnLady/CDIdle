@@ -19,7 +19,13 @@ export type GameEnvelope = {
 };
 
 const gameStateSchema = z.custom<GameState>(
-  (value) => typeof value === "object" && value !== null && validateGameState(value as GameState).length === 0,
+  (value) => {
+    try {
+      return typeof value === "object" && value !== null && validateGameState(value as GameState).length === 0;
+    } catch {
+      return false;
+    }
+  },
   "Invalid GameStateV1",
 );
 

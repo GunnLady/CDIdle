@@ -48,4 +48,14 @@ describe("GameRepository", () => {
     const repository = new GameRepository(new MemoryGameStore());
     await expect(repository.loadOrCreate("  ")).rejects.toThrow("USER_ID_REQUIRED");
   });
+
+  it("rejects a structurally corrupted persisted state with a validation error", async () => {
+    const store = new MemoryGameStore();
+    await store.createInitial({
+      userId: "user-1", schemaVersion: 1, revision: 0,
+      state: { resources: null } as never,
+      lastProcessedAt: "2026-07-18T12:00:00.000Z",
+    });
+    await expect(new GameRepository(store).loadOrCreate("user-1")).rejects.toMatchObject({ name: "ZodError" });
+  });
 });

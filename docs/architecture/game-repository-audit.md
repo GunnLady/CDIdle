@@ -17,12 +17,15 @@ dont l'intégration est prévue par CDI-023.
 - L'enveloppe est validée par Zod : version, révision, dates ISO et invariants
   de `GameStateV1`.
 - Les trois scénarios sont couverts par des tests Vitest déterministes.
+- Un état persisté structurellement corrompu est rejeté par une `ZodError`
+  contrôlée, sans exception interne de validation.
 
 ## Écarts réels corrigés
 
 | Écart | Correction |
 | --- | --- |
 | Le contrat de validation Zod et le scénario de course n'existaient pas. | Repository, schéma Zod et tests dédiés ajoutés. |
+| Un état structurellement corrompu pouvait produire une exception brute et n'était pas testé. | Validation défensive et test de rejet `ZodError` ajoutés. |
 
 ## Écarts déjà prévus dans des tickets futurs
 
