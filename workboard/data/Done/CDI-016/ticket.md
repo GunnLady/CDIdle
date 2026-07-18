@@ -10,7 +10,7 @@ source: Plan fullstack autoritaire approuve le 2026-07-15
 depends_on: ["CDI-009", "CDI-010", "CDI-011"]
 blocks: ["CDI-024", "CDI-030", "CDI-037"]
 github_issue: null
-related_docs: ["docs/fullstack-authoritative-plan.md"]
+related_docs: ["docs/fullstack-authoritative-plan.md", "docs/architecture/idle-engine-audit.md"]
 ---
 
 # CDI-016 — Moteur idle plafonne
