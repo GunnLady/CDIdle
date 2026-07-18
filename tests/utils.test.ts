@@ -369,11 +369,26 @@ describe("combat domain", () => {
     expect(applied.resolution.targets[0].modifiers).toEqual([
       { stat: "attack", type: "flat", value: 3, sourceSkillId: "battle-cry", remainingRounds: 2, effectType: "buff" },
     ]);
-    expect(original.modifiers).toBeUndefined();
+    expect("modifiers" in original).toBe(false);
     const afterOne = advanceCombatModifiers(applied.resolution.targets[0]);
     expect(afterOne.modifiers?.[0].remainingRounds).toBe(1);
     const afterTwo = advanceCombatModifiers(afterOne);
     expect(afterTwo.modifiers).toEqual([]);
+  });
+
+  it("uses active combat modifiers when resolving a round", () => {
+    const state: CombatState = {
+      round: 0,
+      heroes: [{ ...combatant("hero", 10, 1), modifiers: [{ stat: "attack", type: "flat", value: 3, sourceSkillId: "battle-cry", remainingRounds: 1, effectType: "buff" }] }],
+      enemy: combatant("enemy", 100, 1),
+      outcome: "active",
+      transcript: [],
+    };
+    const result = resolveCombatRound(state, seededRng(21));
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.state.outcome).toBe("active");
+    expect(result.state.heroes[0].modifiers).toEqual([]);
   });
 
   it("ticks cooldowns without mutating the source and supports interruption", () => {

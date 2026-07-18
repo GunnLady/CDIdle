@@ -1,7 +1,7 @@
 ---
 id: CDI-015
 title: Moteur de combat et transcript
-status: Doing
+status: Done
 area: domain
 priority: P1
 size: L
@@ -56,9 +56,9 @@ Ce ticket depend de : ["CDI-009", "CDI-011", "CDI-012", "CDI-014"].
 
 ## Criteres d'acceptation
 
-- [ ] Le perimetre est implemente sans regression hors domaine.
-- [ ] Les invariants sont couverts par des tests reproductibles.
-- [ ] Les preuves et la documentation sont fournies.
+- [x] Le perimetre est implemente sans regression hors domaine.
+- [x] Les invariants sont couverts par des tests reproductibles.
+- [x] Les preuves et la documentation sont fournies.
 
 ## Tests
 
