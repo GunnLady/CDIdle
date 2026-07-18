@@ -33,9 +33,9 @@
     #validation { margin: 0; padding: 10px 28px; border-bottom: 1px solid var(--line); color: var(--muted); background: rgba(10, 24, 35, .72); }
     #validation.ok { color: #91e6c9; border-color: rgba(98,212,179,.35); }
     #validation.error { color: #ffabb4; border-color: rgba(255,126,139,.45); }
-    .layout { display: grid; grid-template-columns: minmax(860px, 1fr) 430px; height: calc(100vh - 113px); min-height: 0; }
-    main { display: grid; grid-template-columns: repeat(5, minmax(245px, 1fr)); gap: 14px; padding: 18px; overflow: auto; align-items: start; border-right: 1px solid var(--line); }
-    .column { min-height: calc(100vh - 155px); background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 12px; box-shadow: 0 16px 50px rgba(0,0,0,.18); }
+    .layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 430px); height: calc(100vh - 113px); min-height: 0; }
+    main { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 14px; min-width: 0; padding: 18px; overflow: auto; align-items: start; border-right: 1px solid var(--line); }
+    .column { min-width: 0; min-height: calc(100vh - 155px); background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 12px; box-shadow: 0 16px 50px rgba(0,0,0,.18); }
     .column-head { display: flex; align-items: center; margin-bottom: 12px; padding: 2px 3px; }
     .column h2 { font-size: 13px; margin: 0; letter-spacing: .08em; text-transform: uppercase; }
     .count { margin-left: auto; color: var(--muted); font-size: 12px; }
@@ -76,8 +76,8 @@
       body { overflow: auto; }
       header { position: static; flex-wrap: wrap; }
       #search { width: 100%; order: 5; }
-      .layout { display: block; height: auto; overflow: visible; }
-      main { grid-template-columns: repeat(2, minmax(0, 1fr)); min-height: 0; overflow: visible; border-right: 0; }
+      .layout { display: block; height: auto; min-width: 0; overflow: visible; }
+      main { grid-template-columns: repeat(2, minmax(0, 1fr)); width: 100%; min-height: 0; overflow: visible; border-right: 0; }
       .column { min-height: 0; }
       #details { border-top: 1px solid var(--line); min-height: 560px; }
     }
@@ -85,7 +85,7 @@
       header { gap: 10px; padding: 16px; }
       h1 { font-size: 18px; }
       #validation { padding: 10px 16px; }
-      main { grid-template-columns: minmax(0, 1fr); gap: 10px; padding: 12px; }
+      main { grid-template-columns: minmax(0, 1fr); gap: 10px; padding: 12px; overflow-x: hidden; }
       .column { padding: 10px; }
       #details { padding: 14px 14px 78px; }
       .detail-actions { margin-left: -14px; margin-right: -14px; padding-left: 14px; padding-right: 14px; flex-wrap: wrap; }
