@@ -4,8 +4,9 @@
 
 Le client navigateur utilise désormais `@supabase/supabase-js` pour Google,
 email, session et appels vers l'Edge Function `game-api`. Les parcours de
-chargement, sauvegarde et reset passent par l'API autoritaire ; la sauvegarde
-locale reste disponible comme repli hors connexion.
+chargement, sauvegarde et reset passent par l'API autoritaire. La sauvegarde
+locale actuelle est conservée uniquement comme compatibilité transitoire
+jusqu'à l'implémentation du cache de lecture seule prévue par CDI-024/CDI-025.
 
 ## Contrôles
 
@@ -17,12 +18,18 @@ locale reste disponible comme repli hors connexion.
 | TypeScript | Contrôle sans écart | `npm run typecheck` passe |
 | Lint | Contrôle sans écart bloquant | `npm run lint` passe, avertissements historiques uniquement |
 | Workboard | Contrôle sans écart | `npm run board:validate` : 38 tickets, 0 erreur |
-| Tests Vitest et build | Vérification bloquée par l'environnement | `EPERM` lors de l'écriture de `node_modules/.vite-temp` |
-| Services Supabase de production et vérification JWT réelle | Écart déjà prévu | CDI-022, suivi dans `docs/architecture/game-api-followups.md` et tickets dépendants |
+| Tests Vitest | Contrôle sans écart | `npm test -- --run` : 7 fichiers, 61 tests réussis |
+| Build Vite | Contrôle sans écart bloquant | `npm run build` passe ; avertissement de taille de bundle uniquement |
+| Services Supabase de production | Écart déjà prévu dans un ticket futur | Suivi d'architecture, validation finale CDI-035 |
+| Vérification JWT cryptographique et allowlist runtime | Écart déjà prévu dans un ticket futur | Hardening CDI-034 et intégration de production CDI-035 |
+| Cache local de lecture seule / suppression du fallback prototype | Écart déjà prévu dans un ticket futur | CDI-024 puis CDI-025 |
+| CI distante via connecteur GitHub | Statut inconnu | Le connecteur n'a retourné aucun statut exploitable pour le commit audité ; aucune CI verte n'est affirmée |
 
 ## Conclusion
 
-Le périmètre client de CDI-023 est implémenté. Les services Edge de production,
-la vérification JWT cryptographique et les tests d'intégration Supabase restent
-explicitement hors de ce changement et sont déjà tracés dans les suivis
-d'architecture concernés.
+Le périmètre client de CDI-023 est implémenté et toutes les validations locales
+reproductibles passent. Les services Edge de production, la vérification JWT
+cryptographique, le cache de lecture seule et les tests d'intégration staging
+restent explicitement hors de ce changement ; chacun est classé ci-dessus comme
+écart déjà prévu avec son ticket de suivi. Ce document ne contient plus de
+résultat de validation obsolète.
