@@ -26,6 +26,7 @@ import { addHeroExperience, canActivateHero, dismissHero, recruitmentCost, recru
 import { addStack, removeStack, type InventoryState } from "../src/domain/inventory";
 import { applyUpgradeCost, recycleItem, startBasicCraft } from "../src/domain/forge";
 import { advanceRoom, changeFloor, validateDungeonProgress, type DungeonProgressState } from "../src/domain/dungeonProgression";
+import { calculateMultiStrikeChance, resolveBasicAttack, resolveMultiStrikeCount } from "../src/domain/combat";
 
 const hero = (id: string, strength: number, agility: number): Hero => ({
   id,
@@ -274,6 +275,39 @@ describe("dungeon progression domain", () => {
     expect(changeFloor({ activeFloor: 1, activeRoom: 1, highestFloorReached: 1 }, "prev")).toEqual({ ok: false, error: "ALREADY_AT_LOWEST_FLOOR" });
     expect(changeFloor(state, "next")).toEqual({ ok: false, error: "FLOOR_NOT_REACHED" });
     expect(validateDungeonProgress({ activeFloor: 0, activeRoom: 51, highestFloorReached: 0 })).toHaveLength(2);
+  });
+});
+
+describe("combat domain", () => {
+  const target = { id: "monster", hp: 20, maxHp: 20, physicalDefense: 1, resistances: { fire: 50 } };
+  const profile = {
+    id: "hero",
+    attackSpeed: 3,
+    speed: 0,
+    attack: 3,
+    damageMin: 2,
+    damageMax: 2,
+    criticalChance: 0,
+    damageTypes: ["physical" as const],
+  };
+
+  it("preserves the cumulative multi-strike rule and caps at three hits", () => {
+    expect(calculateMultiStrikeChance(1.2, 10)).toBeCloseTo(30);
+    expect(resolveMultiStrikeCount(3, 0, seededRng(1))).toBe(3);
+    const result = resolveBasicAttack(profile, target, seededRng(1));
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.result.hits).toHaveLength(3);
+    expect(result.result.target.hp).toBe(8);
+    expect(result.result.hits.map((hit) => hit.sequence)).toEqual([1, 2, 3]);
+  });
+
+  it("records deterministic multi-type damage without mutating the target", () => {
+    const result = resolveBasicAttack({ ...profile, attackSpeed: 1, damageTypes: ["physical", "fire"] }, { ...target }, seededRng(2));
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.result.hits[0]).toMatchObject({ damage: 3, targetHpAfter: 17 });
+    expect(target.hp).toBe(20);
   });
 });
 
