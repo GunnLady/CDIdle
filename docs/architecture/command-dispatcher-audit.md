@@ -11,6 +11,8 @@ délègue la transaction au `CommandStore`.
 - Une commande appliquée retourne la nouvelle révision et l'état canonique.
 - Une commande rejouée retourne le même résultat avec `replayed = true`.
 - Une révision périmée retourne `REVISION_CONFLICT` avec la révision courante.
+- Une réutilisation de `commandId` avec une empreinte différente retourne
+  `DUPLICATE_COMMAND`.
 - Les enveloppes invalides et les types inconnus sont rejetés avant le commit.
 - Le rate limit est vérifié avant tout commit.
 - Les tests Vitest couvrent ces scénarios avec un store mémoire déterministe.
@@ -20,6 +22,7 @@ délègue la transaction au `CommandStore`.
 | Écart | Correction |
 | --- | --- |
 | Aucun dispatcher testable ne reliait les contrats de commande au commit atomique. | Contrat `CommandStore`, dispatcher et hash de requête ajoutés. |
+| Le dispatcher ne restituait pas la réutilisation d'un `commandId` avec une autre empreinte. | Résultat `duplicate`, erreur `DUPLICATE_COMMAND` et test ajoutés. |
 
 ## Écarts déjà prévus dans des tickets futurs
 
@@ -31,6 +34,7 @@ délègue la transaction au `CommandStore`.
 
 ## Conclusion
 
-Le périmètre CDI-021 est couvert localement. La vérification distante sera
+Le périmètre CDI-021 est couvert localement après correction de l'écart révélé
+par l'audit post-push. La vérification distante sera
 tentée via le connecteur/API après le push ; l'absence de données sera déclarée
 comme inconnue.

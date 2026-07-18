@@ -14,7 +14,8 @@ export type CommitInput = { commandId: string; requestHash: string; expectedRevi
 export type CommitOutcome =
   | { kind: "applied"; revision: number; state: GameState }
   | { kind: "replayed"; revision: number; state: GameState }
-  | { kind: "conflict"; currentRevision: number };
+  | { kind: "conflict"; currentRevision: number }
+  | { kind: "duplicate" };
 export interface CommandStore {
   countCommandsSince(userId: string, since: number): Promise<number>;
   commit(userId: string, input: CommitInput): Promise<CommitOutcome>;
@@ -46,6 +47,7 @@ export class CommandDispatcher {
       expectedRevision: envelope.expectedRevision, command: envelope.command,
     });
     if (outcome.kind === "conflict") return { ok: false, error: { code: "REVISION_CONFLICT", message: "revision conflict", currentRevision: outcome.currentRevision }, commandId: envelope.commandId };
+    if (outcome.kind === "duplicate") return { ok: false, error: { code: "DUPLICATE_COMMAND", message: "command id was already used with a different request" }, commandId: envelope.commandId };
     return { ok: true, revision: outcome.revision, state: outcome.state, commandId: envelope.commandId, replayed: outcome.kind === "replayed" };
   }
 }

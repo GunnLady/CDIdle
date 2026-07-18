@@ -24,6 +24,8 @@ describe("CommandDispatcher", () => {
     await expect(new CommandDispatcher(store).dispatch("user-1", envelope)).resolves.toMatchObject({ replayed: true });
     store.outcome = { kind: "conflict", currentRevision: 3 };
     await expect(new CommandDispatcher(store).dispatch("user-1", envelope)).resolves.toMatchObject({ ok: false, error: { code: "REVISION_CONFLICT", currentRevision: 3 } });
+    store.outcome = { kind: "duplicate" };
+    await expect(new CommandDispatcher(store).dispatch("user-1", envelope)).resolves.toMatchObject({ ok: false, error: { code: "DUPLICATE_COMMAND" } });
   });
   it("rejects invalid and rate-limited commands before commit", async () => {
     const store = new MemoryCommandStore();
