@@ -1,7 +1,7 @@
 ---
 id: CDI-016
 title: Moteur idle plafonne
-status: Later
+status: Done
 area: domain
 priority: P1
 size: L
@@ -31,6 +31,11 @@ Ce ticket fait partie du catalogue approuve et ses dependants attendent ses cont
 
 - Implementer uniquement le domaine indique.
 - Ajouter les tests deterministes et la documentation necessaire.
+- Plafonner le temps traite a 24 heures et avancer `lastProcessedAt` a
+  l'horodatage autoritaire, sans rejouer le temps deja traite.
+- Appliquer uniquement la production de ville, l'immigration des citoyens et
+  la recuperation PV/mana des heros au repos ; le donjon, le loot et les autres
+  mutations restent hors du moteur idle.
 
 ## Hors perimetre
 
@@ -41,6 +46,8 @@ Ce ticket fait partie du catalogue approuve et ses dependants attendent ses cont
 
 - Etat canonique, erreurs explicites et mutations idempotentes.
 - Validation reproductible sans reseau reel.
+- Une meme horloge appliquee deux fois est un no-op observable et ne duplique
+  ni ressources, ni citoyens, ni recuperation.
 
 ## Dependances
 
@@ -48,9 +55,9 @@ Ce ticket depend de : ["CDI-009", "CDI-010", "CDI-011"].
 
 ## Criteres d'acceptation
 
-- [ ] Le perimetre est implemente sans regression hors domaine.
-- [ ] Les invariants sont couverts par des tests reproductibles.
-- [ ] Les preuves et la documentation sont fournies.
+- [x] Le perimetre est implemente sans regression hors domaine.
+- [x] Les invariants sont couverts par des tests reproductibles.
+- [x] Les preuves et la documentation sont fournies.
 
 ## Tests
 
