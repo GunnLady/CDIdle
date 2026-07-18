@@ -1,7 +1,7 @@
 ---
 id: CDI-017
 title: Socle Supabase local
-status: Doing
+status: Done
 area: backend
 priority: P1
 size: L
@@ -10,7 +10,7 @@ source: Plan fullstack autoritaire approuve le 2026-07-15
 depends_on: ["CDI-003", "CDI-008"]
 blocks: ["CDI-018", "CDI-019"]
 github_issue: null
-related_docs: ["docs/fullstack-authoritative-plan.md"]
+related_docs: ["docs/fullstack-authoritative-plan.md", "docs/architecture/supabase-local-audit.md"]
 ---
 
 # CDI-017 — Socle Supabase local
@@ -48,9 +48,9 @@ Ce ticket depend de : ["CDI-003", "CDI-008"].
 
 ## Criteres d'acceptation
 
-- [ ] Le perimetre est implemente sans regression hors domaine.
-- [ ] Les invariants sont couverts par des tests reproductibles.
-- [ ] Les preuves et la documentation sont fournies.
+- [x] Le perimetre est implemente sans regression hors domaine.
+- [x] Les invariants sont couverts par des tests reproductibles.
+- [x] Les preuves et la documentation sont fournies.
 
 ## Tests
 
@@ -73,5 +73,11 @@ Une implementation trop large creerait des dependances implicites.
 
 ## Handoff
 
-Fournir fichiers, commandes, resultats, risques residuels et decisions a transmettre.
+Socle Supabase local livre avec configuration, migration initiale, seed,
+contrat TypeScript partage et verification reproductible. L'audit
+`docs/architecture/supabase-local-audit.md` trace les oublis corriges et les
+limites reportees aux tickets dependants. `supabase db reset`,
+`npm run supabase:verify`, le test cible, le typecheck et la validation du
+workboard sont passes localement. La CI GitHub `CDIdle quality #66` est verte
+sur `main` au commit `26b8036`.
 
