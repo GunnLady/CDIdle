@@ -1,6 +1,6 @@
 create extension if not exists pgtap;
 
-select plan(21);
+select plan(23);
 
 select ok(to_regclass('public.alpha_allowlist') is not null, 'alpha_allowlist existe');
 select ok(to_regclass('public.profiles') is not null, 'profiles existe');
@@ -65,5 +65,7 @@ select ok(exists (
 select ok(has_schema_privilege('service_role', 'public', 'USAGE'), 'service_role peut utiliser le schéma public');
 select ok(has_function_privilege('service_role', 'public.commit_game_command(uuid,uuid,text,bigint,jsonb,jsonb)', 'EXECUTE'), 'service_role peut appeler la fonction atomique');
 select ok(not has_function_privilege('authenticated', 'public.commit_game_command(uuid,uuid,text,bigint,jsonb,jsonb)', 'EXECUTE'), 'authenticated ne peut pas appeler directement la fonction atomique');
+select ok(not has_function_privilege('public', 'public.prune_game_commands()', 'EXECUTE'), 'prune_game_commands n est pas exposée à PUBLIC');
+select ok(not has_function_privilege('public', 'public.set_updated_at()', 'EXECUTE'), 'set_updated_at n est pas exposée à PUBLIC');
 
 select * from finish();

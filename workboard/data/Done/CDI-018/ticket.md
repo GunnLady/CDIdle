@@ -10,7 +10,7 @@ source: Plan fullstack autoritaire approuve le 2026-07-15
 depends_on: ["CDI-007", "CDI-008", "CDI-017"]
 blocks: ["CDI-019", "CDI-020"]
 github_issue: null
-related_docs: ["docs/fullstack-authoritative-plan.md", "docs/architecture/supabase-local-audit.md"]
+related_docs: ["docs/fullstack-authoritative-plan.md", "docs/architecture/supabase-local-audit.md", "docs/architecture/postgres-rls-audit.md"]
 ---
 
 # CDI-018 — Schema PostgreSQL et RLS
@@ -85,5 +85,7 @@ Preuves : `npx supabase db reset`, `npm run test:db` (21/21),
 et `npm run board:validate` (38 tickets, 0 erreur). OAuth, repository et
 dispatcher complet restent dans CDI-019, CDI-020 et CDI-021.
 
-Commit d'implementation : `df94b9e`.
-CI distante : https://github.com/GunnLady/CDIdle/actions/runs/29660104671
+Audit CDI-018 : `docs/architecture/postgres-rls-audit.md`. Les écarts réels
+de privilèges `PUBLIC` sur les fonctions internes ont été corrigés et ajoutés
+aux assertions pgTAP. Les tests RLS hostiles, OAuth et dispatcher complet sont
+explicitement rattachés à CDI-034, CDI-019 et CDI-021.

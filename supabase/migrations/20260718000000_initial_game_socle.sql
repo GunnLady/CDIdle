@@ -11,6 +11,8 @@ begin
 end;
 $$;
 
+revoke all on function public.set_updated_at() from public, anon, authenticated, service_role;
+
 create table if not exists public.alpha_allowlist (
   email text primary key check (email = lower(trim(email)) and length(email) > 3),
   active boolean not null default true,
@@ -97,6 +99,8 @@ begin
   return new;
 end;
 $$;
+
+revoke all on function public.prune_game_commands() from public, anon, authenticated, service_role;
 
 create trigger game_commands_prune_after_insert
 after insert on public.game_commands
