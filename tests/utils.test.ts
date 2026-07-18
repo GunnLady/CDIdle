@@ -344,6 +344,7 @@ describe("combat domain", () => {
     if (!result.ok) return;
     expect(result.resolution.actor).toMatchObject({ mana: 6, cooldowns: { "double-flame": 2 } });
     expect(result.resolution.events).toHaveLength(2);
+    expect(result.resolution.events.map((event) => event.sequence)).toEqual([1, 2]);
     expect(result.resolution.targets[0].hp).toBe(16);
     expect(resolveSkill(skill, result.resolution.actor, result.resolution.targets)).toEqual({ ok: false, error: "ON_COOLDOWN" });
   });

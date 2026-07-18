@@ -56,7 +56,7 @@ export interface CombatState {
   enemy: CombatantState;
   outcome: CombatOutcome;
   interruptionReason?: string;
-  transcript: CombatHit[];
+  transcript: CombatTranscriptEvent[];
 }
 
 export type CombatRoundError = "INVALID_STATE" | "ALREADY_FINISHED" | "NO_LIVING_HERO" | "ROUND_LIMIT_REACHED";
@@ -71,6 +71,7 @@ export interface SkillActorState {
 }
 
 export interface CombatSkillEvent {
+  sequence: number;
   kind: "damage" | "heal" | "modifier";
   skillId: string;
   actorId: string;
@@ -79,6 +80,8 @@ export interface CombatSkillEvent {
   targetHpAfter?: number;
   effectType: SkillEffect["type"];
 }
+
+export type CombatTranscriptEvent = CombatHit | CombatSkillEvent;
 
 export interface SkillResolution {
   actor: SkillActorState;
@@ -205,7 +208,7 @@ export function resolveBasicAttack(profile: BasicAttackProfile, target: CombatTa
   return { ok: true, result: { target: nextTarget, strikes, hits } };
 }
 
-function appendTranscript(transcript: CombatHit[], hits: CombatHit[]): CombatHit[] {
+function appendTranscript(transcript: CombatTranscriptEvent[], hits: CombatHit[]): CombatTranscriptEvent[] {
   return [...transcript, ...hits.map((hit, index) => ({ ...hit, sequence: transcript.length + index + 1 }))];
 }
 
@@ -288,7 +291,7 @@ export function resolveSkill(skill: SkillInfo, actor: SkillActorState, targets: 
       for (let hit = 0; hit < hitCount; hit += 1) {
         const damage = damageAfterDefense(amount, effect.damageType, nextTargets[index]);
         nextTargets[index] = { ...nextTargets[index], hp: Math.max(0, nextTargets[index].hp - damage) };
-        events.push({ kind: "damage", skillId: skill.id, actorId: actor.id, targetId: selected.id, amount: damage, targetHpAfter: nextTargets[index].hp, effectType: effect.type });
+        events.push({ sequence: events.length + 1, kind: "damage", skillId: skill.id, actorId: actor.id, targetId: selected.id, amount: damage, targetHpAfter: nextTargets[index].hp, effectType: effect.type });
         if (nextTargets[index].hp === 0) break;
       }
     });
@@ -299,10 +302,10 @@ export function resolveSkill(skill: SkillInfo, actor: SkillActorState, targets: 
       if (index < 0) return;
       const healed = Math.min(amount, nextTargets[index].maxHp - nextTargets[index].hp);
       nextTargets[index] = { ...nextTargets[index], hp: nextTargets[index].hp + healed };
-      events.push({ kind: "heal", skillId: skill.id, actorId: actor.id, targetId: selected.id, amount: healed, targetHpAfter: nextTargets[index].hp, effectType: effect.type });
+      events.push({ sequence: events.length + 1, kind: "heal", skillId: skill.id, actorId: actor.id, targetId: selected.id, amount: healed, targetHpAfter: nextTargets[index].hp, effectType: effect.type });
     });
   } else {
-    selectedTargets.forEach((target) => events.push({ kind: "modifier", skillId: skill.id, actorId: actor.id, targetId: target.id, amount: 0, effectType: effect.type }));
+    selectedTargets.forEach((target) => events.push({ sequence: events.length + 1, kind: "modifier", skillId: skill.id, actorId: actor.id, targetId: target.id, amount: 0, effectType: effect.type }));
   }
   return { ok: true, resolution: { actor: actorAfter, targets: nextTargets, events } };
 }
