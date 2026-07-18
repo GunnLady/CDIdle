@@ -10,7 +10,7 @@ source: Plan fullstack autoritaire approuve le 2026-07-15
 depends_on: ["CDI-024", "CDI-025", "CDI-026", "CDI-027", "CDI-028", "CDI-029", "CDI-030"]
 blocks: ["CDI-034"]
 github_issue: null
-related_docs: ["docs/fullstack-authoritative-plan.md"]
+related_docs: ["docs/fullstack-authoritative-plan.md", "docs/architecture/zero-rebase-audit.md"]
 ---
 
 # CDI-031 — UX hors-ligne et conflits

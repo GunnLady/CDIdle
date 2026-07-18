@@ -10,7 +10,7 @@ source: Plan fullstack autoritaire approuve le 2026-07-15
 depends_on: ["CDI-014", "CDI-015", "CDI-022", "CDI-026", "CDI-027"]
 blocks: ["CDI-031", "CDI-033"]
 github_issue: null
-related_docs: ["docs/fullstack-authoritative-plan.md", "docs/architecture/dungeon-progression-audit.md"]
+related_docs: ["docs/fullstack-authoritative-plan.md", "docs/architecture/dungeon-progression-audit.md", "docs/architecture/zero-rebase-audit.md"]
 ---
 
 # CDI-029 — Donjon et combat autoritaires

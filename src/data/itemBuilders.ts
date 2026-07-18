@@ -4,8 +4,7 @@ import {
   ArmorItemInfo,
   AccessoryItemInfo,
   Rarity,
-  DamageType,
-  Modifier
+  DamageType
 } from "../types";
 import { createModifiers } from "./modifierBuilder";
 

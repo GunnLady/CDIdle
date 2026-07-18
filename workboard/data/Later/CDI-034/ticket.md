@@ -10,7 +10,7 @@ source: Plan fullstack autoritaire approuve le 2026-07-15
 depends_on: ["CDI-031", "CDI-032", "CDI-033"]
 blocks: ["CDI-035", "CDI-036"]
 github_issue: null
-related_docs: ["docs/fullstack-authoritative-plan.md"]
+related_docs: ["docs/fullstack-authoritative-plan.md", "docs/architecture/zero-rebase-audit.md"]
 ---
 
 # CDI-034 — Hardening et budgets

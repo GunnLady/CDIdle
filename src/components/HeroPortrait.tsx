@@ -94,7 +94,7 @@ function loadAndProcessImage(url: string, gender: "Male" | "Female"): Promise<vo
           // Green background detection logic:
           // Pure/Intense green has a high G value compared to R and B.
           const greenDominance = g - Math.max(r, b);
-          
+
           if (g > 45 && greenDominance > 25 && g > r * 1.25 && g > b * 1.25) {
             data[i + 3] = 0; // Make pixel fully transparent
           }
@@ -104,13 +104,13 @@ function loadAndProcessImage(url: string, gender: "Male" | "Female"): Promise<vo
         // 2. Slice the clean canvas using the precise pixel coordinates provided by the user
         for (let idx = 0; idx < NOVICE_MALE_SPRITE_SLICES.length; idx++) {
           const slice = NOVICE_MALE_SPRITE_SLICES[idx];
-          
+
           // Create small canvas for this specific sprite
           const sliceCanvas = document.createElement("canvas");
           sliceCanvas.width = slice.width;
           sliceCanvas.height = slice.height;
           const sliceCtx = sliceCanvas.getContext("2d");
-          
+
           if (sliceCtx) {
             sliceCtx.drawImage(
               mainCanvas,
