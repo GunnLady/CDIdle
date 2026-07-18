@@ -12,6 +12,7 @@
     "board:validate": "node workboard/scripts/validate.mjs",
     "board:sync": "node workboard/scripts/sync-github.mjs",
     "board:sync:apply": "node workboard/scripts/sync-github.mjs --apply",
+    "supabase:verify": "node supabase/verify-local.mjs",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src tests",
     "test": "vitest",

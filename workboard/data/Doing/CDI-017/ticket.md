@@ -1,7 +1,7 @@
 ---
 id: CDI-017
 title: Socle Supabase local
-status: Later
+status: Doing
 area: backend
 priority: P1
 size: L
