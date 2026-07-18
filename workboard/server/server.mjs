@@ -1,5 +1,6 @@
 import http from "node:http";
-import { promises as fs } from "node:fs";
+import { promises as fs, readFileSync } from "node:fs";
+import crypto from "node:crypto";
 import path from "node:path";
 import {
   createTicket,
@@ -13,6 +14,9 @@ import {
 } from "../lib/board.mjs";
 
 const port = Number(process.argv[2] || process.env.PORT || 4173);
+const config = JSON.parse(readFileSync(path.join(workboardRoot, "config.json"), "utf8"));
+const localStatePath = path.resolve(workboardRoot, "..", ".workboard.local.json");
+const instanceId = crypto.randomUUID();
 
 const server = http.createServer(async (request, response) => {
   try {
@@ -58,7 +62,7 @@ const server = http.createServer(async (request, response) => {
       return;
     }
     if (request.method === "GET" && url.pathname === "/health") {
-      sendJson(response, { ok: true });
+      sendJson(response, { ok: true, projectId: config.projectId, instanceId, pid: process.pid, port });
       return;
     }
     sendJson(response, { error: "Not found" }, 404);
@@ -67,7 +71,8 @@ const server = http.createServer(async (request, response) => {
   }
 });
 
-server.listen(port, "127.0.0.1", () => {
+server.listen(port, "127.0.0.1", async () => {
+  await fs.writeFile(localStatePath, JSON.stringify({ projectId: config.projectId, instanceId, pid: process.pid, port }, null, 2) + "\n", "utf8");
   console.log(`CDIdle Workboard: http://127.0.0.1:${port}/`);
 });
 

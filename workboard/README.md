@@ -24,13 +24,26 @@ Ajouter `-Open` a `workboard/scripts/start.ps1` pour ouvrir automatiquement
 l'interface dans Google Chrome. La commande attend la reponse `/health` avant
 de rendre la main et signale clairement un conflit de port.
 
-Puis ouvrir `http://127.0.0.1:4173/`. Le serveur ecoute exclusivement sur
-`127.0.0.1` et n'expose aucun jeton GitHub au navigateur.
+Puis ouvrir l'URL affichee par la commande. Le serveur ecoute exclusivement
+sur `127.0.0.1` et n'expose aucun jeton GitHub au navigateur. La configuration
+versionnee est dans `workboard/config.json`; le port et l'instance active sont
+memorises localement dans `.workboard.local.json` (ignore par Git).
 
-Si un autre Workboard utilise deja 4173, lancer CDIdle sur un port temporaire :
+Le demarrage idempotent reutilise une instance CDIdle identifiee par son
+`projectId`; sinon il cherche un port libre dans la plage configuree sans
+arreter un autre processus. Pour arreter une instance, utiliser :
 
 ```powershell
-node workboard/server/server.mjs 4174
+npm run board:stop
+```
+
+L'arret est refuse si `/health` ne confirme pas le meme projet et la meme
+instance que l'etat local.
+
+Si un autre Workboard utilise deja 4174, lancer CDIdle sur un port temporaire :
+
+```powershell
+node workboard/server/server.mjs 4175
 ```
 
 ## Contrat des dossiers

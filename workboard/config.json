@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "templateVersion": "2.1.0",
+  "managedBy": "create-project-workboard",
+  "projectName": "CDIdle",
+  "projectId": "cdidle",
+  "ticketPrefix": "CDI",
+  "columns": ["ToDo", "Doing", "Later", "Paused", "Done"],
+  "wipLimit": 3,
+  "accentColor": "#62d4b3",
+  "eyebrow": "CDIdle control plane",
+  "preferredPort": 4174,
+  "portRange": { "start": 4174, "end": 4274 },
+  "sourceOfTruth": "local-markdown",
+  "githubIssuesSync": false
+}
