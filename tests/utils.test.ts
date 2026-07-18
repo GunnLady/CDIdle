@@ -26,7 +26,7 @@ import { addHeroExperience, canActivateHero, dismissHero, recruitmentCost, recru
 import { addStack, removeStack, type InventoryState } from "../src/domain/inventory";
 import { applyUpgradeCost, recycleItem, startBasicCraft } from "../src/domain/forge";
 import { advanceRoom, changeFloor, validateDungeonProgress, type DungeonProgressState } from "../src/domain/dungeonProgression";
-import { calculateMultiStrikeChance, decrementCooldowns, interruptCombat, replayCombatRound, resolveBasicAttack, resolveCombatRound, resolveMultiStrikeCount, resolveSkill, retreatCombat, type CombatState } from "../src/domain/combat";
+import { advanceCombatModifiers, calculateMultiStrikeChance, decrementCooldowns, interruptCombat, replayCombatRound, resolveBasicAttack, resolveCombatRound, resolveMultiStrikeCount, resolveSkill, retreatCombat, type CombatState } from "../src/domain/combat";
 
 const hero = (id: string, strength: number, agility: number): Hero => ({
   id,
@@ -354,6 +354,26 @@ describe("combat domain", () => {
     const actor = { id: "hero", mana: 2, maxMana: 10, stats: { magicDamage: 5 }, cooldowns: {} };
     expect(resolveSkill(skill, actor, [{ ...target, hp: 10 }])).toEqual({ ok: false, error: "INSUFFICIENT_MANA" });
     expect(actor.mana).toBe(2);
+  });
+
+  it("applies temporary buffs and expires them after their declared rounds", () => {
+    const skill = {
+      id: "battle-cry", name: "Battle cry", description: "", type: "active" as const,
+      target: "single_ally" as const, manaCost: 0,
+      effect: { type: "buff" as const, durationRounds: 2, modifiers: [{ stat: "attack", type: "flat" as const, value: 3 }] },
+    };
+    const original = { ...target, hp: 20 };
+    const applied = resolveSkill(skill, { id: "hero", mana: 4, maxMana: 4, stats: {}, cooldowns: {} }, [original]);
+    expect(applied.ok).toBe(true);
+    if (!applied.ok) return;
+    expect(applied.resolution.targets[0].modifiers).toEqual([
+      { stat: "attack", type: "flat", value: 3, sourceSkillId: "battle-cry", remainingRounds: 2, effectType: "buff" },
+    ]);
+    expect(original.modifiers).toBeUndefined();
+    const afterOne = advanceCombatModifiers(applied.resolution.targets[0]);
+    expect(afterOne.modifiers?.[0].remainingRounds).toBe(1);
+    const afterTwo = advanceCombatModifiers(afterOne);
+    expect(afterTwo.modifiers).toEqual([]);
   });
 
   it("ticks cooldowns without mutating the source and supports interruption", () => {

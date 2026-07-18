@@ -1,4 +1,4 @@
-import type { DamageType, SkillEffect, SkillInfo, SkillTarget } from "../types";
+import type { DamageType, Modifier, SkillEffect, SkillInfo, SkillTarget } from "../types";
 import type { Rng } from "./random";
 
 export const MAX_BASIC_ATTACK_STRIKES = 3;
@@ -21,6 +21,13 @@ export interface CombatTarget {
   maxHp: number;
   physicalDefense: number;
   resistances: Partial<Record<Exclude<DamageType, "physical">, number>>;
+  modifiers?: ActiveCombatModifier[];
+}
+
+export interface ActiveCombatModifier extends Modifier {
+  sourceSkillId: string;
+  remainingRounds: number;
+  effectType: "buff" | "debuff";
 }
 
 export interface CombatHit {
@@ -46,6 +53,7 @@ export interface CombatantState extends BasicAttackProfile {
   maxHp: number;
   physicalDefense: number;
   resistances: Partial<Record<Exclude<DamageType, "physical">, number>>;
+  modifiers?: ActiveCombatModifier[];
 }
 
 export type CombatOutcome = "active" | "victory" | "defeat" | "retreated" | "interrupted";
@@ -127,7 +135,38 @@ function asTarget(combatant: CombatantState): CombatTarget {
     maxHp: combatant.maxHp,
     physicalDefense: combatant.physicalDefense,
     resistances: combatant.resistances,
+    modifiers: combatant.modifiers?.map((modifier) => ({ ...modifier })),
   };
+}
+
+function applyCombatModifiers(base: number, stat: string, modifiers: ActiveCombatModifier[] = []): number {
+  return modifiers.filter((modifier) => modifier.stat === stat).reduce((value, modifier) => (
+    modifier.type === "flat" ? value + modifier.value : value + base * modifier.value / 100
+  ), base);
+}
+
+function effectiveProfile(combatant: CombatantState): BasicAttackProfile {
+  return {
+    ...asProfile(combatant),
+    attack: Math.max(0, applyCombatModifiers(combatant.attack, "attack", combatant.modifiers)
+      + applyCombatModifiers(combatant.attack, "physicalDamage", combatant.modifiers) - combatant.attack),
+    speed: Math.max(0, applyCombatModifiers(combatant.speed, "speed", combatant.modifiers)),
+  };
+}
+
+function effectiveTarget(target: CombatTarget): CombatTarget {
+  return {
+    ...target,
+    physicalDefense: Math.max(0, applyCombatModifiers(target.physicalDefense, "physicalDefense", target.modifiers)),
+  };
+}
+
+/** Consume one combat round from active buffs/debuffs without mutating the source. */
+export function advanceCombatModifiers<T extends { modifiers?: ActiveCombatModifier[] }>(combatant: T): T {
+  const modifiers = combatant.modifiers
+    ?.map((modifier) => ({ ...modifier, remainingRounds: modifier.remainingRounds - 1 }))
+    .filter((modifier) => modifier.remainingRounds > 0);
+  return { ...combatant, modifiers };
 }
 
 function asProfile(combatant: CombatantState): BasicAttackProfile {
@@ -219,7 +258,7 @@ export function resolveCombatRound(state: CombatState, rng: Rng): CombatRoundRes
   const livingHero = state.heroes.find((hero) => hero.hp > 0);
   if (!livingHero) return { ok: false, error: "NO_LIVING_HERO" };
 
-  const heroAttack = resolveBasicAttack(asProfile(livingHero), asTarget(state.enemy), rng);
+  const heroAttack = resolveBasicAttack(effectiveProfile(livingHero), effectiveTarget(asTarget(state.enemy)), rng);
   if (!heroAttack.ok) return { ok: false, error: "INVALID_STATE" };
   let transcript = appendTranscript(state.transcript, heroAttack.result.hits);
   const heroes = state.heroes.map((hero) => ({ ...hero }));
@@ -228,12 +267,14 @@ export function resolveCombatRound(state: CombatState, rng: Rng): CombatRoundRes
   if (enemy.hp === 0) return { ok: true, state: { round, heroes, enemy, outcome: "victory", transcript } };
 
   const targetHero = heroes.find((hero) => hero.hp > 0)!;
-  const enemyAttack = resolveBasicAttack(asProfile(state.enemy), asTarget(targetHero), rng);
+  const enemyAttack = resolveBasicAttack(effectiveProfile(enemy), effectiveTarget(asTarget(targetHero)), rng);
   if (!enemyAttack.ok) return { ok: false, error: "INVALID_STATE" };
   transcript = appendTranscript(transcript, enemyAttack.result.hits);
-  const updatedHeroes = heroes.map((hero) => hero.id === targetHero.id ? { ...hero, hp: enemyAttack.result.target.hp } : hero);
+  const updatedHeroes = heroes.map((hero) => hero.id === targetHero.id
+    ? advanceCombatModifiers({ ...hero, hp: enemyAttack.result.target.hp })
+    : advanceCombatModifiers(hero));
   const outcome: CombatOutcome = updatedHeroes.some((hero) => hero.hp > 0) ? "active" : "defeat";
-  return { ok: true, state: { round, heroes: updatedHeroes, enemy, outcome, transcript } };
+  return { ok: true, state: { round, heroes: updatedHeroes, enemy: advanceCombatModifiers(enemy), outcome, transcript } };
 }
 
 export function replayCombatRound(state: CombatState, rng: Rng, expectedEvents: CombatTranscriptEvent[]): CombatRoundResult {
@@ -313,7 +354,16 @@ export function resolveSkill(skill: SkillInfo, actor: SkillActorState, targets: 
       events.push({ sequence: events.length + 1, kind: "heal", skillId: skill.id, actorId: actor.id, targetId: selected.id, amount: healed, targetHpAfter: nextTargets[index].hp, effectType: effect.type });
     });
   } else {
-    selectedTargets.forEach((target) => events.push({ sequence: events.length + 1, kind: "modifier", skillId: skill.id, actorId: actor.id, targetId: target.id, amount: 0, effectType: effect.type }));
+    selectedTargets.forEach((target) => {
+      const index = nextTargets.findIndex((candidate) => candidate.id === target.id);
+      if (index < 0) return;
+      if (effect.type === "buff" || effect.type === "debuff") {
+        const durationRounds = Math.max(1, Math.floor(effect.durationRounds));
+        const modifiers = effect.modifiers.map((modifier) => ({ ...modifier, sourceSkillId: skill.id, remainingRounds: durationRounds, effectType: effect.type }));
+        nextTargets[index] = { ...nextTargets[index], modifiers: [...(nextTargets[index].modifiers ?? []), ...modifiers] };
+      }
+      events.push({ sequence: events.length + 1, kind: "modifier", skillId: skill.id, actorId: actor.id, targetId: target.id, amount: effect.type === "buff" || effect.type === "debuff" ? effect.modifiers.length : 0, effectType: effect.type });
+    });
   }
   return { ok: true, resolution: { actor: actorAfter, targets: nextTargets, events } };
 }
