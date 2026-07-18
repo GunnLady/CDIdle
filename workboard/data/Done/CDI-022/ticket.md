@@ -10,7 +10,7 @@ source: Plan fullstack autoritaire approuve le 2026-07-15
 depends_on: ["CDI-021"]
 blocks: ["CDI-023", "CDI-025", "CDI-026", "CDI-027", "CDI-028", "CDI-029", "CDI-030", "CDI-032", "CDI-033"]
 github_issue: null
-related_docs: ["docs/fullstack-authoritative-plan.md", "docs/architecture/game-api-audit.md"]
+related_docs: ["docs/fullstack-authoritative-plan.md", "docs/architecture/game-api-audit.md", "docs/architecture/game-api-followups.md"]
 ---
 
 # CDI-022 — Edge Function game-api
@@ -75,3 +75,7 @@ Une implementation trop large creerait des dependances implicites.
 ## Handoff
 
 Fournir fichiers, commandes, resultats, risques residuels et decisions a transmettre.
+
+Les sujets d'adaptateur Supabase de production, de vérification JWT réelle et
+de smoke test Edge sont volontairement différés et tracés dans
+`docs/architecture/game-api-followups.md`.

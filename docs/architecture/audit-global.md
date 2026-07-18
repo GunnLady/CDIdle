@@ -18,6 +18,7 @@ Seuls les fichiers dont le nom se termine par `-audit.md` sont référencés ici
 - [game-repository-audit.md](game-repository-audit.md)
 - [command-dispatcher-audit.md](command-dispatcher-audit.md)
 - [game-api-audit.md](game-api-audit.md)
+- [game-api-followups.md](game-api-followups.md)
 
 Les documents de contrat ou de domaine (`game-state-v1.md`, `town-domain.md`,
 etc.) ne sont pas des audits et restent référencés uniquement par leurs tickets.

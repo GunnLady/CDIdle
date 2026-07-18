@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createGameApiHandler, type ApiServices } from "../supabase/functions/game-api/index";
+import { createGameApiHandler, serveGameApi, type ApiServices } from "../supabase/functions/game-api/index";
 
 const services: ApiServices = {
   authenticate: async (request) => request.headers.get("authorization") === "Bearer valid" ? "user-1" : null,
@@ -28,5 +28,13 @@ describe("game-api Edge handler", () => {
     expect((await handler(request("/reset", { method: "POST" }))).status).toBe(200);
     expect((await handler(request("/account", { method: "DELETE" }))).status).toBe(200);
     expect((await handler(request("/missing", { method: "POST" }))).status).toBe(404);
+  });
+  it("exposes a Deno.serve-compatible entrypoint", async () => {
+    const previous = (globalThis as typeof globalThis & { Deno?: unknown }).Deno;
+    let served = false;
+    (globalThis as typeof globalThis & { Deno?: unknown }).Deno = { serve: () => { served = true; } };
+    serveGameApi({ allowedOrigins: ["https://app.example.test"], services });
+    expect(served).toBe(true);
+    (globalThis as typeof globalThis & { Deno?: unknown }).Deno = previous;
   });
 });

@@ -66,3 +66,10 @@ export function createGameApiHandler({ allowedOrigins, services }: HandlerOption
     }
   };
 }
+
+/** Edge Runtime entrypoint. Production callers must provide the Supabase-backed services. */
+export function serveGameApi(options: HandlerOptions): unknown {
+  const deno = (globalThis as typeof globalThis & { Deno?: { serve(handler: (request: Request) => Promise<Response>): unknown } }).Deno;
+  if (!deno?.serve) throw new Error("DENO_RUNTIME_REQUIRED");
+  return deno.serve(createGameApiHandler(options));
+}

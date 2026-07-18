@@ -24,17 +24,32 @@ retourne des erreurs structurées et ajoute un identifiant de requête.
 | --- | --- |
 | Aucun handler testable ne regroupait les routes et les contrôles HTTP. | Handler Edge Runtime et tests injectés ajoutés. |
 
+## Écarts réels restant à corriger
+
+| Écart | Preuve | Action nécessaire |
+| --- | --- | --- |
+| Aucun point d'entrée `Deno.serve` n'était exporté. | Le fichier exposait uniquement `createGameApiHandler`. | Corrigé par `serveGameApi()` et son test. |
+| Aucun service Supabase de production n'est branché. | Les quatre services sont obligatoirement injectés par l'appelant. | Implémenter l'adaptateur Auth/repository/dispatcher. |
+| Le JWT n'est pas vérifié cryptographiquement par l'implémentation livrée. | Le handler délègue `authenticate` sans implémentation par défaut. | Brancher la vérification Supabase Auth et l'allowlist. |
+| Aucun test d'exécution via le runtime Edge réel. | Les tests utilisent le handler en mémoire avec des services fictifs. | Ajouter un smoke test local Edge après l'entrée déployable. |
+
+Ces trois sujets sont désormais tracés dans
+[`game-api-followups.md`](game-api-followups.md) et ne sont pas considérés
+comme corrigés dans CDI-022.
+
 ## Écarts déjà prévus dans des tickets futurs
 
 | Sujet | Ticket prévu | Statut pour CDI-022 |
 | --- | --- | --- |
-| Intégration du client Supabase et adaptateur client | CDI-023 | Hors périmètre |
+| Intégration du client Supabase côté navigateur et suppression Firebase | CDI-023 | Hors périmètre |
 | Exécution métier des commandes et calculs de gameplay | CDI-025 à CDI-030 | Hors périmètre |
 | Cache, reconnexion et contrôles hors ligne | CDI-024 et CDI-031 | Hors périmètre |
 | Hardening CORS/payloads et audit de sécurité approfondi | CDI-034 | Complément ultérieur |
 
 ## Conclusion
 
-Le contrat HTTP est couvert localement sans réseau réel. La CI distante sera
-interrogée via le connecteur/API après le push ; l'absence de run sera déclarée
-comme inconnue.
+Le contrat HTTP et l'entrée Edge sont couverts localement. Les services Supabase
+concrets restent injectés par l'environnement d'exécution et l'intégration
+client est prévue dans CDI-023 ; ils ne sont pas simulés ici. La CI distante
+sera interrogée via le connecteur/API après le prochain push ; l'absence de run
+sera déclarée comme inconnue.
