@@ -1,7 +1,7 @@
 ---
 id: CDI-015
 title: Moteur de combat et transcript
-status: Later
+status: Doing
 area: domain
 priority: P1
 size: L
