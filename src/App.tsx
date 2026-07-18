@@ -44,9 +44,7 @@ import HeroPanel from "./components/HeroPanel";
 import AccountPanel from "./components/AccountPanel";
 import LoginPage from "./components/LoginPage";
 import StoragePanel from "./components/StoragePanel";
-import { auth, db } from "./lib/firebase";
-import { onAuthStateChanged } from "firebase/auth";
-import { doc, getDoc, setDoc } from "firebase/firestore";
+import { callGameApi, getAuthSnapshot, onAuthStateChange } from "./lib/supabase";
 
 // Custom Hooks & Utilities
 import { useGameLog } from "./hooks/useGameLog";
@@ -69,9 +67,9 @@ export default function App() {
   // Layout active tab controller (City, Heroes, Dungeon, Storage or Account)
   const [activeTab, setActiveTab] = useState<"city" | "heroes" | "dungeon" | "account" | "storage">("city");
 
-  // Firebase Auth and Database Sync States
+  // Supabase Auth and authoritative game API sync states
   const [currentUser, setCurrentUser] = useState<any>(null);
-  const [isFirebaseLoading, setIsFirebaseLoading] = useState<boolean>(true);
+  const [isAuthLoading, setIsAuthLoading] = useState<boolean>(true);
   const [isInitialGameLoadDone, setIsInitialGameLoadDone] = useState<boolean>(false);
   const [cityName, setCityName] = useState<string>("");
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
@@ -205,7 +203,7 @@ export default function App() {
     }
   }, [cheatInput, town.setResources, dungeon.setHighestFloorReached, addLog]);
 
-  // SAVE GAME TO LOCALSTORAGE AND CLOUD FIRESTORE
+  // SAVE GAME TO LOCALSTORAGE AND THE AUTHORITATIVE SUPABASE API
   const saveGame = useCallback(async (forceCloud: boolean = false) => {
     if (!cityName) return;
     try {
@@ -230,7 +228,7 @@ export default function App() {
       };
       localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(stateToSave));
 
-      if (auth.currentUser) {
+      if (currentUser) {
         const now = Date.now();
         const timeSinceLastSave = now - lastCloudSaveTimeRef.current;
         const throttleLimit = 30000; // 30 seconds
@@ -239,32 +237,15 @@ export default function App() {
 
         if (shouldSaveToCloud) {
           setIsSyncing(true);
-          const docRef = doc(db, "users", auth.currentUser.uid, "savegame", "current");
-          await setDoc(docRef, {
-            cityName,
-            resources: town.resources,
-            buildings: town.buildings,
-            citizens: town.citizens,
-            totalCitizensCount: town.totalCitizens,
-            districts: town.unlockedDistricts,
-            heroes: dungeon.heroes,
-            storedItems: dungeon.storedItems,
-            forgeMaterials: dungeon.forgeMaterials,
-            itemBlueprints: dungeon.itemBlueprints,
-            activeDungeonFloor: dungeon.activeDungeonFloor,
-            activeDungeonRoom: dungeon.activeDungeonRoom,
-            highestFloorReached: dungeon.highestFloorReached,
-            unlockedRaces: dungeon.unlockedRaces,
-            isMigrationPending: town.isMigrationPending,
-            updatedAt: new Date()
-          }, { merge: true });
-
-          await setDoc(doc(db, "users", auth.currentUser.uid), {
-            uid: auth.currentUser.uid,
-            email: auth.currentUser.email || "",
-            cityName,
-            updatedAt: new Date()
-          }, { merge: true });
+          await callGameApi("/commands", {
+            method: "POST",
+            body: JSON.stringify({
+              commandId: `save-${now}`,
+              clientVersion: "cdi-023",
+              expectedRevision: 0,
+              command: { type: "save_game", state: stateToSave }
+            })
+          });
 
           lastCloudSaveTimeRef.current = now;
           setIsCloudQuotaExceeded(false); // Reset on successful write
@@ -273,8 +254,8 @@ export default function App() {
         }
       }
     } catch (err: any) {
-      console.error("Save failed", err);
-      if (err && (err.code === "resource-exhausted" || String(err).toLowerCase().includes("quota") || String(err).toLowerCase().includes("exhausted"))) {
+      console.error("Supabase save failed", err);
+      if (err && String(err).toLowerCase().includes("quota")) {
         setIsCloudQuotaExceeded(true);
       }
     } finally {
@@ -297,7 +278,8 @@ export default function App() {
     dungeon.unlockedRaces,
     battleLogs,
     dungeon.autoExplore,
-    isCloudQuotaExceeded
+    isCloudQuotaExceeded,
+    currentUser
   ]);
 
   // LOAD GAME SAVE FROM LOCALSTORAGE
@@ -343,69 +325,53 @@ export default function App() {
     }
   }, [currentUser]);
 
-  // Firebase auth state subscription and cloud loading
+  // Supabase auth state subscription and authoritative cloud loading
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+    let active = true;
+    const applySnapshot = async (user: any) => {
       setCurrentUser(user);
-      setIsFirebaseLoading(false);
+      setIsAuthLoading(false);
 
       if (user) {
         setIsInitialGameLoadDone(false);
         try {
           setIsSyncing(true);
-          const docRef = doc(db, "users", user.uid, "savegame", "current");
-          const docSnap = await getDoc(docRef);
+          const parsed = await callGameApi<any>("/bootstrap", { method: "POST" });
 
-          if (docSnap.exists()) {
-            const parsed = docSnap.data();
-            if (parsed.cityName) {
-              setCityName(parsed.cityName);
+          if (parsed && parsed.state) {
+            const state = parsed.state;
+            if (state.cityName) {
+              setCityName(state.cityName);
             } else {
               setCityName("");
             }
-            if (parsed.resources) town.setResources(parsed.resources);
-            if (parsed.buildings) {
-              town.setBuildings(parsed.buildings);
-            }
-            if (parsed.citizens) {
-              const loadedCitizens = { ...parsed.citizens };
-              if (loadedCitizens.unassigned === undefined && loadedCitizens.idle !== undefined) {
-                loadedCitizens.unassigned = loadedCitizens.idle;
-              }
-              town.setCitizens(loadedCitizens);
-            }
-            if (parsed.totalCitizensCount !== undefined) town.setTotalCitizens(parsed.totalCitizensCount);
-            if (parsed.isMigrationPending !== undefined) {
-              town.setIsMigrationPending(!!parsed.isMigrationPending);
-            } else {
-              town.setIsMigrationPending(false);
-            }
-            if (parsed.districts) town.setUnlockedDistricts(parsed.districts);
-            if (parsed.storedItems) dungeon.setStoredItems(parsed.storedItems);
-            if (parsed.forgeMaterials) dungeon.setForgeMaterials(parsed.forgeMaterials);
-            if (parsed.itemBlueprints) dungeon.setItemBlueprints(parsed.itemBlueprints);
-            if (parsed.heroes) {
-              const refreshed = parsed.heroes.map((h: Hero) => {
-                const refreshedH = refreshHeroDerivedStats(h);
-                refreshedH.currentHp = Math.min(refreshedH.calculatedStats.maxHp, h.currentHp);
-                return refreshedH;
-              });
-              dungeon.setHeroes(refreshed);
-            }
-            if (parsed.activeDungeonFloor !== undefined) dungeon.setActiveDungeonFloor(parsed.activeDungeonFloor);
-            if (parsed.activeDungeonRoom !== undefined) dungeon.setActiveDungeonRoom(parsed.activeDungeonRoom);
-            if (parsed.highestFloorReached !== undefined) dungeon.setHighestFloorReached(parsed.highestFloorReached);
-            if (parsed.unlockedRaces) dungeon.setUnlockedRaces(parsed.unlockedRaces);
-            addLog("☁️ Royaume synchronisé : Sauvegarde cloud chargée avec succès !", "victory");
+            if (state.resources) town.setResources(state.resources);
+            if (state.buildings) town.setBuildings(state.buildings);
+            if (state.citizens) town.setCitizens({ ...state.citizens });
+            if (state.totalCitizens !== undefined) town.setTotalCitizens(state.totalCitizens);
+            if (state.isMigrationPending !== undefined) town.setIsMigrationPending(!!state.isMigrationPending);
+            if (state.unlockedDistricts) town.setUnlockedDistricts(state.unlockedDistricts);
+            if (state.storedItems) dungeon.setStoredItems(state.storedItems);
+            if (state.forgeMaterials) dungeon.setForgeMaterials(state.forgeMaterials);
+            if (state.itemBlueprints) dungeon.setItemBlueprints(state.itemBlueprints);
+            if (state.heroes) dungeon.setHeroes(state.heroes.map((h: Hero) => {
+              const refreshed = refreshHeroDerivedStats(h);
+              refreshed.currentHp = Math.min(refreshed.calculatedStats.maxHp, h.currentHp);
+              return refreshed;
+            }));
+            if (state.activeDungeonFloor !== undefined) dungeon.setActiveDungeonFloor(state.activeDungeonFloor);
+            if (state.activeDungeonRoom !== undefined) dungeon.setActiveDungeonRoom(state.activeDungeonRoom);
+            if (state.highestFloorReached !== undefined) dungeon.setHighestFloorReached(state.highestFloorReached);
+            if (state.unlockedRaces) dungeon.setUnlockedRaces(state.unlockedRaces);
+            addLog("☁️ Royaume synchronisé : Sauvegarde Supabase chargée avec succès !", "victory");
           } else {
-            // First time cloud user, they must name their city!
             setCityName("");
             town.setResources({ gold: 0, food: 0, wood: 0, stone: 0, ore: 0 });
             addLog("👑 Bienvenue souverain ! Veuillez nommer votre cité pour fonder votre campement.", "info");
           }
         } catch (err) {
-          console.error("Firestore sync error", err);
-          addLog("❌ Échec de la récupération des données cloud.", "defeat");
+          console.error("Supabase sync error", err);
+          addLog("❌ Échec de la récupération des données Supabase.", "defeat");
         } finally {
           setIsSyncing(false);
           setIsInitialGameLoadDone(true);
@@ -416,9 +382,10 @@ export default function App() {
         town.setResources({ gold: 0, food: 0, wood: 0, stone: 0, ore: 0 });
         addLog("🔑 Veuillez vous connecter pour commencer la conquête de l'empire !", "info");
       }
-    });
-
-    return () => unsubscribe();
+    };
+    getAuthSnapshot().then(({ user }) => { if (active) void applySnapshot(user); });
+    const { data: subscription } = onAuthStateChange(({ user }) => { if (active) void applySnapshot(user); });
+    return () => { active = false; subscription.subscription.unsubscribe(); };
   }, [addLog]);
 
   // Set up saveGameRef to always point to the latest saveGame function
@@ -453,10 +420,10 @@ export default function App() {
 
   // Lock offline users to the Account panel
   useEffect(() => {
-    if (!isFirebaseLoading && !currentUser) {
+    if (!isAuthLoading && !currentUser) {
       setActiveTab("account");
     }
-  }, [isFirebaseLoading, currentUser]);
+  }, [isAuthLoading, currentUser]);
 
   const hardResetGame = async () => {
     try {
@@ -471,35 +438,13 @@ export default function App() {
       // Crucially, set cityName to empty string to send user back to the naming page of LoginPage
       setCityName("");
 
-      // If logged in under Firebase, overwrite the Cloud files with initialized/empty city name and basic settings
-      if (auth.currentUser) {
-        const docRef = doc(db, "users", auth.currentUser.uid, "savegame", "current");
-        await setDoc(docRef, {
-          cityName: "",
-          resources: { gold: 75, food: 50, wood: 20, stone: 0, ore: 0 },
-          buildings: { "habitation": 1 },
-          citizens: town.INITIAL_CITIZENS,
-          totalCitizensCount: 3,
-          districts: {},
-          heroes: [],
-          activeDungeonFloor: 1,
-          activeDungeonRoom: 1,
-          highestFloorReached: 1,
-          unlockedRaces: ["Humain"],
-          updatedAt: new Date()
-        });
-
-        await setDoc(doc(db, "users", auth.currentUser.uid), {
-          uid: auth.currentUser.uid,
-          email: auth.currentUser.email || "",
-          cityName: "",
-          updatedAt: new Date()
-        });
+      if (currentUser) {
+        await callGameApi("/reset", { method: "POST" });
       }
 
       addLog("💣 Remise à zéro totale effectuée ! Créez une nouvelle cité.", "defeat");
     } catch (err) {
-      console.error("Failed to reset Firestore savegame state", err);
+      console.error("Failed to reset Supabase savegame state", err);
     } finally {
       setIsSyncing(false);
     }
@@ -926,7 +871,7 @@ export default function App() {
             <div className="w-full">
               <AccountPanel
                 currentUser={currentUser}
-                isFirebaseLoading={isFirebaseLoading}
+                isAuthLoading={isAuthLoading}
                 isSyncing={isSyncing}
                 resources={town.resources}
                 buildings={town.buildings}

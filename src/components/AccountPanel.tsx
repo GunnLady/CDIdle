@@ -1,13 +1,5 @@
 import React, { useState } from "react";
-import {
-  auth
-} from "../lib/firebase";
-import {
-  signInWithEmailAndPassword,
-  createUserWithEmailAndPassword,
-  GoogleAuthProvider,
-  signInWithPopup
-} from "firebase/auth";
+import { signInWithEmail, signUpWithEmail, signInWithGoogle, signOut } from "../lib/supabase";
 import {
   Cloud,
   CloudLightning,
@@ -28,7 +20,7 @@ import { formatResourceValue } from "./IconDetails";
 
 interface AccountPanelProps {
   currentUser: any;
-  isFirebaseLoading: boolean;
+  isAuthLoading: boolean;
   isSyncing: boolean;
   resources: Resources;
   buildings: { [key: string]: number };
@@ -43,7 +35,7 @@ interface AccountPanelProps {
 
 export default function AccountPanel({
   currentUser,
-  isFirebaseLoading,
+  isAuthLoading,
   isSyncing,
   resources,
   buildings,
@@ -70,13 +62,11 @@ export default function AccountPanel({
     setError(null);
     setLoading(true);
     try {
-      const provider = new GoogleAuthProvider();
-      provider.setCustomParameters({ prompt: "select_account" });
-      await signInWithPopup(auth, provider);
+      await signInWithGoogle();
       addLog("☁️ Connexion établie via Google avec succès !", "victory");
     } catch (err: any) {
       console.error("Google authentication error:", err);
-      if (err.code !== "auth/popup-closed-by-user") {
+      if (err.code !== "provider-canceled") {
         setError("Impossible de s'authentifier via Google : " + err.message);
       }
     } finally {
@@ -103,26 +93,24 @@ export default function AccountPanel({
 
     try {
       if (authMode === "login") {
-        await signInWithEmailAndPassword(auth, email, password);
+        await signInWithEmail(email, password);
         addLog("☁️ Connexion établie avec succès ! Royaume synchronisé.", "victory");
       } else {
-        await createUserWithEmailAndPassword(auth, email, password);
+        await signUpWithEmail(email, password);
         addLog("☁️ Dynastie cloud créée avec succès !", "victory");
       }
     } catch (err: any) {
       console.error("Authentication error:", err);
       let frenchMessage = "Une erreur est survenue lors de l'authentification.";
-      if (err.code === "auth/invalid-email") {
+      if (err.code === "invalid_email") {
         frenchMessage = "Adresse e-mail invalide.";
       } else if (
-        err.code === "auth/user-not-found" ||
-        err.code === "auth/wrong-password" ||
-        err.code === "auth/invalid-credential"
+        err.code === "invalid_credentials"
       ) {
         frenchMessage = "Identifiants incorrects (adresse e-mail ou mot de passe erroné).";
-      } else if (err.code === "auth/email-already-in-use") {
+      } else if (err.code === "user_already_exists") {
         frenchMessage = "Cette adresse e-mail est déjà occupée par un autre souverain.";
-      } else if (err.code === "auth/weak-password") {
+      } else if (err.code === "weak_password") {
         frenchMessage = "Le mot de passe est trop faible (6 caractères minimum).";
       }
       setError(frenchMessage);
@@ -133,14 +121,14 @@ export default function AccountPanel({
 
   const handleSignOut = async () => {
     try {
-      await auth.signOut();
+      await signOut();
       addLog("🔒 Session cloud fermée. Sauvegarde locale active.", "info");
     } catch (err) {
       console.error("Sign out failed", err);
     }
   };
 
-  if (isFirebaseLoading) {
+  if (isAuthLoading) {
     return (
       <div className="bg-[#18110b] border-2 border-[#5c402b] rounded-xl p-8 text-center flex flex-col items-center justify-center space-y-4">
         <RefreshCw className="w-8 h-8 text-[#caa050] animate-spin" />

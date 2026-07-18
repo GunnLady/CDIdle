@@ -1,7 +1,7 @@
 ---
 id: CDI-023
 title: Client Supabase et suppression Firebase
-status: Later
+status: Done
 area: backend
 priority: P1
 size: L
@@ -48,9 +48,9 @@ Ce ticket depend de : ["CDI-019", "CDI-022"].
 
 ## Criteres d'acceptation
 
-- [ ] Le perimetre est implemente sans regression hors domaine.
-- [ ] Les invariants sont couverts par des tests reproductibles.
-- [ ] Les preuves et la documentation sont fournies.
+- [x] Le perimetre est implemente sans regression hors domaine.
+- [x] Les invariants sont couverts par des tests reproductibles.
+- [x] Les preuves et la documentation sont fournies.
 
 ## Tests
 
@@ -74,4 +74,12 @@ Une implementation trop large creerait des dependances implicites.
 ## Handoff
 
 Fournir fichiers, commandes, resultats, risques residuels et decisions a transmettre.
+
+## Preuves de réalisation
+
+- Client Supabase ajouté et Firebase retiré du code applicatif et de la
+  configuration publique.
+- `npm run typecheck`, `npm run lint`, `npm test -- --run`, `npm run build` et
+  `npm run board:validate` passent.
+- Audit détaillé : `docs/architecture/supabase-client-audit.md`.
 

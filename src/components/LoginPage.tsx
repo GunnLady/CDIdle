@@ -1,12 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { 
-  signInWithEmailAndPassword, 
-  createUserWithEmailAndPassword,
-  GoogleAuthProvider,
-  signInWithPopup
-} from "firebase/auth";
-import { auth, db } from "../lib/firebase";
-import { doc, setDoc } from "firebase/firestore";
+import { signInWithEmail, signUpWithEmail, signInWithGoogle, getAuthSnapshot, callGameApi } from "../lib/supabase";
 import { 
   Shield, 
   Lock, 
@@ -53,22 +46,21 @@ export default function LoginPage({ onLoginSuccess, addLog }: LoginPageProps) {
 
   // If a user logs in via Google or is authenticated with no city named, show naming step
   useEffect(() => {
-    if (auth.currentUser) {
+    getAuthSnapshot().then(({ user }) => {
+      if (user) setUserCredential(user);
       setShowNamingStep(true);
-    }
-  }, [auth.currentUser]);
+    });
+  }, []);
 
   const handleGoogleAuth = async () => {
     setError(null);
     setLoading(true);
     try {
-      const provider = new GoogleAuthProvider();
-      provider.setCustomParameters({ prompt: "select_account" });
-      const result = await signInWithPopup(auth, provider);
+      await signInWithGoogle();
       addLog("☁️ Connexion établie via Google avec succès !", "victory");
     } catch (err: any) {
       console.error("Google authentication error:", err);
-      if (err.code !== "auth/popup-closed-by-user") {
+      if (err.code !== "provider-canceled") {
         setError("Impossible de s'authentifier via Google : " + err.message);
       }
     } finally {
@@ -95,13 +87,13 @@ export default function LoginPage({ onLoginSuccess, addLog }: LoginPageProps) {
 
     try {
       if (authMode === "login") {
-        const credential = await signInWithEmailAndPassword(auth, email, password);
+        const credential = await signInWithEmail(email, password);
         // Success: check if save game exists and has cityName inside App.tsx
-        // App.tsx handles onAuthStateChanged, which will do the fetching and setCityName.
+        // App.tsx handles the Supabase auth subscription and loads the city state.
         addLog("☁️ Connexion établie avec succès ! Royaume synchronisé.", "victory");
       } else {
-        const credential = await createUserWithEmailAndPassword(auth, email, password);
-        setUserCredential(credential.user);
+        const credential = await signUpWithEmail(email, password);
+        setUserCredential(credential.data.user);
         // Force show naming step for newly signed up users
         setShowNamingStep(true);
         addLog("☁️ Dynastie cloud créée avec succès ! Nommez votre cité.", "victory");
@@ -109,19 +101,17 @@ export default function LoginPage({ onLoginSuccess, addLog }: LoginPageProps) {
     } catch (err: any) {
       console.error("Authentication error:", err);
       let frenchMessage = "Une erreur est survenue lors de l'authentification.";
-      if (err.code === "auth/invalid-email") {
+      if (err.code === "invalid_email") {
         frenchMessage = "Adresse e-mail invalide.";
       } else if (
-        err.code === "auth/user-not-found" ||
-        err.code === "auth/wrong-password" ||
-        err.code === "auth/invalid-credential"
+        err.code === "invalid_credentials"
       ) {
         frenchMessage = "Identifiants incorrects (adresse e-mail ou mot de passe erroné).";
-      } else if (err.code === "auth/email-already-in-use") {
+      } else if (err.code === "user_already_exists") {
         frenchMessage = "Cette adresse e-mail est déjà associée à un autre souverain.";
-      } else if (err.code === "auth/weak-password") {
+      } else if (err.code === "weak_password") {
         frenchMessage = "Le mot de passe est trop faible (6 caractères minimum).";
-      } else if (err.code === "auth/network-request-failed") {
+      } else if (err.code === "network_error") {
         frenchMessage = "Impossible de contacter le royaume. Vérifiez votre connexion internet.";
       }
       setError(frenchMessage);
@@ -149,7 +139,7 @@ export default function LoginPage({ onLoginSuccess, addLog }: LoginPageProps) {
     }
     setError(null);
 
-    const user = auth.currentUser || userCredential;
+    const user = userCredential;
     if (!user) {
       setError("Session de souverain perdue. Veuillez vous reconnecter.");
       return;
@@ -169,7 +159,7 @@ export default function LoginPage({ onLoginSuccess, addLog }: LoginPageProps) {
     setLoading(true);
     setError(null);
 
-    const user = auth.currentUser || userCredential;
+    const user = userCredential;
     if (!user) {
       setError("Session perdue. Veuillez vous reconnecter.");
       setLoading(false);
@@ -186,10 +176,11 @@ export default function LoginPage({ onLoginSuccess, addLog }: LoginPageProps) {
         isActive: false
       }));
 
-      // Initialize cloud save
+      // Initialize the authoritative game through game-api.
       try {
-        const docRef = doc(db, "users", user.uid, "savegame", "current");
-        await setDoc(docRef, {
+        await callGameApi("/bootstrap", {
+          method: "POST",
+          body: JSON.stringify({
           cityName: formattedName,
           resources: { gold: 125, food: 75, wood: 40, stone: 0, ore: 0 },
           buildings: { "habitation": 1, "guilde": 0 },
@@ -201,18 +192,12 @@ export default function LoginPage({ onLoginSuccess, addLog }: LoginPageProps) {
           activeDungeonRoom: 1,
           highestFloorReached: 1,
           isMigrationPending: false,
-          updatedAt: new Date()
-        });
-
-        await setDoc(doc(db, "users", user.uid), {
-          uid: user.uid,
-          email: user.email || "",
-          cityName: formattedName,
-          updatedAt: new Date()
+          updatedAt: new Date().toISOString()
+          })
         });
       } catch (cloudErr: any) {
-        console.warn("Could not write starter save to cloud (quota limit may be exceeded):", cloudErr);
-        addLog("⚠️ Impossible d'initialiser la sauvegarde cloud (quota de requêtes Firebase épuisé), mais votre progression sera sauvegardée localement !", "system");
+        console.warn("Could not initialize the authoritative game:", cloudErr);
+        addLog("⚠️ Impossible d'initialiser la partie serveur. Réessayez lorsque la connexion est disponible.", "system");
       }
 
       addLog(`🏰 Cité de ${formattedName} ralliée sous vos bannières !`, "victory");

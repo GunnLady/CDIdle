@@ -25,9 +25,9 @@
     "check": "npm run board:validate && npm run typecheck && npm run lint && npm test -- --run && npm run build"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.53.0",
     "@tailwindcss/vite": "^4.1.14",
     "@vitejs/plugin-react": "^5.0.4",
-    "firebase": "^12.15.0",
     "lucide-react": "^0.546.0",
     "motion": "^12.23.24",
     "react": "^19.0.1",
