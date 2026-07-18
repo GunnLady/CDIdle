@@ -84,3 +84,6 @@ Preuves : `npx supabase db reset`, `npm run test:db` (21/21),
 134 avertissements historiques), `npm test -- --run` (49/49), `npm run build`
 et `npm run board:validate` (38 tickets, 0 erreur). OAuth, repository et
 dispatcher complet restent dans CDI-019, CDI-020 et CDI-021.
+
+Commit d'implementation : `df94b9e`.
+CI distante : https://github.com/GunnLady/CDIdle/actions/runs/29660104671
