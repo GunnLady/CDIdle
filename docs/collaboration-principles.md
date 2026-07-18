@@ -17,6 +17,9 @@ modifications effectuées dans ce dépôt.
    critères du ticket, des oublis et des écarts. Distinguer les écarts réels
    de ceux déjà prévus dans un ticket futur ; corriger les écarts réels ou les
    tracer explicitement avant de déclarer le ticket terminé.
+7. L'audit post-push doit décrire chaque constat trouvé et le classer
+   explicitement : écart réel à corriger, écart déjà prévu dans un autre ticket,
+   ou contrôle sans écart. Une conclusion globale ne remplace pas cette liste.
 
 ## Conséquences pratiques
 
