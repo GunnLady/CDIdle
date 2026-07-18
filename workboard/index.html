@@ -72,7 +72,24 @@
     #modalTitle { margin: 0; font-size: 16px; }
     #moveStatus { padding: 9px; }
     .error-message { color: var(--danger); white-space: pre-wrap; font-size: 12px; }
-    @media (max-width: 1180px) { .layout { grid-template-columns: 1fr; overflow: auto; } header { flex-wrap: wrap; } #search { width: 100%; order: 5; } main { grid-template-columns: repeat(5, 280px); min-height: 620px; border-right: 0; } #details { border-top: 1px solid var(--line); min-height: 560px; } }
+    @media (max-width: 1180px) {
+      body { overflow: auto; }
+      header { position: static; flex-wrap: wrap; }
+      #search { width: 100%; order: 5; }
+      .layout { display: block; height: auto; overflow: visible; }
+      main { grid-template-columns: repeat(2, minmax(0, 1fr)); min-height: 0; overflow: visible; border-right: 0; }
+      .column { min-height: 0; }
+      #details { border-top: 1px solid var(--line); min-height: 560px; }
+    }
+    @media (max-width: 700px) {
+      header { gap: 10px; padding: 16px; }
+      h1 { font-size: 18px; }
+      #validation { padding: 10px 16px; }
+      main { grid-template-columns: minmax(0, 1fr); gap: 10px; padding: 12px; }
+      .column { padding: 10px; }
+      #details { padding: 14px 14px 78px; }
+      .detail-actions { margin-left: -14px; margin-right: -14px; padding-left: 14px; padding-right: 14px; flex-wrap: wrap; }
+    }
   </style>
 </head>
 <body>
