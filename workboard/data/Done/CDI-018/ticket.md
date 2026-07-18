@@ -1,7 +1,7 @@
 ---
 id: CDI-018
 title: Schema PostgreSQL et RLS
-status: Doing
+status: Done
 area: backend
 priority: P1
 size: L
@@ -10,7 +10,7 @@ source: Plan fullstack autoritaire approuve le 2026-07-15
 depends_on: ["CDI-007", "CDI-008", "CDI-017"]
 blocks: ["CDI-019", "CDI-020"]
 github_issue: null
-related_docs: ["docs/fullstack-authoritative-plan.md"]
+related_docs: ["docs/fullstack-authoritative-plan.md", "docs/architecture/supabase-local-audit.md"]
 ---
 
 # CDI-018 — Schema PostgreSQL et RLS
@@ -48,9 +48,9 @@ Ce ticket depend de : ["CDI-007", "CDI-008", "CDI-017"].
 
 ## Criteres d'acceptation
 
-- [ ] Le perimetre est implemente sans regression hors domaine.
-- [ ] Les invariants sont couverts par des tests reproductibles.
-- [ ] Les preuves et la documentation sont fournies.
+- [x] Le perimetre est implemente sans regression hors domaine.
+- [x] Les invariants sont couverts par des tests reproductibles.
+- [x] Les preuves et la documentation sont fournies.
 
 ## Tests
 
@@ -73,5 +73,14 @@ Une implementation trop large creerait des dependances implicites.
 
 ## Handoff
 
-Fournir fichiers, commandes, resultats, risques residuels et decisions a transmettre.
+Schema PostgreSQL et RLS livres dans la migration Supabase, avec tables
+`alpha_allowlist`, `profiles`, `games` et `game_commands`, contraintes JSONB,
+revisions, retention 24 heures/50 reponses et mutations reservees a la
+fonction atomique `commit_game_command`. Les tests pgTAP sont dans
+`supabase/tests/database/018_schema_rls.sql`.
 
+Preuves : `npx supabase db reset`, `npm run test:db` (21/21),
+`npm run supabase:verify`, `npm run typecheck`, `npm run lint` (0 erreur,
+134 avertissements historiques), `npm test -- --run` (49/49), `npm run build`
+et `npm run board:validate` (38 tickets, 0 erreur). OAuth, repository et
+dispatcher complet restent dans CDI-019, CDI-020 et CDI-021.

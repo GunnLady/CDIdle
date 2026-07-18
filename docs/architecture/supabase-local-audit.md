@@ -60,7 +60,8 @@ Les routes, JWT, CORS et erreurs HTTP ne doivent pas être implémentés dans
 
 ## Conclusion
 
-`CDI-017` reste en `Doing` jusqu'à la clôture Git du ticket. Les oublis
-techniques propres au ticket sont maintenant couverts par la configuration,
-l'exécution locale, le seed et la preuve d'import partagée. Les autres écarts
-sont suivis par `CDI-018`, `CDI-021` et `CDI-022`.
+`CDI-017` est clôturé sur `main` au commit `3d30471`. Les oublis techniques
+propres au ticket sont couverts par la configuration, l'exécution locale, le
+seed et la preuve d'import partagée. Le schéma PostgreSQL, la RLS et les tests
+pgTAP sont désormais livrés par `CDI-018`; les autres écarts restent suivis
+par `CDI-021` et `CDI-022`.

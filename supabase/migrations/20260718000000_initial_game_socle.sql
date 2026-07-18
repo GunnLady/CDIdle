@@ -1,7 +1,18 @@
 create extension if not exists pgcrypto;
 
+create or replace function public.set_updated_at()
+returns trigger
+language plpgsql
+set search_path = public
+as $$
+begin
+  new.updated_at = now();
+  return new;
+end;
+$$;
+
 create table if not exists public.alpha_allowlist (
-  email text primary key check (email = lower(trim(email))),
+  email text primary key check (email = lower(trim(email)) and length(email) > 3),
   active boolean not null default true,
   note text,
   added_at timestamptz not null default now()
@@ -18,7 +29,7 @@ create table if not exists public.games (
   user_id uuid primary key references auth.users(id) on delete cascade,
   schema_version integer not null default 1 check (schema_version > 0),
   revision bigint not null default 0 check (revision >= 0),
-  state jsonb not null default '{}'::jsonb,
+  state jsonb not null default '{}'::jsonb check (jsonb_typeof(state) = 'object'),
   last_processed_at timestamptz not null default now(),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
@@ -27,10 +38,10 @@ create table if not exists public.games (
 create table if not exists public.game_commands (
   user_id uuid not null references auth.users(id) on delete cascade,
   command_id uuid not null,
-  request_hash text not null,
+  request_hash text not null check (length(trim(request_hash)) > 0),
   expected_revision bigint not null check (expected_revision >= 0),
-  resulting_revision bigint not null check (resulting_revision >= 0),
-  events jsonb not null default '[]'::jsonb,
+  resulting_revision bigint not null check (resulting_revision = expected_revision + 1),
+  events jsonb not null default '[]'::jsonb check (jsonb_typeof(events) = 'array'),
   created_at timestamptz not null default now(),
   primary key (user_id, command_id),
   check (pg_column_size(events) <= 131072)
@@ -38,6 +49,14 @@ create table if not exists public.game_commands (
 
 create index if not exists game_commands_created_at_idx
   on public.game_commands (user_id, created_at desc);
+
+create trigger profiles_set_updated_at
+before update on public.profiles
+for each row execute function public.set_updated_at();
+
+create trigger games_set_updated_at
+before update on public.games
+for each row execute function public.set_updated_at();
 
 alter table public.alpha_allowlist enable row level security;
 alter table public.profiles enable row level security;
@@ -56,6 +75,33 @@ revoke insert, update, delete on public.profiles from anon, authenticated;
 revoke insert, update, delete on public.games from anon, authenticated;
 revoke insert, update, delete on public.game_commands from anon, authenticated;
 
+create or replace function public.prune_game_commands()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  delete from public.game_commands
+  where user_id = new.user_id
+    and created_at < now() - interval '24 hours';
+
+  delete from public.game_commands
+  where ctid in (
+    select ctid
+    from public.game_commands
+    where user_id = new.user_id
+    order by created_at desc
+    offset 50
+  );
+  return new;
+end;
+$$;
+
+create trigger game_commands_prune_after_insert
+after insert on public.game_commands
+for each row execute function public.prune_game_commands();
+
 create or replace function public.commit_game_command(
   p_user_id uuid,
   p_command_id uuid,
@@ -72,6 +118,16 @@ declare
   existing public.game_commands;
   updated_game public.games;
 begin
+  if p_user_id is null or p_command_id is null or length(trim(p_request_hash)) = 0 then
+    raise exception using errcode = '22023', message = 'INVALID_COMMAND_METADATA';
+  end if;
+  if p_expected_revision < 0 or jsonb_typeof(p_state) <> 'object' or jsonb_typeof(p_events) <> 'array' then
+    raise exception using errcode = '22023', message = 'INVALID_COMMAND_PAYLOAD';
+  end if;
+  if pg_column_size(p_events) > 131072 then
+    raise exception using errcode = '22023', message = 'EVENTS_TOO_LARGE';
+  end if;
+
   select * into existing from public.game_commands
     where user_id = p_user_id and command_id = p_command_id;
   if found then
@@ -97,3 +153,8 @@ begin
   return updated_game;
 end;
 $$;
+
+revoke all on function public.commit_game_command(uuid, uuid, text, bigint, jsonb, jsonb)
+  from public, anon, authenticated;
+grant execute on function public.commit_game_command(uuid, uuid, text, bigint, jsonb, jsonb)
+  to service_role;
