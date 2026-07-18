@@ -26,6 +26,7 @@ configuration locale/reproductible. Aucun secret OAuth n'est versionné.
 | La fonction de hook pouvait entrer en conflit avec le nom de colonne `email`. | Variable renommée `normalized_email` et test de régression ajouté. |
 | Une révocation administrative devait éviter l'accès direct de rôles applicatifs à l'allowlist. | Fonction dédiée `revoke_allowlisted_email`, privilèges limités à `service_role`. |
 | L'effet réel de la révocation sur le hook n'était pas couvert. | Scénario pgTAP ajouté : révocation puis refus de l'inscription. |
+| Les tests pouvaient désactiver la fixture de seed `local@example.test` et échouer au relancement suivant. | Fixture dédiée CDI-019, réactivée au démarrage et supprimée en fin de test. |
 
 ## Écarts déjà prévus dans des tickets futurs
 

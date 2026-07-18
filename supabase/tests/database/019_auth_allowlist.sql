@@ -1,9 +1,13 @@
 select plan(12);
 
+insert into public.alpha_allowlist (email, note)
+values ('oauth-test@example.test', 'CDI-019 deterministic test fixture')
+on conflict (email) do update set active = true;
+
 select is(
   public.before_user_created(jsonb_build_object(
     'user', jsonb_build_object(
-      'email', 'local@example.test',
+      'email', 'oauth-test@example.test',
       'app_metadata', jsonb_build_object('provider', 'google')
     )
   ))::text,
@@ -24,7 +28,7 @@ select ok(
 select ok(
   (public.before_user_created(jsonb_build_object(
     'user', jsonb_build_object(
-      'email', 'local@example.test',
+      'email', 'oauth-test@example.test',
       'app_metadata', jsonb_build_object('provider', 'email')
     )
   )) #>> '{error,message}') = 'Only Google authentication is allowed.',
@@ -34,7 +38,7 @@ select ok(
 select ok(
   (public.before_user_created(jsonb_build_object(
     'user', jsonb_build_object(
-      'email', 'LOCAL@EXAMPLE.TEST',
+      'email', 'OAUTH-TEST@EXAMPLE.TEST',
       'app_metadata', jsonb_build_object('provider', 'google')
     )
   ))) = '{}'::jsonb,
@@ -66,17 +70,19 @@ select ok(exists (
 ), 'le hook est security definer');
 
 select ok(
-  public.revoke_allowlisted_email('LOCAL@EXAMPLE.TEST'),
+  public.revoke_allowlisted_email('OAUTH-TEST@EXAMPLE.TEST'),
   'la révocation désactive une entrée existante'
 );
 select ok(
   (public.before_user_created(jsonb_build_object(
     'user', jsonb_build_object(
-      'email', 'local@example.test',
+      'email', 'oauth-test@example.test',
       'app_metadata', jsonb_build_object('provider', 'google')
     )
   )) #>> '{error,message}') = 'This email is not allowlisted.',
   'une adresse révoquée est refusée par le hook'
 );
+
+delete from public.alpha_allowlist where email = 'oauth-test@example.test';
 
 select * from finish();
