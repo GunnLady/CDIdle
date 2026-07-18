@@ -55,6 +55,7 @@ Ce ticket depend de : ["CDI-007", "CDI-008", "CDI-017"].
 ## Tests
 
 - npm test -- --run
+- npm run test:db
 - npm run lint
 - npm run build
 - npm run board:validate
@@ -79,7 +80,7 @@ revisions, retention 24 heures/50 reponses et mutations reservees a la
 fonction atomique `commit_game_command`. Les tests pgTAP sont dans
 `supabase/tests/database/018_schema_rls.sql`.
 
-Preuves : `npx supabase db reset`, `npm run test:db` (21/21),
+Preuves : `npx supabase db reset`, `npm run test:db` (23/23),
 `npm run supabase:verify`, `npm run typecheck`, `npm run lint` (0 erreur,
 134 avertissements historiques), `npm test -- --run` (49/49), `npm run build`
 et `npm run board:validate` (38 tickets, 0 erreur). OAuth, repository et
@@ -88,4 +89,5 @@ dispatcher complet restent dans CDI-019, CDI-020 et CDI-021.
 Audit CDI-018 : `docs/architecture/postgres-rls-audit.md`. Les écarts réels
 de privilèges `PUBLIC` sur les fonctions internes ont été corrigés et ajoutés
 aux assertions pgTAP. Les tests RLS hostiles, OAuth et dispatcher complet sont
-explicitement rattachés à CDI-034, CDI-019 et CDI-021.
+explicitement rattachés à CDI-034, CDI-019 et CDI-021. La CI distante exécute
+désormais aussi `npm run test:db`.

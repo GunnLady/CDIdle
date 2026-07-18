@@ -35,11 +35,12 @@ migration `supabase/migrations/20260718000000_initial_game_socle.sql`.
 | Dispatcher complet, limites de débit et concurrence applicative | CDI-021 | conservé hors CDI-018 |
 | OAuth, allowlist active et hook de pré-création | CDI-019 | conservé hors CDI-018 |
 
-## Écart CI restant
+## Écart CI corrigé
 
-La CI GitHub `CDIdle quality` ne lance pas `npm run test:db`. Les 23 tests
-pgTAP sont donc validés localement avec Supabase Docker, mais pas par le run
-GitHub actuel. Ce point n’est pas présenté comme une preuve distante acquise.
+La CI GitHub `CDIdle quality` démarre désormais Supabase avec
+`supabase/setup-cli`, exécute `npm run test:db`, puis arrête Supabase même en
+cas d’échec. Les 23 tests pgTAP sont ainsi contrôlés localement et dans la CI
+distante.
 
 ## Conclusion
 

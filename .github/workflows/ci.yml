@@ -22,6 +22,12 @@ jobs:
           cache: npm
       - name: Install
         run: npm ci
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Start Supabase
+        run: supabase start
       - name: Validate Workboard
         run: npm run board:validate
       - name: Typecheck
@@ -30,7 +36,12 @@ jobs:
         run: npm run lint
       - name: Unit tests
         run: npm test -- --run
+      - name: Database tests
+        run: npm run test:db
       - name: Build
         run: npm run build
       - name: Production audit
         run: npm audit --omit=dev --audit-level=high
+      - name: Stop Supabase
+        if: always()
+        run: supabase stop
