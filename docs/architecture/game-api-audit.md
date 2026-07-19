@@ -51,6 +51,20 @@ signés/mal émis, ainsi que les comptes supprimés ou hors allowlist. Le
 branchement de cet authentificateur dans l'adaptateur métier complet reste
 porté par CDI-040, et son exécution Edge/Supabase réelle par CDI-041.
 
+## Mise à jour CDI-040
+
+L'adaptateur Supabase réel est disponible dans
+`supabase/functions/game-api/supabase-adapter.ts`. Il utilise les endpoints
+REST/RPC avec la `service_role` uniquement côté Edge, calcule le hash canonique
+de commande, gère les replays et collisions de `commandId`, traduit les
+conflits de révision en `409`, et branche les opérations bootstrap, commandes,
+reset et suppression de compte. La migration `20260719020000_game_api_reset.sql`
+ajoute le reset atomique avec droits limités à `service_role`.
+
+La fonction `applyCommand` reste injectée : CDI-040 ne fabrique pas les règles
+de gameplay des tickets CDI-025 à CDI-030. Le smoke test du runtime Edge et la
+preuve contre Supabase local réel restent portés par CDI-041.
+
 ## Écarts déjà prévus dans des tickets futurs
 
 | Sujet | Ticket prévu | Statut pour CDI-022 |

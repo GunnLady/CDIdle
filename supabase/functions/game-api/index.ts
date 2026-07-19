@@ -1,5 +1,8 @@
 export type ApiEnvelope = Record<string, unknown>;
+import { createSupabaseAuthenticator } from "./auth.ts";
+import { createSupabaseGameApiServices } from "./supabase-adapter.ts";
 export { createSupabaseAuthenticator, type SupabaseAuthOptions } from "./auth.ts";
+export { createSupabaseGameApiServices, SupabaseAdapterError, type SupabaseAdapterOptions } from "./supabase-adapter.ts";
 export type ApiServices = {
   authenticate(request: Request): Promise<string | null>;
   bootstrap(userId: string): Promise<ApiEnvelope>;
@@ -7,6 +10,7 @@ export type ApiServices = {
   reset(userId: string): Promise<ApiEnvelope>;
   deleteAccount(userId: string): Promise<void>;
 };
+export type SupabaseGameApiOptions = { allowedOrigins: string[]; initialState: Record<string, unknown>; applyCommand: (state: Record<string, unknown>, command: Record<string, unknown>) => Promise<{ state: Record<string, unknown>; events?: unknown[] }>; env?: Record<string, string | undefined> };
 
 type HandlerOptions = { allowedOrigins: string[]; services: ApiServices };
 const jsonHeaders = { "content-type": "application/json; charset=utf-8" };
@@ -53,17 +57,22 @@ export function createGameApiHandler({ allowedOrigins, services }: HandlerOption
       if (request.method === "POST" && route === "/bootstrap") return response(await services.bootstrap(userId), 200, id, origin);
       if (request.method === "POST" && route === "/commands") {
         const payload = await readJson(request);
-        if (!payload || typeof payload.commandId !== "string" || typeof payload.clientVersion !== "string" || !Number.isInteger(payload.expectedRevision) || !payload.command || typeof payload.command !== "object") {
+        if (!payload || typeof payload.commandId !== "string" || typeof payload.idempotencyKey !== "string" || typeof payload.clientVersion !== "string" || !Number.isInteger(payload.expectedRevision) || !payload.command || typeof payload.command !== "object") {
           return errorResponse("VALIDATION_FAILED", "command payload is invalid", id, 400, origin);
         }
-        return response(await services.commands(userId, payload), 200, id, origin);
+        const result = await services.commands(userId, payload);
+        const code = (result.error as { code?: string } | undefined)?.code;
+        const status = code === "REVISION_CONFLICT" ? 409 : code === "RATE_LIMITED" ? 429 : code ? 400 : 200;
+        return response(result, status, id, origin);
       }
       if (request.method === "POST" && route === "/reset") return response(await services.reset(userId), 200, id, origin);
       if (request.method === "DELETE" && route === "/account") { await services.deleteAccount(userId); return response({ ok: true }, 200, id, origin); }
       return errorResponse("NOT_FOUND", "route not found", id, 404, origin);
     } catch (error) {
-      const message = error instanceof Error ? error.message : "service unavailable";
-      return errorResponse("SERVICE_UNAVAILABLE", message, id, 503, origin);
+      const typed = error as { code?: string; status?: number };
+      const status = typed.status === 409 || typed.code === "REVISION_CONFLICT" ? 409 : typed.status === 404 ? 404 : 503;
+      const code = status === 409 ? "REVISION_CONFLICT" : status === 404 ? "NOT_FOUND" : "SERVICE_UNAVAILABLE";
+      return errorResponse(code, status === 409 ? "revision conflict" : status === 404 ? "resource not found" : "service unavailable", id, status, origin);
     }
   };
 }
@@ -73,4 +82,13 @@ export function serveGameApi(options: HandlerOptions): unknown {
   const deno = (globalThis as typeof globalThis & { Deno?: { serve(handler: (request: Request) => Promise<Response>): unknown } }).Deno;
   if (!deno?.serve) throw new Error("DENO_RUNTIME_REQUIRED");
   return deno.serve(createGameApiHandler(options));
+}
+
+export function serveSupabaseGameApi(options: SupabaseGameApiOptions): unknown {
+  const deno = (globalThis as typeof globalThis & { Deno?: { env?: { get(name: string): string | undefined }; serve(handler: (request: Request) => Promise<Response>): unknown } }).Deno;
+  const env = options.env ?? { SUPABASE_URL: deno?.env?.get("SUPABASE_URL"), SUPABASE_SERVICE_ROLE_KEY: deno?.env?.get("SUPABASE_SERVICE_ROLE_KEY"), SUPABASE_JWT_SECRET: deno?.env?.get("SUPABASE_JWT_SECRET") };
+  if (!env.SUPABASE_URL || !env.SUPABASE_SERVICE_ROLE_KEY || !env.SUPABASE_JWT_SECRET) throw new Error("SUPABASE_RUNTIME_CONFIGURATION_REQUIRED");
+  const services = createSupabaseGameApiServices({ supabaseUrl: env.SUPABASE_URL, serviceRoleKey: env.SUPABASE_SERVICE_ROLE_KEY, initialState: options.initialState, applyCommand: options.applyCommand });
+  const authenticatedServices = { ...services, authenticate: createSupabaseAuthenticator({ supabaseUrl: env.SUPABASE_URL, serviceRoleKey: env.SUPABASE_SERVICE_ROLE_KEY, jwtSecret: env.SUPABASE_JWT_SECRET }) };
+  return serveGameApi({ allowedOrigins: options.allowedOrigins, services: authenticatedServices });
 }

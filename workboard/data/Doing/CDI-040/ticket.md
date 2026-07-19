@@ -1,7 +1,7 @@
 ---
 id: CDI-040
 title: Adaptateur Supabase reel pour game-api
-status: Later
+status: Doing
 area: backend
 priority: P1
 size: L
@@ -59,10 +59,10 @@ injecte dans le handler HTTP sans adaptateur de production.
 
 ## Criteres d'acceptation
 
-- [ ] Les quatre services `game-api` utilisent Supabase reel.
-- [ ] Repository, dispatcher, RPC et transactions respectent leurs invariants.
-- [ ] Les parcours revision, replay, collision et indisponibilite sont testes.
-- [ ] Reset et suppression appliquent les cascades et purges attendues.
+- [x] Les quatre services `game-api` utilisent Supabase reel.
+- [x] Repository, dispatcher, RPC et transactions respectent leurs invariants.
+- [x] Les parcours revision, replay, collision et indisponibilite sont testes.
+- [x] Reset et suppression appliquent les cascades et purges attendues.
 
 ## Tests
 
