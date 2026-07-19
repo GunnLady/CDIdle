@@ -20,4 +20,14 @@ describe("authoritative town commands", () => {
     expect(() => applyTownCommand(current, { type: "district.unlock", districtId: "quartier_ferme" })).toThrow("insufficient resources");
     expect(current.districts).toEqual({});
   });
+
+  it("handles authoritative hero recruitment, dismissal and activity", () => {
+    const current = initialTownState();
+    current.buildings.guilde = 1;
+    current.resources.gold = 500;
+    const recruited = applyTownCommand(current, { type: "hero.recruit", commandId: "hero-command" });
+    expect(recruited.state).toMatchObject({ resources: { gold: 400 }, heroes: [{ id: "hero-hero-command", isActive: false }] });
+    const dismissed = applyTownCommand(recruited.state, { type: "hero.dismiss", heroId: "hero-hero-command" });
+    expect(dismissed.state).toMatchObject({ heroes: [] });
+  });
 });

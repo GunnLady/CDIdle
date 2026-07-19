@@ -5,12 +5,16 @@ export type TownState = {
   citizens: { farmers: number; woodcutters: number; quarrymen: number; miners: number; unassigned: number };
   totalCitizensCount: number;
   districts: Record<string, boolean>;
+  heroes?: Array<Record<string, unknown>>;
 };
 
 type TownCommand =
   | { type: "building.upgrade"; buildingId: string }
   | { type: "citizens.allocate"; role: keyof TownState["citizens"]; amount: number }
-  | { type: "district.unlock"; districtId: string };
+  | { type: "district.unlock"; districtId: string }
+  | { type: "hero.recruit"; commandId?: string }
+  | { type: "hero.dismiss"; heroId: string }
+  | { type: "hero.activity"; heroId: string; active: boolean };
 
 const zero = (): TownResources => ({ gold: 0, food: 0, wood: 0, stone: 0, ore: 0 });
 const costs: Record<string, TownResources[]> = {
@@ -41,7 +45,7 @@ export const initialTownState = (): TownState => ({
   resources: { gold: 75, food: 50, wood: 20, stone: 0, ore: 0 },
   buildings: { habitation: 1, ferme: 0, scierie: 0, carriere: 0, mine: 0, maison_chef: 0, guilde: 0, academie: 0, temple: 0, cercle: 0, lair: 0, caserne: 0, poste_chasse: 0, forge: 0 },
   citizens: { farmers: 0, woodcutters: 0, quarrymen: 0, miners: 0, unassigned: 3 },
-  totalCitizensCount: 3, districts: {}
+  totalCitizensCount: 3, districts: {}, heroes: []
 });
 
 class TownCommandError extends Error { constructor(public readonly code: string, message: string) { super(message); } }
@@ -51,6 +55,29 @@ const subtract = (resources: TownResources, cost: TownResources): TownResources 
 export function applyTownCommand(current: Record<string, unknown>, command: Record<string, unknown>): { state: Record<string, unknown>; events: unknown[] } {
   const town = { ...initialTownState(), ...current } as TownState;
   const typed = command as TownCommand;
+  const heroes = town.heroes ?? [];
+  if (typed.type === "hero.recruit") {
+    const guildLevel = town.buildings.guilde ?? 0;
+    const cost = 100 + heroes.length * 150;
+    const capacity = Math.max(0, guildLevel) + 2;
+    if (guildLevel < 1) throw new TownCommandError("GUILD_REQUIRED", "guild building is required");
+    if (heroes.length >= capacity) throw new TownCommandError("CAPACITY_REACHED", "hero capacity reached");
+    if (town.resources.gold < cost) throw new TownCommandError("INSUFFICIENT_RESOURCES", "insufficient gold");
+    const id = `hero-${typed.commandId ?? `slot-${heroes.length}`}`;
+    const hero = { id, name: "Novice", classType: "Novice", level: 1, isActive: false, status: "idle", currentHp: 1 };
+    return { state: { ...town, resources: { ...town.resources, gold: town.resources.gold - cost }, heroes: [...heroes, hero] }, events: [{ type: "hero.recruited", heroId: id, cost }] };
+  }
+  if (typed.type === "hero.dismiss") {
+    if (!heroes.some((hero) => hero.id === typed.heroId)) throw new TownCommandError("HERO_NOT_FOUND", "hero not found");
+    return { state: { ...town, heroes: heroes.filter((hero) => hero.id !== typed.heroId) }, events: [{ type: "hero.dismissed", heroId: typed.heroId }] };
+  }
+  if (typed.type === "hero.activity") {
+    const hero = heroes.find((entry) => entry.id === typed.heroId);
+    if (!hero) throw new TownCommandError("HERO_NOT_FOUND", "hero not found");
+    if (typed.active && Number(hero.currentHp ?? 0) <= 0) throw new TownCommandError("INVALID_HEALTH", "hero has no health");
+    if (typed.active && heroes.filter((entry) => entry.isActive).length >= 4) throw new TownCommandError("ACTIVE_LIMIT", "active hero limit reached");
+    return { state: { ...town, heroes: heroes.map((entry) => entry.id === typed.heroId ? { ...entry, isActive: typed.active, status: typed.active ? "idle" : "resting" } : entry) }, events: [{ type: "hero.activity_changed", heroId: typed.heroId, active: typed.active }] };
+  }
   if (typed.type === "building.upgrade") {
     const id = typed.buildingId;
     const level = town.buildings[id] ?? 0;

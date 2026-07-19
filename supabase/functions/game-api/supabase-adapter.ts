@@ -55,7 +55,7 @@ export function createSupabaseGameApiServices(options: SupabaseAdapterOptions) {
     if (current.revision !== expected) return { ok: false, error: { code: "REVISION_CONFLICT", message: "revision conflict", currentRevision: current.revision }, commandId: payload.commandId };
     let transition: { state: Record<string, unknown>; events?: unknown[] };
     try {
-      transition = await options.applyCommand(current.state, payload.command as Record<string, unknown>);
+      transition = await options.applyCommand(current.state, { ...(payload.command as Record<string, unknown>), commandId: payload.commandId });
     } catch (error) {
       const typed = error as { code?: string; message?: string };
       if (typed.code) return { ok: false, error: { code: typed.code, message: typed.message ?? "command rejected" }, commandId: payload.commandId };

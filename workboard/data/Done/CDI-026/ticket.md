@@ -67,6 +67,9 @@ reutilises depuis `recruitmentEligibility`.
 La mutation `setHeroActivity` couvre l activation, le renvoi a l inactivite,
 la sante minimale et la limite de quatre heros actifs.
 
+Le dispatcher Edge raccorde egalement `hero.recruit`, `hero.dismiss` et
+`hero.activity` avec un identifiant de recrutement derive du `commandId`.
+
 ## Tests
 
 - npm test -- --run
