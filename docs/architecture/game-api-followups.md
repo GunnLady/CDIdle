@@ -37,6 +37,43 @@ validation opérationnelle finale de CDI-035 ; CDI-023 reste terminé.
 - couvrir les JWT absents, expirés, mal signés et les changements d'allowlist ;
 - vérifier que les logs ne contiennent ni JWT, ni email sensible, ni secret.
 
+## 3. Attendus fonctionnels de CDI-025 — Ville autoritaire
+
+Le déblocage de CDI-025 ne signifie pas seulement que l'adaptateur HTTP répond.
+Les mutations de ville doivent être exécutées côté serveur et ne jamais être
+validées par une écriture optimiste du navigateur.
+
+### Commandes à couvrir
+
+- amélioration d'un bâtiment, avec coût, prérequis, niveau maximal et
+  déduction atomique des ressources ;
+- allocation et retrait d'un citoyen, avec capacité disponible, bâtiment
+  requis et conservation de la somme des affectations ;
+- déblocage d'un district, avec coût, prérequis, unicité et activation des
+  multiplicateurs correspondants.
+
+### Contrat client/serveur
+
+- chaque mutation envoie `commandId`, `expectedRevision`, `clientVersion` et
+  une commande typée à `/game-api/commands` ;
+- le serveur vérifie l'utilisateur, l'allowlist, les préconditions et la
+  révision avant toute écriture ;
+- la réponse retourne l'état canonique, la nouvelle révision et les événements
+  d'interface ; le client remplace son état local par cette réponse ;
+- une révision périmée retourne HTTP `409` avec le snapshot canonique ; une
+  indisponibilité retourne `503` sans mutation locale présentée comme validée ;
+- les commandes rejouées sont idempotentes et une collision de `commandId` est
+  rejetée.
+
+### Preuves de clôture de CDI-025
+
+- tests déterministes des trois familles de commandes, des préconditions, des
+  coûts, des limites, des refus et des révisions concurrentes ;
+- tests d'intégration Supabase local avec RLS, RPC et transaction atomique ;
+- parcours UI vérifiant qu'aucune mutation ville ne contourne `game-api` ;
+- audit post-push listant séparément contrôles sans écart, écarts réels et
+  sujets prévus dans CDI-026 à CDI-031.
+
 ## Conditions de reprise
 
 Le suivi sera considéré terminé uniquement avec : adaptateur réel branché,
