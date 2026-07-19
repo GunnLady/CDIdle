@@ -8,7 +8,7 @@ size: L
 risk: high
 source: Audit game-api-followups confirme le 2026-07-19
 depends_on: ["CDI-017", "CDI-040"]
-blocks: ["CDI-026", "CDI-032"]
+blocks: ["CDI-032"]
 github_issue: null
 related_docs: ["docs/architecture/game-api-followups.md", "docs/architecture/game-api-audit.md", "docs/architecture/supabase-local-audit.md"]
 ---

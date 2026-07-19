@@ -26,7 +26,7 @@ import { createInitialGameState, splitGameState, validateGameState } from "../sr
 import { isCommandSuccess, validateCommandEnvelope, type CommandEnvelope } from "../src/domain/commands";
 import { fixedClock, seededRng } from "../src/domain/random";
 import { allocateCitizen, townRates, unlockDistrict, upgradeBuilding, type TownState } from "../src/domain/town";
-import { addHeroExperience, canActivateHero, dismissHero, recruitmentCost, recruitmentEligibility } from "../src/domain/hero";
+import { addHeroExperience, canActivateHero, dismissHero, recruitHero, recruitmentCost, recruitmentEligibility, setHeroActivity } from "../src/domain/hero";
 import { addStack, removeStack, type InventoryState } from "../src/domain/inventory";
 import { applyUpgradeCost, recycleItem, startBasicCraft } from "../src/domain/forge";
 import { advanceRoom, changeFloor, validateDungeonProgress, type DungeonProgressState } from "../src/domain/dungeonProgression";
@@ -287,6 +287,21 @@ describe("hero domain", () => {
     expect(canActivateHero(makeHero({ currentHp: 0 }), 0)).toBe(false);
     expect(canActivateHero(makeHero({ currentHp: 10 }), 4)).toBe(false);
     expect(dismissHero([makeHero({ id: "a" }), makeHero({ id: "b" })], "a")).toHaveLength(1);
+  });
+
+  it("recruits atomically with an injected hero factory", () => {
+    const state = { heroes: [], resources: { gold: 500, food: 0, wood: 0, stone: 0, ore: 0 }, buildings: { guilde: 1 } };
+    const hero = makeHero({ id: "recruited" });
+    const result = recruitHero(state, () => hero);
+    expect(result).toMatchObject({ ok: true, cost: 100, state: { resources: { gold: 400 }, heroes: [hero] } });
+  });
+
+  it("enforces active-party capacity and health", () => {
+    const target = makeHero({ id: "activity", currentHp: 10, isActive: false });
+    expect(setHeroActivity([target], "activity", true)).toMatchObject({ ok: true, heroes: [{ isActive: true }] });
+    expect(setHeroActivity([{ ...target, currentHp: 0 }], "activity", true)).toEqual({ ok: false, error: "INVALID_HEALTH" });
+    const full = [0, 1, 2, 3].map((index) => ({ ...target, id: `active-${index}`, isActive: true }));
+    expect(setHeroActivity([...full, target], "activity", true)).toEqual({ ok: false, error: "ACTIVE_LIMIT" });
   });
 });
 

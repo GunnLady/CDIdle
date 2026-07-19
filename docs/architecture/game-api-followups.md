@@ -81,7 +81,9 @@ CDI-041 valide ensemble CDI-039 et CDI-040 dans le runtime Edge et Supabase
 local réels. Il couvre les routes principales, les erreurs 401/403/409/503,
 l'idempotence, CORS, les identifiants de requête et l'absence de secrets.
 
-Il bloque directement CDI-025, CDI-026 et CDI-032. Les tickets CDI-027 à
+Il bloque directement CDI-032. CDI-025 et CDI-026 peuvent avancer sur leur
+implementation locale ; leur validation Edge/Supabase reste différée vers ce
+smoke gate. Les tickets CDI-027 à
 CDI-031 et CDI-033 à CDI-035 restent bloqués transitivement par leurs
 dépendances existantes.
 

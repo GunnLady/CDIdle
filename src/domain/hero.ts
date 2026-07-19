@@ -1,4 +1,4 @@
-import type { ClassType, Hero, HeroStats } from "../types";
+import type { ClassType, Hero, HeroStats, Resources } from "../types";
 import { CLASS_INFO_LIST } from "../data/gameData";
 import { calculateXpNeeded, evaluateAutomaticClassChange, refreshHeroDerivedStats } from "../utils/gameCalculations";
 import type { Rng } from "./random";
@@ -15,8 +15,35 @@ export function recruitmentEligibility(heroCount: number, gold: number, guildLev
   return { ok: true, cost, capacity };
 }
 
+export type HeroRosterState = { heroes: Hero[]; resources: Resources; buildings: Record<string, number> };
+export type RecruitmentResult = { ok: true; state: HeroRosterState; cost: number } | { ok: false; error: HeroEligibilityError; cost: number; capacity: number };
+
+export function recruitHero(state: HeroRosterState, createHero: () => Hero): RecruitmentResult {
+  const eligibility = recruitmentEligibility(state.heroes.length, state.resources.gold, state.buildings.guilde ?? 0);
+  if (eligibility.ok === false) return { ok: false, error: eligibility.error, cost: eligibility.cost, capacity: eligibility.capacity };
+  const hero = createHero();
+  return {
+    ok: true,
+    cost: eligibility.cost,
+    state: {
+      ...state,
+      resources: { ...state.resources, gold: state.resources.gold - eligibility.cost },
+      heroes: [...state.heroes, hero]
+    }
+  };
+}
+
 export function dismissHero(heroes: Hero[], heroId: string): Hero[] { return heroes.filter((hero) => hero.id !== heroId); }
 export function canActivateHero(hero: Hero, activeHeroCount: number): boolean { return !hero.isActive && hero.currentHp > 0 && activeHeroCount < 4; }
+export type HeroActivityError = "HERO_NOT_FOUND" | "ALREADY_ACTIVE" | "ALREADY_INACTIVE" | "INVALID_HEALTH" | "ACTIVE_LIMIT";
+export function setHeroActivity(heroes: Hero[], heroId: string, active: boolean): { ok: true; heroes: Hero[] } | { ok: false; error: HeroActivityError } {
+  const target = heroes.find((hero) => hero.id === heroId);
+  if (!target) return { ok: false, error: "HERO_NOT_FOUND" };
+  if (target.isActive === active) return { ok: false, error: active ? "ALREADY_ACTIVE" : "ALREADY_INACTIVE" };
+  if (active && target.currentHp <= 0) return { ok: false, error: "INVALID_HEALTH" };
+  if (active && heroes.filter((hero) => hero.isActive).length >= 4) return { ok: false, error: "ACTIVE_LIMIT" };
+  return { ok: true, heroes: heroes.map((hero) => hero.id === heroId ? { ...hero, isActive: active, status: active ? "idle" : "resting" } : { ...hero }) };
+}
 
 export function growHeroStats(baseStats: HeroStats, classType: ClassType, rng: Rng): HeroStats {
   const keys: (keyof HeroStats)[] = ["str", "agi", "end", "int", "wiz", "dex", "luk"];

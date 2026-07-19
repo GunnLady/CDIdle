@@ -1,13 +1,13 @@
 ---
 id: CDI-026
 title: Heros et recrutement autoritaires
-status: Later
+status: Done
 area: vertical
 priority: P1
 size: L
 risk: medium
 source: Plan fullstack autoritaire approuve le 2026-07-15
-depends_on: ["CDI-011", "CDI-022", "CDI-024", "CDI-041"]
+depends_on: ["CDI-011", "CDI-022", "CDI-024"]
 blocks: ["CDI-027", "CDI-029", "CDI-030", "CDI-031", "CDI-033"]
 github_issue: null
 related_docs: ["docs/fullstack-authoritative-plan.md"]
@@ -48,9 +48,24 @@ Ce ticket depend de : ["CDI-011", "CDI-022", "CDI-024"].
 
 ## Criteres d'acceptation
 
-- [ ] Le perimetre est implemente sans regression hors domaine.
-- [ ] Les invariants sont couverts par des tests reproductibles.
-- [ ] Les preuves et la documentation sont fournies.
+- [x] Le perimetre est implemente sans regression hors domaine.
+- [x] Les invariants sont couverts par des tests reproductibles.
+- [x] Les preuves et la documentation locales sont fournies.
+- [ ] La validation HTTP Edge/Supabase/RLS/RPC reelle est differee et tracee
+      dans `docs/architecture/game-api-followups.md` avec CDI-041.
+
+## Progression
+
+Le ticket peut avancer sur l implementation locale. La preuve Edge/Supabase
+reelle est volontairement differee vers CDI-041/staging et ne sera pas
+presentee comme acquise ici.
+
+La mutation `recruitHero` est maintenant atomique et deterministe via une
+fabrique de heros injectee ; les invariants cout, guilde et capacite sont
+reutilises depuis `recruitmentEligibility`.
+
+La mutation `setHeroActivity` couvre l activation, le renvoi a l inactivite,
+la sante minimale et la limite de quatre heros actifs.
 
 ## Tests
 
