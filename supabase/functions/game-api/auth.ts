@@ -36,17 +36,23 @@ function constantTimeEqual(left: Uint8Array, right: Uint8Array): boolean {
   return difference === 0;
 }
 
-async function verifyJwt(token: string, secret: string, options: Required<Pick<SupabaseAuthOptions, "expectedIssuer" | "expectedAudience">>, now: () => number): Promise<string | null> {
+async function verifyJwt(token: string, secret: string, serviceRoleKey: string, options: Required<Pick<SupabaseAuthOptions, "expectedIssuer" | "expectedAudience">>, now: () => number, fetcher: typeof fetch, supabaseUrl: string): Promise<string | null> {
   const parts = token.split(".");
   if (parts.length !== 3) return null;
   try {
     const header = decodeJson<{ alg?: string; typ?: string }>(parts[0]);
     const claims = decodeJson<JwtClaims>(parts[1]);
-    if (header.alg !== "HS256" || header.typ !== "JWT") return null;
+    if (header.typ !== "JWT") return null;
     if (typeof claims.sub !== "string" || !claims.sub || typeof claims.exp !== "number" || claims.exp <= now()) return null;
     if (claims.iss !== options.expectedIssuer || claims.aud !== options.expectedAudience) return null;
-    const key = await crypto.subtle.importKey("raw", encoder.encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["verify"]);
-    const valid = await crypto.subtle.verify("HMAC", key, decodePart(parts[2]), encoder.encode(`${parts[0]}.${parts[1]}`));
+    let valid = false;
+    if (header.alg === "HS256") {
+      const key = await crypto.subtle.importKey("raw", encoder.encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["verify"]);
+      valid = await crypto.subtle.verify("HMAC", key, decodePart(parts[2]), encoder.encode(`${parts[0]}.${parts[1]}`));
+    } else if (header.alg === "ES256") {
+      const authResponse = await fetcher(`${supabaseUrl.replace(/\/$/, "")}/auth/v1/user`, { headers: { apikey: serviceRoleKey, authorization: `Bearer ${token}` } });
+      valid = authResponse.ok;
+    }
     return valid ? claims.sub : null;
   } catch { return null; }
 }
@@ -60,7 +66,7 @@ export function createSupabaseAuthenticator(options: SupabaseAuthOptions): (requ
     const authorization = request.headers.get("authorization") ?? "";
     const token = /^Bearer\s+([^\s]+)$/i.exec(authorization)?.[1];
     if (!token) return null;
-    const userId = await verifyJwt(token, options.jwtSecret, { expectedIssuer, expectedAudience }, now);
+    const userId = await verifyJwt(token, options.jwtSecret, options.serviceRoleKey, { expectedIssuer, expectedAudience }, now, fetcher, options.supabaseUrl);
     if (!userId) return null;
     try {
       const userResponse = await fetcher(`${options.supabaseUrl.replace(/\/$/, "")}/auth/v1/admin/users/${encodeURIComponent(userId)}`, {
@@ -79,4 +85,3 @@ export function createSupabaseAuthenticator(options: SupabaseAuthOptions): (requ
     } catch { return null; }
   };
 }
-

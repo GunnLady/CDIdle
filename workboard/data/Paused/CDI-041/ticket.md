@@ -95,11 +95,11 @@ erreurs et la liste explicite des tickets debloques.
 
 ## Blocage trace
 
-Le runtime Edge local demarre et repond `401` sans bearer. Le chemin
-authentifie n'a pas pu etre valide : `supabase functions serve` ignore les
-variables `SUPABASE_*` dans `--env-file`, et le lancement PowerShell ne les
-transmet pas au worker. Reprise : fournir au CLI un fichier env local non
-versionne avec `GAME_API_SUPABASE_URL`, `GAME_API_SERVICE_ROLE_KEY` et
-`GAME_API_JWT_SECRET`, puis rejouer le smoke authentifie. Ce blocage est
-environnemental, mais il interdit de declarer le ticket `Done` et bloque les
-tranches CDI-025, CDI-026 et CDI-032.
+Le runtime Edge local demarre et repond `401` sans bearer. L'authentification
+ES256 GoTrue est maintenant acceptee par l'authenticator, mais les appels
+REST/RPC depuis le worker local renvoient encore `503` selon l'URL reseau
+utilisee (`127.0.0.1`, `host.docker.internal` ou `kong`). Reprise : fournir
+une URL Supabase joignable depuis le worker Edge local, conserver
+`GAME_API_EXPECTED_ISSUER` aligne sur l'issuer du token, puis rejouer le smoke
+authentifie. Ce blocage d'infrastructure interdit de declarer le ticket `Done`
+et bloque les tranches CDI-025, CDI-026 et CDI-032.
