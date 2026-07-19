@@ -9,6 +9,7 @@
 - commandes `inventory.add`, `inventory.remove`, `hero.equip` et `hero.unequip` raccordées au dispatcher Edge ;
 - `npm run typecheck` : réussi ;
 - `npm run check:determinism` : réussi.
+- test manuel rapporté par l'utilisateur : `tests/townAuthority.test.ts`, 5/5.
 
 ## Écarts réels
 
@@ -23,5 +24,13 @@ Aucun écart local identifié dans le périmètre CDI-027.
 
 ## Décision
 
-CDI-027 pourra être marqué `Done` après le test ciblé manuel rapporté par
-l'utilisateur, puis audit post-push détaillé.
+CDI-027 est marqué `Done` après le test ciblé et l'audit post-push.
+
+## Audit post-push
+
+- contrôle sans écart : le commit `5633a12` contient le module serveur, les
+  commandes, les tests et la documentation attendus ;
+- écart prévu : la validation HTTP authentifiée Edge/Supabase/RLS/RPC reste
+  différée vers CDI-041/staging ;
+- CI distante : le connecteur n'a retourné aucun workflow pour `5633a12`, donc
+  le résultat est inconnu et n'est pas déclaré vert.

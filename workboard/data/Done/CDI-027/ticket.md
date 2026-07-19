@@ -1,7 +1,7 @@
 ---
 id: CDI-027
 title: Inventaire et equipement autoritaires
-status: Doing
+status: Done
 area: vertical
 priority: P1
 size: L
