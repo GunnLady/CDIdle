@@ -1,12 +1,15 @@
 # Suivis différés de `game-api`
 
 Ces sujets sont volontairement sortis de CDI-022 après validation du contrat
-HTTP. Ils doivent être repris avant une mise en production réelle.
+HTTP. Ils doivent être repris avant une mise en production réelle et bloquent
+explicitement la reprise de CDI-025 tant que les critères ci-dessous ne sont
+pas satisfaits.
 
 ## 1. Adaptateur Supabase de production
 
-Ticket de reprise recommandé : CDI-023 (intégration Supabase), avec validation
-finale dans CDI-035 (staging/production).
+Référence de blocage : CDI-025 (`Ville autoritaire de bout en bout`). La tâche
+est suivie ici, puis validée dans CDI-035 (staging/production) ; CDI-023 reste
+terminé et n'est pas rouvert.
 
 À réaliser :
 
@@ -22,7 +25,8 @@ finale dans CDI-035 (staging/production).
 
 ## 2. Vérification JWT réelle et allowlist
 
-Ticket de reprise recommandé : CDI-023, avec hardening CDI-034.
+Référence de blocage : CDI-025. Le hardening sécurité relève de CDI-034 et la
+validation opérationnelle finale de CDI-035 ; CDI-023 reste terminé.
 
 À réaliser :
 
@@ -37,4 +41,5 @@ Ticket de reprise recommandé : CDI-023, avec hardening CDI-034.
 
 Le suivi sera considéré terminé uniquement avec : adaptateur réel branché,
 vérification JWT cryptographique, tests locaux/staging reproductibles, smoke
-tests Edge et audit de sécurité mis à jour.
+tests Edge et audit de sécurité mis à jour. À ce moment seulement, le blocage
+de CDI-025 pourra être levé et son implémentation pourra reprendre.
