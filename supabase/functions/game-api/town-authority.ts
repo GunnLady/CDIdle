@@ -1,3 +1,5 @@
+import { applyInventoryCommand, type InventorySlot } from "./inventory-authority.ts";
+
 export type TownResources = { gold: number; food: number; wood: number; stone: number; ore: number };
 export type TownState = {
   resources: TownResources;
@@ -6,6 +8,7 @@ export type TownState = {
   totalCitizensCount: number;
   districts: Record<string, boolean>;
   heroes?: Array<Record<string, unknown>>;
+  storedItems?: Array<Record<string, unknown>>;
 };
 
 type TownCommand =
@@ -14,7 +17,11 @@ type TownCommand =
   | { type: "district.unlock"; districtId: string }
   | { type: "hero.recruit"; commandId?: string }
   | { type: "hero.dismiss"; heroId: string }
-  | { type: "hero.activity"; heroId: string; active: boolean };
+  | { type: "hero.activity"; heroId: string; active: boolean }
+  | { type: "inventory.add"; itemId: string; rarity: string; count?: number; modifiers?: Array<Record<string, unknown>> }
+  | { type: "inventory.remove"; itemId: string; rarity: string; count?: number; modifiers?: Array<Record<string, unknown>> }
+  | { type: "hero.equip"; heroId: string; itemId: string; rarity: string; modifiers?: Array<Record<string, unknown>> }
+  | { type: "hero.unequip"; heroId: string; slot: InventorySlot };
 
 const zero = (): TownResources => ({ gold: 0, food: 0, wood: 0, stone: 0, ore: 0 });
 const costs: Record<string, TownResources[]> = {
@@ -45,7 +52,7 @@ export const initialTownState = (): TownState => ({
   resources: { gold: 75, food: 50, wood: 20, stone: 0, ore: 0 },
   buildings: { habitation: 1, ferme: 0, scierie: 0, carriere: 0, mine: 0, maison_chef: 0, guilde: 0, academie: 0, temple: 0, cercle: 0, lair: 0, caserne: 0, poste_chasse: 0, forge: 0 },
   citizens: { farmers: 0, woodcutters: 0, quarrymen: 0, miners: 0, unassigned: 3 },
-  totalCitizensCount: 3, districts: {}, heroes: []
+  totalCitizensCount: 3, districts: {}, heroes: [], storedItems: []
 });
 
 class TownCommandError extends Error { constructor(public readonly code: string, message: string) { super(message); } }
@@ -56,6 +63,9 @@ export function applyTownCommand(current: Record<string, unknown>, command: Reco
   const town = { ...initialTownState(), ...current } as TownState;
   const typed = command as TownCommand;
   const heroes = town.heroes ?? [];
+  if (typed.type === "inventory.add" || typed.type === "inventory.remove" || typed.type === "hero.equip" || typed.type === "hero.unequip") {
+    return applyInventoryCommand(town, command);
+  }
   if (typed.type === "hero.recruit") {
     const guildLevel = town.buildings.guilde ?? 0;
     const cost = 100 + heroes.length * 150;

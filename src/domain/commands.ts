@@ -8,6 +8,9 @@ export type GameCommand =
   | { type: "hero.recruit" }
   | { type: "hero.dismiss"; heroId: string }
   | { type: "hero.equip"; heroId: string; itemId: string }
+  | { type: "hero.unequip"; heroId: string; slot: "mainHand" | "offHand" | "armor" | "accessory" }
+  | { type: "inventory.add"; itemId: string; rarity: "common" | "uncommon" | "rare" | "epic" | "legendary"; count?: number }
+  | { type: "inventory.remove"; itemId: string; rarity: "common" | "uncommon" | "rare" | "epic" | "legendary"; count?: number }
   | { type: "inventory.recycle"; itemId: string; count: number }
   | { type: "forge.start"; recipeId: string }
   | { type: "dungeon.explore"; floor: number }

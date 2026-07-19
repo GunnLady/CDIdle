@@ -1,7 +1,7 @@
 ---
 id: CDI-027
 title: Inventaire et equipement autoritaires
-status: Later
+status: Doing
 area: vertical
 priority: P1
 size: L
@@ -48,9 +48,11 @@ Ce ticket depend de : ["CDI-012", "CDI-022", "CDI-026"].
 
 ## Criteres d'acceptation
 
-- [ ] Le perimetre est implemente sans regression hors domaine.
-- [ ] Les invariants sont couverts par des tests reproductibles.
-- [ ] Les preuves et la documentation sont fournies.
+- [x] Le perimetre est implemente sans regression hors domaine.
+- [x] Les invariants sont couverts par des tests reproductibles.
+- [x] Les preuves et la documentation locales sont fournies.
+- [ ] La validation HTTP Edge/Supabase/RLS/RPC reelle est differee vers
+      CDI-041/staging et n'est pas presentee comme acquise ici.
 
 ## Tests
 
@@ -75,3 +77,8 @@ Une implementation trop large creerait des dependances implicites.
 
 Fournir fichiers, commandes, resultats, risques residuels et decisions a transmettre.
 
+## Progression
+
+Le serveur autoritaire gere maintenant les piles d'inventaire, l'equipement et
+le desequipement avec validations atomiques. Les commandes sont acceptees par
+le contrat de dispatcher et appliquees par `game-api`.

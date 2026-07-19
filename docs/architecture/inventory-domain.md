@@ -8,5 +8,6 @@ stock :
 - `equipStoredItem` vérifie le héros, le stock, les slots et les incompatibilités ;
 - `unequipStoredItem` rend l’objet au stock et recalcule les stats.
 
-La forge et le recyclage restent dans CDI-013. L’intégration atomique serveur/UI
-reste dans CDI-027.
+La forge et le recyclage restent dans CDI-013. Les commandes autoritaires
+d'inventaire et d'équipement sont raccordées dans CDI-027 ; la preuve HTTP
+Edge/Supabase/RLS réelle reste différée vers CDI-041/staging.

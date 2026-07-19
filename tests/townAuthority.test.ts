@@ -30,4 +30,15 @@ describe("authoritative town commands", () => {
     const dismissed = applyTownCommand(recruited.state, { type: "hero.dismiss", heroId: "hero-hero-command" });
     expect(dismissed.state).toMatchObject({ heroes: [] });
   });
+
+  it("handles inventory stacks and atomic hero equipment", () => {
+    const current = { ...initialTownState(), heroes: [{ id: "hero-1", level: 1, equipment: {} }] };
+    const added = applyTownCommand(current, { type: "inventory.add", itemId: "starter_sword", rarity: "common", count: 2 });
+    expect(added.state.storedItems).toEqual([{ itemId: "starter_sword", rarity: "common", count: 2 }]);
+    const equipped = applyTownCommand(added.state, { type: "hero.equip", heroId: "hero-1", itemId: "starter_sword", rarity: "common" });
+    expect(equipped.state).toMatchObject({ storedItems: [{ itemId: "starter_sword", rarity: "common", count: 1 }], heroes: [{ equipment: { mainHand: { itemId: "starter_sword" } } }] });
+    const unequipped = applyTownCommand(equipped.state, { type: "hero.unequip", heroId: "hero-1", slot: "mainHand" });
+    expect(unequipped.state).toMatchObject({ storedItems: [{ itemId: "starter_sword", rarity: "common", count: 2 }], heroes: [{ equipment: {} }] });
+    expect(() => applyTownCommand(current, { type: "inventory.add", itemId: "unknown-item", rarity: "common" })).toThrow("unknown item");
+  });
 });

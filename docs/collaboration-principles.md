@@ -69,6 +69,9 @@ modifications effectuées dans ce dépôt.
     consignes à l'utilisateur et lui laisser l'exécution, afin d'économiser les
     tokens. Ne lancer automatiquement que les validations locales simples,
     rapides et non interactives, sauf demande explicite contraire.
+33. Pour tout test local interactif, coûteux ou dépendant d'un service, fournir
+    explicitement la commande, le terminal à utiliser et l'objectif du test ;
+    attendre le résultat communiqué par l'utilisateur avant de poursuivre.
 
 ## Conséquences pratiques
 
