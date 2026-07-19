@@ -1,7 +1,7 @@
 ---
 id: CDI-028
 title: Forge et recyclage autoritaires
-status: Paused
+status: Done
 area: vertical
 priority: P1
 size: L
@@ -81,4 +81,7 @@ Fournir fichiers, commandes, resultats, risques residuels et decisions a transme
 
 Le serveur autoritaire gere le demarrage, l'aperçu, la finalisation, l'annulation
 et le recyclage. Le proc RNG avancé reste différé vers CDI-037.
+
+Le catalogue serveur couvre les sept recettes de base et la compatibilité des
+modificateurs est vérifiée côté serveur. Le test ciblé utilisateur passe à 6/6.
 

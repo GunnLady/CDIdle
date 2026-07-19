@@ -1,6 +1,7 @@
 export type ForgeRarity = "common" | "uncommon" | "rare" | "epic" | "legendary";
 export type ForgeMaterialStack = { materialId: string; rarity: ForgeRarity; count: number };
 type ItemStack = { itemId: string; rarity: ForgeRarity; count: number; modifiers?: Array<Record<string, unknown>> };
+type Recipe = { itemId: string; itemType: "weapon" | "offhand" | "armor" | "accessory" };
 
 export type ForgeCommand =
   | { type: "forge.start"; recipeId: string; commandId?: string }
@@ -14,6 +15,28 @@ const craftCost: ForgeMaterialStack[] = [
   { materialId: "metal_scrap", rarity: "common", count: 6 },
   { materialId: "refined_metal", rarity: "uncommon", count: 1 },
 ];
+const RECIPES: Record<string, Recipe> = {
+  starter_sword: { itemId: "starter_sword", itemType: "weapon" },
+  quick_dagger: { itemId: "quick_dagger", itemType: "weapon" },
+  woodcutter_axe: { itemId: "woodcutter_axe", itemType: "weapon" },
+  wooden_shield: { itemId: "wooden_shield", itemType: "offhand" },
+  traveler_clothes: { itemId: "traveler_clothes", itemType: "armor" },
+  simple_leather_armor: { itemId: "simple_leather_armor", itemType: "armor" },
+  novice_mystic_robe: { itemId: "novice_mystic_robe", itemType: "armor" },
+};
+const WEAPON_MODIFIERS = new Set(["physicalDamage", "magicDamage", "critChance", "speed"]);
+const ARMOR_MODIFIERS = new Set(["maxHp", "maxMana", "physicalDefense", "magicDefense", "dodgeChance", "fireResistance", "iceResistance", "waterResistance", "earthResistance", "windResistance", "lightningResistance", "holyResistance", "darkResistance", "natureResistance", "arcaneResistance", "poisonResistance", "bloodResistance", "soundResistance", "radiantResistance"]);
+const MODIFIER_VALUES: Record<string, Record<string, unknown>> = {
+  physicalDamage: { stat: "physicalDamage", type: "flat", value: 1 },
+  magicDamage: { stat: "magicDamage", type: "flat", value: 1 },
+  critChance: { stat: "critChance", type: "flat", value: 1 },
+  speed: { stat: "speed", type: "percent", value: 2 },
+  maxHp: { stat: "maxHp", type: "percent", value: 3 },
+  maxMana: { stat: "maxMana", type: "percent", value: 3 },
+  physicalDefense: { stat: "physicalDefense", type: "flat", value: 1 },
+  magicDefense: { stat: "magicDefense", type: "flat", value: 1 },
+  dodgeChance: { stat: "dodgeChance", type: "flat", value: 1 },
+};
 const rewards: Record<ForgeRarity, ForgeMaterialStack[]> = {
   common: [{ materialId: "metal_scrap", rarity: "common", count: 2 }],
   uncommon: [{ materialId: "metal_scrap", rarity: "common", count: 4 }, { materialId: "refined_metal", rarity: "uncommon", count: 2 }],
@@ -47,11 +70,12 @@ export function applyForgeCommand(current: Record<string, unknown>, command: Rec
   if (!forgeUnlocked) throw new ForgeCommandError("FORGE_LOCKED", "forge building is required");
 
   if (typed.type === "forge.start") {
-    if (typed.recipeId !== "starter_sword") throw new ForgeCommandError("BLUEPRINT_LOCKED", "unknown forge blueprint");
+    const recipe = RECIPES[typed.recipeId];
+    if (!recipe) throw new ForgeCommandError("BLUEPRINT_LOCKED", "unknown forge blueprint");
     if (pending) throw new ForgeCommandError("FORGE_PENDING", "a forge preview is already pending");
     const nextMaterials = consume(materials, craftCost);
     const previewId = `preview-${typed.commandId ?? "command"}`;
-    return { state: { ...current, forgeMaterials: nextMaterials, pendingForge: { previewId, recipeId: typed.recipeId, itemId: "starter_sword", upgradeProc: "none" } }, events: [{ type: "forge.preview_created", previewId, itemId: "starter_sword" }] };
+    return { state: { ...current, forgeMaterials: nextMaterials, pendingForge: { previewId, recipeId: typed.recipeId, itemId: recipe.itemId, itemType: recipe.itemType, upgradeProc: "none" } }, events: [{ type: "forge.preview_created", previewId, itemId: recipe.itemId }] };
   }
 
   if (typed.type === "forge.cancel") {
@@ -62,10 +86,19 @@ export function applyForgeCommand(current: Record<string, unknown>, command: Rec
   if (typed.type === "forge.finalize") {
     if (!pending || pending.previewId !== typed.previewId) throw new ForgeCommandError("PREVIEW_NOT_FOUND", "forge preview not found");
     if (typed.accepted === false) return { state: { ...current, pendingForge: null }, events: [{ type: "forge.preview_declined", previewId: typed.previewId }] };
-    const index = items.findIndex((entry) => entry.itemId === String(pending.itemId) && entry.rarity === "common" && sameModifiers(entry.modifiers, undefined));
-    if (index === -1) items.push({ itemId: "starter_sword", rarity: "common", count: 1 });
+    const recipe = RECIPES[String(pending.recipeId)];
+    if (!recipe) throw new ForgeCommandError("BLUEPRINT_LOCKED", "unknown forge blueprint");
+    let modifier: Record<string, unknown> | undefined;
+    if (typed.chosenModifierStat) {
+      const allowed = recipe.itemType === "weapon" ? WEAPON_MODIFIERS : ARMOR_MODIFIERS;
+      if (!allowed.has(typed.chosenModifierStat) || !MODIFIER_VALUES[typed.chosenModifierStat]) throw new ForgeCommandError("INVALID_MODIFIER", "modifier is incompatible with the crafted item");
+      modifier = MODIFIER_VALUES[typed.chosenModifierStat];
+    }
+    const modifiers = modifier ? [modifier] : undefined;
+    const index = items.findIndex((entry) => entry.itemId === recipe.itemId && entry.rarity === "common" && sameModifiers(entry.modifiers, modifiers));
+    if (index === -1) items.push({ itemId: recipe.itemId, rarity: "common", count: 1, modifiers });
     else items[index].count += 1;
-    return { state: { ...current, storedItems: items, pendingForge: null }, events: [{ type: "forge.finalized", previewId: typed.previewId, itemId: "starter_sword", rarity: "common" }] };
+    return { state: { ...current, storedItems: items, pendingForge: null }, events: [{ type: "forge.finalized", previewId: typed.previewId, itemId: recipe.itemId, rarity: "common", modifier: typed.chosenModifierStat ?? null }] };
   }
 
   if (typed.type === "inventory.recycle") {

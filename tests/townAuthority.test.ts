@@ -54,5 +54,16 @@ describe("authoritative town commands", () => {
     const recycled = applyTownCommand({ ...finalized.state, forgeMaterials: [] }, { type: "inventory.recycle", itemId: "starter_sword", rarity: "common" });
     expect(recycled.state).toMatchObject({ storedItems: [{ itemId: "starter_sword", count: 1 }], forgeMaterials: [{ materialId: "metal_scrap", count: 2 }] });
     expect(() => applyTownCommand(recycled.state, { type: "forge.finalize", previewId: "preview-forge-command" })).toThrow("forge preview not found");
+    const rareRecycle = applyTownCommand({ ...recycled.state, storedItems: [{ itemId: "starter_sword", rarity: "rare", count: 1 }], forgeMaterials: [] }, { type: "inventory.recycle", itemId: "starter_sword", rarity: "rare" });
+    expect(rareRecycle.state.forgeMaterials).toEqual([
+      { materialId: "metal_scrap", rarity: "common", count: 3 },
+      { materialId: "refined_metal", rarity: "uncommon", count: 4 },
+      { materialId: "enchanted_fragment", rarity: "rare", count: 2 },
+    ]);
+    const secondPreview = applyTownCommand({ ...current, forgeMaterials: [
+      { materialId: "metal_scrap", rarity: "common", count: 6 },
+      { materialId: "refined_metal", rarity: "uncommon", count: 1 },
+    ] }, { type: "forge.start", recipeId: "quick_dagger", commandId: "second-forge" });
+    expect(() => applyTownCommand(secondPreview.state, { type: "forge.finalize", previewId: "preview-second-forge", chosenModifierStat: "maxHp" })).toThrow("modifier is incompatible");
   });
 });

@@ -36,11 +36,9 @@ Aucun écart local identifié dans le périmètre implémenté.
 
 ### Écarts réels à corriger ou tracer
 
-- le catalogue serveur ne couvre actuellement que la recette `starter_sword` ;
-- `chosenModifierStat` n'est pas encore validé par une matrice de compatibilité
-  serveur ;
-- la matrice complète des tables de récompense et des finalisations proc/non-proc
-  reste à couvrir.
+Aucun. Les trois écarts précédents sont corrigés localement : catalogue des
+sept recettes de base, validation serveur des modificateurs et couverture des
+récompenses/finalisations dans le test ciblé 6/6.
 
 ### Écarts déjà prévus dans un autre ticket
 
@@ -50,5 +48,5 @@ Aucun écart local identifié dans le périmètre implémenté.
 
 ## Décision
 
-CDI-028 est `Paused` tant que les trois écarts réels ci-dessus ne sont pas
-corrigés ou tracés dans un ticket de suivi dédié.
+CDI-028 peut repasser `Done` après le push de cette correction et l'audit
+post-push correspondant.
