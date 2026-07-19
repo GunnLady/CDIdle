@@ -1,6 +1,7 @@
 export type ApiEnvelope = Record<string, unknown>;
 import { createSupabaseAuthenticator } from "./auth.ts";
 import { createSupabaseGameApiServices } from "./supabase-adapter.ts";
+import { applyTownCommand, initialTownState } from "./town-authority.ts";
 export { createSupabaseAuthenticator, type SupabaseAuthOptions } from "./auth.ts";
 export { createSupabaseGameApiServices, SupabaseAdapterError, type SupabaseAdapterOptions } from "./supabase-adapter.ts";
 export type ApiServices = {
@@ -57,7 +58,7 @@ export function createGameApiHandler({ allowedOrigins, services }: HandlerOption
       if (request.method === "POST" && route === "/bootstrap") return response(await services.bootstrap(userId), 200, id, origin);
       if (request.method === "POST" && route === "/commands") {
         const payload = await readJson(request);
-        if (!payload || typeof payload.commandId !== "string" || typeof payload.idempotencyKey !== "string" || typeof payload.clientVersion !== "string" || !Number.isInteger(payload.expectedRevision) || !payload.command || typeof payload.command !== "object") {
+        if (!payload || typeof payload.commandId !== "string" || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(payload.commandId) || typeof payload.idempotencyKey !== "string" || typeof payload.clientVersion !== "string" || !Number.isInteger(payload.expectedRevision) || !payload.command || typeof payload.command !== "object") {
           return errorResponse("VALIDATION_FAILED", "command payload is invalid", id, 400, origin);
         }
         const result = await services.commands(userId, payload);
@@ -96,5 +97,5 @@ export function serveSupabaseGameApi(options: SupabaseGameApiOptions): unknown {
 const runtimeDeno = (globalThis as typeof globalThis & { Deno?: { env?: { get(name: string): string | undefined; }; serve?: unknown } }).Deno;
 if (runtimeDeno?.serve && (runtimeDeno.env?.get("SUPABASE_URL") ?? runtimeDeno.env?.get("GAME_API_SUPABASE_URL"))) {
   const allowedOrigins = (runtimeDeno.env.get("GAME_API_ALLOWED_ORIGINS") ?? "http://127.0.0.1:3000,http://localhost:3000").split(",").map((origin) => origin.trim()).filter(Boolean);
-  serveSupabaseGameApi({ allowedOrigins, initialState: {}, applyCommand: async () => { throw new Error("COMMANDS_NOT_CONFIGURED"); } });
+  serveSupabaseGameApi({ allowedOrigins, initialState: initialTownState(), applyCommand: async (state, command) => applyTownCommand(state, command) });
 }

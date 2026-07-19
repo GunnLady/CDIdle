@@ -239,7 +239,7 @@ export default function App() {
           await callGameApi("/commands", {
             method: "POST",
             body: JSON.stringify({
-              commandId: `save-${now}`,
+              commandId: globalThis.crypto.randomUUID(),
               clientVersion: "cdi-023",
               expectedRevision: 0,
               command: { type: "save_game", state: stateToSave }

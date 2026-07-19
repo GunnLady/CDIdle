@@ -8,7 +8,7 @@ size: L
 risk: high
 source: Audit game-api-followups confirme le 2026-07-19
 depends_on: ["CDI-017", "CDI-040"]
-blocks: ["CDI-025", "CDI-026", "CDI-032"]
+blocks: ["CDI-026", "CDI-032"]
 github_issue: null
 related_docs: ["docs/architecture/game-api-followups.md", "docs/architecture/game-api-audit.md", "docs/architecture/supabase-local-audit.md"]
 ---
@@ -103,3 +103,20 @@ une URL Supabase joignable depuis le worker Edge local, conserver
 `GAME_API_EXPECTED_ISSUER` aligne sur l'issuer du token, puis rejouer le smoke
 authentifie. Ce blocage d'infrastructure interdit de declarer le ticket `Done`
 et bloque les tranches CDI-025, CDI-026 et CDI-032.
+
+## Verification future tracee
+
+Le smoke authentifie a confirme que le JWT est accepte, mais `POST /bootstrap`
+renvoie toujours `503` depuis le worker Edge. Les essais ont couvert les URLs
+`127.0.0.1`, `host.docker.internal`, `kong`, la passerelle Docker et le reseau
+`supabase_network_cdidle-local`, avec les variables `GAME_API_*`. Le resultat
+reste compatible avec un blocage de connectivite locale Edge vers
+Kong/PostgREST, sans preuve de regression metier.
+
+Lors de la reprise, verifier en staging ou production avec une URL publique
+Supabase (`https://<project>.supabase.co`), des secrets injectes hors depot,
+un issuer JWT aligne, l'allowlist active et CORS configure. Executer le smoke
+authentifie sur `/bootstrap`, `/commands`, `/reset` et `/account`, avec la
+matrice `401/403/409/503`, replay/collision et `x-request-id`. Comparer le
+resultat distant au symptome local pour classer le probleme comme local ou
+reproductible. Le seul `401` sans JWT ne suffit pas a clore CDI-041.

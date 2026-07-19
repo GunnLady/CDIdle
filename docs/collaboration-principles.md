@@ -64,6 +64,11 @@ modifications effectuées dans ce dépôt.
     session afin qu'il reste la référence persistante.
 31. Partager cette référence avec les projets concernés, notamment
     `SpotifyCodex`.
+32. Pour les tests locaux nécessitant Docker, Supabase, un service externe, une
+    réinitialisation ou plusieurs essais interactifs, donner d'abord les
+    consignes à l'utilisateur et lui laisser l'exécution, afin d'économiser les
+    tokens. Ne lancer automatiquement que les validations locales simples,
+    rapides et non interactives, sauf demande explicite contraire.
 
 ## Conséquences pratiques
 
@@ -80,6 +85,8 @@ modifications effectuées dans ce dépôt.
   vérifications exécutées, les risques résiduels et les décisions prises.
 - Ne pousser que des commits cohérents avec le périmètre du ticket ; ne pas
   annoncer une CI verte sans preuve vérifiée.
+- Pour tout test local potentiellement long ou coûteux en tokens, distinguer les
+  commandes à exécuter manuellement des preuves obtenues directement par Codex.
 - Le push final est unique pour le ticket : effectuer les corrections et les
   validations localement avant ce push. Un push correctif ultérieur n'est
   justifié que si l'audit post-push révèle un écart réel non détecté avant le

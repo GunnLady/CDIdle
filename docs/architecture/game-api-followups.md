@@ -91,6 +91,35 @@ authentifiée reste en pause car les appels REST/RPC depuis le worker Edge local
 retournent `503` selon l'adresse réseau utilisée. La reprise nécessite une URL
 Supabase joignable depuis ce worker et un issuer explicitement aligné.
 
+### Verification distante a reprendre
+
+Le smoke local a valide le refus `401` sans JWT et l'acceptation du JWT
+authentifie, mais `POST /bootstrap` retourne encore `503` apres les essais
+`127.0.0.1`, `host.docker.internal`, `kong`, passerelle Docker et reseau
+`supabase_network_cdidle-local` avec les variables `GAME_API_*`. Le symptome
+est trace comme un blocage possible de connectivite locale Edge vers
+Kong/PostgREST, pas comme une regression metier demontree.
+
+A la reprise, executer le meme smoke contre Supabase staging/production avec
+`https://<project>.supabase.co`, secrets hors depot, issuer JWT aligne,
+allowlist active et CORS verifie. Couvrir `/bootstrap`, `/commands`, `/reset`
+et `/account`, puis `401/403/409/503`, replay/collision et `x-request-id`.
+Classer explicitement le resultat : ecart local uniquement ou ecart
+reproductible distant. Le `401` seul ne permet pas de declarer CDI-041 Done.
+
+### Mise a jour du deblocage CDI-025
+
+CDI-025 peut avancer sur son implementation metier independamment du smoke
+local CDI-041. La validation d'integration Edge/Supabase reste toutefois un
+gate de cloture dependant de CDI-041 ; les dependances du frontmatter ont ete
+alignees en consequence.
+
+La validation distante de CDI-025 est maintenant explicitement differee : les
+tests locaux deterministes et le contrat serveur peuvent clore l'implementation
+du ticket, tandis que la preuve HTTP Edge avec RLS/RPC/transaction atomique
+sera realisee dans le smoke CDI-041 en staging ou production. Ce report est un
+ecart planifie, pas une validation implicite.
+
 ## Conditions de reprise
 
 Le suivi sera considéré suffisamment avancé pour reprendre les tranches

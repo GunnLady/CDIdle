@@ -9,6 +9,7 @@ export type SupabaseAdapterOptions = {
 
 export class SupabaseAdapterError extends Error { constructor(public readonly code: string, message: string, public readonly status = 503) { super(message); } }
 type GameRow = { schema_version: number; revision: number; state: Record<string, unknown>; last_processed_at: string };
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 export function createSupabaseGameApiServices(options: SupabaseAdapterOptions) {
   const fetcher = options.fetcher ?? fetch;
@@ -37,6 +38,7 @@ export function createSupabaseGameApiServices(options: SupabaseAdapterOptions) {
     return { schemaVersion: value.schema_version, revision: value.revision, serverTime: options.now?.() ?? new Date().toISOString(), lastProcessedAt: value.last_processed_at, state: value.state };
   }
   async function commands(userId: string, payload: Record<string, unknown>) {
+    if (typeof payload.commandId !== "string" || !UUID_PATTERN.test(payload.commandId)) return { ok: false, error: { code: "VALIDATION_FAILED", message: "commandId must be a UUID" }, commandId: payload.commandId };
     const canonical = JSON.stringify({ commandId: payload.commandId, idempotencyKey: payload.idempotencyKey, expectedRevision: Number(payload.expectedRevision), command: payload.command });
     const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(canonical));
     const requestHash = Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
@@ -51,7 +53,14 @@ export function createSupabaseGameApiServices(options: SupabaseAdapterOptions) {
     if (!current) throw new SupabaseAdapterError("GAME_NOT_FOUND", "game not found", 404);
     const expected = Number(payload.expectedRevision);
     if (current.revision !== expected) return { ok: false, error: { code: "REVISION_CONFLICT", message: "revision conflict", currentRevision: current.revision }, commandId: payload.commandId };
-    const transition = await options.applyCommand(current.state, payload.command as Record<string, unknown>);
+    let transition: { state: Record<string, unknown>; events?: unknown[] };
+    try {
+      transition = await options.applyCommand(current.state, payload.command as Record<string, unknown>);
+    } catch (error) {
+      const typed = error as { code?: string; message?: string };
+      if (typed.code) return { ok: false, error: { code: typed.code, message: typed.message ?? "command rejected" }, commandId: payload.commandId };
+      throw error;
+    }
     const result = await request("/rest/v1/rpc/commit_game_command", { method: "POST", body: JSON.stringify({ p_user_id: userId, p_command_id: payload.commandId, p_request_hash: requestHash, p_expected_revision: expected, p_state: transition.state, p_events: transition.events ?? [] }) });
     const value = row(result);
     return { ok: true, revision: value.revision, state: value.state, commandId: payload.commandId, replayed: false };

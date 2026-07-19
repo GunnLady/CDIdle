@@ -23,6 +23,10 @@ describe("game-api Edge handler", () => {
     expect((await handler(new Request("https://api.example.test/game-api/bootstrap", { method: "POST", headers: { origin: "https://evil.test" } }))).status).toBe(403);
     const invalid = await handler(request("/commands", { method: "POST", body: JSON.stringify({}) }));
     expect(invalid.status).toBe(400);
+    const invalidId = await handler(request("/commands", { method: "POST", body: JSON.stringify({ commandId: "save-1", idempotencyKey: "idem", expectedRevision: 0, clientVersion: "test", command: { type: "building.upgrade", buildingId: "ferme" } }) }));
+    expect(invalidId.status).toBe(400);
+    const validId = await handler(request("/commands", { method: "POST", body: JSON.stringify({ commandId: "44444444-4444-4444-8444-444444444444", idempotencyKey: "idem", expectedRevision: 0, clientVersion: "test", command: { type: "building.upgrade", buildingId: "ferme" } }) }));
+    expect(validId.status).toBe(200);
   });
   it("routes reset, account deletion and unknown paths", async () => {
     expect((await handler(request("/reset", { method: "POST" }))).status).toBe(200);
