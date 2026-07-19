@@ -45,13 +45,12 @@ import AccountPanel from "./components/AccountPanel";
 import LoginPage from "./components/LoginPage";
 import StoragePanel from "./components/StoragePanel";
 import { callGameApi, getAuthSnapshot, onAuthStateChange } from "./lib/supabase";
+import { purgeLegacyGameCache, readGameCache, writeGameCache } from "./lib/gameCache";
 
 // Custom Hooks & Utilities
 import { useGameLog } from "./hooks/useGameLog";
 import { useTownSystem } from "./hooks/useTownSystem";
 import { useDungeonSystem } from "./hooks/useDungeonSystem";
-
-const LOCAL_STORAGE_KEY = "colonie_donjon_idle_save_v3";
 
 import {
   CrestBadge,
@@ -226,7 +225,7 @@ export default function App() {
         autoExplore: dungeon.autoExplore,
         isMigrationPending: town.isMigrationPending
       };
-      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(stateToSave));
+      if (currentUser?.id) await writeGameCache(currentUser.id, stateToSave);
 
       if (currentUser) {
         const now = Date.now();
@@ -282,48 +281,12 @@ export default function App() {
     currentUser
   ]);
 
-  // LOAD GAME SAVE FROM LOCALSTORAGE
+  // Purge the legacy shared localStorage snapshot. Offline state is now
+  // scoped per authenticated user in IndexedDB and remains read-only.
   useEffect(() => {
-    if (!currentUser) {
-      const savedGame = localStorage.getItem(LOCAL_STORAGE_KEY);
-      if (savedGame) {
-        const parsed = JSON.parse(savedGame);
-        if (parsed.resources) town.setResources(parsed.resources);
-        if (parsed.buildings) {
-          town.setBuildings(parsed.buildings);
-        }
-        if (parsed.citizens) {
-          const loadedCitizens = { ...parsed.citizens };
-          if (loadedCitizens.unassigned === undefined && loadedCitizens.idle !== undefined) {
-            loadedCitizens.unassigned = loadedCitizens.idle;
-          }
-          town.setCitizens(loadedCitizens);
-        }
-        if (parsed.totalCitizens !== undefined) town.setTotalCitizens(parsed.totalCitizens);
-        if (parsed.isMigrationPending !== undefined) {
-          town.setIsMigrationPending(!!parsed.isMigrationPending);
-        } else {
-          town.setIsMigrationPending(false);
-        }
-        if (parsed.unlockedDistricts) town.setUnlockedDistricts(parsed.unlockedDistricts);
-        if (parsed.heroes) dungeon.setHeroes(parsed.heroes);
-        if (parsed.storedItems) dungeon.setStoredItems(parsed.storedItems);
-        if (parsed.forgeMaterials) dungeon.setForgeMaterials(parsed.forgeMaterials);
-        if (parsed.itemBlueprints) dungeon.setItemBlueprints(parsed.itemBlueprints);
-        if (parsed.activeDungeonFloor !== undefined) dungeon.setActiveDungeonFloor(parsed.activeDungeonFloor);
-        if (parsed.activeDungeonRoom !== undefined) dungeon.setActiveDungeonRoom(parsed.activeDungeonRoom);
-        if (parsed.highestFloorReached !== undefined) dungeon.setHighestFloorReached(parsed.highestFloorReached);
-        if (parsed.unlockedRaces) dungeon.setUnlockedRaces(parsed.unlockedRaces);
-        if (parsed.battleLogs) setBattleLogs(parsed.battleLogs);
-        if (parsed.autoExplore !== undefined) dungeon.setAutoExplore(parsed.autoExplore);
-        if (parsed.cityName) setCityName(parsed.cityName);
-
-        addLog("🏡 Royaume restauré : Vos exploits locaux ont été rechargés.", "info");
-      } else {
-        addLog("🏡 Bienvenue ! Votre Cabane de Niveau 1 attend que de nouveaux paysans immigrent grâce à vos provisions !", "info");
-      }
-    }
-  }, [currentUser]);
+    void purgeLegacyGameCache();
+    if (!currentUser) addLog("🔑 Veuillez vous connecter pour commencer la conquête de l'empire !", "info");
+  }, [currentUser, addLog]);
 
   // Supabase auth state subscription and authoritative cloud loading
   useEffect(() => {
@@ -371,7 +334,24 @@ export default function App() {
           }
         } catch (err) {
           console.error("Supabase sync error", err);
-          addLog("❌ Échec de la récupération des données Supabase.", "defeat");
+          const cached = await readGameCache(user.id).catch(() => null);
+          if (cached?.cityName) setCityName(String(cached.cityName));
+          if (cached?.resources) town.setResources(cached.resources as any);
+          if (cached?.buildings) town.setBuildings(cached.buildings as any);
+          if (cached?.citizens) town.setCitizens(cached.citizens as any);
+          if (cached?.totalCitizens !== undefined) town.setTotalCitizens(Number(cached.totalCitizens));
+          if (cached?.unlockedDistricts) town.setUnlockedDistricts(cached.unlockedDistricts as any);
+          if (cached?.heroes) dungeon.setHeroes(cached.heroes as any);
+          if (cached?.storedItems) dungeon.setStoredItems(cached.storedItems as any);
+          if (cached?.forgeMaterials) dungeon.setForgeMaterials(cached.forgeMaterials as any);
+          if (cached?.itemBlueprints) dungeon.setItemBlueprints(cached.itemBlueprints as any);
+          if (cached?.activeDungeonFloor !== undefined) dungeon.setActiveDungeonFloor(Number(cached.activeDungeonFloor));
+          if (cached?.activeDungeonRoom !== undefined) dungeon.setActiveDungeonRoom(Number(cached.activeDungeonRoom));
+          if (cached?.highestFloorReached !== undefined) dungeon.setHighestFloorReached(Number(cached.highestFloorReached));
+          if (cached?.unlockedRaces) dungeon.setUnlockedRaces(cached.unlockedRaces as any);
+          if (cached?.battleLogs) setBattleLogs(cached.battleLogs as any);
+          if (cached?.autoExplore !== undefined) dungeon.setAutoExplore(Boolean(cached.autoExplore));
+          addLog(cached ? "📖 Session hors connexion : cache local en lecture seule chargé." : "❌ Échec de la récupération des données Supabase.", cached ? "info" : "defeat");
         } finally {
           setIsSyncing(false);
           setIsInitialGameLoadDone(true);
@@ -428,7 +408,7 @@ export default function App() {
   const hardResetGame = async () => {
     try {
       setIsSyncing(true);
-      localStorage.removeItem(LOCAL_STORAGE_KEY);
+      await purgeLegacyGameCache();
       
       // Reset systems
       town.resetTownSystem();

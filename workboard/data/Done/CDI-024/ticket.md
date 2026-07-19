@@ -1,7 +1,7 @@
 ---
 id: CDI-024
 title: Bootstrap et cache local sur
-status: Later
+status: Done
 area: backend
 priority: P1
 size: L
@@ -48,9 +48,9 @@ Ce ticket depend de : ["CDI-016", "CDI-023"].
 
 ## Criteres d'acceptation
 
-- [ ] Le perimetre est implemente sans regression hors domaine.
-- [ ] Les invariants sont couverts par des tests reproductibles.
-- [ ] Les preuves et la documentation sont fournies.
+- [x] Le perimetre est implemente sans regression hors domaine.
+- [x] Les invariants sont couverts par des tests reproductibles.
+- [x] Les preuves et la documentation sont fournies.
 
 ## Tests
 
@@ -75,3 +75,11 @@ Une implementation trop large creerait des dependances implicites.
 
 Fournir fichiers, commandes, resultats, risques residuels et decisions a transmettre.
 
+## Preuves de réalisation
+
+- Cache IndexedDB par utilisateur ajouté avec reprise hors connexion en lecture
+  seule et purge de la clé `localStorage` historique.
+- Typecheck, 62 tests, lint, build et validation du workboard exécutés.
+- Audit détaillé : `docs/architecture/supabase-cache-audit.md`.
+- Docker Desktop n'est pas démarré ; `test:db` n'est pas applicable au périmètre
+  de ce ticket et reste couvert par la CI distante.
