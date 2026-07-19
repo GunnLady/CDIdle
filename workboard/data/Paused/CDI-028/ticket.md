@@ -1,7 +1,7 @@
 ---
 id: CDI-028
 title: Forge et recyclage autoritaires
-status: Done
+status: Paused
 area: vertical
 priority: P1
 size: L
