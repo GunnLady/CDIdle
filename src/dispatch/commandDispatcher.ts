@@ -5,7 +5,7 @@ import { validateCommandEnvelope } from "../domain/commands";
 
 const commandTypes = z.enum([
   "onboarding.start", "building.upgrade", "citizens.allocate", "district.unlock",
-  "hero.recruit", "hero.dismiss", "hero.equip", "hero.unequip", "inventory.add", "inventory.remove", "inventory.recycle", "forge.start",
+  "hero.recruit", "hero.dismiss", "hero.equip", "hero.unequip", "inventory.add", "inventory.remove", "inventory.recycle", "forge.start", "forge.finalize", "forge.cancel",
   "dungeon.explore", "dungeon.retreat",
 ]);
 const commandSchema = z.object({ type: commandTypes }).passthrough();

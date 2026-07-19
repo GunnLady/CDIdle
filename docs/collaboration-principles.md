@@ -72,6 +72,9 @@ modifications effectuées dans ce dépôt.
 33. Pour tout test local interactif, coûteux ou dépendant d'un service, fournir
     explicitement la commande, le terminal à utiliser et l'objectif du test ;
     attendre le résultat communiqué par l'utilisateur avant de poursuivre.
+34. Pour les opérations Git, fournir par défaut les commandes exactes à
+    exécuter et attendre le retour de l'utilisateur ; n'exécuter commit ou push
+    que sur demande explicite.
 
 ## Conséquences pratiques
 

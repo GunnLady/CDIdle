@@ -1,4 +1,5 @@
 import { applyInventoryCommand, type InventorySlot } from "./inventory-authority.ts";
+import { applyForgeCommand } from "./forge-authority.ts";
 
 export type TownResources = { gold: number; food: number; wood: number; stone: number; ore: number };
 export type TownState = {
@@ -21,7 +22,11 @@ type TownCommand =
   | { type: "inventory.add"; itemId: string; rarity: string; count?: number; modifiers?: Array<Record<string, unknown>> }
   | { type: "inventory.remove"; itemId: string; rarity: string; count?: number; modifiers?: Array<Record<string, unknown>> }
   | { type: "hero.equip"; heroId: string; itemId: string; rarity: string; modifiers?: Array<Record<string, unknown>> }
-  | { type: "hero.unequip"; heroId: string; slot: InventorySlot };
+  | { type: "hero.unequip"; heroId: string; slot: InventorySlot }
+  | { type: "forge.start"; recipeId: string; commandId?: string }
+  | { type: "forge.finalize"; previewId: string; accepted?: boolean; chosenModifierStat?: string }
+  | { type: "forge.cancel"; previewId: string }
+  | { type: "inventory.recycle"; itemId: string; rarity: string; modifiers?: Array<Record<string, unknown>> };
 
 const zero = (): TownResources => ({ gold: 0, food: 0, wood: 0, stone: 0, ore: 0 });
 const costs: Record<string, TownResources[]> = {
@@ -65,6 +70,9 @@ export function applyTownCommand(current: Record<string, unknown>, command: Reco
   const heroes = town.heroes ?? [];
   if (typed.type === "inventory.add" || typed.type === "inventory.remove" || typed.type === "hero.equip" || typed.type === "hero.unequip") {
     return applyInventoryCommand(town, command);
+  }
+  if (typed.type === "forge.start" || typed.type === "forge.finalize" || typed.type === "forge.cancel" || typed.type === "inventory.recycle") {
+    return applyForgeCommand(town, command);
   }
   if (typed.type === "hero.recruit") {
     const guildLevel = town.buildings.guilde ?? 0;

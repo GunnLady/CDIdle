@@ -24,6 +24,7 @@ Seuls les fichiers dont le nom se termine par `-audit.md` sont référencés ici
 - [cdi-038-audit.md](cdi-038-audit.md)
 - [cdi-026-audit.md](cdi-026-audit.md)
 - [cdi-027-audit.md](cdi-027-audit.md)
+- [cdi-028-audit.md](cdi-028-audit.md)
 
 Les documents de contrat ou de domaine (`game-state-v1.md`, `town-domain.md`,
 etc.) ne sont pas des audits et restent référencés uniquement par leurs tickets.

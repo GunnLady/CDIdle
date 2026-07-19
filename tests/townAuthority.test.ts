@@ -41,4 +41,18 @@ describe("authoritative town commands", () => {
     expect(unequipped.state).toMatchObject({ storedItems: [{ itemId: "starter_sword", rarity: "common", count: 2 }], heroes: [{ equipment: {} }] });
     expect(() => applyTownCommand(current, { type: "inventory.add", itemId: "unknown-item", rarity: "common" })).toThrow("unknown item");
   });
+
+  it("keeps forge preview and recycling atomic", () => {
+    const current = { ...initialTownState(), buildings: { ...initialTownState().buildings, forge: 1 }, forgeMaterials: [
+      { materialId: "metal_scrap", rarity: "common", count: 6 },
+      { materialId: "refined_metal", rarity: "uncommon", count: 1 },
+    ], storedItems: [{ itemId: "starter_sword", rarity: "common", count: 1 }] };
+    const started = applyTownCommand(current, { type: "forge.start", recipeId: "starter_sword", commandId: "forge-command" });
+    expect(started.state).toMatchObject({ forgeMaterials: [], pendingForge: { previewId: "preview-forge-command" } });
+    const finalized = applyTownCommand(started.state, { type: "forge.finalize", previewId: "preview-forge-command" });
+    expect(finalized.state).toMatchObject({ pendingForge: null, storedItems: [{ itemId: "starter_sword", rarity: "common", count: 2 }] });
+    const recycled = applyTownCommand({ ...finalized.state, forgeMaterials: [] }, { type: "inventory.recycle", itemId: "starter_sword", rarity: "common" });
+    expect(recycled.state).toMatchObject({ storedItems: [{ itemId: "starter_sword", count: 1 }], forgeMaterials: [{ materialId: "metal_scrap", count: 2 }] });
+    expect(() => applyTownCommand(recycled.state, { type: "forge.finalize", previewId: "preview-forge-command" })).toThrow("forge preview not found");
+  });
 });
