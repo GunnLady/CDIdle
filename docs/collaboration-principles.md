@@ -13,13 +13,14 @@ modifications effectuées dans ce dépôt.
 5. À chaque fin de ticket, fournir un résumé des actions réalisées, puis
    effectuer un push propre et cohérent avec l'historique, en vérifiant que la
    CI passe.
-6. Après le push final, exécuter systématiquement un audit post-push des
-   critères du ticket, des oublis et des écarts. Distinguer les écarts réels
-   de ceux déjà prévus dans un ticket futur ; corriger les écarts réels ou les
-   tracer explicitement avant de déclarer le ticket terminé.
-7. L'audit post-push doit décrire chaque constat trouvé et le classer
-   explicitement : écart réel à corriger, écart déjà prévu dans un autre ticket,
-   ou contrôle sans écart. Une conclusion globale ne remplace pas cette liste.
+6. Avant le push final, exécuter un audit fonctionnel détaillé des critères du
+   ticket, des oublis et des écarts. Distinguer les écarts réels de ceux déjà
+   prévus dans un ticket futur ; corriger ou tracer les écarts réels avant le
+   push.
+7. Après le push final, exécuter un audit ciblé de l'état effectivement poussé :
+   commit distant, statut Git, retours du connecteur et CI. Classer chaque
+   constat Git/CI comme contrôle sans écart, écart réel ou écart déjà prévu ; ne
+   pas refaire inutilement l'audit fonctionnel pré-push.
 
 8. Pour la CI distante, utiliser par défaut le connecteur ou l'API GitHub.
 9. Ne pas ouvrir le site GitHub pour vérifier la CI lorsqu'une vérification par
@@ -75,6 +76,17 @@ modifications effectuées dans ce dépôt.
 34. Pour les opérations Git, fournir par défaut les commandes exactes à
     exécuter et attendre le retour de l'utilisateur ; n'exécuter commit ou push
     que sur demande explicite.
+## Ordre d'exécution
+
+1. Charger les règles, le contexte global et le ticket.
+2. Passer le ticket à `Doing`, puis implémenter et valider localement.
+3. Donner à l'utilisateur les commandes des tests interactifs et attendre ses
+   résultats.
+4. Réaliser l'audit fonctionnel pré-push ; corriger ou tracer ses écarts.
+5. Passer le ticket à `Done` uniquement si aucun écart réel ne reste, puis
+   préparer le push unique.
+6. Après le push, auditer uniquement l'état distant, Git, le connecteur et la
+   CI, puis signaler les résultats.
 
 ## Conséquences pratiques
 
