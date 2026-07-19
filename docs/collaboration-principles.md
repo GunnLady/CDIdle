@@ -10,9 +10,12 @@ modifications effectuées dans ce dépôt.
 3. Chercher ensuite une solution avec l'utilisateur, plutôt que masquer le
    problème ou improviser une certitude.
 4. Faire de la vérité et du respect les bases de la collaboration.
-5. À chaque fin de ticket, fournir un résumé des actions réalisées, puis
-   effectuer un push propre et cohérent avec l'historique, en vérifiant que la
-   CI passe.
+5. À la clôture d'un ticket prêt à être terminé, fournir un résumé des actions
+   réalisées, puis préparer un push propre et cohérent avec l'historique ;
+   effectuer commit/push selon la règle 34, après autorisation explicite.
+   Vérifier ensuite la CI via le connecteur/API GitHub selon les règles 8 à 10 ;
+   si le résultat est inaccessible, le déclarer inconnu et ne pas retenter cette
+   solution pendant 24 heures.
 6. Avant le push final, exécuter un audit fonctionnel détaillé des critères du
    ticket, des oublis et des écarts. Distinguer les écarts réels de ceux déjà
    prévus dans un ticket futur ; corriger ou tracer les écarts réels avant le
@@ -27,25 +30,30 @@ modifications effectuées dans ce dépôt.
    connecteur/API est disponible.
 10. Si le connecteur/API ne permet pas de vérifier le run, le signaler clairement
     comme inconnu, ne rien inventer, puis poursuivre l'étape suivante possible.
+    Noter l'heure de l'échec et ne pas retenter cette même vérification pendant
+    les 24 heures suivantes, sauf changement d'état signalé ou demande explicite
+    de l'utilisateur.
 11. Travailler directement sur `main` pour ce projet ; ne pas créer de branche
     par ticket sauf demande explicite contraire.
 12. Utiliser le workboard comme source de vérité pour le statut du ticket.
 13. Passer le ticket à `Doing` au début du travail.
 14. Passer le ticket à `Done` uniquement après implémentation, validations et
-    audit post-push terminés.
+    audit fonctionnel pré-push terminés, sans écart réel non corrigé ; l'audit
+    post-push confirme ensuite l'état effectivement publié.
 15. Enchaîner les tickets tant qu'aucun blocage réel ne l'empêche ; signaler
     immédiatement tout blocage.
 16. Au début d'un ticket, rappeler son périmètre, ses critères et les
     validations prévues.
 17. Pendant le travail, fournir des retours sur le périmètre, les fichiers,
     validations, décisions et problèmes rencontrés.
-18. Ne jamais déclarer `Done` avec un écart réel non corrigé.
+18. Si l'audit pré-push trouve un écart déjà corrigé dans le ticket courant,
+    le signaler explicitement dans le résumé avec la correction et sa preuve.
 19. Lorsqu'un sujet est différé, le tracer dans un document référençable et
     indiquer le ticket de suivi, s'il existe.
 20. Pour chaque sujet différé, documenter ses implications, dépendances et
     critères de clôture.
-21. Après un push, auditer l'état effectivement poussé, et pas seulement l'état
-    local précédemment validé.
+21. Après un push, utiliser le commit effectivement publié comme source de
+    vérité de l'audit, et pas seulement l'état local précédemment validé.
 22. Distinguer dans les comptes rendus les preuves obtenues par Codex des
     vérifications manuelles rapportées par l'utilisateur.
 23. Après tout changement de dossier ou de session, relire les règles, la
@@ -72,17 +80,20 @@ modifications effectuées dans ce dépôt.
     rapides et non interactives, sauf demande explicite contraire.
 33. Pour tout test local interactif, coûteux ou dépendant d'un service, fournir
     explicitement la commande, le terminal à utiliser et l'objectif du test ;
-    attendre le résultat communiqué par l'utilisateur avant de poursuivre.
+    attendre le résultat communiqué par l'utilisateur avant de poursuivre. La
+    règle 32 fixe le périmètre ; cette règle impose le niveau de précision.
 34. Pour les opérations Git, fournir par défaut les commandes exactes à
     exécuter et attendre le retour de l'utilisateur ; n'exécuter commit ou push
     que sur demande explicite.
+
 ## Ordre d'exécution
 
 1. Charger les règles, le contexte global et le ticket.
 2. Passer le ticket à `Doing`, puis implémenter et valider localement.
 3. Donner à l'utilisateur les commandes des tests interactifs et attendre ses
    résultats.
-4. Réaliser l'audit fonctionnel pré-push ; corriger ou tracer ses écarts.
+4. Réaliser l'audit fonctionnel pré-push ; classer chaque constat, corriger ou
+   tracer ses écarts, et signaler ceux déjà corrigés dans le ticket courant.
 5. Passer le ticket à `Done` uniquement si aucun écart réel ne reste, puis
    préparer le push unique.
 6. Après le push, auditer uniquement l'état distant, Git, le connecteur et la
