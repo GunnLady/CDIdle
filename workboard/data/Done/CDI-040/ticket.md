@@ -1,7 +1,7 @@
 ---
 id: CDI-040
 title: Adaptateur Supabase reel pour game-api
-status: Doing
+status: Done
 area: backend
 priority: P1
 size: L
