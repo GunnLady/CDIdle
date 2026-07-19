@@ -5,11 +5,11 @@ HTTP. Ils doivent être repris avant une mise en production réelle et bloquent
 explicitement la reprise de CDI-025 tant que les critères ci-dessous ne sont
 pas satisfaits.
 
-## 1. Adaptateur Supabase de production
+## 1. Adaptateur Supabase de production — CDI-040
 
-Référence de blocage : CDI-025 (`Ville autoritaire de bout en bout`). La tâche
-est suivie ici, puis validée dans CDI-035 (staging/production) ; CDI-023 reste
-terminé et n'est pas rouvert.
+Ticket d'implémentation : CDI-040. Il dépend de l'authentification runtime
+CDI-039 et bloque le smoke gate CDI-041. CDI-023 reste terminé et n'est pas
+rouvert.
 
 À réaliser :
 
@@ -23,10 +23,11 @@ terminé et n'est pas rouvert.
 - tester les erreurs réseau, les réponses 409/503 et les migrations additives ;
 - ajouter un smoke test Edge contre Supabase local puis staging.
 
-## 2. Vérification JWT réelle et allowlist
+## 2. Vérification JWT réelle et allowlist — CDI-039
 
-Référence de blocage : CDI-025. Le hardening sécurité relève de CDI-034 et la
-validation opérationnelle finale de CDI-035 ; CDI-023 reste terminé.
+Ticket d'implémentation : CDI-039. Son intégration réelle est validée par
+CDI-041 ; le hardening approfondi relève de CDI-034 et la validation
+opérationnelle finale de CDI-035.
 
 À réaliser :
 
@@ -74,9 +75,19 @@ validées par une écriture optimiste du navigateur.
 - audit post-push listant séparément contrôles sans écart, écarts réels et
   sujets prévus dans CDI-026 à CDI-031.
 
+## 4. Smoke gate Edge/Supabase local — CDI-041
+
+CDI-041 valide ensemble CDI-039 et CDI-040 dans le runtime Edge et Supabase
+local réels. Il couvre les routes principales, les erreurs 401/403/409/503,
+l'idempotence, CORS, les identifiants de requête et l'absence de secrets.
+
+Il bloque directement CDI-025, CDI-026 et CDI-032. Les tickets CDI-027 à
+CDI-031 et CDI-033 à CDI-035 restent bloqués transitivement par leurs
+dépendances existantes.
+
 ## Conditions de reprise
 
-Le suivi sera considéré terminé uniquement avec : adaptateur réel branché,
-vérification JWT cryptographique, tests locaux/staging reproductibles, smoke
-tests Edge et audit de sécurité mis à jour. À ce moment seulement, le blocage
-de CDI-025 pourra être levé et son implémentation pourra reprendre.
+Le suivi sera considéré suffisamment avancé pour reprendre les tranches
+verticales uniquement lorsque CDI-039, CDI-040 et CDI-041 seront `Done`.
+La validation staging/production et le hardening final restent respectivement
+portés par CDI-035 et CDI-034.

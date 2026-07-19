@@ -8,7 +8,7 @@ size: L
 risk: medium
 source: Plan fullstack autoritaire approuve le 2026-07-15
 depends_on: ["CDI-003", "CDI-008"]
-blocks: ["CDI-018", "CDI-019"]
+blocks: ["CDI-018", "CDI-019", "CDI-041"]
 github_issue: null
 related_docs: ["docs/fullstack-authoritative-plan.md", "docs/architecture/supabase-local-audit.md"]
 ---

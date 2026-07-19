@@ -8,7 +8,7 @@ size: L
 risk: medium
 source: Plan fullstack autoritaire approuve le 2026-07-15
 depends_on: ["CDI-008", "CDI-009", "CDI-020"]
-blocks: ["CDI-022"]
+blocks: ["CDI-022", "CDI-040"]
 github_issue: null
 related_docs: ["docs/fullstack-authoritative-plan.md", "docs/architecture/command-dispatcher-audit.md"]
 ---

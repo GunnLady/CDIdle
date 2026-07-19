@@ -29,9 +29,9 @@ retourne des erreurs structurées et ajoute un identifiant de requête.
 | Écart | Preuve | Action nécessaire |
 | --- | --- | --- |
 | Aucun point d'entrée `Deno.serve` n'était exporté. | Le fichier exposait uniquement `createGameApiHandler`. | Corrigé par `serveGameApi()` et son test. |
-| Aucun service Supabase de production n'est branché. | Les quatre services sont obligatoirement injectés par l'appelant. | Implémenter l'adaptateur Auth/repository/dispatcher. |
-| Le JWT n'est pas vérifié cryptographiquement par l'implémentation livrée. | Le handler délègue `authenticate` sans implémentation par défaut. | Brancher la vérification Supabase Auth et l'allowlist. |
-| Aucun test d'exécution via le runtime Edge réel. | Les tests utilisent le handler en mémoire avec des services fictifs. | Ajouter un smoke test local Edge après l'entrée déployable. |
+| Aucun service Supabase de production n'est branché. | Les quatre services sont obligatoirement injectés par l'appelant. | CDI-040 — adaptateur Auth/repository/dispatcher. |
+| Le JWT n'est pas vérifié cryptographiquement par l'implémentation livrée. | Le handler délègue `authenticate` sans implémentation par défaut. | CDI-039 — vérification Supabase Auth et allowlist. |
+| Aucun test d'exécution via le runtime Edge réel. | Les tests utilisent le handler en mémoire avec des services fictifs. | CDI-041 — smoke test Edge/Supabase local. |
 
 Ces trois sujets sont désormais tracés dans
 [`game-api-followups.md`](game-api-followups.md) et ne sont pas considérés

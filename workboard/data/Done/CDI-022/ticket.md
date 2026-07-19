@@ -8,7 +8,7 @@ size: L
 risk: medium
 source: Plan fullstack autoritaire approuve le 2026-07-15
 depends_on: ["CDI-021"]
-blocks: ["CDI-023", "CDI-025", "CDI-026", "CDI-027", "CDI-028", "CDI-029", "CDI-030", "CDI-032", "CDI-033"]
+blocks: ["CDI-023", "CDI-025", "CDI-026", "CDI-027", "CDI-028", "CDI-029", "CDI-030", "CDI-032", "CDI-033", "CDI-039", "CDI-040"]
 github_issue: null
 related_docs: ["docs/fullstack-authoritative-plan.md", "docs/architecture/game-api-audit.md", "docs/architecture/game-api-followups.md"]
 ---

@@ -8,7 +8,7 @@ size: L
 risk: medium
 source: Plan fullstack autoritaire approuve le 2026-07-15
 depends_on: ["CDI-017", "CDI-018"]
-blocks: ["CDI-020", "CDI-023"]
+blocks: ["CDI-020", "CDI-023", "CDI-039"]
 github_issue: null
 related_docs: ["docs/fullstack-authoritative-plan.md", "docs/architecture/google-oauth-audit.md"]
 ---
