@@ -8,7 +8,7 @@ size: L
 risk: medium
 source: Plan fullstack autoritaire approuve le 2026-07-15
 depends_on: ["CDI-014", "CDI-015", "CDI-022", "CDI-026", "CDI-027"]
-blocks: ["CDI-031", "CDI-033"]
+blocks: ["CDI-031", "CDI-033", "CDI-037"]
 attack_speed_rng_note: "La resolution serveur du multi-hit attackSpeed + speed utilise le Rng injecte et produit un transcript rejouable, sans Math.random client."
 github_issue: null
 related_docs: ["docs/fullstack-authoritative-plan.md", "docs/architecture/dungeon-progression-audit.md", "docs/architecture/zero-rebase-audit.md"]

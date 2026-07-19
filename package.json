@@ -13,6 +13,7 @@
     "board:validate": "node workboard/scripts/validate.mjs",
     "board:sync": "node workboard/scripts/sync-github.mjs",
     "board:sync:apply": "node workboard/scripts/sync-github.mjs --apply",
+    "check:determinism": "node scripts/check-determinism.mjs",
     "supabase:verify": "node supabase/verify-local.mjs",
     "supabase:revoke-allowlist": "node supabase/scripts/revoke-allowlist.mjs",
     "test:db": "npx supabase test db",

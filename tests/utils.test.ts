@@ -8,10 +8,13 @@ import {
   getStoredItemStack,
   equipItem,
   unequipItem,
+  generateNoviceStats,
+  generateSingleNoviceHero,
 } from "../src/utils/gameCalculations";
 import {
   getEncounterDetails,
   getEncounterStatPresentation,
+  getRandomDungeonEncounterType,
   rollEncounterForgeMaterial,
   selectBestHeroForEncounter,
 } from "../src/utils/dungeonHelpers";
@@ -192,6 +195,16 @@ describe("clock and RNG contracts", () => {
     const first = seededRng(42);
     const second = seededRng(42);
     expect([first.next(), first.nextInt(10), first.next()]).toEqual([second.next(), second.nextInt(10), second.next()]);
+  });
+
+  it("replays dungeon helper outcomes with an injected RNG", () => {
+    expect(rollEncounterForgeMaterial(75, seededRng(42))).toEqual(rollEncounterForgeMaterial(75, seededRng(42)));
+    expect(getRandomDungeonEncounterType(seededRng(42))).toBe(getRandomDungeonEncounterType(seededRng(42)));
+  });
+
+  it("replays helper gameplay generation with an injected RNG", () => {
+    expect(generateNoviceStats(seededRng(9))).toEqual(generateNoviceStats(seededRng(9)));
+    expect(generateSingleNoviceHero(["Humain"], seededRng(12))).toEqual(generateSingleNoviceHero(["Humain"], seededRng(12)));
   });
 });
 

@@ -14,6 +14,15 @@ export interface Rng {
   nextInt(maxExclusive: number): number;
 }
 
+/** UI/runtime boundary adapter. Authoritative code must inject seededRng instead. */
+export const systemRng: Rng = {
+  next: () => Math.random(),
+  nextInt: (maxExclusive: number) => {
+    if (!Number.isInteger(maxExclusive) || maxExclusive <= 0) throw new Error("maxExclusive must be a positive integer");
+    return Math.floor(Math.random() * maxExclusive);
+  }
+};
+
 /** Deterministic xorshift32 generator; persist the seed/state at the server boundary. */
 export function seededRng(seed: number): Rng {
   if (!Number.isInteger(seed)) throw new Error("seed must be an integer");

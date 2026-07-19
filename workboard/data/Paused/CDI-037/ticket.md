@@ -1,13 +1,13 @@
 ---
 id: CDI-037
 title: Audit global et migration horloge/RNG
-status: Later
+status: Paused
 area: domain
 priority: P1
 size: L
 risk: medium
 source: Extension utilisateur du plan fullstack autoritaire
-depends_on: ["CDI-009", "CDI-010", "CDI-011", "CDI-012", "CDI-013", "CDI-014", "CDI-015", "CDI-016"]
+depends_on: ["CDI-009", "CDI-010", "CDI-011", "CDI-012", "CDI-013", "CDI-014", "CDI-015", "CDI-016", "CDI-029"]
 blocks: []
 attack_speed_rng_note: "Remplacer Math.random dans le calcul des frappes multiples attackSpeed + speed par le Rng injecte, en conservant la formule et le plafond de trois frappes."
 github_issue: null
@@ -114,3 +114,21 @@ Une migration partielle pourrait laisser des divergences entre domaines.
 ## Handoff
 
 Fournir l inventaire, les usages migres et les exceptions justifiees.
+
+## Progression
+
+Pause explicite : la migration des tirages de combat de `useDungeonSystem.ts`
+attend le contrat serveur autoritaire de CDI-029. La partie deja migree reste
+conservee et controlee par le garde-fou deterministe.
+
+L inventaire est trace dans `docs/architecture/clock-rng-audit.md`. Le domaine
+pur (`src/domain`) ne contient plus d acces direct hors de la frontiere
+`random.ts`, et `npm run check:determinism` protege cette regle en CI.
+
+Les helpers gameplay `src/utils/gameCalculations.ts` et
+`src/utils/dungeonHelpers.ts` acceptent maintenant un `Rng` explicite sans
+changer les probabilites. Les hooks UI gardent des tirages locaux et sont
+classes comme frontieres ou migrations gameplay ulterieures.
+
+La suite `tests/utils.test.ts` passe a 49 tests. La declaration du script
+`check:determinism` a ete dedupliquee dans `package.json`.

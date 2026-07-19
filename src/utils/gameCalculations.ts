@@ -38,6 +38,8 @@ import {
   WEAPON_INFO_LIST
 } from "../data/gameData";
 import { BUILDINGS_LIST } from "../data/buildings";
+import type { Rng } from "../domain/random";
+import { systemRng } from "../domain/random";
 
 export const getHeroAttributes = (
   hero: Hero
@@ -482,7 +484,7 @@ export const calculateXpNeeded = (nextLevel: number, classType: ClassType): numb
   return Math.ceil(baseExp * tierMultiplier);
 };
 
-export const growHeroBaseStats = (baseStats: HeroStats, classType: ClassType): HeroStats => {
+export const growHeroBaseStats = (baseStats: HeroStats, classType: ClassType, rng: Rng = systemRng): HeroStats => {
   const newStats = { ...baseStats };
   const keys: (keyof HeroStats)[] = ["str", "agi", "end", "int", "wiz", "dex", "luk"];
 
@@ -496,13 +498,13 @@ export const growHeroBaseStats = (baseStats: HeroStats, classType: ClassType): H
     const weakStats = sortedKeys.slice(3); // Bottom 4
 
     for (let i = 0; i < 5; i++) {
-      if (Math.random() < 0.8) {
+      if (rng.next() < 0.8) {
         // 80% chance to pick from prioritized stats
-        const chosen = prioritizedStats[Math.floor(Math.random() * prioritizedStats.length)];
+        const chosen = prioritizedStats[rng.nextInt(prioritizedStats.length)];
         newStats[chosen] = (newStats[chosen] || 0) + 1;
       } else {
         // 20% chance to pick from weak stats
-        const chosen = weakStats[Math.floor(Math.random() * weakStats.length)];
+        const chosen = weakStats[rng.nextInt(weakStats.length)];
         newStats[chosen] = (newStats[chosen] || 0) + 1;
       }
     }
@@ -512,20 +514,20 @@ export const growHeroBaseStats = (baseStats: HeroStats, classType: ClassType): H
     if (mainStats && mainStats.length > 0) {
       const nonMainStats = keys.filter(k => !mainStats.includes(k));
       for (let i = 0; i < 8; i++) {
-        if (Math.random() < 0.8) {
+        if (rng.next() < 0.8) {
           // 80% chance to pick from main stats
-          const chosen = mainStats[Math.floor(Math.random() * mainStats.length)];
+          const chosen = mainStats[rng.nextInt(mainStats.length)];
           newStats[chosen] = (newStats[chosen] || 0) + 1;
         } else {
           // 20% chance to pick from non-main stats
-          const chosen = nonMainStats[Math.floor(Math.random() * nonMainStats.length)];
+          const chosen = nonMainStats[rng.nextInt(nonMainStats.length)];
           newStats[chosen] = (newStats[chosen] || 0) + 1;
         }
       }
     } else {
       // Fallback if mainStats is empty (just distribute evenly/randomly)
       for (let i = 0; i < 8; i++) {
-        const chosen = keys[Math.floor(Math.random() * keys.length)];
+        const chosen = keys[rng.nextInt(keys.length)];
         newStats[chosen] = (newStats[chosen] || 0) + 1;
       }
     }
@@ -545,11 +547,11 @@ export const refreshHeroDerivedStats = (hero: Hero): Hero => {
   };
 };
 
-export const generateNoviceStats = (): { stats: HeroStats; isElite: boolean } => {
-  const isElite = Math.random() < 0.005;
+export const generateNoviceStats = (rng: Rng = systemRng): { stats: HeroStats; isElite: boolean } => {
+  const isElite = rng.next() < 0.005;
 
   const getRandomInt = (min: number, max: number) => {
-    return Math.floor(Math.random() * (max - min + 1)) + min;
+    return rng.nextInt(max - min + 1) + min;
   };
 
   const statKeys: (keyof HeroStats)[] = ["str", "agi", "end", "int", "wiz", "dex", "luk"];
@@ -557,7 +559,7 @@ export const generateNoviceStats = (): { stats: HeroStats; isElite: boolean } =>
   if (isElite) {
     while (true) {
       // Pick 2 different stats
-      const shuffled = [...statKeys].sort(() => Math.random() - 0.5);
+      const shuffled = [...statKeys].sort(() => rng.next() - 0.5);
       const highStatKeys = shuffled.slice(0, 2);
       
       const stats = {} as HeroStats;
@@ -653,16 +655,16 @@ export const getAvailableTier1Classes = (buildings: { [key: string]: number }): 
   return available;
 };
 
-export const getRandomNoviceWeapon = (): WeaponItemInfo | null => {
+export const getRandomNoviceWeapon = (rng: Rng = systemRng): WeaponItemInfo | null => {
   const weapons = (NOVICE_BASIC_ITEM_LIST || []).filter(item => item.itemType === "weapon");
   if (weapons.length === 0) return null;
-  return weapons[Math.floor(Math.random() * weapons.length)] as WeaponItemInfo;
+  return weapons[rng.nextInt(weapons.length)] as WeaponItemInfo;
 };
 
-export const getRandomNoviceArmor = (): ArmorItemInfo | null => {
+export const getRandomNoviceArmor = (rng: Rng = systemRng): ArmorItemInfo | null => {
   const armors = (NOVICE_BASIC_ITEM_LIST || []).filter(item => item.itemType === "armor");
   if (armors.length === 0) return null;
-  return armors[Math.floor(Math.random() * armors.length)] as ArmorItemInfo;
+  return armors[rng.nextInt(armors.length)] as ArmorItemInfo;
 };
 
 export const getNoviceWoodenShield = (): OffHandItemInfo | null => {
@@ -671,10 +673,10 @@ export const getNoviceWoodenShield = (): OffHandItemInfo | null => {
   return shield as OffHandItemInfo;
 };
 
-export const generateNoviceStarterEquipment = (): HeroEquipment => {
-  const weapon = getRandomNoviceWeapon();
-  const armor = getRandomNoviceArmor();
-  const rolledShield = Math.random() < 0.15 ? getNoviceWoodenShield() : null;
+export const generateNoviceStarterEquipment = (rng: Rng = systemRng): HeroEquipment => {
+  const weapon = getRandomNoviceWeapon(rng);
+  const armor = getRandomNoviceArmor(rng);
+  const rolledShield = rng.next() < 0.15 ? getNoviceWoodenShield() : null;
 
   return {
     mainHand: weapon ? { itemId: weapon.id, rarity: weapon.rarity } : null,
@@ -860,40 +862,40 @@ export function equipItem(
   return refreshHeroDerivedStats(tempHero);
 }
 
-export const generateSingleNoviceHero = (unlockedRaces: string[] = ["Humain"]): Hero => {
+export const generateSingleNoviceHero = (unlockedRaces: string[] = ["Humain"], rng: Rng = systemRng): Hero => {
   const availableRaceInfos = RACE_INFO_LIST.filter(r => unlockedRaces.includes(r.name));
   const chosenRace = availableRaceInfos.length > 0
-    ? availableRaceInfos[Math.floor(Math.random() * availableRaceInfos.length)]
+    ? availableRaceInfos[rng.nextInt(availableRaceInfos.length)]
     : (RACE_INFO_LIST.find((r) => r.name === "Humain") || RACE_INFO_LIST[0]);
   const chosenClass = CLASS_INFO_LIST.find((c) => c.type === "Novice") || CLASS_INFO_LIST[0];
 
-  const isMale = Math.floor(Math.random() * 100) < 50;
+  const isMale = rng.nextInt(100) < 50;
   const gender = isMale ? "Male" : "Female";
   const firstNamePool = isMale ? MALE_FIRST_NAMES : FEMALE_FIRST_NAMES;
-  const fName = firstNamePool[Math.floor(Math.random() * firstNamePool.length)];
+  const fName = firstNamePool[rng.nextInt(firstNamePool.length)];
   const heroName = fName;
 
-  const { stats: noviceRolledStats, isElite } = generateNoviceStats();
+  const { stats: noviceRolledStats, isElite } = generateNoviceStats(rng);
 
   const activeSkillsFromClass = getSkillsByIds(chosenClass.activeSkills || []);
   const passiveSkillsFromClass = getSkillsByIds(chosenClass.passiveSkills || []);
 
   const activeSkills: string[] = [];
   if (activeSkillsFromClass.length > 0) {
-    const randomActive = activeSkillsFromClass[Math.floor(Math.random() * activeSkillsFromClass.length)];
+    const randomActive = activeSkillsFromClass[rng.nextInt(activeSkillsFromClass.length)];
     activeSkills.push(randomActive.id);
   }
 
   const passiveSkills: string[] = [];
   if (passiveSkillsFromClass.length > 0) {
-    const randomPassive = passiveSkillsFromClass[Math.floor(Math.random() * passiveSkillsFromClass.length)];
+    const randomPassive = passiveSkillsFromClass[rng.nextInt(passiveSkillsFromClass.length)];
     passiveSkills.push(randomPassive.id);
   }
 
-  const starterEquipment = generateNoviceStarterEquipment();
+  const starterEquipment = generateNoviceStarterEquipment(rng);
 
   const initialHeroStub: Omit<Hero, "calculatedStats"> = {
-    id: Math.random().toString(),
+    id: `hero-${Math.floor(rng.next() * 0x1_0000_0000).toString(16)}`,
     name: heroName,
     gender: gender,
     race: chosenRace.name,
@@ -1046,7 +1048,7 @@ export function getWeaponDamageTypes(weapon: WeaponItemInfo): DamageType[] {
   return resolveWeaponDamageTypes(weapon);
 }
 
-export function rollWeaponDamage(weapon: WeaponItemInfo | null): number {
+export function rollWeaponDamage(weapon: WeaponItemInfo | null, rng: Rng = systemRng): number {
   if (!weapon) {
     // unarmed damage range is 1 - 1
     return 1;
@@ -1056,7 +1058,7 @@ export function rollWeaponDamage(weapon: WeaponItemInfo | null): number {
   }
   const { min, max } = weapon.damageRange;
   // Roll random value between min and max (inclusive)
-  return Math.floor(Math.random() * (max - min + 1)) + min;
+  return rng.nextInt(max - min + 1) + min;
 }
 
 export function applyMonsterDefenseOrResistance(damage: number, damageType: DamageType, monster: Monster): number {
@@ -1088,14 +1090,14 @@ export function applySplitDamageDefenseOrResistance(
   return Math.max(1, Math.round(totalDamage));
 }
 
-export function calculateBasicAttackDamage(hero: Hero, monster: Monster): number {
+export function calculateBasicAttackDamage(hero: Hero, monster: Monster, rng: Rng = systemRng): number {
   const weapon = getHeroMainHandWeapon(hero);
-  const weaponDamageRoll = rollWeaponDamage(weapon);
+  const weaponDamageRoll = rollWeaponDamage(weapon, rng);
   const rawDamage = hero.calculatedStats.physicalDamage + weaponDamageRoll;
 
   // Crit Check
   const critChance = hero.calculatedStats.criticalChance / 100;
-  const isCrit = Math.random() < critChance;
+  const isCrit = rng.next() < critChance;
   let damageAfterCrit = rawDamage;
   if (isCrit) {
     // If no critical damage multiplier exists, use a simple default multiplier of 1.5
@@ -1315,8 +1317,8 @@ export const BASIC_FORGE_BONUS_MODIFIER_VALUES: Record<string, Modifier> = {
   radiantResistance: { stat: "radiantResistance", type: "flat", value: 2 }
 };
 
-export function rollBasicForgeUpgradeProc(): BasicForgeUpgradeProc {
-  const rand = Math.random() * 100;
+export function rollBasicForgeUpgradeProc(rng: Rng = systemRng): BasicForgeUpgradeProc {
+  const rand = rng.next() * 100;
   if (rand < 85) return "none";
   if (rand < 98) return "uncommon";
   return "rare";

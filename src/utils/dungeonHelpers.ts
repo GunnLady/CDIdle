@@ -1,6 +1,8 @@
 import { Hero, DungeonEncounterType, Rarity, SkillInfo } from "../types";
 import { SKILLS_LIBRARY } from "../data/gameData";
 import { getHeroAttributes } from "./gameCalculations";
+import type { Rng } from "../domain/random";
+import { systemRng } from "../domain/random";
 
 export const DUNGEON_ENCOUNTER_WEIGHTS: Record<DungeonEncounterType, number> = {
   fight: 85,
@@ -14,8 +16,8 @@ export const DUNGEON_ENCOUNTER_WEIGHTS: Record<DungeonEncounterType, number> = {
   rest: 6
 };
 
-export function rollEncounterForgeMaterial(floor: number): { materialId: string; rarity: Rarity; count: number; name: string } {
-  const rand = Math.random();
+export function rollEncounterForgeMaterial(floor: number, rng: Rng = systemRng): { materialId: string; rarity: Rarity; count: number; name: string } {
+  const rand = rng.next();
   let materialId = "metal_scrap";
   let rarity: Rarity = "common";
   let count = 1;
@@ -31,7 +33,7 @@ export function rollEncounterForgeMaterial(floor: number): { materialId: string;
       rarity = "epic";
       name = "Noyau arcanique";
     }
-    count = Math.floor(Math.random() * 2) + 1;
+    count = rng.nextInt(2) + 1;
   } else if (floor >= 50) {
     if (rand < 0.25) {
       materialId = "arcane_core";
@@ -42,7 +44,7 @@ export function rollEncounterForgeMaterial(floor: number): { materialId: string;
       rarity = "rare";
       name = "Fragment enchanté";
     }
-    count = Math.floor(Math.random() * 2) + 1;
+    count = rng.nextInt(2) + 1;
   } else if (floor >= 25) {
     if (rand < 0.30) {
       materialId = "enchanted_fragment";
@@ -53,7 +55,7 @@ export function rollEncounterForgeMaterial(floor: number): { materialId: string;
       rarity = "uncommon";
       name = "Métal raffiné";
     }
-    count = Math.floor(Math.random() * 3) + 1;
+    count = rng.nextInt(3) + 1;
   } else {
     if (rand < 0.25) {
       materialId = "refined_metal";
@@ -64,13 +66,13 @@ export function rollEncounterForgeMaterial(floor: number): { materialId: string;
       rarity = "common";
       name = "Débris métalliques";
     }
-    count = Math.floor(Math.random() * 3) + 1;
+    count = rng.nextInt(3) + 1;
   }
 
   return { materialId, rarity, count, name };
 }
 
-export function getRandomDungeonEncounterType(): DungeonEncounterType {
+export function getRandomDungeonEncounterType(rng: Rng = systemRng): DungeonEncounterType {
   try {
     const keys = Object.keys(DUNGEON_ENCOUNTER_WEIGHTS) as DungeonEncounterType[];
     let totalWeight = 0;
@@ -86,7 +88,7 @@ export function getRandomDungeonEncounterType(): DungeonEncounterType {
       return "fight";
     }
 
-    const roll = Math.random() * totalWeight;
+    const roll = rng.next() * totalWeight;
     let cumulative = 0;
     for (const key of keys) {
       const weight = DUNGEON_ENCOUNTER_WEIGHTS[key];
