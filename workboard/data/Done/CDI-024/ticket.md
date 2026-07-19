@@ -81,5 +81,4 @@ Fournir fichiers, commandes, resultats, risques residuels et decisions a transme
   seule et purge de la clé `localStorage` historique.
 - Typecheck, 62 tests, lint, build et validation du workboard exécutés.
 - Audit détaillé : `docs/architecture/supabase-cache-audit.md`.
-- Docker Desktop n'est pas démarré ; `test:db` n'est pas applicable au périmètre
-  de ce ticket et reste couvert par la CI distante.
+- Docker `29.6.1` actif ; `npm run test:db` passe avec 35 tests SQL réussis.
