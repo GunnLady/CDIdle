@@ -1,7 +1,7 @@
 ---
 id: CDI-041
 title: Smoke tests Edge et resilience game-api
-status: Later
+status: Paused
 area: delivery
 priority: P1
 size: L
@@ -57,9 +57,9 @@ etre valides ensemble dans le runtime Edge et la base locale.
 
 ## Criteres d'acceptation
 
-- [ ] Les quatre routes principales passent dans le runtime Edge local.
+- [ ] Les quatre routes principales passent dans le runtime Edge local. (401 sans JWT valide seulement ; smoke authentifie bloque par l'injection env du CLI.)
 - [ ] Les erreurs 401, 403, 409 et 503 sont reproduites et verifiees.
-- [ ] Replay, collision, CORS, request-id et absence de secrets sont controles.
+- [x] Replay, collision, CORS, request-id et absence de secrets sont controles au niveau local/injecte.
 - [ ] Le smoke test est executable localement et dans la CI.
 - [ ] CDI-025, CDI-026 et CDI-032 peuvent etre debloques.
 
@@ -92,3 +92,14 @@ blocage sans preuve de fonctionnement.
 
 Fournir la commande unique de smoke, les sorties principales, la matrice des
 erreurs et la liste explicite des tickets debloques.
+
+## Blocage trace
+
+Le runtime Edge local demarre et repond `401` sans bearer. Le chemin
+authentifie n'a pas pu etre valide : `supabase functions serve` ignore les
+variables `SUPABASE_*` dans `--env-file`, et le lancement PowerShell ne les
+transmet pas au worker. Reprise : fournir au CLI un fichier env local non
+versionne avec `GAME_API_SUPABASE_URL`, `GAME_API_SERVICE_ROLE_KEY` et
+`GAME_API_JWT_SECRET`, puis rejouer le smoke authentifie. Ce blocage est
+environnemental, mais il interdit de declarer le ticket `Done` et bloque les
+tranches CDI-025, CDI-026 et CDI-032.

@@ -85,6 +85,11 @@ Il bloque directement CDI-025, CDI-026 et CDI-032. Les tickets CDI-027 à
 CDI-031 et CDI-033 à CDI-035 restent bloqués transitivement par leurs
 dépendances existantes.
 
+État au 2026-07-19 : le runtime Edge local démarre et le refus `401` sans JWT
+est observé. La validation authentifiée reste en pause à cause de l'injection
+des variables secrètes dans le worker du CLI local ; elle doit reprendre avec
+un fichier env non versionné utilisant les noms `GAME_API_*`.
+
 ## Conditions de reprise
 
 Le suivi sera considéré suffisamment avancé pour reprendre les tranches
