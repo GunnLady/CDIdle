@@ -22,7 +22,7 @@ jusqu'à l'implémentation du cache de lecture seule prévue par CDI-024/CDI-025
 | Build Vite | Contrôle sans écart bloquant | `npm run build` passe ; avertissement de taille de bundle uniquement |
 | Services Supabase de production | Écart déjà prévu dans un ticket futur | Suivi d'architecture, validation finale CDI-035 |
 | Vérification JWT cryptographique et allowlist runtime | Écart déjà prévu dans un ticket futur | Hardening CDI-034 et intégration de production CDI-035 |
-| Cache local de lecture seule / suppression du fallback prototype | Écart déjà prévu dans un ticket futur | CDI-024 puis CDI-025 |
+| Cache local de lecture seule / suppression du fallback prototype | Contrat CDI-024 livré ; intégration des mutations autoritaires restante | Cache IndexedDB livré par CDI-024 ; mutations ville prévues dans CDI-025 |
 | CI distante via connecteur GitHub | Statut inconnu | Le connecteur n'a retourné aucun statut exploitable pour le commit audité ; aucune CI verte n'est affirmée |
 
 ## Conclusion
