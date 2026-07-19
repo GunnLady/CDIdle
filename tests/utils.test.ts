@@ -10,6 +10,7 @@ import {
   unequipItem,
   generateNoviceStats,
   generateSingleNoviceHero,
+  getNoviceClassDecisionPolicy,
 } from "../src/utils/gameCalculations";
 import {
   getEncounterDetails,
@@ -238,6 +239,20 @@ describe("town domain", () => {
 });
 
 describe("hero domain", () => {
+  it("applies the novice convergence policy", () => {
+    expect(getNoviceClassDecisionPolicy(10)).toEqual({ minScore: 55, gapThreshold: 6 });
+    expect(getNoviceClassDecisionPolicy(11)).toEqual({ minScore: 45, gapThreshold: 4 });
+    expect(getNoviceClassDecisionPolicy(12)).toEqual({ minScore: 30, gapThreshold: 2 });
+    expect(getNoviceClassDecisionPolicy(13)).toEqual({ minScore: 0, gapThreshold: 0 });
+  });
+
+  it("applies the novice convergence policy", () => {
+    expect(getNoviceClassDecisionPolicy(10)).toEqual({ minScore: 55, gapThreshold: 6 });
+    expect(getNoviceClassDecisionPolicy(11)).toEqual({ minScore: 45, gapThreshold: 4 });
+    expect(getNoviceClassDecisionPolicy(12)).toEqual({ minScore: 30, gapThreshold: 2 });
+    expect(getNoviceClassDecisionPolicy(13)).toEqual({ minScore: 0, gapThreshold: 0 });
+  });
+
   it("calculates recruitment costs predictably", () => {
     expect(recruitmentCost(0)).toBe(100);
     expect(recruitmentCost(3)).toBe(550);

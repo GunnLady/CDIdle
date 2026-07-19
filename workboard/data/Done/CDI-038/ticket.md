@@ -1,7 +1,7 @@
 ---
 id: CDI-038
 title: Decision differee des Novices et poids de convergence
-status: Later
+status: Done
 area: domain
 priority: P2
 size: M
@@ -57,10 +57,10 @@ CDI-011 doit etre termine. Ce ticket est additionnel et ne bloque pas les ticket
 
 ## Criteres d'acceptation
 
-- [ ] Une formule de poids ou de seuil est choisie et justifiee.
-- [ ] Les cas sans classe admissible restent en attente sans erreur.
-- [ ] Les cas ambigus convergent dans une borne de niveaux documentee.
-- [ ] Les tests couvrent les scores proches et les niveaux au-dessus de 10.
+- [x] Une formule de poids ou de seuil est choisie et justifiee.
+- [x] Les cas sans classe admissible restent en attente sans erreur.
+- [x] Les cas ambigus convergent dans une borne de niveaux documentee.
+- [x] Les tests couvrent les scores proches et les niveaux au-dessus de 10.
 
 ## Tests
 
@@ -87,3 +87,10 @@ laisserait le Novice bloqué trop longtemps.
 
 Fournir la formule, les exemples de scores, la borne de convergence et les
 tests associes.
+
+## Progression
+
+Formule implementee : 55/6 au niveau 10, 45/4 au niveau 11, 30/2 au niveau
+12, puis choix force au niveau 13. La decision reste en attente sans classe
+admissible. La formule est documentee dans
+`docs/architecture/novice-convergence.md` et couverte par des tests.

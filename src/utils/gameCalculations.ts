@@ -921,6 +921,13 @@ export const generateSingleNoviceHero = (unlockedRaces: string[] = ["Humain"], r
 };
 
 // Automatic Tier 1 Class Choice Logic
+export function getNoviceClassDecisionPolicy(level: number): { minScore: number; gapThreshold: number } {
+  if (level >= 13) return { minScore: 0, gapThreshold: 0 };
+  if (level === 12) return { minScore: 30, gapThreshold: 2 };
+  if (level === 11) return { minScore: 45, gapThreshold: 4 };
+  return { minScore: 55, gapThreshold: 6 };
+}
+
 export const evaluateAutomaticClassChange = (
   hero: Hero,
   buildings: { [key: string]: number }
@@ -1006,8 +1013,9 @@ export const evaluateAutomaticClassChange = (
   const bestCandidate = candidates[0];
 
   // If no class fits well enough, the Novice stays Novice and can try again at the next level
-  const MIN_SCORE_THRESHOLD = 55;
-  if (bestCandidate.score < MIN_SCORE_THRESHOLD) {
+  const policy = getNoviceClassDecisionPolicy(hero.level);
+  const MIN_SCORE_THRESHOLD = policy.minScore;
+  if (bestCandidate.score < policy.minScore) {
     return {
       newClass: null,
       reason: `Affinité trop incertaine pour une transition automatique (${bestCandidate.type} : ${bestCandidate.score.toFixed(1)}/seuil ${MIN_SCORE_THRESHOLD})`
@@ -1018,9 +1026,7 @@ export const evaluateAutomaticClassChange = (
   if (candidates.length > 1) {
     const secondBest = candidates[1];
     const scoreGap = bestCandidate.score - secondBest.score;
-    const GAP_THRESHOLD = 6.0;
-
-    if (scoreGap < GAP_THRESHOLD) {
+    if (scoreGap < policy.gapThreshold) {
       return {
         newClass: null,
         reason: `Dilemme d'orientation entre ${bestCandidate.type} (${bestCandidate.score.toFixed(1)}) et ${secondBest.type} (${secondBest.score.toFixed(1)})`
