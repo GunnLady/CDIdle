@@ -1,7 +1,7 @@
 ---
 id: CDI-039
 title: Authentification runtime JWT et allowlist game-api
-status: ToDo
+status: Done
 area: backend
 priority: P1
 size: L
@@ -58,10 +58,10 @@ mais aucune implementation runtime ne verifie encore les jetons Supabase.
 
 ## Criteres d'acceptation
 
-- [ ] Les JWT valides, absents, expires, mal signes et mal emis sont couverts.
-- [ ] Les comptes supprimes, revoques ou hors allowlist sont refuses.
-- [ ] Aucune donnee sensible n'apparait dans les reponses ou les logs de test.
-- [ ] L'implementation est importable par Vitest et l'Edge Runtime.
+- [x] Les JWT valides, absents, expires, mal signes et mal emis sont couverts.
+- [x] Les comptes supprimes, revoques ou hors allowlist sont refuses.
+- [x] Aucune donnee sensible n'apparait dans les reponses ou les logs de test.
+- [x] L'implementation est importable par Vitest et l'Edge Runtime.
 
 ## Tests
 

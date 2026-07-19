@@ -1,4 +1,5 @@
 export type ApiEnvelope = Record<string, unknown>;
+export { createSupabaseAuthenticator, type SupabaseAuthOptions } from "./auth.ts";
 export type ApiServices = {
   authenticate(request: Request): Promise<string | null>;
   bootstrap(userId: string): Promise<ApiEnvelope>;

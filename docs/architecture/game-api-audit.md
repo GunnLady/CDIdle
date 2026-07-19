@@ -30,12 +30,26 @@ retourne des erreurs structurées et ajoute un identifiant de requête.
 | --- | --- | --- |
 | Aucun point d'entrée `Deno.serve` n'était exporté. | Le fichier exposait uniquement `createGameApiHandler`. | Corrigé par `serveGameApi()` et son test. |
 | Aucun service Supabase de production n'est branché. | Les quatre services sont obligatoirement injectés par l'appelant. | CDI-040 — adaptateur Auth/repository/dispatcher. |
-| Le JWT n'est pas vérifié cryptographiquement par l'implémentation livrée. | Le handler délègue `authenticate` sans implémentation par défaut. | CDI-039 — vérification Supabase Auth et allowlist. |
+| L'adaptateur Supabase complet n'est pas encore branché aux quatre services métier. | Le handler conserve des services injectés. | CDI-040 — adaptateur Auth/repository/dispatcher. |
 | Aucun test d'exécution via le runtime Edge réel. | Les tests utilisent le handler en mémoire avec des services fictifs. | CDI-041 — smoke test Edge/Supabase local. |
 
-Ces trois sujets sont désormais tracés dans
+Les sujets restants sont désormais tracés dans
 [`game-api-followups.md`](game-api-followups.md) et ne sont pas considérés
 comme corrigés dans CDI-022.
+
+## Mise à jour CDI-039
+
+L'authentificateur runtime est maintenant disponible dans
+`supabase/functions/game-api/auth.ts` et exporté par le handler Edge. Il
+vérifie la signature HS256 avec le secret runtime, `sub`, `exp`, `iss` et
+`aud`, puis contrôle l'utilisateur Auth et l'entrée active de
+`alpha_allowlist` via les endpoints administratifs Supabase. Les réponses et
+les tests ne journalisent ni JWT, ni email, ni clé `service_role`.
+
+Les tests locaux couvrent un compte autorisé, les jetons absents/expirés/mal
+signés/mal émis, ainsi que les comptes supprimés ou hors allowlist. Le
+branchement de cet authentificateur dans l'adaptateur métier complet reste
+porté par CDI-040, et son exécution Edge/Supabase réelle par CDI-041.
 
 ## Écarts déjà prévus dans des tickets futurs
 
