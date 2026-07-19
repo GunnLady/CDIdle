@@ -1,7 +1,7 @@
 ---
 id: CDI-025
 title: Ville autoritaire de bout en bout
-status: Later
+status: Paused
 area: vertical
 priority: P1
 size: L
