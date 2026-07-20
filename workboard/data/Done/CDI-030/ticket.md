@@ -1,7 +1,7 @@
 ---
 id: CDI-030
 title: Idle et rapport de retour
-status: Later
+status: Done
 area: vertical
 priority: P1
 size: L
@@ -10,10 +10,10 @@ source: Plan fullstack autoritaire approuve le 2026-07-15
 depends_on: ["CDI-016", "CDI-022", "CDI-024", "CDI-025", "CDI-026"]
 blocks: ["CDI-031", "CDI-033"]
 github_issue: null
-related_docs: ["docs/fullstack-authoritative-plan.md"]
+related_docs: ["docs/fullstack-authoritative-plan.md", "docs/architecture/cdi-030-audit.md"]
 ---
 
-# CDI-030 — Idle et rapport de retour
+# CDI-030 â€” Idle et rapport de retour
 
 ## Objectif
 
@@ -51,6 +51,7 @@ Ce ticket depend de : ["CDI-016", "CDI-022", "CDI-024", "CDI-025", "CDI-026"].
 - [ ] Le perimetre est implemente sans regression hors domaine.
 - [ ] Les invariants sont couverts par des tests reproductibles.
 - [ ] Les preuves et la documentation sont fournies.
+- [ ] La validation HTTP Edge/Supabase/RLS/RPC réelle est explicitement différée vers CDI-041/staging ; aucun smoke test local n'est requis pour clore l'implémentation déterministe.
 
 ## Tests
 
@@ -74,4 +75,5 @@ Une implementation trop large creerait des dependances implicites.
 ## Handoff
 
 Fournir fichiers, commandes, resultats, risques residuels et decisions a transmettre.
+
 

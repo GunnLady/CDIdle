@@ -2,6 +2,23 @@ import { describe, expect, it } from "vitest";
 import { createSupabaseGameApiServices } from "../supabase/functions/game-api/supabase-adapter";
 
 describe("Supabase game-api adapter", () => {
+  it("applies and commits idle before returning bootstrap", async () => {
+    const calls: string[] = [];
+    const adapter = createSupabaseGameApiServices({
+      supabaseUrl: "http://db", serviceRoleKey: "server-only", initialState: {},
+      applyCommand: async (state) => ({ state }),
+      applyIdle: (state, lastProcessedAt) => ({ state: { ...state, idleApplied: true }, lastProcessedAt: "2026-07-19T01:00:00.000Z", report: { appliedSeconds: 3600 } }),
+      fetcher: async (url, init) => {
+        calls.push(`${init?.method ?? "GET"} ${url}`);
+        if (url.includes("/games?")) return new Response(JSON.stringify([{ schema_version: 1, revision: 0, state: {}, last_processed_at: "2026-07-19T00:00:00.000Z" }]), { status: 200 });
+        if (url.includes("commit_idle_state")) return new Response(JSON.stringify([{ schema_version: 1, revision: 0, state: { idleApplied: true }, last_processed_at: "2026-07-19T01:00:00.000Z" }]), { status: 200 });
+        return new Response("[]", { status: 200 });
+      },
+    });
+    await expect(adapter.bootstrap("u1")).resolves.toMatchObject({ idleReport: { appliedSeconds: 3600 }, state: { idleApplied: true } });
+    expect(calls.some((call) => call.includes("commit_idle_state"))).toBe(true);
+  });
+
   it("loads, creates and commits through the real REST/RPC contract", async () => {
     const calls: string[] = [];
     let created = false;
@@ -37,6 +54,27 @@ describe("Supabase game-api adapter", () => {
     } });
     const result = await adapter.commands("u1", { commandId: "33333333-3333-4333-8333-333333333333", idempotencyKey: "k1", expectedRevision: 0, command: { type: "onboarding.start" } });
     expect(result).toMatchObject({ ok: true, replayed: true, revision: 2, state: { canonical: true } });
+    expect(applied).toBe(false);
+  });
+
+  it("processes idle on a replay without reapplying the command", async () => {
+    const commandId = "44444444-4444-4444-8444-444444444444";
+    const payload = { commandId, idempotencyKey: "k1", expectedRevision: 0, command: { type: "onboarding.start" } };
+    const canonical = JSON.stringify(payload);
+    const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(canonical));
+    const hash = Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
+    let applied = false;
+    const adapter = createSupabaseGameApiServices({
+      supabaseUrl: "http://db", serviceRoleKey: "server-only", initialState: {},
+      applyCommand: async () => { applied = true; return { state: {} }; },
+      applyIdle: (state) => ({ state: { ...state, idleApplied: true }, lastProcessedAt: "2026-07-19T01:00:00.000Z", report: { appliedSeconds: 3600 } }),
+      fetcher: async (url) => {
+        if (url.includes("/game_commands?")) return new Response(JSON.stringify([{ request_hash: hash }]), { status: 200 });
+        if (url.includes("commit_idle_state")) return new Response(JSON.stringify([{ schema_version: 1, revision: 2, state: { idleApplied: true }, last_processed_at: "2026-07-19T01:00:00.000Z" }]), { status: 200 });
+        return new Response(JSON.stringify([{ schema_version: 1, revision: 2, state: {}, last_processed_at: "2026-07-19T00:00:00.000Z" }]), { status: 200 });
+      },
+    });
+    await expect(adapter.commands("u1", payload)).resolves.toMatchObject({ replayed: true, idleReport: { appliedSeconds: 3600 }, state: { idleApplied: true } });
     expect(applied).toBe(false);
   });
 });

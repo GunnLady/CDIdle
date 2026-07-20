@@ -5,6 +5,7 @@ export type SupabaseAdapterOptions = {
   now?: () => string;
   initialState: Record<string, unknown>;
   applyCommand: (state: Record<string, unknown>, command: Record<string, unknown>) => Promise<{ state: Record<string, unknown>; events?: unknown[] }>;
+  applyIdle?: (state: Record<string, unknown>, lastProcessedAt: string, now?: Date) => { state: Record<string, unknown>; lastProcessedAt: string; report: Record<string, unknown> };
 };
 
 export class SupabaseAdapterError extends Error { constructor(public readonly code: string, message: string, public readonly status = 503) { super(message); } }
@@ -32,10 +33,18 @@ export function createSupabaseGameApiServices(options: SupabaseAdapterOptions) {
   }
   async function bootstrap(userId: string) {
     const existing = await load(userId);
-    if (existing) return { schemaVersion: existing.schema_version, revision: existing.revision, serverTime: options.now?.() ?? new Date().toISOString(), lastProcessedAt: existing.last_processed_at, state: existing.state };
+    const serverTime = options.now?.() ?? new Date().toISOString();
+    if (existing) {
+      const idle = options.applyIdle?.(existing.state, existing.last_processed_at, new Date(serverTime));
+      if (idle && idle.lastProcessedAt !== existing.last_processed_at) {
+        const committed = row(await request("/rest/v1/rpc/commit_idle_state", { method: "POST", body: JSON.stringify({ p_user_id: userId, p_expected_last_processed_at: existing.last_processed_at, p_state: idle.state, p_last_processed_at: idle.lastProcessedAt }) }));
+        return { schemaVersion: committed.schema_version, revision: committed.revision, serverTime, lastProcessedAt: committed.last_processed_at, state: committed.state, idleReport: idle.report };
+      }
+      return { schemaVersion: existing.schema_version, revision: existing.revision, serverTime, lastProcessedAt: existing.last_processed_at, state: existing.state, ...(idle ? { idleReport: idle.report } : {}) };
+    }
     const created = await request("/rest/v1/games", { method: "POST", headers: { Prefer: "return=representation" }, body: JSON.stringify({ user_id: userId, state: options.initialState, revision: 0 }) });
     const value = row(created);
-    return { schemaVersion: value.schema_version, revision: value.revision, serverTime: options.now?.() ?? new Date().toISOString(), lastProcessedAt: value.last_processed_at, state: value.state };
+    return { schemaVersion: value.schema_version, revision: value.revision, serverTime, lastProcessedAt: value.last_processed_at, state: value.state };
   }
   async function commands(userId: string, payload: Record<string, unknown>) {
     if (typeof payload.commandId !== "string" || !UUID_PATTERN.test(payload.commandId)) return { ok: false, error: { code: "VALIDATION_FAILED", message: "commandId must be a UUID" }, commandId: payload.commandId };
@@ -47,15 +56,28 @@ export function createSupabaseGameApiServices(options: SupabaseAdapterOptions) {
       if ((existing[0] as { request_hash?: string }).request_hash !== requestHash) return { ok: false, error: { code: "DUPLICATE_COMMAND", message: "command id was already used with a different request" }, commandId: payload.commandId };
       const replay = await load(userId);
       if (!replay) throw new SupabaseAdapterError("GAME_NOT_FOUND", "game not found", 404);
-      return { ok: true, revision: replay.revision, state: replay.state, commandId: payload.commandId, replayed: true };
+      const replayIdle = options.applyIdle?.(replay.state, replay.last_processed_at, new Date(options.now?.() ?? new Date().toISOString()));
+      if (replayIdle && replayIdle.lastProcessedAt !== replay.last_processed_at) {
+        const committedReplayIdle = row(await request("/rest/v1/rpc/commit_idle_state", { method: "POST", body: JSON.stringify({ p_user_id: userId, p_expected_last_processed_at: replay.last_processed_at, p_state: replayIdle.state, p_last_processed_at: replayIdle.lastProcessedAt }) }));
+        return { ok: true, revision: committedReplayIdle.revision, state: committedReplayIdle.state, commandId: payload.commandId, replayed: true, idleReport: replayIdle.report };
+      }
+      return { ok: true, revision: replay.revision, state: replay.state, commandId: payload.commandId, replayed: true, ...(replayIdle ? { idleReport: replayIdle.report } : {}) };
     }
     const current = await load(userId);
     if (!current) throw new SupabaseAdapterError("GAME_NOT_FOUND", "game not found", 404);
     const expected = Number(payload.expectedRevision);
     if (current.revision !== expected) return { ok: false, error: { code: "REVISION_CONFLICT", message: "revision conflict", currentRevision: current.revision }, commandId: payload.commandId };
+    let working = current;
+    let idleReport: Record<string, unknown> | undefined;
+    const idle = options.applyIdle?.(current.state, current.last_processed_at, new Date(options.now?.() ?? new Date().toISOString()));
+    if (idle && idle.lastProcessedAt !== current.last_processed_at) {
+      const committedIdle = row(await request("/rest/v1/rpc/commit_idle_state", { method: "POST", body: JSON.stringify({ p_user_id: userId, p_expected_last_processed_at: current.last_processed_at, p_state: idle.state, p_last_processed_at: idle.lastProcessedAt }) }));
+      working = { ...current, state: committedIdle.state, last_processed_at: committedIdle.last_processed_at };
+      idleReport = idle.report;
+    }
     let transition: { state: Record<string, unknown>; events?: unknown[] };
     try {
-      transition = await options.applyCommand(current.state, { ...(payload.command as Record<string, unknown>), commandId: payload.commandId });
+      transition = await options.applyCommand(working.state, { ...(payload.command as Record<string, unknown>), commandId: payload.commandId });
     } catch (error) {
       const typed = error as { code?: string; message?: string };
       if (typed.code) return { ok: false, error: { code: typed.code, message: typed.message ?? "command rejected" }, commandId: payload.commandId };
@@ -63,7 +85,7 @@ export function createSupabaseGameApiServices(options: SupabaseAdapterOptions) {
     }
     const result = await request("/rest/v1/rpc/commit_game_command", { method: "POST", body: JSON.stringify({ p_user_id: userId, p_command_id: payload.commandId, p_request_hash: requestHash, p_expected_revision: expected, p_state: transition.state, p_events: transition.events ?? [] }) });
     const value = row(result);
-    return { ok: true, revision: value.revision, state: value.state, commandId: payload.commandId, replayed: false };
+    return { ok: true, revision: value.revision, state: value.state, commandId: payload.commandId, replayed: false, ...(idleReport ? { idleReport } : {}) };
   }
   async function reset(userId: string): Promise<Record<string, unknown>> { return await request("/rest/v1/rpc/reset_game", { method: "POST", body: JSON.stringify({ p_user_id: userId, p_state: options.initialState }) }) as Record<string, unknown>; }
   async function deleteAccount(userId: string) { await request(`/auth/v1/admin/users/${encodeURIComponent(userId)}`, { method: "DELETE" }); }
