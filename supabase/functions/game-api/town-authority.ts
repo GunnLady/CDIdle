@@ -1,5 +1,6 @@
 import { applyInventoryCommand, type InventorySlot } from "./inventory-authority.ts";
 import { applyForgeCommand } from "./forge-authority.ts";
+import { applyDungeonCommand } from "./dungeon-authority.ts";
 
 export type TownResources = { gold: number; food: number; wood: number; stone: number; ore: number };
 export type TownState = {
@@ -10,6 +11,11 @@ export type TownState = {
   districts: Record<string, boolean>;
   heroes?: Array<Record<string, unknown>>;
   storedItems?: Array<Record<string, unknown>>;
+  activeDungeonFloor?: number;
+  activeDungeonRoom?: number;
+  highestFloorReached?: number;
+  currentEncounter?: Record<string, unknown> | null;
+  autoExplore?: boolean;
 };
 
 type TownCommand =
@@ -26,7 +32,11 @@ type TownCommand =
   | { type: "forge.start"; recipeId: string; commandId?: string }
   | { type: "forge.finalize"; previewId: string; accepted?: boolean; chosenModifierStat?: string }
   | { type: "forge.cancel"; previewId: string }
-  | { type: "inventory.recycle"; itemId: string; rarity: string; modifiers?: Array<Record<string, unknown>> };
+  | { type: "inventory.recycle"; itemId: string; rarity: string; modifiers?: Array<Record<string, unknown>> }
+  | { type: "dungeon.explore"; floor: number; commandId?: string }
+  | { type: "dungeon.resolve"; commandId?: string }
+  | { type: "dungeon.auto_explore"; enabled: boolean; commandId?: string }
+  | { type: "dungeon.retreat"; commandId?: string };
 
 const zero = (): TownResources => ({ gold: 0, food: 0, wood: 0, stone: 0, ore: 0 });
 const costs: Record<string, TownResources[]> = {
@@ -58,6 +68,7 @@ export const initialTownState = (): TownState => ({
   buildings: { habitation: 1, ferme: 0, scierie: 0, carriere: 0, mine: 0, maison_chef: 0, guilde: 0, academie: 0, temple: 0, cercle: 0, lair: 0, caserne: 0, poste_chasse: 0, forge: 0 },
   citizens: { farmers: 0, woodcutters: 0, quarrymen: 0, miners: 0, unassigned: 3 },
   totalCitizensCount: 3, districts: {}, heroes: [], storedItems: []
+  , activeDungeonFloor: 1, activeDungeonRoom: 1, highestFloorReached: 1, currentEncounter: null, autoExplore: false
 });
 
 class TownCommandError extends Error { constructor(public readonly code: string, message: string) { super(message); } }
@@ -67,6 +78,7 @@ const subtract = (resources: TownResources, cost: TownResources): TownResources 
 export function applyTownCommand(current: Record<string, unknown>, command: Record<string, unknown>): { state: Record<string, unknown>; events: unknown[] } {
   const town = { ...initialTownState(), ...current } as TownState;
   const typed = command as TownCommand;
+  if (typed.type === "dungeon.explore" || typed.type === "dungeon.resolve" || typed.type === "dungeon.auto_explore" || typed.type === "dungeon.retreat") return applyDungeonCommand(town, command);
   const heroes = town.heroes ?? [];
   if (typed.type === "inventory.add" || typed.type === "inventory.remove" || typed.type === "hero.equip" || typed.type === "hero.unequip") {
     return applyInventoryCommand(town, command);

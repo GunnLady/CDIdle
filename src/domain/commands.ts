@@ -16,6 +16,8 @@ export type GameCommand =
   | { type: "forge.finalize"; previewId: string; accepted?: boolean; chosenModifierStat?: string }
   | { type: "forge.cancel"; previewId: string }
   | { type: "dungeon.explore"; floor: number }
+  | { type: "dungeon.resolve" }
+  | { type: "dungeon.auto_explore"; enabled: boolean }
   | { type: "dungeon.retreat" };
 
 export interface CommandEnvelope<C extends GameCommand = GameCommand> {
