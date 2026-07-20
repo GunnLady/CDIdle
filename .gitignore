@@ -1,10 +1,27 @@
+# Dependencies and generated build output
 node_modules/
 build/
 dist/
 coverage/
+.vite/
+.eslintcache
+*.tsbuildinfo
+
+# Operating-system files and logs
 .DS_Store
+Thumbs.db
+Desktop.ini
 *.log
+
+# Local environment and secret files
 .env*
 !.env.example
+*.local
+
+# Local Workboard runtime state
 .workboard.local.json
 workboard-backups/
+.worktrees/
+
+# Supabase Studio query scratch files; migrations, functions and tests remain tracked
+supabase/snippets/
