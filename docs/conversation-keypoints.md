@@ -1,4 +1,8 @@
-# Keypoints de conversation — règles de collaboration
+# Archive de compatibilité — keypoints de conversation
+
+> Référence normative CDIdle : [`collaboration-principles-cdidle.md`](collaboration-principles-cdidle.md).
+> Le contenu historique ci-dessous est intégré à la référence unique et ne
+> doit pas être interprété comme une règle distincte.
 
 Ces règles sont une consigne active pour les travaux menés avec l'utilisateur
 et une référence persistante du projet.

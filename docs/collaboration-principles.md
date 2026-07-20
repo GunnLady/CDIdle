@@ -1,7 +1,14 @@
-# Principes de collaboration
+# Archive historique — principes de collaboration CDIdle
 
-Ce document est une référence de travail partagée pour les échanges et les
-modifications effectuées dans ce dépôt.
+> La source normative actuelle est [`collaboration-principles-cdidle.md`](collaboration-principles-cdidle.md).
+> Ce fichier est conservé pour traçabilité. Les fichiers
+> `collaboration-principles-global.md`, `collaboration-principles-cdidle.md` et
+> `conversation-keypoints.md` sont des archives/pointeurs de compatibilité ;
+> ils ne peuvent pas introduire de règle concurrente.
+
+Le socle générique, les règles CDIdle spécifiques et les keypoints de
+conversation sont intégrés ci-dessous. Les fichiers historiques de découpage
+restent conservés uniquement pour compatibilité et traçabilité.
 
 ## Règles explicites
 
@@ -120,6 +127,18 @@ modifications effectuées dans ce dépôt.
   validations localement avant ce push. Un push correctif ultérieur n'est
   justifié que si l'audit post-push révèle un écart réel non détecté avant le
   push ; il doit alors être signalé comme tel.
+
+## Règles transversales intégrées
+
+- Cette référence unique prime sur les archives de compatibilité et rassemble
+  le socle générique, l'overlay CDIdle et les keypoints de conversation.
+- `Done` distingue toujours l'implémentation locale, le commit, le push et la
+  CI : aucune de ces preuves ne doit être implicite ou inventée.
+- Sous Windows, utiliser PowerShell par défaut ; préférer `npm.cmd` si la
+  policy bloque `npm`, et n'utiliser `cmd.exe` qu'en cas de nécessité.
+- Les tests interactifs Docker/Supabase/services sont exécutés par
+  l'utilisateur après réception d'une commande, d'un terminal et d'un
+  objectif explicites ; Codex attend le résultat avant de conclure.
 
 Ce fichier est versionné dans le dépôt afin que ces principes restent
 consultables après un changement de dossier ou de session.
