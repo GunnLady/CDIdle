@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "templateVersion": "2.1.0",
-  "managedBy": "create-project-workboard",
+  "managedBy": "workboard-skill",
   "projectName": "CDIdle",
   "projectId": "cdidle",
   "ticketPrefix": "CDI",

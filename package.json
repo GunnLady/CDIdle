@@ -9,6 +9,7 @@
     "preview": "vite preview",
     "board": "node workboard/server/server.mjs",
     "board:start": "powershell -NoProfile -ExecutionPolicy Bypass -File workboard/scripts/start.ps1",
+    "board:start:hidden": "powershell -NoProfile -ExecutionPolicy Bypass -File workboard/scripts/start-hidden.ps1",
     "board:stop": "powershell -NoProfile -ExecutionPolicy Bypass -File workboard/scripts/stop.ps1",
     "board:validate": "node workboard/scripts/validate.mjs",
     "board:sync": "node workboard/scripts/sync-github.mjs",
