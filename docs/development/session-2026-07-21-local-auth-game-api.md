@@ -51,8 +51,25 @@ development/staging et clôturer CDI-033 avec des preuves reproductibles.
 
 - CDI-033 : Done.
 - CDI-044 Google OAuth : Done.
+- CDI-041 : Done après smoke Edge/Supabase local réel.
 - CDI-048 : suivi des tests manuels navigateur restant selon le board.
 - Branche `main` synchronisée avec `origin/main` au dernier contrôle.
+
+## CDI-041 — Smoke Edge/Supabase local
+
+- `bootstrap` authentifié : HTTP 200.
+- `commands` métier : HTTP 200, révision incrémentée.
+- `reset` : HTTP 200, état initial restauré.
+- Replay idempotent : HTTP 200 avec `replayed: true`.
+- Collision de commande : HTTP 400 `DUPLICATE_COMMAND`.
+- Requête sans JWT : HTTP 401.
+- Origine interdite : HTTP 403.
+- `test:db` : 3 fichiers, 40 tests, PASS.
+- `supabase:verify` : socle local présent.
+- ESLint : 0 erreur, warnings préexistants tracés.
+
+Le ticket CDI-041 a été déplacé de Paused à Doing puis Done et publié dans
+le commit `1e73ff1`.
 
 ## Écarts et suites
 
