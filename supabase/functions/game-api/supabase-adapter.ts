@@ -37,8 +37,18 @@ export function createSupabaseGameApiServices(options: SupabaseAdapterOptions) {
     if (existing) {
       const idle = options.applyIdle?.(existing.state, existing.last_processed_at, new Date(serverTime));
       if (idle && idle.lastProcessedAt !== existing.last_processed_at) {
-        const committed = row(await request("/rest/v1/rpc/commit_idle_state", { method: "POST", body: JSON.stringify({ p_user_id: userId, p_expected_last_processed_at: existing.last_processed_at, p_state: idle.state, p_last_processed_at: idle.lastProcessedAt }) }));
-        return { schemaVersion: committed.schema_version, revision: committed.revision, serverTime, lastProcessedAt: committed.last_processed_at, state: committed.state, idleReport: idle.report };
+        try {
+          const committed = row(await request("/rest/v1/rpc/commit_idle_state", { method: "POST", body: JSON.stringify({ p_user_id: userId, p_expected_last_processed_at: existing.last_processed_at, p_state: idle.state, p_last_processed_at: idle.lastProcessedAt }) }));
+          return { schemaVersion: committed.schema_version, revision: committed.revision, serverTime, lastProcessedAt: committed.last_processed_at, state: committed.state, idleReport: idle.report };
+        } catch (error) {
+          // Concurrent bootstrap calls may race on the same idle timestamp.
+          // If another request already committed it, return the fresh row.
+          const refreshed = await load(userId);
+          if (refreshed && refreshed.last_processed_at !== existing.last_processed_at) {
+            return { schemaVersion: refreshed.schema_version, revision: refreshed.revision, serverTime, lastProcessedAt: refreshed.last_processed_at, state: refreshed.state };
+          }
+          throw error;
+        }
       }
       return { schemaVersion: existing.schema_version, revision: existing.revision, serverTime, lastProcessedAt: existing.last_processed_at, state: existing.state, ...(idle ? { idleReport: idle.report } : {}) };
     }

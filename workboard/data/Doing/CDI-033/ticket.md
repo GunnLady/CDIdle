@@ -1,7 +1,7 @@
 ---
 id: CDI-033
 title: Cheats locaux/staging
-status: Later
+status: Doing
 area: delivery
 priority: P1
 size: L
@@ -54,15 +54,14 @@ Ce ticket depend de : ["CDI-022", "CDI-025", "CDI-026", "CDI-027", "CDI-028", "C
 
 ## Tests
 
-- npm test -- --run
-- npm run lint
-- npm run build
-- npm run board:validate
-
+- `npm.cmd run typecheck` ? OK
+- `npm.cmd test -- --run` ? 13 fichiers, 97 tests OK
+- `npm.cmd run build` ? OK; cheats absents du bundle production
+- `npm.cmd run build -- --mode staging` ? OK; cheats pr?sents dans le bundle staging
+- `npm.cmd run board:validate` ? 49 tickets, 0 erreur
 ## Validation manuelle
 
-Relire le resultat contre le plan et verifier les parcours nominaux et d'erreur.
-
+Verifier en local/staging avec un utilisateur Google authentifie et present dans `alpha_allowlist`; confirmer l'affichage des cheats autorises et leur absence en production.
 ## Preservation
 
 Preserver les contrats valides, les identifiants persistants et les tests verts.

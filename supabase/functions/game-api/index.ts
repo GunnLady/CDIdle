@@ -54,8 +54,17 @@ export function createGameApiHandler({ allowedOrigins, services }: HandlerOption
 
     const userId = await services.authenticate(request);
     if (!userId) return errorResponse("UNAUTHENTICATED", "a valid bearer token is required", id, 401, origin);
+    const pathname = new URL(request.url).pathname;
+    const forwardedPath = request.headers.get("x-forwarded-uri")
+      ?? request.headers.get("x-original-uri")
+      ?? request.headers.get("x-forwarded-path");
+    const effectivePath = forwardedPath || pathname;
     const marker = "/game-api";
-    const route = new URL(request.url).pathname.split(marker)[1] || "/";
+    // Supabase CLI may invoke the worker with either the public function path
+    // or the already-stripped worker path. Normalize both forms.
+    const route = effectivePath.includes(marker)
+      ? effectivePath.split(marker)[1] || "/"
+      : effectivePath || "/";
     try {
       if (request.method === "POST" && route === "/bootstrap") return response(await services.bootstrap(userId), 200, id, origin);
       if (request.method === "POST" && route === "/commands") {

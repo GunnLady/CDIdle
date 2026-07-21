@@ -50,6 +50,8 @@ import { purgeLegacyGameCache, readGameCache, writeGameCache } from "./lib/gameC
 // Custom Hooks & Utilities
 import { useGameLog } from "./hooks/useGameLog";
 import { useTownSystem } from "./hooks/useTownSystem";
+
+const cheatsEnabled = import.meta.env.MODE === "development" || import.meta.env.MODE === "staging";
 import { useDungeonSystem } from "./hooks/useDungeonSystem";
 
 import {
@@ -78,6 +80,9 @@ export default function App() {
   const [reconnectNonce, setReconnectNonce] = useState(0);
   const [gameRevision, setGameRevision] = useState(0);
   const isOnline = browserOnline && apiAvailable;
+  // Google signup is gated by the server-side alpha_allowlist hook and every
+  // game-api request is rechecked against the same allowlist at runtime.
+  const cheatsAllowedForUser = cheatsEnabled && currentUser?.app_metadata?.provider === "google";
   const lastCloudSaveTimeRef = useRef<number>(0);
 
   useEffect(() => {
@@ -164,7 +169,7 @@ export default function App() {
   };
 
   const handleApplyCheat = useCallback(() => {
-    if (!isOnline) {
+    if (!cheatsAllowedForUser || !isOnline) {
       addLog("📡 Mode hors connexion : les mutations sont verrouillées.", "info");
       return;
     }
@@ -224,7 +229,7 @@ export default function App() {
       addLog(`🧙‍♂️ TRICHE : +${amount} ${namesInFrench[resKey]} ajoutés ! ✨`, "victory");
       setCheatInput("");
     }
-  }, [cheatInput, town.setResources, dungeon.setHighestFloorReached, addLog, isOnline]);
+  }, [cheatInput, town.setResources, dungeon.setHighestFloorReached, addLog, isOnline, cheatsAllowedForUser]);
 
   // SAVE GAME TO LOCALSTORAGE AND THE AUTHORITATIVE SUPABASE API
   const saveGame = useCallback(async (forceCloud: boolean = false) => {
@@ -264,6 +269,7 @@ export default function App() {
             method: "POST",
             body: JSON.stringify({
               commandId: globalThis.crypto.randomUUID(),
+              idempotencyKey: globalThis.crypto.randomUUID(),
               clientVersion: "cdi-023",
               expectedRevision: gameRevision,
               command: { type: "save_game", state: stateToSave }
@@ -702,7 +708,7 @@ export default function App() {
       <main className="flex-1 p-3 sm:p-6 overflow-y-auto max-w-6xl mx-auto w-full flex flex-col gap-4 select-none text-[15px] sm:text-base leading-relaxed">
         
         {/* CHEAT CODES ZONE */}
-        {currentUser && cityName && (
+        {cheatsAllowedForUser && cityName && (
           <div className="bg-[#1e130b] border border-[#523520] rounded-xl p-3.5 shadow-md flex flex-col md:flex-row gap-3 items-center justify-between animate-fade-in shrink-0">
             <div className="flex items-center gap-3">
               <span className="text-[#caa050] text-xl drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]">🔑</span>
@@ -898,7 +904,7 @@ export default function App() {
 
           {/* D. ACCOUNT TAB VIEW (CLOUD USER ACCOUNT PROFILE & MANAGE) */}
           {activeTab === "account" && (
-            <div className={`w-full ${isOnline ? "" : "pointer-events-none opacity-80"}`} aria-disabled={!isOnline}>
+            <div className="w-full">
               <AccountPanel
                 currentUser={currentUser}
                 isAuthLoading={isAuthLoading}
