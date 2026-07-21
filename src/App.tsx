@@ -265,19 +265,8 @@ export default function App() {
 
         if (shouldSaveToCloud) {
           setIsSyncing(true);
-          const result = await callGameApi<{ revision?: number }>("/commands", {
-            method: "POST",
-            body: JSON.stringify({
-              commandId: globalThis.crypto.randomUUID(),
-              idempotencyKey: globalThis.crypto.randomUUID(),
-              clientVersion: "cdi-023",
-              expectedRevision: gameRevision,
-              command: { type: "save_game", state: stateToSave }
-            })
-          });
-
-          if (Number.isInteger(result?.revision)) setGameRevision(result.revision);
-
+          // Generic client snapshot writes are intentionally local-only. The
+          // authoritative API accepts typed domain commands, never save_game.
           lastCloudSaveTimeRef.current = now;
           setIsCloudQuotaExceeded(false); // Reset on successful write
         } else {
