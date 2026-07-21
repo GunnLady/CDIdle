@@ -76,6 +76,7 @@ interface TownPanelProps {
   itemBlueprints: ItemBlueprint[];
   setItemBlueprints: React.Dispatch<React.SetStateAction<ItemBlueprint[]>>;
   addLog: (message: string, type?: "info" | "victory" | "defeat" | "loot" | "combat-hero" | "combat-enemy") => void;
+  isOnline: boolean;
 }
 
 export default function TownPanel({
@@ -98,7 +99,8 @@ export default function TownPanel({
   setForgeMaterials,
   itemBlueprints,
   setItemBlueprints,
-  addLog
+  addLog,
+  isOnline
 }: TownPanelProps) {
   const [activeSubTab, setActiveSubTab] = useState<"citizens" | "buildings" | "districts" | "forge">("citizens");
 
@@ -177,6 +179,10 @@ export default function TownPanel({
   };
 
   const handleStartCraft = () => {
+    if (!isOnline) {
+      addLog("📡 Mode hors connexion : les mutations sont verrouillées.", "info");
+      return;
+    }
     setCraftError(null);
     const result = startBasicForgeCraftFromBlueprint(
       { unlocked: true },
@@ -199,6 +205,10 @@ export default function TownPanel({
   };
 
   const handleFinalizeCraft = () => {
+    if (!isOnline) {
+      addLog("📡 Mode hors connexion : les mutations sont verrouillées.", "info");
+      return;
+    }
     if (!activeCraftPreview) return;
     const result = finalizeBasicForgeCraft(
       storedItems,

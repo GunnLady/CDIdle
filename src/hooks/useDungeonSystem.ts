@@ -45,6 +45,7 @@ export function useDungeonSystem({
   setResources,
   addLog,
   currentUser,
+  isOnline,
   highestFloorReached,
   setHighestFloorReached
 }: {
@@ -53,6 +54,7 @@ export function useDungeonSystem({
   setResources: React.Dispatch<React.SetStateAction<Resources>>;
   addLog: (message: string, type?: "info" | "victory" | "defeat" | "loot" | "combat-hero" | "combat-enemy") => void;
   currentUser: any;
+  isOnline: boolean;
   highestFloorReached: number;
   setHighestFloorReached: React.Dispatch<React.SetStateAction<number>>;
 }) {
@@ -1077,7 +1079,7 @@ export function useDungeonSystem({
 
   // COMBAT SIMULATION TICK PROCESSOR
   useEffect(() => {
-    if (!currentUser) return;
+    if (!currentUser || !isOnline) return;
     let battleHandle: NodeJS.Timeout;
 
     if (autoExplore) {
@@ -1087,7 +1089,7 @@ export function useDungeonSystem({
     }
 
     return () => clearInterval(battleHandle);
-  }, [autoExplore, runCombatTick, currentUser]);
+  }, [autoExplore, runCombatTick, currentUser, isOnline]);
 
   const handleRetreatParty = useCallback(() => {
     setCurrentMonster(null);
@@ -1323,6 +1325,26 @@ export function useDungeonSystem({
     addLog(`🔄 Reset Level : Exploration réinitialisée à la Chambre 1 pour cet Étage.`, "info");
   }, [addLog, setEncounterType, setCombatTurnIndex, setNonFightStep]);
 
+  const blockOfflineMutation = useCallback(() => {
+    if (!isOnline) {
+      addLog("📡 Mode hors connexion : les mutations sont verrouillées.", "info");
+      return true;
+    }
+    return false;
+  }, [addLog, isOnline]);
+
+  const guardedSetAutoExplore = useCallback<React.Dispatch<React.SetStateAction<boolean>>>((value) => {
+    if (blockOfflineMutation()) return;
+    setAutoExplore(value);
+  }, [blockOfflineMutation]);
+
+  const guarded = useCallback(<T extends (...args: any[]) => any>(handler: T) => {
+    return ((...args: Parameters<T>) => {
+      if (blockOfflineMutation()) return;
+      return handler(...args);
+    }) as T;
+  }, [blockOfflineMutation]);
+
   return {
     heroes,
     setHeroes,
@@ -1336,6 +1358,7 @@ export function useDungeonSystem({
     setHighestFloorReached,
     autoExplore,
     setAutoExplore,
+    setAutoExploreMutation: guardedSetAutoExplore,
     currentMonster,
     setCurrentMonster,
     currentEncounterType,
@@ -1344,21 +1367,21 @@ export function useDungeonSystem({
     setCombatTimer,
     unlockedRaces,
     setUnlockedRaces,
-    handleRetreatParty,
+    handleRetreatParty: guarded(handleRetreatParty),
     generateSingleNoviceHero,
-    handleRecruitHero,
-    handleRecruitCustomHero,
-    handleDismissHero,
-    handleToggleHeroActive,
-    handleChangeFloor,
-    handleUnequipItem,
-    handleEquipItem,
-    handleScrapItem,
+    handleRecruitHero: guarded(handleRecruitHero),
+    handleRecruitCustomHero: guarded(handleRecruitCustomHero),
+    handleDismissHero: guarded(handleDismissHero),
+    handleToggleHeroActive: guarded(handleToggleHeroActive),
+    handleChangeFloor: guarded(handleChangeFloor),
+    handleUnequipItem: guarded(handleUnequipItem),
+    handleEquipItem: guarded(handleEquipItem),
+    handleScrapItem: guarded(handleScrapItem),
     forgeMaterials,
     setForgeMaterials,
     itemBlueprints,
     setItemBlueprints,
     resetDungeonSystem,
-    handleResetLevel
+    handleResetLevel: guarded(handleResetLevel)
   };
 }

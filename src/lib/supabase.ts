@@ -11,6 +11,18 @@ export const supabase: SupabaseClient = createClient(url ?? "http://127.0.0.1:54
 
 export type AuthSnapshot = { session: Session | null; user: User | null };
 
+export class GameApiError extends Error {
+  constructor(
+    message: string,
+    public readonly status: number,
+    public readonly code?: string,
+    public readonly details?: unknown
+  ) {
+    super(message);
+    this.name = "GameApiError";
+  }
+}
+
 export async function signInWithGoogle() {
   return supabase.auth.signInWithOAuth({ provider: "google", options: { redirectTo: window.location.origin } });
 }
@@ -40,6 +52,13 @@ export async function callGameApi<T>(path: string, init: RequestInit = {}): Prom
     headers: { "content-type": "application/json", authorization: `Bearer ${token}`, ...(init.headers ?? {}) },
   });
   const body = await response.json().catch(() => null);
-  if (!response.ok) throw new Error(body?.error?.message ?? `GAME_API_${response.status}`);
+  if (!response.ok) {
+    throw new GameApiError(
+      body?.error?.message ?? `GAME_API_${response.status}`,
+      response.status,
+      body?.error?.code,
+      body
+    );
+  }
   return body as T;
 }

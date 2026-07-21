@@ -87,7 +87,7 @@ function resolveFight(state: DungeonState, floor: number, room: number, commandI
   return { state: { ...state, ...next, heroes: state.heroes?.map((hero) => heroes.find((updated) => updated.id === hero.id) ?? hero), resources, forgeMaterials, currentEncounter: null, autoExplore: false }, events: [{ type: "dungeon.encounter_resolved", encounter }] };
 }
 
-export function applyDungeonCommand(current: Record<string, unknown>, command: Record<string, unknown>): { state: Record<string, unknown>; events: unknown[] } {
+export function applyDungeonCommand(current: Record<string, unknown>, command: Record<string, unknown>): { state: DungeonState; events: unknown[] } {
   const state = clone(current) as DungeonState;
   const typed = command as DungeonCommand;
   const { floor, room, highest } = progress(state);

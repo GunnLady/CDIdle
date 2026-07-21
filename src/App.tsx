@@ -44,7 +44,7 @@ import HeroPanel from "./components/HeroPanel";
 import AccountPanel from "./components/AccountPanel";
 import LoginPage from "./components/LoginPage";
 import StoragePanel from "./components/StoragePanel";
-import { callGameApi, getAuthSnapshot, onAuthStateChange } from "./lib/supabase";
+import { callGameApi, GameApiError, getAuthSnapshot, onAuthStateChange } from "./lib/supabase";
 import { purgeLegacyGameCache, readGameCache, writeGameCache } from "./lib/gameCache";
 
 // Custom Hooks & Utilities
@@ -73,7 +73,26 @@ export default function App() {
   const [cityName, setCityName] = useState<string>("");
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
   const [isCloudQuotaExceeded, setIsCloudQuotaExceeded] = useState<boolean>(false);
+  const [browserOnline, setBrowserOnline] = useState<boolean>(() => typeof navigator === "undefined" || navigator.onLine);
+  const [apiAvailable, setApiAvailable] = useState<boolean>(() => typeof navigator === "undefined" || navigator.onLine);
+  const [reconnectNonce, setReconnectNonce] = useState(0);
+  const [gameRevision, setGameRevision] = useState(0);
+  const isOnline = browserOnline && apiAvailable;
   const lastCloudSaveTimeRef = useRef<number>(0);
+
+  useEffect(() => {
+    const handleOffline = () => setBrowserOnline(false);
+    const handleOnline = () => {
+      setBrowserOnline(true);
+      setReconnectNonce((value) => value + 1);
+    };
+    window.addEventListener("offline", handleOffline);
+    window.addEventListener("online", handleOnline);
+    return () => {
+      window.removeEventListener("offline", handleOffline);
+      window.removeEventListener("online", handleOnline);
+    };
+  }, []);
 
   // Runtime Transient States
   const [soundEnabled, setSoundEnabled] = useState<boolean>(true);
@@ -97,7 +116,7 @@ export default function App() {
     addLog(message, type, "colony");
   }, [addLog]);
 
-  const town = useTownSystem(townAddLog, highestFloorReached, currentUser);
+  const town = useTownSystem(townAddLog, highestFloorReached, currentUser, isOnline);
 
   const dungeon = useDungeonSystem({
     buildings: town.buildings,
@@ -105,6 +124,7 @@ export default function App() {
     setResources: town.setResources,
     addLog,
     currentUser,
+    isOnline,
     highestFloorReached,
     setHighestFloorReached
   });
@@ -144,6 +164,10 @@ export default function App() {
   };
 
   const handleApplyCheat = useCallback(() => {
+    if (!isOnline) {
+      addLog("📡 Mode hors connexion : les mutations sont verrouillées.", "info");
+      return;
+    }
     const code = cheatInput.trim().toUpperCase();
     const match = code.match(/^([GNBPMDA])\s+(\d+)$/);
     if (!match) {
@@ -200,11 +224,11 @@ export default function App() {
       addLog(`🧙‍♂️ TRICHE : +${amount} ${namesInFrench[resKey]} ajoutés ! ✨`, "victory");
       setCheatInput("");
     }
-  }, [cheatInput, town.setResources, dungeon.setHighestFloorReached, addLog]);
+  }, [cheatInput, town.setResources, dungeon.setHighestFloorReached, addLog, isOnline]);
 
   // SAVE GAME TO LOCALSTORAGE AND THE AUTHORITATIVE SUPABASE API
   const saveGame = useCallback(async (forceCloud: boolean = false) => {
-    if (!cityName) return;
+    if (!cityName || !isOnline) return;
     try {
       const stateToSave = {
         cityName,
@@ -236,15 +260,17 @@ export default function App() {
 
         if (shouldSaveToCloud) {
           setIsSyncing(true);
-          await callGameApi("/commands", {
+          const result = await callGameApi<{ revision?: number }>("/commands", {
             method: "POST",
             body: JSON.stringify({
               commandId: globalThis.crypto.randomUUID(),
               clientVersion: "cdi-023",
-              expectedRevision: 0,
+              expectedRevision: gameRevision,
               command: { type: "save_game", state: stateToSave }
             })
           });
+
+          if (Number.isInteger(result?.revision)) setGameRevision(result.revision);
 
           lastCloudSaveTimeRef.current = now;
           setIsCloudQuotaExceeded(false); // Reset on successful write
@@ -253,6 +279,12 @@ export default function App() {
         }
       }
     } catch (err: any) {
+      if (err instanceof GameApiError && err.status === 409) {
+        addLog("⚔️ Conflit de révision : l’état canonique va être rechargé.", "info");
+        setReconnectNonce((value) => value + 1);
+        return;
+      }
+      if (!(err instanceof GameApiError) || err.status >= 500) setApiAvailable(false);
       console.error("Supabase save failed", err);
       if (err && String(err).toLowerCase().includes("quota")) {
         setIsCloudQuotaExceeded(true);
@@ -278,7 +310,9 @@ export default function App() {
     battleLogs,
     dungeon.autoExplore,
     isCloudQuotaExceeded,
-    currentUser
+    currentUser,
+    isOnline,
+    gameRevision
   ]);
 
   // Purge the legacy shared localStorage snapshot. Offline state is now
@@ -300,6 +334,8 @@ export default function App() {
         try {
           setIsSyncing(true);
           const parsed = await callGameApi<any>("/bootstrap", { method: "POST" });
+          setApiAvailable(true);
+          if (Number.isInteger(parsed?.revision)) setGameRevision(parsed.revision);
 
           if (parsed && parsed.state) {
             const state = parsed.state;
@@ -333,6 +369,7 @@ export default function App() {
             addLog("👑 Bienvenue souverain ! Veuillez nommer votre cité pour fonder votre campement.", "info");
           }
         } catch (err) {
+          setApiAvailable(false);
           console.error("Supabase sync error", err);
           const cached = await readGameCache(user.id).catch(() => null);
           if (cached?.cityName) setCityName(String(cached.cityName));
@@ -357,6 +394,7 @@ export default function App() {
           setIsInitialGameLoadDone(true);
         }
       } else {
+        setGameRevision(0);
         setCityName("");
         setIsInitialGameLoadDone(true);
         town.setResources({ gold: 0, food: 0, wood: 0, stone: 0, ore: 0 });
@@ -366,7 +404,7 @@ export default function App() {
     getAuthSnapshot().then(({ user }) => { if (active) void applySnapshot(user); });
     const { data: subscription } = onAuthStateChange(({ user }) => { if (active) void applySnapshot(user); });
     return () => { active = false; subscription.subscription.unsubscribe(); };
-  }, [addLog]);
+  }, [addLog, reconnectNonce]);
 
   // Set up saveGameRef to always point to the latest saveGame function
   const saveGameRef = useRef<(forceCloud?: boolean) => Promise<void>>();
@@ -406,6 +444,10 @@ export default function App() {
   }, [isAuthLoading, currentUser]);
 
   const hardResetGame = async () => {
+    if (!isOnline) {
+      addLog("📡 Mode hors connexion : la réinitialisation est verrouillée.", "info");
+      return;
+    }
     try {
       setIsSyncing(true);
       await purgeLegacyGameCache();
@@ -432,7 +474,7 @@ export default function App() {
 
   // REAL-TIME CLOCK / RESOURCE TICK PROCESSOR
   useEffect(() => {
-    if (!currentUser) return;
+    if (!currentUser || !isOnline) return;
     const handle = setInterval(() => {
       // 1. RESOURCE ACCUMULATION
       const rates = town.getRates();
@@ -489,7 +531,8 @@ export default function App() {
     town.triggerCitizenMigration,
     town.performImmigrationTick,
     dungeon.setHeroes,
-    addLog
+    addLog,
+    isOnline
   ]);
 
   const activeRates = town.getRates();
@@ -626,6 +669,12 @@ export default function App() {
           )}
         </div>
       </header>
+
+      {!isOnline && currentUser && (
+        <div role="status" className="sticky top-0 z-30 border-b border-amber-700/60 bg-amber-950/95 px-4 py-2 text-center text-sm text-amber-100">
+          📡 Mode hors connexion — cache en lecture seule. Les mutations reprendront après reconnexion.
+        </div>
+      )}
 
       {/* 2. DYNAMIC NAMING POPUP STAGE (BLOCKED IF USER DID NOT CHOOSE A NAME YET) */}
       {currentUser && !cityName && isInitialGameLoadDone && (
@@ -777,7 +826,7 @@ export default function App() {
           
           {/* A. CITY TAB VIEW (TOWN INTERFACE) */}
           {activeTab === "city" && (
-            <div className="w-full">
+            <div className={`w-full ${isOnline ? "" : "pointer-events-none opacity-80"}`} aria-disabled={!isOnline}>
               <TownPanel
                 resources={town.resources}
                 buildings={town.buildings}
@@ -799,13 +848,14 @@ export default function App() {
                 itemBlueprints={dungeon.itemBlueprints}
                 setItemBlueprints={dungeon.setItemBlueprints}
                 addLog={addLog}
+                isOnline={isOnline}
               />
             </div>
           )}
 
           {/* B. HEROES TAB VIEW (HERO GUILD MANAGEMENT) */}
           {activeTab === "heroes" && (
-            <div className="w-full">
+            <div className={`w-full ${isOnline ? "" : "pointer-events-none opacity-80"}`} aria-disabled={!isOnline}>
               <HeroPanel
                 heroes={dungeon.heroes}
                 resources={town.resources}
@@ -823,7 +873,7 @@ export default function App() {
 
           {/* C. DUNGEON TAB VIEW (CENTERED HIGH-PERFORMANCE COMBAT MONITOR) */}
           {activeTab === "dungeon" && (
-            <div className="w-full">
+            <div className={`w-full ${isOnline ? "" : "pointer-events-none opacity-80"}`} aria-disabled={!isOnline}>
               <DungeonPanel
                 heroes={dungeon.heroes}
                 currentMonster={dungeon.currentMonster}
@@ -833,7 +883,7 @@ export default function App() {
                 autoExplore={dungeon.autoExplore}
                 battleLogs={battleLogs}
                 highestFloorReached={dungeon.highestFloorReached}
-                onToggleAutoExplore={() => dungeon.setAutoExplore(!dungeon.autoExplore)}
+                onToggleAutoExplore={() => dungeon.setAutoExploreMutation(!dungeon.autoExplore)}
                 onChangeFloor={dungeon.handleChangeFloor}
                 onRetreatParty={dungeon.handleRetreatParty}
                 onClearBattleLogs={clearBattleLogs}
@@ -848,7 +898,7 @@ export default function App() {
 
           {/* D. ACCOUNT TAB VIEW (CLOUD USER ACCOUNT PROFILE & MANAGE) */}
           {activeTab === "account" && (
-            <div className="w-full">
+            <div className={`w-full ${isOnline ? "" : "pointer-events-none opacity-80"}`} aria-disabled={!isOnline}>
               <AccountPanel
                 currentUser={currentUser}
                 isAuthLoading={isAuthLoading}

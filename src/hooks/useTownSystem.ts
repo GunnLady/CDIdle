@@ -46,7 +46,8 @@ const INITIAL_BUILDINGS: { [key: string]: number } = {
 export function useTownSystem(
   addLog: (message: string, type?: "info" | "victory" | "defeat" | "loot" | "combat-hero" | "combat-enemy") => void,
   highestFloorReached: number,
-  currentUser: any
+  currentUser: any,
+  isOnline: boolean
 ) {
   const [resources, setResources] = useState<Resources>(INITIAL_RESOURCES);
   const [buildings, setBuildings] = useState<{ [key: string]: number }>(INITIAL_BUILDINGS);
@@ -256,6 +257,29 @@ export function useTownSystem(
     isMigrationPendingRef.current = false;
   }, [INITIAL_CITIZENS, INITIAL_BUILDINGS]);
 
+  const blockOfflineMutation = useCallback(() => {
+    if (!isOnline) {
+      addLog("📡 Mode hors connexion : les mutations sont verrouillées.", "info");
+      return true;
+    }
+    return false;
+  }, [addLog, isOnline]);
+
+  const guardedUpgradeBuilding = useCallback((buildingId: string) => {
+    if (blockOfflineMutation()) return;
+    handleUpgradeBuilding(buildingId);
+  }, [blockOfflineMutation, handleUpgradeBuilding]);
+
+  const guardedAllocateCitizen = useCallback((job: keyof Omit<CitizenAllocation, "unassigned">, amount: number) => {
+    if (blockOfflineMutation()) return;
+    handleAllocateCitizen(job, amount);
+  }, [blockOfflineMutation, handleAllocateCitizen]);
+
+  const guardedUnlockDistrict = useCallback((districtId: string) => {
+    if (blockOfflineMutation()) return;
+    handleUnlockDistrict(districtId);
+  }, [blockOfflineMutation, handleUnlockDistrict]);
+
   return {
     resources,
     setResources,
@@ -274,9 +298,9 @@ export function useTownSystem(
     triggerCitizenMigration,
     performImmigrationTick,
     getRates,
-    handleUpgradeBuilding,
-    handleAllocateCitizen,
-    handleUnlockDistrict,
+    handleUpgradeBuilding: guardedUpgradeBuilding,
+    handleAllocateCitizen: guardedAllocateCitizen,
+    handleUnlockDistrict: guardedUnlockDistrict,
     resetTownSystem,
     INITIAL_CITIZENS
   };
