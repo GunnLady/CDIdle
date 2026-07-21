@@ -8,6 +8,7 @@ import {
   findTicket,
   loadBoard,
   moveTicket,
+  previewTicket,
   saveTicketMarkdown,
   validateBoard,
   workboardRoot,
@@ -37,6 +38,12 @@ const server = http.createServer(async (request, response) => {
     if (request.method === "POST" && url.pathname === "/api/tickets") {
       const body = await readJsonBody(request);
       sendJson(response, { ticket: await createTicket(body.markdown ?? body.ticket ?? body) }, 201);
+      return;
+    }
+    if (request.method === "POST" && url.pathname === "/api/tickets/preview") {
+      const body = await readJsonBody(request);
+      const preview = await previewTicket(body.markdown ?? body.ticket ?? body);
+      sendJson(response, { preview });
       return;
     }
     const ticketMatch = url.pathname.match(/^\/api\/tickets\/([^/]+)$/);

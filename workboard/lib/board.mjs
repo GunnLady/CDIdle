@@ -178,13 +178,11 @@ export async function saveTicketMarkdown(id, markdown) {
 }
 
 export async function createTicket(input) {
-  const markdown = typeof input === "string" ? input : structuredTicketMarkdown(input);
-  const preview = parseTicket(markdown, "Later", "preview");
-  const id = preview.metadata.id;
-  const status = preview.metadata.status;
-  if (!/^CDI-\d{3}$/.test(String(id ?? ""))) throw boardError(400, "id doit respecter CDI-###");
-  if (!STATUSES.includes(status)) throw boardError(400, "status invalide");
-  if (await findTicket(id)) throw boardError(409, `Ticket deja present: ${id}`);
+  const preview = await previewTicket(input);
+  if (!preview.validation.ok) throw boardError(400, preview.validation.errors.join("\n"));
+  const { markdown, parsed } = preview;
+  const id = parsed.metadata.id;
+  const status = parsed.metadata.status;
 
   const folderPath = safeFolder(status, id);
   await fs.mkdir(folderPath, { recursive: false });
@@ -197,7 +195,36 @@ export async function createTicket(input) {
   return findTicket(id);
 }
 
-function structuredTicketMarkdown(ticket) {
+export async function previewTicket(input) {
+  const markdown = typeof input === "string" ? input : structuredTicketMarkdown(input);
+  const draft = parseTicket(markdown, "Later", "preview");
+  const id = draft.metadata.id;
+  const status = draft.metadata.status;
+  if (!/^CDI-\d{3}$/.test(String(id ?? ""))) throw boardError(400, "id doit respecter CDI-###");
+  if (!STATUSES.includes(status)) throw boardError(400, "status invalide");
+  if (await findTicket(id)) throw boardError(409, `Ticket deja present: ${id}`);
+  const parsed = parseTicket(markdown, status, String(id));
+  const errors = validateTicket(parsed);
+  const columns = await loadBoard();
+  const byId = new Map(columns.flatMap((column) => column.tickets).map((ticket) => [ticket.id, ticket]));
+  const dependencies = Array.isArray(parsed.metadata.depends_on) ? parsed.metadata.depends_on : [];
+  const blocks = Array.isArray(parsed.metadata.blocks) ? parsed.metadata.blocks : [];
+  for (const dependencyId of dependencies) {
+    const dependency = byId.get(dependencyId);
+    if (!dependency) errors.push(`${id}: dependance inconnue ${dependencyId}`);
+    else if (!Array.isArray(dependency.metadata.blocks) || !dependency.metadata.blocks.includes(id)) errors.push(`${id}: ${dependencyId}.blocks doit contenir ${id}`);
+  }
+  for (const blockedId of blocks) {
+    const blocked = byId.get(blockedId);
+    if (!blocked) errors.push(`${id}: ticket bloque inconnu ${blockedId}`);
+    else if (!Array.isArray(blocked.metadata.depends_on) || !blocked.metadata.depends_on.includes(id)) errors.push(`${id}: ${blockedId}.depends_on doit contenir ${id}`);
+  }
+  const doingCount = columns.find((column) => column.name === "Doing")?.tickets.length ?? 0;
+  if (status === "Doing" && doingCount >= 3) errors.push("Doing: limite WIP depassee (3/3)");
+  return { markdown, parsed, validation: { ok: errors.length === 0, errors } };
+}
+
+export function structuredTicketMarkdown(ticket) {
   if (!ticket || typeof ticket !== "object") throw boardError(400, "ticket doit etre un objet ou un markdown");
   const required = ["id", "title", "status", "area", "priority", "size", "risk", "source"];
   const missing = required.filter((field) => !String(ticket[field] ?? "").trim());
@@ -211,9 +238,9 @@ function structuredTicketMarkdown(ticket) {
     "Perimetre autorise": "- A definir.",
     "Hors perimetre": "- A definir.",
     "Contrat d'implementation": "- A definir.",
-    "Dependances": list(ticket.depends_on).length ? list(ticket.depends_on).map((id) => `- ${id}`).join("\\n") : "Aucune.",
+    "Dependances": list(ticket.depends_on).length ? list(ticket.depends_on).map((id) => `- ${id}`).join("\n") : "Aucune.",
     "Criteres d'acceptation": "- [ ] A definir.",
-    "Tests": "- npm test -- --run\\n- npm run board:validate",
+    "Tests": "- npm test -- --run\n- npm run board:validate",
     "Validation manuelle": "A definir.",
     "Preservation": "- A definir.",
     "Risques": "- A definir.",
@@ -227,9 +254,9 @@ function structuredTicketMarkdown(ticket) {
     ["github_issue", ticket.github_issue ?? null], ["related_docs", list(ticket.related_docs)],
   ];
   const scalar = (value) => typeof value === "string" ? value.replace(/\n/g, " ") : JSON.stringify(value);
-  const frontmatter = metadata.map(([key, value]) => `${key}: ${Array.isArray(value) ? JSON.stringify(value) : scalar(value)}`).join("\\n");
-  const body = REQUIRED_SECTIONS.map((name) => `## ${name}\\n\\n${String(sections[name] ?? defaults[name]).trim()}`).join("\\n\\n");
-  return `---\\n${frontmatter}\\n---\\n\\n# ${ticket.id} — ${ticket.title}\\n\\n${body}\\n`;
+  const frontmatter = metadata.map(([key, value]) => `${key}: ${Array.isArray(value) ? JSON.stringify(value) : scalar(value)}`).join("\n");
+  const body = REQUIRED_SECTIONS.map((name) => `## ${name}\n\n${String(sections[name] ?? defaults[name]).trim()}`).join("\n\n");
+  return `---\n${frontmatter}\n---\n\n# ${ticket.id} — ${ticket.title}\n\n${body}\n`;
 }
 
 export async function moveTicket(id, targetStatus) {
