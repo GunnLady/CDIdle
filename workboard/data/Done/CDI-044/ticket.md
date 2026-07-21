@@ -1,7 +1,7 @@
 ---
 id: CDI-044
 title: Corriger et valider Google OAuth
-status: Later
+status: Done
 area: auth
 priority: P1
 size: M
@@ -29,7 +29,9 @@ L'authentification Google ne fonctionne actuellement pas.
 
 ## Perimetre autorise
 
-- Configuration Supabase\n- Callback OAuth\n- Parcours navigateur
+- Configuration Supabase
+- Callback OAuth
+- Parcours navigateur
 
 ## Hors perimetre
 
@@ -45,11 +47,13 @@ Aucune.
 
 ## Criteres d'acceptation
 
-- [ ] Cause identifi�e\n- [ ] Correction test�e ou blocage trac�
+- [ ] Cause identifi�e
+- [ ] Correction test�e ou blocage trac�
 
 ## Tests
 
-- Test navigateur authentifi�\n- npm.cmd test -- --run
+- Test navigateur authentifi�
+- npm.cmd test -- --run
 
 ## Validation manuelle
 
