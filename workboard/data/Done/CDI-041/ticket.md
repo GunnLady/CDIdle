@@ -1,7 +1,7 @@
 ---
 id: CDI-041
 title: Smoke tests Edge et resilience game-api
-status: Paused
+status: Done
 area: delivery
 priority: P1
 size: L
@@ -73,10 +73,23 @@ etre valides ensemble dans le runtime Edge et la base locale.
 - npm run board:validate
 - smoke Edge/Supabase local documente par le ticket
 
+## Preuves smoke Edge/Supabase local
+
+- `bootstrap` authentifi? : HTTP 200.
+- `commands` m?tier (`building.upgrade`) : HTTP 200, r?vision incr?ment?e.
+- `reset` : HTTP 200, ?tat initial restaur?.
+- Replay idempotent : HTTP 200 avec `replayed: true`.
+- Collision de commande : HTTP 400 `DUPLICATE_COMMAND`.
+- Requ?te sans JWT : HTTP 401.
+- Origine interdite : HTTP 403.
+- `test:db` : 3 fichiers, 40 tests, PASS.
+- `supabase:verify` : socle local pr?sent.
+- ESLint : 0 erreur (warnings pr?existants trac?s).
+
 ## Validation manuelle
 
-Executer le smoke test complet sur une base locale reinitialisee et verifier le
-nettoyage des donnees de test.
+Smoke r?el ex?cut? sur Supabase local avec une session Google autoris?e;
+reset et nettoyage valid?s.
 
 ## Preservation
 
