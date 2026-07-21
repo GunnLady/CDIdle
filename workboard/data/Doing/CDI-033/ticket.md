@@ -59,9 +59,21 @@ Ce ticket depend de : ["CDI-022", "CDI-025", "CDI-026", "CDI-027", "CDI-028", "C
 - `npm.cmd run build` ? OK; cheats absents du bundle production
 - `npm.cmd run build -- --mode staging` ? OK; cheats pr?sents dans le bundle staging
 - `npm.cmd run board:validate` ? 49 tickets, 0 erreur
+
+## Audits
+
+- Audit p?rim?tre/plan : OK.
+- Audit s?curit? : OK; activation limit?e au dev/staging et utilisateur Google autoris? par `alpha_allowlist`; aucun secret client.
+- Audit offline : OK; les cheats sont bloqu?s hors ligne.
+- Audit serveur : OK; l'allowlist est revalid?e par l'API runtime.
+- Audit pr?-push : OK.
+- Audit post-push : commit `a404fdd` v?rifi?; l'?cart `save_game` a ensuite ?t? corrig? dans `12ccece`.
+
 ## Validation manuelle
 
-Verifier en local/staging avec un utilisateur Google authentifie et present dans `alpha_allowlist`; confirmer l'affichage des cheats autorises et leur absence en production.
+- Local : OK; utilisateur Google autoris?, `G 100` fonctionne.
+- Staging navigateur : ? faire.
+- Production : OK par build; les cheats sont absents du bundle.
 ## Preservation
 
 Preserver les contrats valides, les identifiants persistants et les tests verts.
@@ -73,4 +85,3 @@ Une implementation trop large creerait des dependances implicites.
 ## Handoff
 
 Fournir fichiers, commandes, resultats, risques residuels et decisions a transmettre.
-
