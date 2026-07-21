@@ -382,11 +382,15 @@ Le dépôt final doit exposer au minimum :
 
 ### 5.4 Promotion
 
-- Les branches de ticket ciblent `staging`.
-- Une PR de release promeut `staging` vers `main`.
-- Cloudflare Pages staging suit `staging` ; la production suit `main`.
+- Le travail Git CDIdle se fait directement sur `main`, conformément aux
+  principes de collaboration spécifiques au projet ; aucune branche par ticket
+  n'est créée sauf demande explicite.
+- `staging` et `production` désignent des environnements de déploiement, pas
+  une obligation de branches Git dédiées.
+- Les contrôles et déploiements staging peuvent être exécutés depuis le commit
+  validé sur `main`, puis la production exige l'approbation de l'environnement
+  GitHub.
 - Supabase staging est déployé après les contrôles automatisés.
-- La production exige l'approbation de l'environnement GitHub.
 - Les migrations production sont additives.
 - Une sauvegarde manuelle chiffrée et gitignorée précède chaque promotion.
 - Le staging est validé pendant 48 heures avec au moins deux comptes et deux

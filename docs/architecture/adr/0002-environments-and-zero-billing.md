@@ -6,9 +6,11 @@
 ## Décision
 
 Le projet possède deux environnements Supabase Free, `staging` et `production`.
-Les clients sont des sites statiques Cloudflare Pages Free : la branche
-`staging` alimente la préproduction et `main` la production. Aucune Pages
-Function n'est requise pour l'API de jeu.
+Les clients sont des sites statiques Cloudflare Pages Free. Le projet travaille
+directement sur `main` ; `staging` et `production` sont des environnements de
+déploiement et ne nécessitent pas de branches Git dédiées. Aucune branche par
+ticket n'est créée sauf demande explicite. Aucune Pages Function n'est requise
+pour l'API de jeu.
 
 Les secrets restent dans les variables d'environnement de la plateforme et ne
 sont jamais envoyés au navigateur. Les contrôles de quota et les limites de
