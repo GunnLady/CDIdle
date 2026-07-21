@@ -1,7 +1,7 @@
 ---
 id: CDI-033
 title: Cheats locaux/staging
-status: Doing
+status: Done
 area: delivery
 priority: P1
 size: L
@@ -72,7 +72,7 @@ Ce ticket depend de : ["CDI-022", "CDI-025", "CDI-026", "CDI-027", "CDI-028", "C
 ## Validation manuelle
 
 - Local : OK; utilisateur Google autoris?, `G 100` fonctionne.
-- Staging navigateur : ? faire.
+- Staging navigateur : OK; utilisateur Google autoris?, zone cheat visible et `G 100` fonctionne.
 - Production : OK par build; les cheats sont absents du bundle.
 ## Preservation
 
