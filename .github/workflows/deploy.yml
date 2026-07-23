@@ -1,0 +1,67 @@
+name: CDIdle deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "GitHub environment cible"
+        required: true
+        type: choice
+        options: [staging, production]
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run check
+      - run: npm run check:migrations
+      - name: Backup database before promotion
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+        run: supabase db dump --project-ref "$SUPABASE_PROJECT_REF" --file "$RUNNER_TEMP/cdidle-${{ inputs.environment }}-predeploy.sql"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cdidle-${{ inputs.environment }}-predeploy-backup-${{ github.run_id }}
+          path: ${{ runner.temp }}/cdidle-${{ inputs.environment }}-predeploy.sql
+          retention-days: 30
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Link Supabase
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+        run: supabase link --project-ref "$SUPABASE_PROJECT_REF"
+      - name: Push additive migrations
+        run: supabase db push
+      - name: Deploy game-api
+        run: supabase functions deploy game-api
+      - name: Build web artifact
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+        run: npm run build
+      - name: Deploy Cloudflare Pages
+        uses: cloudflare/pages-action@v1
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          projectName: ${{ secrets.CLOUDFLARE_PROJECT_NAME }}
+          directory: dist
+          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
+      - name: Authenticated game-api smoke
+        env:
+          GAME_API_BASE_URL: ${{ secrets.GAME_API_BASE_URL }}
+          GAME_API_TOKEN: ${{ secrets.GAME_API_TOKEN }}
+        run: npm run smoke:game-api

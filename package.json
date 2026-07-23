@@ -8,6 +8,9 @@
     "build": "vite build",
     "check:bundle": "node scripts/check-bundle-budget.mjs",
     "check:secrets": "node scripts/check-secrets.mjs",
+    "smoke:game-api": "node scripts/smoke-game-api.mjs",
+    "check:migrations": "node scripts/check-migrations.mjs",
+    "check:logs": "node scripts/check-log-safety.mjs",
     "preview": "vite preview",
     "board": "node workboard/server/server.mjs",
     "board:start": "powershell -NoProfile -ExecutionPolicy Bypass -File workboard/scripts/start.ps1",
@@ -26,7 +29,7 @@
     "test:watch": "vitest --watch",
     "test:coverage": "vitest --coverage",
     "clean": "rm -rf dist server.js",
-    "check": "npm run board:validate && npm run check:secrets && npm run typecheck && npm run lint && npm test -- --run && npm run test:db && npm run build && npm run check:bundle"
+    "check": "npm run board:validate && npm run check:secrets && npm run check:logs && npm run check:migrations && npm run typecheck && npm run lint && npm test -- --run && npm run test:db && npm run build && npm run check:bundle"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.53.0",

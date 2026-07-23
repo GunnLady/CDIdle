@@ -32,6 +32,8 @@ jobs:
         run: npm run board:validate
       - name: Secret audit
         run: npm run check:secrets
+      - name: Log safety audit
+        run: npm run check:logs
       - name: Typecheck
         run: npm run typecheck
       - name: Lint
