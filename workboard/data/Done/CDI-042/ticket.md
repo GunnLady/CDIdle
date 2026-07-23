@@ -1,7 +1,7 @@
 ---
 id: CDI-042
 title: Audit global de l'�tat du plan
-status: Later
+status: Done
 area: governance
 priority: P1
 size: M
@@ -10,7 +10,7 @@ source: plan valide
 depends_on: []
 blocks: []
 github_issue: null
-related_docs: ["AGENTS.md","workboard/config.json"]
+related_docs: ["AGENTS.md","workboard/config.json", "docs/architecture/cdi-042-audit.md"]
 ---
 
 # CDI-042 — Audit global de l'�tat du plan
