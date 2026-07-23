@@ -1,7 +1,7 @@
 ---
 id: CDI-037
 title: Audit global et migration horloge/RNG
-status: Paused
+status: Doing
 area: domain
 priority: P1
 size: L
