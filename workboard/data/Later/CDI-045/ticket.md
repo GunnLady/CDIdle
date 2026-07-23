@@ -7,7 +7,7 @@ priority: P1
 size: M
 risk: high
 source: CDI-031
-depends_on: []
+depends_on: ["CDI-051"]
 blocks: []
 github_issue: null
 related_docs: ["src/App.tsx","src/lib/supabase.ts"]

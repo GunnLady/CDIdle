@@ -7,7 +7,7 @@ priority: P1
 size: S
 risk: medium
 source: audit global
-depends_on: []
+depends_on: ["CDI-050", "CDI-051"]
 blocks: []
 github_issue: null
 related_docs: ["workboard"]

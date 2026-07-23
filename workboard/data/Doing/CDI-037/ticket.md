@@ -8,7 +8,7 @@ size: L
 risk: medium
 source: Extension utilisateur du plan fullstack autoritaire
 depends_on: ["CDI-009", "CDI-010", "CDI-011", "CDI-012", "CDI-013", "CDI-014", "CDI-015", "CDI-016", "CDI-029"]
-blocks: []
+blocks: ["CDI-050"]
 attack_speed_rng_note: "Remplacer Math.random dans le calcul des frappes multiples attackSpeed + speed par le Rng injecte, en conservant la formule et le plafond de trois frappes."
 github_issue: null
 tags: ["analyse"]
@@ -38,7 +38,8 @@ dépend implicitement de l’horloge ou de l’aléatoire global.
 ## Hors périmètre
 
 - Ne pas réécrire le gameplay ni changer les probabilités.
-- Ne pas implémenter la persistance serveur de la graine (CDI-017/021).
+- Ne pas implémenter la persistance serveur de la graine (CDI-050).
+- Ne pas raccorder les mutations UI aux commandes autoritaires (CDI-051).
 
 ## Critères d’acceptation
 
@@ -77,7 +78,8 @@ complete apres migration des domaines.
 ## Hors perimetre
 
 - Ne pas changer les probabilites ni reecrire le gameplay.
-- Ne pas implementer la persistance serveur de la graine.
+- Ne pas implementer la persistance serveur de la graine (CDI-050).
+- Ne pas raccorder les mutations UI aux commandes autoritaires (CDI-051).
 
 ## Contrat d'implementation
 
@@ -117,9 +119,10 @@ Fournir l inventaire, les usages migres et les exceptions justifiees.
 
 ## Progression
 
-Pause explicite : la migration des tirages de combat de `useDungeonSystem.ts`
-attend le contrat serveur autoritaire de CDI-029. La partie deja migree reste
-conservee et controlee par le garde-fou deterministe.
+CDI-029 est termine. CDI-037 reprend avec un perimetre centre sur l injection
+de `Clock`/`Rng`, les autorites serveur, les helpers gameplay et le garde-fou
+deterministe. La persistance canonique de l etat RNG est transferee a CDI-050
+et le raccordement UI aux commandes autoritaires a CDI-051.
 
 L inventaire est trace dans `docs/architecture/clock-rng-audit.md`. Le domaine
 pur (`src/domain`) ne contient plus d acces direct hors de la frontiere

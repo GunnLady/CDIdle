@@ -8,7 +8,7 @@ size: L
 risk: medium
 source: Plan fullstack autoritaire approuve le 2026-07-15
 depends_on: ["CDI-019", "CDI-022"]
-blocks: ["CDI-024", "CDI-032"]
+blocks: ["CDI-024", "CDI-032", "CDI-051"]
 github_issue: null
 related_docs: ["docs/fullstack-authoritative-plan.md", "docs/architecture/zero-rebase-audit.md"]
 ---
