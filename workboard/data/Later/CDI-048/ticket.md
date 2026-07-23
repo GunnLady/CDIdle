@@ -7,8 +7,8 @@ priority: P1
 size: M
 risk: medium
 source: audit global
-depends_on: ["CDI-051"]
-blocks: []
+depends_on: ["CDI-046", "CDI-051"]
+blocks: ["CDI-049"]
 github_issue: null
 related_docs: ["src/App.tsx"]
 ---
@@ -41,7 +41,8 @@ Les tests n�cessitent un navigateur et une authentification fonctionnelle.
 
 ## Dependances
 
-Aucune.
+- CDI-046 — matrice automatisee locale.
+- CDI-051 — raccordement UI aux commandes autoritaires.
 
 ## Criteres d'acceptation
 

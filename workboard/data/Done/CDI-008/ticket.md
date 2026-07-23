@@ -8,7 +8,7 @@ size: L
 risk: medium
 source: Plan fullstack autoritaire approuve le 2026-07-15
 depends_on: ["CDI-007"]
-blocks: ["CDI-017", "CDI-018", "CDI-021"]
+blocks: ["CDI-017", "CDI-018", "CDI-021", "CDI-052"]
 github_issue: null
 related_docs: ["docs/fullstack-authoritative-plan.md"]
 ---

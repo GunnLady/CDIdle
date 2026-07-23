@@ -7,8 +7,8 @@ priority: P1
 size: L
 risk: high
 source: Audit Eclipse CDI-037 du 2026-07-23
-depends_on: ["CDI-037"]
-blocks: ["CDI-049"]
+depends_on: ["CDI-037", "CDI-052"]
+blocks: ["CDI-046", "CDI-049"]
 github_issue: null
 related_docs: ["docs/fullstack-authoritative-plan.md", "docs/architecture/clock-rng.md", "docs/architecture/clock-rng-audit.md", "docs/architecture/game-state-v1.md"]
 ---
@@ -56,6 +56,7 @@ implementes. CDI-037 fournit la migration des autorites vers le RNG injectable.
 ## Dependances
 
 - CDI-037 — migration RNG/Clock, autorites serveur et garde CI.
+- CDI-052 — contrat `GameStateV1` partage, versionne et valide.
 
 ## Criteres d'acceptation
 

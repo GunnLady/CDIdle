@@ -7,7 +7,7 @@ priority: P1
 size: S
 risk: medium
 source: audit global
-depends_on: ["CDI-050", "CDI-051"]
+depends_on: ["CDI-045", "CDI-046", "CDI-048", "CDI-050", "CDI-051"]
 blocks: []
 github_issue: null
 related_docs: ["workboard"]
@@ -41,7 +41,11 @@ Les tickets d'audit, OAuth et tests doivent �tre consolid�s.
 
 ## Dependances
 
-Aucune.
+- CDI-045 — offline, cache et conflits.
+- CDI-046 — matrice finale automatisee.
+- CDI-048 — parcours front manuels authentifies.
+- CDI-050 — persistance RNG canonique.
+- CDI-051 — raccordement UI aux commandes autoritaires.
 
 ## Criteres d'acceptation
 

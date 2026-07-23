@@ -1,7 +1,7 @@
 ---
 id: CDI-036
 title: Couverture globale et seuils de qualite
-status: Later
+status: Doing
 area: testing
 priority: P2
 size: M
