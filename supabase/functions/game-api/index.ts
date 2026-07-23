@@ -3,6 +3,7 @@ import { createSupabaseAuthenticator } from "./auth.ts";
 import { createSupabaseGameApiServices } from "./supabase-adapter.ts";
 import { applyTownCommand, initialTownState } from "./town-authority.ts";
 import { applyIdleAuthority } from "./idle-authority.ts";
+import { validateCanonicalCommandEnvelope } from "../../../shared/contracts/authoritative.ts";
 export { applyIdleAuthority, IdleCommandError, MAX_IDLE_SECONDS, type IdleReport } from "./idle-authority.ts";
 export { createSupabaseAuthenticator, type SupabaseAuthOptions } from "./auth.ts";
 export { createSupabaseGameApiServices, SupabaseAdapterError, type SupabaseAdapterOptions } from "./supabase-adapter.ts";
@@ -86,7 +87,8 @@ export function createGameApiHandler({ allowedOrigins, services }: HandlerOption
       if (request.method === "POST" && route === "/bootstrap") return response(await services.bootstrap(userId), 200, id, origin);
       if (request.method === "POST" && route === "/commands") {
         const payload = await readJson(request);
-        if (!payload || typeof payload.commandId !== "string" || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(payload.commandId) || typeof payload.idempotencyKey !== "string" || typeof payload.clientVersion !== "string" || !Number.isInteger(payload.expectedRevision) || !payload.command || typeof payload.command !== "object") {
+        const contractErrors = validateCanonicalCommandEnvelope(payload);
+        if (contractErrors.length > 0 || typeof payload?.commandId !== "string" || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(payload.commandId)) {
           return errorResponse("VALIDATION_FAILED", "command payload is invalid", id, 400, origin);
         }
         const result = await services.commands(userId, payload);

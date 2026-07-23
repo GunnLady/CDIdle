@@ -1,6 +1,7 @@
 import { applyInventoryCommand, type InventorySlot } from "./inventory-authority.ts";
 import { applyForgeCommand } from "./forge-authority.ts";
 import { applyDungeonCommand } from "./dungeon-authority.ts";
+import type { CanonicalGameCommand } from "../../../shared/contracts/authoritative.ts";
 
 export type TownResources = { gold: number; food: number; wood: number; stone: number; ore: number };
 export type TownState = {
@@ -11,6 +12,9 @@ export type TownState = {
   districts: Record<string, boolean>;
   heroes?: Array<Record<string, unknown>>;
   storedItems?: Array<Record<string, unknown>>;
+  forgeMaterials?: Array<Record<string, unknown>>;
+  itemBlueprints?: Array<Record<string, unknown>>;
+  citizenGrowthProgress?: number;
   activeDungeonFloor?: number;
   activeDungeonRoom?: number;
   highestFloorReached?: number;
@@ -18,25 +22,7 @@ export type TownState = {
   autoExplore?: boolean;
 };
 
-type TownCommand =
-  | { type: "building.upgrade"; buildingId: string }
-  | { type: "citizens.allocate"; role: keyof TownState["citizens"]; amount: number }
-  | { type: "district.unlock"; districtId: string }
-  | { type: "hero.recruit"; commandId?: string }
-  | { type: "hero.dismiss"; heroId: string }
-  | { type: "hero.activity"; heroId: string; active: boolean }
-  | { type: "inventory.add"; itemId: string; rarity: string; count?: number; modifiers?: Array<Record<string, unknown>> }
-  | { type: "inventory.remove"; itemId: string; rarity: string; count?: number; modifiers?: Array<Record<string, unknown>> }
-  | { type: "hero.equip"; heroId: string; itemId: string; rarity: string; modifiers?: Array<Record<string, unknown>> }
-  | { type: "hero.unequip"; heroId: string; slot: InventorySlot }
-  | { type: "forge.start"; recipeId: string; commandId?: string }
-  | { type: "forge.finalize"; previewId: string; accepted?: boolean; chosenModifierStat?: string }
-  | { type: "forge.cancel"; previewId: string }
-  | { type: "inventory.recycle"; itemId: string; rarity: string; modifiers?: Array<Record<string, unknown>> }
-  | { type: "dungeon.explore"; floor: number; commandId?: string }
-  | { type: "dungeon.resolve"; commandId?: string }
-  | { type: "dungeon.auto_explore"; enabled: boolean; commandId?: string }
-  | { type: "dungeon.retreat"; commandId?: string };
+type TownCommand = CanonicalGameCommand & { commandId?: string };
 
 const zero = (): TownResources => ({ gold: 0, food: 0, wood: 0, stone: 0, ore: 0 });
 const costs: Record<string, TownResources[]> = {
@@ -67,7 +53,7 @@ export const initialTownState = (): TownState => ({
   resources: { gold: 75, food: 50, wood: 20, stone: 0, ore: 0 },
   buildings: { habitation: 1, ferme: 0, scierie: 0, carriere: 0, mine: 0, maison_chef: 0, guilde: 0, academie: 0, temple: 0, cercle: 0, lair: 0, caserne: 0, poste_chasse: 0, forge: 0 },
   citizens: { farmers: 0, woodcutters: 0, quarrymen: 0, miners: 0, unassigned: 3 },
-  totalCitizensCount: 3, districts: {}, heroes: [], storedItems: []
+  totalCitizensCount: 3, districts: {}, heroes: [], storedItems: [], forgeMaterials: [], itemBlueprints: [], citizenGrowthProgress: 0
   , activeDungeonFloor: 1, activeDungeonRoom: 1, highestFloorReached: 1, currentEncounter: null, autoExplore: false
 });
 

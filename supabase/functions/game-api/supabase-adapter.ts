@@ -58,7 +58,7 @@ export function createSupabaseGameApiServices(options: SupabaseAdapterOptions) {
   }
   async function commands(userId: string, payload: Record<string, unknown>) {
     if (typeof payload.commandId !== "string" || !UUID_PATTERN.test(payload.commandId)) return { ok: false, error: { code: "VALIDATION_FAILED", message: "commandId must be a UUID" }, commandId: payload.commandId };
-    const canonical = JSON.stringify({ commandId: payload.commandId, idempotencyKey: payload.idempotencyKey, expectedRevision: Number(payload.expectedRevision), command: payload.command });
+    const canonical = JSON.stringify({ commandId: payload.commandId, idempotencyKey: payload.idempotencyKey, clientVersion: payload.clientVersion, expectedRevision: Number(payload.expectedRevision), command: payload.command });
     const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(canonical));
     const requestHash = Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
     const existing = await request(`/rest/v1/game_commands?select=request_hash&user_id=eq.${encodeURIComponent(userId)}&command_id=eq.${encodeURIComponent(String(payload.commandId))}&limit=1`);

@@ -174,7 +174,7 @@ describe("GameStateV1", () => {
 describe("API command contracts", () => {
   it("validates revision and idempotency metadata", () => {
     const envelope: CommandEnvelope = {
-      commandId: "cmd-1", idempotencyKey: "idem-1", expectedRevision: 4,
+      commandId: "cmd-1", idempotencyKey: "idem-1", clientVersion: "test", expectedRevision: 4,
       command: { type: "building.upgrade", buildingId: "habitation" }
     };
     expect(validateCommandEnvelope(envelope)).toEqual([]);
@@ -182,7 +182,7 @@ describe("API command contracts", () => {
   });
 
   it("returns field-level errors for malformed envelopes", () => {
-    const errors = validateCommandEnvelope({ commandId: "", idempotencyKey: "", expectedRevision: -1, command: {} as never });
+    const errors = validateCommandEnvelope({ commandId: "", idempotencyKey: "", clientVersion: "", expectedRevision: -1, command: {} as never });
     expect(errors.map((error) => error.field)).toEqual(expect.arrayContaining(["commandId", "idempotencyKey", "expectedRevision", "command.type"]));
   });
 });
@@ -503,7 +503,7 @@ describe("combat domain", () => {
 describe("API command contracts", () => {
   it("validates revision and idempotency metadata", () => {
     const envelope: CommandEnvelope = {
-      commandId: "cmd-1", idempotencyKey: "idem-1", expectedRevision: 4,
+      commandId: "cmd-1", idempotencyKey: "idem-1", clientVersion: "test", expectedRevision: 4,
       command: { type: "building.upgrade", buildingId: "habitation" }
     };
     expect(validateCommandEnvelope(envelope)).toEqual([]);
@@ -511,7 +511,7 @@ describe("API command contracts", () => {
   });
 
   it("returns field-level errors for malformed envelopes", () => {
-    const errors = validateCommandEnvelope({ commandId: "", idempotencyKey: "", expectedRevision: -1, command: {} as never });
+    const errors = validateCommandEnvelope({ commandId: "", idempotencyKey: "", clientVersion: "", expectedRevision: -1, command: {} as never });
     expect(errors.map((error) => error.field)).toEqual(expect.arrayContaining(["commandId", "idempotencyKey", "expectedRevision", "command.type"]));
   });
 });

@@ -9,7 +9,7 @@ class MemoryCommandStore implements CommandStore {
   async countCommandsSince(): Promise<number> { return this.count; }
   async commit(_userId: string, input: CommitInput): Promise<CommitOutcome> { this.last = input; return this.outcome; }
 }
-const envelope = { commandId: "cmd-1", idempotencyKey: "idem-1", expectedRevision: 0, command: { type: "dungeon.retreat" as const } };
+const envelope = { commandId: "cmd-1", idempotencyKey: "idem-1", clientVersion: "test", expectedRevision: 0, command: { type: "dungeon.retreat" as const } };
 
 describe("CommandDispatcher", () => {
   it("hashes and commits a valid command", async () => {

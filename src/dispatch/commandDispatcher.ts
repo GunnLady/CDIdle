@@ -5,7 +5,7 @@ import { validateCommandEnvelope } from "../domain/commands";
 
 const commandTypes = z.enum([
   "onboarding.start", "building.upgrade", "citizens.allocate", "district.unlock",
-  "hero.recruit", "hero.dismiss", "hero.equip", "hero.unequip", "inventory.add", "inventory.remove", "inventory.recycle", "forge.start", "forge.finalize", "forge.cancel",
+  "hero.recruit", "hero.dismiss", "hero.activity", "hero.equip", "hero.unequip", "inventory.add", "inventory.remove", "inventory.recycle", "forge.start", "forge.finalize", "forge.cancel",
   "dungeon.explore", "dungeon.resolve", "dungeon.auto_explore", "dungeon.retreat",
 ]);
 const commandSchema = z.object({ type: commandTypes }).passthrough();
@@ -24,7 +24,7 @@ export interface CommandClock { now(): number; }
 const invalid = (message: string, field?: string): CommandError => ({ code: "INVALID_COMMAND", message, field });
 
 export async function requestHash(envelope: CommandEnvelope): Promise<string> {
-  const canonical = JSON.stringify({ commandId: envelope.commandId, idempotencyKey: envelope.idempotencyKey,
+  const canonical = JSON.stringify({ commandId: envelope.commandId, idempotencyKey: envelope.idempotencyKey, clientVersion: envelope.clientVersion,
     expectedRevision: envelope.expectedRevision, command: envelope.command });
   const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(canonical));
   return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");

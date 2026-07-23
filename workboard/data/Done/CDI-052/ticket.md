@@ -1,7 +1,7 @@
 ---
 id: CDI-052
 title: Unifier les contrats canoniques client et serveur
-status: Later
+status: Done
 area: architecture
 priority: P1
 size: L

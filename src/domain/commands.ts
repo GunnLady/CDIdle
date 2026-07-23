@@ -1,28 +1,14 @@
 import type { GameState } from "../types";
+import type { CanonicalCommandEnvelope, CanonicalGameCommand } from "../../shared/contracts/authoritative";
 
-export type GameCommand =
-  | { type: "onboarding.start"; cityName: string }
-  | { type: "building.upgrade"; buildingId: string }
-  | { type: "citizens.allocate"; role: "farmers" | "woodcutters" | "quarrymen" | "miners" | "unassigned"; amount: number }
-  | { type: "district.unlock"; districtId: string }
-  | { type: "hero.recruit" }
-  | { type: "hero.dismiss"; heroId: string }
-  | { type: "hero.equip"; heroId: string; itemId: string }
-  | { type: "hero.unequip"; heroId: string; slot: "mainHand" | "offHand" | "armor" | "accessory" }
-  | { type: "inventory.add"; itemId: string; rarity: "common" | "uncommon" | "rare" | "epic" | "legendary"; count?: number }
-  | { type: "inventory.remove"; itemId: string; rarity: "common" | "uncommon" | "rare" | "epic" | "legendary"; count?: number }
-  | { type: "inventory.recycle"; itemId: string; rarity: "common" | "uncommon" | "rare" | "epic" | "legendary"; count?: number }
-  | { type: "forge.start"; recipeId: string }
-  | { type: "forge.finalize"; previewId: string; accepted?: boolean; chosenModifierStat?: string }
-  | { type: "forge.cancel"; previewId: string }
-  | { type: "dungeon.explore"; floor: number }
-  | { type: "dungeon.resolve" }
-  | { type: "dungeon.auto_explore"; enabled: boolean }
-  | { type: "dungeon.retreat" };
+export type { CanonicalCommandEnvelope, CanonicalGameCommand } from "../../shared/contracts/authoritative";
+
+export type GameCommand = CanonicalGameCommand;
 
 export interface CommandEnvelope<C extends GameCommand = GameCommand> {
   commandId: string;
   idempotencyKey: string;
+  clientVersion: string;
   expectedRevision: number;
   command: C;
 }
@@ -64,8 +50,9 @@ export function isCommandSuccess<T>(result: CommandResult<T>): result is Command
 
 export function validateCommandEnvelope(envelope: CommandEnvelope): CommandError[] {
   const errors: CommandError[] = [];
-  if (!envelope.commandId.trim()) errors.push({ code: "INVALID_COMMAND", message: "commandId is required", field: "commandId" });
-  if (!envelope.idempotencyKey.trim()) errors.push({ code: "INVALID_COMMAND", message: "idempotencyKey is required", field: "idempotencyKey" });
+  if (typeof envelope.commandId !== "string" || !envelope.commandId.trim()) errors.push({ code: "INVALID_COMMAND", message: "commandId is required", field: "commandId" });
+  if (typeof envelope.idempotencyKey !== "string" || !envelope.idempotencyKey.trim()) errors.push({ code: "INVALID_COMMAND", message: "idempotencyKey is required", field: "idempotencyKey" });
+  if (typeof envelope.clientVersion !== "string" || !envelope.clientVersion.trim()) errors.push({ code: "INVALID_COMMAND", message: "clientVersion is required", field: "clientVersion" });
   if (!Number.isInteger(envelope.expectedRevision) || envelope.expectedRevision < 0) {
     errors.push({ code: "INVALID_COMMAND", message: "expectedRevision must be an integer >= 0", field: "expectedRevision" });
   }
