@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { signInWithEmail, signUpWithEmail, signInWithGoogle, getAuthSnapshot, callGameApi } from "../lib/supabase";
+import { signInWithEmail, signUpWithEmail, signInWithGoogle, getAuthSnapshot } from "../lib/supabase";
 import { 
   Shield, 
   Lock, 
@@ -176,29 +176,8 @@ export default function LoginPage({ onLoginSuccess, addLog }: LoginPageProps) {
         isActive: false
       }));
 
-      // Initialize the authoritative game through game-api.
-      try {
-        await callGameApi("/bootstrap", {
-          method: "POST",
-          body: JSON.stringify({
-          cityName: formattedName,
-          resources: { gold: 125, food: 75, wood: 40, stone: 0, ore: 0 },
-          buildings: { "habitation": 1, "guilde": 0 },
-          citizens: { unassigned: 3, woodcutters: 0, farmers: 0, miners: 0, quarrymen: 0 },
-          totalCitizensCount: 3,
-          districts: {},
-          heroes: finalHeroes,
-          activeDungeonFloor: 1,
-          activeDungeonRoom: 1,
-          highestFloorReached: 1,
-          isMigrationPending: false,
-          updatedAt: new Date().toISOString()
-          })
-        });
-      } catch (cloudErr: any) {
-        console.warn("Could not initialize the authoritative game:", cloudErr);
-        addLog("⚠️ Impossible d'initialiser la partie serveur. Réessayez lorsque la connexion est disponible.", "system");
-      }
+      // App.tsx owns the single authoritative bootstrap. Starter setup will
+      // become a typed command once CDI-051 wires the UI to /commands.
 
       addLog(`🏰 Cité de ${formattedName} ralliée sous vos bannières !`, "victory");
       addLog(`🤝 ${finalHeroes[0].name} et ${finalHeroes[1].name} intègrent de suite l'escouade de votre domaine !`, "victory");

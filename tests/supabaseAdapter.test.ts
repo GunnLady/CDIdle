@@ -77,4 +77,20 @@ describe("Supabase game-api adapter", () => {
     await expect(adapter.commands("u1", payload)).resolves.toMatchObject({ replayed: true, idleReport: { appliedSeconds: 3600 }, state: { idleApplied: true } });
     expect(applied).toBe(false);
   });
+
+  it("requests permanent account deletion", async () => {
+    let deleteRequest: { method?: string; body?: string } | undefined;
+    const adapter = createSupabaseGameApiServices({
+      supabaseUrl: "http://db", serviceRoleKey: "server-only", initialState: {},
+      applyCommand: async (state) => ({ state }),
+      fetcher: async (url, init) => {
+        if (url.includes("/auth/v1/admin/users/")) {
+          deleteRequest = { method: init?.method, body: init?.body as string };
+        }
+        return new Response("{}", { status: 200 });
+      },
+    });
+    await adapter.deleteAccount("u1");
+    expect(deleteRequest).toEqual({ method: "DELETE", body: JSON.stringify({ should_soft_delete: false }) });
+  });
 });

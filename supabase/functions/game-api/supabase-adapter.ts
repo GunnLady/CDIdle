@@ -98,6 +98,11 @@ export function createSupabaseGameApiServices(options: SupabaseAdapterOptions) {
     return { ok: true, revision: value.revision, state: value.state, commandId: payload.commandId, replayed: false, ...(idleReport ? { idleReport } : {}) };
   }
   async function reset(userId: string): Promise<Record<string, unknown>> { return await request("/rest/v1/rpc/reset_game", { method: "POST", body: JSON.stringify({ p_user_id: userId, p_state: options.initialState }) }) as Record<string, unknown>; }
-  async function deleteAccount(userId: string) { await request(`/auth/v1/admin/users/${encodeURIComponent(userId)}`, { method: "DELETE" }); }
+  async function deleteAccount(userId: string) {
+    await request(`/auth/v1/admin/users/${encodeURIComponent(userId)}`, {
+      method: "DELETE",
+      body: JSON.stringify({ should_soft_delete: false }),
+    });
+  }
   return { bootstrap, commands, reset, deleteAccount };
 }

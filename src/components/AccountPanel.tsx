@@ -29,6 +29,7 @@ interface AccountPanelProps {
   highestFloorReached: number;
   onSaveCloud: () => Promise<void>;
   onHardReset: () => Promise<void>;
+  onDeleteAccount: () => Promise<void>;
   addLog: (message: string, type?: "info" | "victory" | "defeat" | "loot" | "system") => void;
   isCloudQuotaExceeded?: boolean;
 }
@@ -44,6 +45,7 @@ export default function AccountPanel({
   highestFloorReached,
   onSaveCloud,
   onHardReset,
+  onDeleteAccount,
   addLog,
   isCloudQuotaExceeded = false
 }: AccountPanelProps) {
@@ -57,6 +59,7 @@ export default function AccountPanel({
 
   // Danger reset confirmations
   const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const handleGoogleAuth = async () => {
     setError(null);
@@ -410,6 +413,47 @@ export default function AccountPanel({
               <button
                 onClick={() => setShowResetConfirm(false)}
                 className="flex-1 py-2 bg-[#2c1d12] hover:bg-[#3d291a] text-[#dfc3a7] border border-[#5c402b]/60 font-serif font-bold text-xs rounded-lg transition cursor-pointer"
+              >
+                Annuler
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* ACCOUNT DELETION ZONE (IRREVERSIBLE) */}
+      <div className="pt-4 border-t border-red-950/60">
+        {!showDeleteConfirm ? (
+          <button
+            onClick={() => setShowDeleteConfirm(true)}
+            className="w-full py-2 bg-red-950/40 hover:bg-red-950/60 border border-red-700/50 hover:border-red-600 text-red-300 text-xs font-serif font-bold rounded-xl transition flex items-center justify-center gap-2 cursor-pointer"
+          >
+            <Trash2 className="w-4 h-4" />
+            <span>Supprimer définitivement le compte</span>
+          </button>
+        ) : (
+          <div className="bg-red-950/35 border border-red-700/60 p-4 rounded-xl space-y-3 animate-fade-in">
+            <div className="flex items-start gap-2 text-xs text-red-200 font-mono leading-relaxed">
+              <ShieldAlert className="w-4 h-4 text-red-300 shrink-0 mt-0.5 animate-pulse" />
+              <div>
+                <strong>SUPPRESSION DÉFINITIVE.</strong> Le compte Auth, la partie,
+                les commandes et les données associées seront supprimés sans retour.
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={async () => {
+                  await onDeleteAccount();
+                  setShowDeleteConfirm(false);
+                }}
+                disabled={isSyncing}
+                className="flex-1 py-2 bg-red-800 hover:bg-red-700 active:bg-red-900 disabled:opacity-50 text-white font-serif font-black text-xs uppercase tracking-wider rounded-lg transition cursor-pointer"
+              >
+                Supprimer le compte
+              </button>
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                className="flex-1 py-2 bg-[#2c1d12] hover:bg-[#3d291a] text-[#dfc3a7] border border-[#5c402b]/60 font-serif font-bold text-xs rounded-lg transition"
               >
                 Annuler
               </button>

@@ -1,7 +1,7 @@
 ---
 id: CDI-032
 title: Reset et suppression definitive
-status: Later
+status: Done
 area: delivery
 priority: P1
 size: L
@@ -48,9 +48,9 @@ Ce ticket depend de : ["CDI-022", "CDI-023"].
 
 ## Criteres d'acceptation
 
-- [ ] Le perimetre est implemente sans regression hors domaine.
-- [ ] Les invariants sont couverts par des tests reproductibles.
-- [ ] Les preuves et la documentation sont fournies.
+- [x] Le perimetre est implemente sans regression hors domaine.
+- [x] Les invariants sont couverts par des tests reproductibles.
+- [x] Les preuves et la documentation sont fournies.
 
 ## Tests
 
@@ -74,3 +74,12 @@ Une implementation trop large creerait des dependances implicites.
 ## Handoff
 
 Fournir fichiers, commandes, resultats, risques residuels et decisions a transmettre.
+
+## Preuves de validation
+
+- Tests automatises et build rapportes verts par l utilisateur.
+- Reset local observe : revision 4 vers 5, etat initial restaure.
+- Suppression locale observee : `DELETE /account` retourne `{"ok":true}`.
+- `auth.users` retourne 0 ligne apres suppression.
+- Reconnexion Google cree un nouvel utilisateur ; `bootstrap` retourne HTTP 200.
+- Hors ligne, reset et suppression restent verrouilles.

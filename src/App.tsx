@@ -44,7 +44,7 @@ import HeroPanel from "./components/HeroPanel";
 import AccountPanel from "./components/AccountPanel";
 import LoginPage from "./components/LoginPage";
 import StoragePanel from "./components/StoragePanel";
-import { callGameApi, GameApiError, getAuthSnapshot, onAuthStateChange } from "./lib/supabase";
+import { callGameApi, GameApiError, getAuthSnapshot, onAuthStateChange, signOut } from "./lib/supabase";
 import { purgeLegacyGameCache, readGameCache, writeGameCache } from "./lib/gameCache";
 
 // Custom Hooks & Utilities
@@ -79,6 +79,7 @@ export default function App() {
   const [apiAvailable, setApiAvailable] = useState<boolean>(() => typeof navigator === "undefined" || navigator.onLine);
   const [reconnectNonce, setReconnectNonce] = useState(0);
   const [gameRevision, setGameRevision] = useState(0);
+  const bootstrapUserRef = useRef<string | null>(null);
   const isOnline = browserOnline && apiAvailable;
   // Google signup is gated by the server-side alpha_allowlist hook and every
   // game-api request is rechecked against the same allowlist at runtime.
@@ -321,6 +322,8 @@ export default function App() {
   useEffect(() => {
     let active = true;
     const applySnapshot = async (user: any) => {
+      if (user && bootstrapUserRef.current === String(user.id)) return;
+      if (user) bootstrapUserRef.current = String(user.id);
       setCurrentUser(user);
       setIsAuthLoading(false);
 
@@ -364,7 +367,13 @@ export default function App() {
             addLog("👑 Bienvenue souverain ! Veuillez nommer votre cité pour fonder votre campement.", "info");
           }
         } catch (err) {
-          setApiAvailable(false);
+          const isRevisionConflict = err instanceof GameApiError && err.status === 409;
+          if (!isRevisionConflict) setApiAvailable(false);
+          if (isRevisionConflict) {
+            bootstrapUserRef.current = null;
+            addLog("Synchronisation concurrente détectée. Rechargez la partie.", "info");
+            return;
+          }
           console.error("Supabase sync error", err);
           const cached = await readGameCache(user.id).catch(() => null);
           if (cached?.cityName) setCityName(String(cached.cityName));
@@ -389,6 +398,7 @@ export default function App() {
           setIsInitialGameLoadDone(true);
         }
       } else {
+        bootstrapUserRef.current = null;
         setGameRevision(0);
         setCityName("");
         setIsInitialGameLoadDone(true);
@@ -462,6 +472,29 @@ export default function App() {
       addLog("💣 Remise à zéro totale effectuée ! Créez une nouvelle cité.", "defeat");
     } catch (err) {
       console.error("Failed to reset Supabase savegame state", err);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  const deleteAccount = async () => {
+    if (!isOnline) {
+      addLog("📡 Mode hors connexion : la suppression du compte est verrouillée.", "info");
+      return;
+    }
+    try {
+      setIsSyncing(true);
+      await callGameApi("/account", { method: "DELETE" });
+      await purgeLegacyGameCache();
+      town.resetTownSystem();
+      dungeon.resetDungeonSystem();
+      setBattleLogs([]);
+      setCityName("");
+      await signOut();
+      addLog("Compte et données supprimés définitivement.", "defeat");
+    } catch (err) {
+      console.error("Failed to delete account", err);
+      addLog("Échec de la suppression du compte. Aucune donnée locale n’a été réinitialisée.", "defeat");
     } finally {
       setIsSyncing(false);
     }
@@ -905,6 +938,7 @@ export default function App() {
                 highestFloorReached={dungeon.highestFloorReached}
                 onSaveCloud={handleManualSaveCloud}
                 onHardReset={hardResetGame}
+                onDeleteAccount={deleteAccount}
                 addLog={addLog}
                 isCloudQuotaExceeded={isCloudQuotaExceeded}
               />
