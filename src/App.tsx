@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { lazy, Suspense, useState, useEffect, useCallback, useRef } from "react";
 import {
   Castle,
   Coins,
@@ -38,12 +38,12 @@ import {
   BattleLogEntry
 } from "./types";
 import { refreshHeroDerivedStats } from "./utils/gameCalculations";
-import TownPanel from "./components/TownPanel";
-import DungeonPanel from "./components/DungeonPanel";
-import HeroPanel from "./components/HeroPanel";
-import AccountPanel from "./components/AccountPanel";
+const TownPanel = lazy(() => import("./components/TownPanel"));
+const DungeonPanel = lazy(() => import("./components/DungeonPanel"));
+const HeroPanel = lazy(() => import("./components/HeroPanel"));
+const AccountPanel = lazy(() => import("./components/AccountPanel"));
 import LoginPage from "./components/LoginPage";
-import StoragePanel from "./components/StoragePanel";
+const StoragePanel = lazy(() => import("./components/StoragePanel"));
 import { callGameApi, GameApiError, getAuthSnapshot, onAuthStateChange, signOut } from "./lib/supabase";
 import { purgeLegacyGameCache, readGameCache, writeGameCache } from "./lib/gameCache";
 
@@ -851,6 +851,7 @@ export default function App() {
 
         {/* TAB MAIN CONTENT CONTAINER */}
         <div className="h-full">
+          <Suspense fallback={<div role="status" className="rounded-xl border border-[#5c402b]/60 bg-[#160f0a] p-6 text-center text-sm text-[#c5ad94]">Chargement de la vue…</div>}>
           
           {/* A. CITY TAB VIEW (TOWN INTERFACE) */}
           {activeTab === "city" && (
@@ -958,7 +959,7 @@ export default function App() {
               />
             </div>
           )}
-
+          </Suspense>
         </div>
       </main>
 

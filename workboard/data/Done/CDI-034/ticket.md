@@ -1,7 +1,7 @@
 ---
 id: CDI-034
 title: Hardening et budgets
-status: Later
+status: Done
 area: delivery
 priority: P1
 size: L
@@ -10,7 +10,7 @@ source: Plan fullstack autoritaire approuve le 2026-07-15
 depends_on: ["CDI-031", "CDI-032", "CDI-033"]
 blocks: ["CDI-035", "CDI-036"]
 github_issue: null
-related_docs: ["docs/fullstack-authoritative-plan.md", "docs/architecture/zero-rebase-audit.md"]
+related_docs: ["docs/fullstack-authoritative-plan.md", "docs/architecture/zero-rebase-audit.md", "docs/architecture/cdi-034-hardening-audit.md"]
 ---
 
 # CDI-034 — Hardening et budgets
@@ -48,9 +48,9 @@ Ce ticket depend de : ["CDI-031", "CDI-032", "CDI-033"].
 
 ## Criteres d'acceptation
 
-- [ ] Le perimetre est implemente sans regression hors domaine.
-- [ ] Les invariants sont couverts par des tests reproductibles.
-- [ ] Les preuves et la documentation sont fournies.
+- [x] Le perimetre est implemente sans regression hors domaine.
+- [x] Les invariants sont couverts par des tests reproductibles.
+- [x] Les preuves et la documentation sont fournies.
 
 ## Tests
 
@@ -59,9 +59,22 @@ Ce ticket depend de : ["CDI-031", "CDI-032", "CDI-033"].
 - npm run build
 - npm run board:validate
 
+## Preuves d'execution
+
+- Vitest : 15 fichiers, 102 tests, succes.
+- pgTAP : 4 fichiers, 50 tests, succes.
+- `npm run typecheck` : succes.
+- `npm run build` : succes, sans avertissement de chunk Vite.
+- `npm run check:bundle` : 231014 octets gzip, chunk maximal 144900 octets.
+- `npm run check:secrets` : 222 fichiers suivis analyses, aucun secret detecte.
+- `npm run board:validate` : 51 tickets, 0 erreur.
+- Benchmark combat : 1000 rounds sous 500 ms.
+
 ## Validation manuelle
 
-Relire le resultat contre le plan et verifier les parcours nominaux et d'erreur.
+Relecture contre le plan effectuee. Les parcours nominaux et d'erreur sont
+couverts par les tests Edge, Error Boundary et pgTAP. Les tests navigateur
+manuels restent du ressort des tickets front dependants.
 
 ## Preservation
 
@@ -70,6 +83,12 @@ Preserver les contrats valides, les identifiants persistants et les tests verts.
 ## Risques
 
 Une implementation trop large creerait des dependances implicites.
+
+## Risques residuels
+
+`npm run lint` retourne 0 erreur et 132 avertissements herites de fichiers
+anterieurs a CDI-034. Aucun avertissement nouveau n'a ete introduit par ce
+ticket ; leur correction reste dans les tickets proprietaires.
 
 ## Handoff
 

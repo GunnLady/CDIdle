@@ -17,6 +17,14 @@ export type SupabaseGameApiOptions = { allowedOrigins: string[]; initialState: R
 
 type HandlerOptions = { allowedOrigins: string[]; services: ApiServices };
 const jsonHeaders = { "content-type": "application/json; charset=utf-8" };
+export const MAX_REQUEST_BYTES = 128 * 1024;
+
+class PayloadTooLargeError extends Error {
+  constructor() {
+    super("request payload is too large");
+    this.name = "PayloadTooLargeError";
+  }
+}
 
 function requestId(): string {
   return globalThis.crypto?.randomUUID?.() ?? `req-${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -39,10 +47,19 @@ function errorResponse(code: string, message: string, id: string, status: number
 }
 
 async function readJson(request: Request): Promise<Record<string, unknown> | null> {
+  const contentLength = request.headers.get("content-length");
+  if (contentLength && Number.isFinite(Number(contentLength)) && Number(contentLength) > MAX_REQUEST_BYTES) {
+    throw new PayloadTooLargeError();
+  }
   try {
-    const value = await request.json();
+    const body = await request.arrayBuffer();
+    if (body.byteLength > MAX_REQUEST_BYTES) throw new PayloadTooLargeError();
+    const value = JSON.parse(new TextDecoder().decode(body));
     return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : null;
-  } catch { return null; }
+  } catch (error) {
+    if (error instanceof PayloadTooLargeError) throw error;
+    return null;
+  }
 }
 
 export function createGameApiHandler({ allowedOrigins, services }: HandlerOptions): (request: Request) => Promise<Response> {
@@ -82,6 +99,7 @@ export function createGameApiHandler({ allowedOrigins, services }: HandlerOption
       return errorResponse("NOT_FOUND", "route not found", id, 404, origin);
     } catch (error) {
       const typed = error as { code?: string; status?: number };
+      if (error instanceof PayloadTooLargeError) return errorResponse("PAYLOAD_TOO_LARGE", error.message, id, 413, origin);
       const status = typed.status === 409 || typed.code === "REVISION_CONFLICT" ? 409 : typed.status === 404 ? 404 : 503;
       const code = status === 409 ? "REVISION_CONFLICT" : status === 404 ? "NOT_FOUND" : "SERVICE_UNAVAILABLE";
       return errorResponse(code, status === 409 ? "revision conflict" : status === 404 ? "resource not found" : "service unavailable", id, status, origin);

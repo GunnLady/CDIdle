@@ -33,6 +33,12 @@ describe("game-api Edge handler", () => {
     expect((await handler(request("/account", { method: "DELETE" }))).status).toBe(200);
     expect((await handler(request("/missing", { method: "POST" }))).status).toBe(404);
   });
+  it("rejects oversized command payloads before dispatch", async () => {
+    const oversized = JSON.stringify({ commandId: "44444444-4444-4444-8444-444444444444", idempotencyKey: "idem", expectedRevision: 0, clientVersion: "test", command: { type: "building.upgrade", buildingId: "ferme" }, padding: "x".repeat(128 * 1024) });
+    const result = await handler(request("/commands", { method: "POST", body: oversized }));
+    expect(result.status).toBe(413);
+    await expect(result.json()).resolves.toMatchObject({ error: { code: "PAYLOAD_TOO_LARGE" } });
+  });
   it("exposes a Deno.serve-compatible entrypoint", async () => {
     const previous = (globalThis as typeof globalThis & { Deno?: unknown }).Deno;
     let served = false;
