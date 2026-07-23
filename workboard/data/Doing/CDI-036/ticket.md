@@ -10,7 +10,7 @@ source: Extension utilisateur du plan fullstack autoritaire
 depends_on: ["CDI-034"]
 blocks: []
 github_issue: null
-related_docs: ["docs/fullstack-authoritative-plan.md", "package.json", "vitest.config.ts"]
+related_docs: ["docs/fullstack-authoritative-plan.md", "package.json", "vitest.config.ts", "scripts/check-coverage-thresholds.mjs", "docs/testing/coverage.md", ".github/workflows/ci.yml", "tests/catalogValidation.test.ts", "tests/inventoryAndDungeonHelpers.test.ts", "src/data/buildings.ts", "src/data/items.ts", "src/data/heroes.ts", "src/data/monsters.ts", "src/data/skills.ts", "src/data/modifierBuilder.ts", "src/data/bossLootTables.ts", "src/data/weapons.ts", "src/data/armors.ts", "src/data/accessories.ts", "src/data/offhands.ts", "src/data/itemBuilders.ts", "src/data/skillBuilders.ts"]
 ---
 
 # CDI-036 — Couverture globale et seuils de qualité
@@ -56,9 +56,13 @@ CDI-034 doit etre termine avant de fixer les seuils definitifs.
 ## Criteres d'acceptation
 
 - [ ] Un rapport global reproductible est genere localement et en CI.
-- [ ] Les exclusions sont explicites et justifiees.
-- [ ] Les seuils par domaine critique sont documentes.
-- [ ] Une baisse de couverture utile est detectee sans seuil artificiel.
+- [x] Les exclusions sont explicites et justifiees.
+- [x] Les seuils par domaine critique sont documentes.
+- [x] Une baisse de couverture utile est detectee sans seuil artificiel.
+- [x] Les catalogues de donnees et helpers critiques ont des invariants
+  automatises, sans tests artificiels sur les constantes.
+- [x] Les catalogues boss loot, armes, armures, accessoires, offhands et
+  builders sont couverts par des invariants automatises.
 
 ## Tests
 
@@ -67,6 +71,7 @@ CDI-034 doit etre termine avant de fixer les seuils definitifs.
 - npm run lint
 - npm run build
 - npm run board:validate
+- npm.cmd test -- --run tests/catalogValidation.test.ts tests/inventoryAndDungeonHelpers.test.ts
 
 ## Validation manuelle
 
@@ -87,3 +92,10 @@ CDI-034 doit etre termine avant de fixer les seuils definitifs.
 
 Fournir le rapport, les seuils, les exclusions, les commandes, le temps
 d execution et les zones restant volontairement sous le seuil.
+
+## Tracabilite catalogues
+
+Les invariants actuels couvrent bâtiments, items, races, classes, skills,
+monstres et modificateurs. Les catalogues boss loot, armes, armures,
+accessoires, offhands et builders restent explicitement ouverts ; ils ne sont
+pas présentés comme couverts par le rapport courant.

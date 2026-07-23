@@ -40,6 +40,17 @@ jobs:
         run: npm run lint
       - name: Unit tests
         run: npm test -- --run
+      - name: Coverage report
+        run: npm run test:coverage
+      - name: Coverage thresholds
+        run: npm run check:coverage
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage
+          if-no-files-found: warn
       - name: Database tests
         run: npm run test:db
       - name: Build

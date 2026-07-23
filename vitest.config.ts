@@ -8,5 +8,14 @@ export default defineConfig({
     setupFiles: ["./tests/setup.ts"],
     include: ["tests/**/*.test.{ts,tsx}"],
     css: true,
+    coverage: {
+      provider: "v8",
+      reporter: ["text", "json-summary", "html"],
+      reportsDirectory: "./coverage",
+      include: ["src/**/*.{ts,tsx}", "shared/**/*.{ts,tsx}", "supabase/functions/game-api/**/*.{ts,tsx}"],
+      exclude: ["**/*.d.ts", "src/assets/**", "src/main.tsx", "src/vite-env.d.ts", "tests/**"],
+      all: true,
+      clean: true,
+    },
   },
 });
