@@ -14,7 +14,6 @@ export default defineConfig({
       reportsDirectory: "./coverage",
       include: ["src/**/*.{ts,tsx}", "shared/**/*.{ts,tsx}", "supabase/functions/game-api/**/*.{ts,tsx}"],
       exclude: ["**/*.d.ts", "src/assets/**", "src/main.tsx", "src/vite-env.d.ts", "tests/**"],
-      all: true,
       clean: true,
     },
   },

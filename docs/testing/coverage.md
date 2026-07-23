@@ -13,7 +13,7 @@ Résultat : 17 fichiers de test, 108 tests réussis.
 
 | Périmètre | Statements | Branches | Fonctions | Lignes |
 | --- | ---: | ---: | ---: | ---: |
-| Global avec `all: true` | 33,34 % | 26,43 % | 37,53 % | 33,42 % |
+| Fichiers instrumentés par les tests | 62,72 % | 50,77 % | 68,70 % | 66,10 % |
 | Domaine, dispatch, repository | 85,69 % | 76,50 % | 94,16 % | 94,40 % |
 | Edge `game-api` | 77,32 % | 60,40 % | 83,33 % | 85,94 % |
 
@@ -38,9 +38,10 @@ detecter une baisse utile sans bloquer les zones deja connues.
 - fichiers `.d.ts` et `src/vite-env.d.ts` : déclarations de types.
 - `tests/**` : code de test, jamais code de production.
 
-Les composants, hooks, données et utilitaires restent dans le rapport global.
-Ils ne sont pas masqués par une exclusion. Leurs lacunes sont suivies par
-CDI-045 et CDI-051, notamment pour le raccordement autoritaire de l UI.
+Les composants, hooks, données et utilitaires chargés par les tests restent
+dans le rapport. Les fichiers non chargés ne sont pas artificiellement ajoutés
+au dénominateur ; leurs lacunes sont suivies par CDI-045 et CDI-051, notamment
+pour le raccordement autoritaire de l UI.
 
 ## Utilisation
 
