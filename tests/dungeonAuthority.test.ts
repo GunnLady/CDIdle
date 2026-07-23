@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { applyDungeonCommand, type DungeonState } from "../supabase/functions/game-api/dungeon-authority";
+import { applyDungeonCommand, type DungeonRng, type DungeonState } from "../supabase/functions/game-api/dungeon-authority";
 
 const state = (): DungeonState => ({
   activeDungeonFloor: 1,
@@ -12,6 +12,11 @@ const state = (): DungeonState => ({
 });
 
 describe("authoritative dungeon commands", () => {
+  const fixedRng = (): DungeonRng => {
+    let value = 0;
+    return { next: () => value++ / 10, nextInt: (maxExclusive) => value++ % maxExclusive };
+  };
+
   it("creates an active encounter without client-controlled resolution", () => {
     const result = applyDungeonCommand(state(), { type: "dungeon.explore", floor: 1, commandId: "cmd-explore" });
     expect(result.state.currentEncounter).toMatchObject({ status: "active", floor: 1, room: 1, encounterId: "encounter-cmd-explore" });
@@ -26,6 +31,13 @@ describe("authoritative dungeon commands", () => {
     expect(resolved.state.activeDungeonRoom).toBe(2);
     expect(resolved.state.resources?.gold).toBeGreaterThan(0);
     expect(resolved.events[0]).toMatchObject({ type: "dungeon.encounter_resolved", encounter: { outcome: "victory", transcript: expect.any(Array), rewards: { gold: expect.any(Number) } } });
+  });
+
+  it("replays the same server RNG sequence with an injected generator", () => {
+    const started = applyDungeonCommand(state(), { type: "dungeon.explore", floor: 1, commandId: "cmd-rng" });
+    const first = applyDungeonCommand(started.state, { type: "dungeon.resolve" }, fixedRng());
+    const second = applyDungeonCommand(started.state, { type: "dungeon.resolve" }, fixedRng());
+    expect(second).toEqual(first);
   });
 
   it("retreats an active encounter without reward or progression", () => {

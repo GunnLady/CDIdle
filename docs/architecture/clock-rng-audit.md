@@ -12,6 +12,7 @@
 | `src/hooks/useDungeonSystem.ts` | tirages combat/loot et `Math.random` | prévu dans la migration gameplay | ne pas considérer comme preuve serveur |
 | `src/hooks/useGameLog.ts` | date/identifiant d’affichage | frontière UI | conserver local, hors mutation métier |
 | `supabase/functions/game-api/*` | horloge/UUID de requête | frontière runtime | conserver ; ne pas importer dans le domaine |
+| `supabase/functions/game-api/dungeon-authority.ts` | tirages de combat serveur | migration CDI-037 | RNG injectable ; adaptateur déterministe temporaire en attente de CDI-050 |
 
 ## Contrôle ajouté
 
@@ -20,6 +21,7 @@ réapparaît dans `src/domain`, à l’exception documentée de `random.ts`.
 
 ## État
 
-Le contrat domaine et les helpers gameplay sont maintenant contrôlés. Les
-hooks UI gardent des tirages locaux et devront être raccordés à l’autorité
-serveur dans les tickets de domaine correspondants.
+Le contrat domaine, les helpers gameplay et les tirages de combat serveur sont
+maintenant contrôlés. Les hooks UI gardent des tirages locaux et devront être
+raccordés à l’autorité serveur dans CDI-051. La graine et l’avancement
+persistés relèvent de CDI-050.

@@ -1,7 +1,7 @@
 ---
 id: CDI-037
 title: Audit global et migration horloge/RNG
-status: Doing
+status: Done
 area: domain
 priority: P1
 size: L
@@ -43,10 +43,10 @@ dépend implicitement de l’horloge ou de l’aléatoire global.
 
 ## Critères d’acceptation
 
-- [ ] L’inventaire des usages est documenté et chaque usage est classé.
-- [ ] Les domaines concernés reçoivent `Clock`/`Rng` explicitement.
-- [ ] Les tests métier sont reproductibles avec une horloge et une graine contrôlées.
-- [ ] La CI détecte les nouveaux accès interdits dans le domaine.
+- [x] L’inventaire des usages est documenté et chaque usage est classé.
+- [x] Les domaines concernés reçoivent `Clock`/`Rng` explicitement.
+- [x] Les tests métier sont reproductibles avec une horloge et une graine contrôlées.
+- [x] La CI détecte les nouveaux accès interdits dans le domaine.
 
 ## Tests
 
@@ -96,10 +96,10 @@ Les contrats CDI-009 et les domaines CDI-010 a CDI-016 doivent etre disponibles.
 
 ## Criteres d'acceptation
 
-- [ ] L inventaire des usages est documente et chaque usage est classe.
-- [ ] Les domaines concernes recoivent `Clock`/`Rng` explicitement.
-- [ ] Les tests metier sont reproductibles avec une horloge et une graine controlees.
-- [ ] La CI detecte les nouveaux acces interdits dans le domaine.
+- [x] L inventaire des usages est documente et chaque usage est classe.
+- [x] Les domaines concernes recoivent `Clock`/`Rng` explicitement.
+- [x] Les tests metier sont reproductibles avec une horloge et une graine controlees.
+- [x] La CI detecte les nouveaux acces interdits dans le domaine.
 
 ## Validation manuelle
 
