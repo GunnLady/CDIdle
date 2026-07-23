@@ -46,6 +46,7 @@ import LoginPage from "./components/LoginPage";
 const StoragePanel = lazy(() => import("./components/StoragePanel"));
 import { callGameApi, GameApiError, getAuthSnapshot, onAuthStateChange, signOut } from "./lib/supabase";
 import { purgeLegacyGameCache, readGameCache, writeGameCache } from "./lib/gameCache";
+import type { GameCommand } from "./domain/commands";
 
 // Custom Hooks & Utilities
 import { useGameLog } from "./hooks/useGameLog";
@@ -74,17 +75,19 @@ export default function App() {
   const [isInitialGameLoadDone, setIsInitialGameLoadDone] = useState<boolean>(false);
   const [cityName, setCityName] = useState<string>("");
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
-  const [isCloudQuotaExceeded, setIsCloudQuotaExceeded] = useState<boolean>(false);
   const [browserOnline, setBrowserOnline] = useState<boolean>(() => typeof navigator === "undefined" || navigator.onLine);
   const [apiAvailable, setApiAvailable] = useState<boolean>(() => typeof navigator === "undefined" || navigator.onLine);
   const [reconnectNonce, setReconnectNonce] = useState(0);
-  const [gameRevision, setGameRevision] = useState(0);
+  const [, setGameRevision] = useState(0);
+  const [currentEncounter, setCurrentEncounter] = useState<Record<string, unknown> | null>(null);
+  const [pendingForge, setPendingForge] = useState<{ previewId: string; itemId: string; upgradeProc?: "none" | "optional" | "forced" } | null>(null);
+  const gameRevisionRef = useRef(0);
+  const commandQueueRef = useRef<Promise<void>>(Promise.resolve());
   const bootstrapUserRef = useRef<string | null>(null);
   const isOnline = browserOnline && apiAvailable;
   // Google signup is gated by the server-side alpha_allowlist hook and every
   // game-api request is rechecked against the same allowlist at runtime.
   const cheatsAllowedForUser = cheatsEnabled && currentUser?.app_metadata?.provider === "google";
-  const lastCloudSaveTimeRef = useRef<number>(0);
 
   useEffect(() => {
     const handleOffline = () => setBrowserOnline(false);
@@ -135,33 +138,140 @@ export default function App() {
     setHighestFloorReached
   });
 
-  const handleInitiateNewRecruitment = useCallback(() => {
-    const recruitmentCost = 100 + dungeon.heroes.length * 150;
-    if (town.resources.gold < recruitmentCost) {
-      addLog("❌ Or insuffisant pour recruter un nouvel aventurier !", "defeat");
-      return;
-    }
+  const {
+    setBuildings: setTownBuildings,
+    setCitizenGrowthProgress,
+    setCitizens: setTownCitizens,
+    setResources: setTownResources,
+    setTotalCitizens,
+    setUnlockedDistricts,
+  } = town;
+  const {
+    setActiveDungeonFloor,
+    setActiveDungeonRoom,
+    setAutoExplore,
+    setForgeMaterials,
+    setHeroes,
+    setHighestFloorReached: setDungeonHighestFloorReached,
+    setItemBlueprints,
+    setStoredItems,
+    setUnlockedRaces,
+  } = dungeon;
 
-    const guildLevel = town.buildings["guilde"] || 0;
-    const maxHeroCapacity = guildLevel + 2;
-    if (dungeon.heroes.length >= maxHeroCapacity) {
-      addLog(`❌ Capacité de dortoir saturée (${dungeon.heroes.length}/${maxHeroCapacity}). Agrandissez le Campement !`, "defeat");
-      return;
+  const applyAuthoritativeState = useCallback(async (state: any, revision?: number, cacheUserId?: string) => {
+    if (!state) return;
+    if (state.cityName !== undefined) setCityName(String(state.cityName));
+    if (state.resources) setTownResources(state.resources);
+    if (state.buildings) setTownBuildings(state.buildings);
+    if (state.citizens) setTownCitizens({ ...state.citizens });
+    if (state.totalCitizensCount !== undefined) setTotalCitizens(Number(state.totalCitizensCount));
+    if (state.districts) setUnlockedDistricts(state.districts);
+    if (state.citizenGrowthProgress !== undefined) setCitizenGrowthProgress(Number(state.citizenGrowthProgress));
+    if (state.storedItems) setStoredItems(state.storedItems);
+    if (state.forgeMaterials) setForgeMaterials(state.forgeMaterials);
+    if (state.itemBlueprints) setItemBlueprints(state.itemBlueprints);
+    if (state.heroes) setHeroes(state.heroes.map((hero: Hero) => refreshHeroDerivedStats(hero)));
+    if (state.activeDungeonFloor !== undefined) setActiveDungeonFloor(Number(state.activeDungeonFloor));
+    if (state.activeDungeonRoom !== undefined) setActiveDungeonRoom(Number(state.activeDungeonRoom));
+    if (state.highestFloorReached !== undefined) setDungeonHighestFloorReached(Number(state.highestFloorReached));
+    if (state.autoExplore !== undefined) setAutoExplore(Boolean(state.autoExplore));
+    if (state.currentEncounter !== undefined) setCurrentEncounter(state.currentEncounter);
+    if (state.pendingForge !== undefined) setPendingForge(state.pendingForge);
+    if (state.pendingRecruit !== undefined) setPendingRecruit(state.pendingRecruit ? refreshHeroDerivedStats(state.pendingRecruit) : null);
+    const canonicalRevision = Number.isInteger(revision) ? Number(revision) : gameRevisionRef.current;
+    if (Number.isInteger(revision)) {
+      gameRevisionRef.current = canonicalRevision;
+      setGameRevision(canonicalRevision);
     }
+    const userId = cacheUserId ?? currentUser?.id;
+    if (userId) await writeGameCache(String(userId), { ...state, revision: canonicalRevision });
+  }, [
+    currentUser?.id,
+    setActiveDungeonFloor,
+    setActiveDungeonRoom,
+    setAutoExplore,
+    setCitizenGrowthProgress,
+    setDungeonHighestFloorReached,
+    setForgeMaterials,
+    setHeroes,
+    setItemBlueprints,
+    setStoredItems,
+    setTotalCitizens,
+    setTownBuildings,
+    setTownCitizens,
+    setTownResources,
+    setUnlockedDistricts,
+  ]);
 
-    const novice = dungeon.generateSingleNoviceHero();
-    setPendingRecruit(novice);
-  }, [dungeon.heroes.length, town.resources.gold, town.buildings, dungeon.generateSingleNoviceHero, addLog]);
+  const dispatchAuthoritativeCommand = useCallback((command: GameCommand): Promise<boolean> => {
+    if (!currentUser || !isOnline) {
+      addLog("📡 Mode hors connexion : mutation verrouillée.", "info");
+      return Promise.resolve(false);
+    }
+    const operation = commandQueueRef.current.then(async () => {
+      try {
+        const commandId = crypto.randomUUID();
+        const result = await callGameApi<any>("/commands", {
+          method: "POST",
+          body: JSON.stringify({
+            commandId,
+            idempotencyKey: commandId,
+            clientVersion: "cdi-051",
+            expectedRevision: gameRevisionRef.current,
+            command,
+          }),
+        });
+        await applyAuthoritativeState(result?.state, result?.revision);
+        for (const event of result?.events ?? []) {
+          if (event?.type === "dungeon.encounter_started") addLog("⚔️ Un encounter autoritaire a commencé.", "info");
+          if (event?.type === "dungeon.encounter_resolved") addLog("🏆 Encounter résolu par le serveur.", "victory");
+          if (event?.type === "forge.preview_created") addLog("🔥 Prévisualisation de forge créée par le serveur.", "info");
+          if (event?.type === "forge.finalized") addLog("🔨 Objet forgé et enregistré par le serveur.", "victory");
+        }
+        return true;
+      } catch (error) {
+        if (error instanceof GameApiError && error.status === 409) {
+          try {
+            const canonical = await callGameApi<any>("/bootstrap", { method: "POST" });
+            await applyAuthoritativeState(canonical?.state, canonical?.revision, String(currentUser.id));
+            setApiAvailable(true);
+          } catch (reloadError) {
+            if (!(reloadError instanceof GameApiError) || reloadError.status >= 500) setApiAvailable(false);
+            addLog("Échec du rechargement canonique après conflit.", "defeat");
+          }
+          addLog("⚔️ Conflit de révision : rechargement de l’état canonique.", "info");
+        } else {
+          if (!(error instanceof GameApiError) || error.status >= 500) setApiAvailable(false);
+          const message = error instanceof GameApiError ? error.message : "Mutation autoritaire indisponible";
+          addLog(`❌ ${message}.`, "defeat");
+        }
+        return false;
+      }
+    });
+    commandQueueRef.current = operation.then(() => undefined, () => undefined);
+    return operation;
+  }, [addLog, applyAuthoritativeState, currentUser, isOnline]);
+
+  useEffect(() => {
+    if (!currentUser || !isOnline || !dungeon.autoExplore) return;
+    const handle = window.setTimeout(() => {
+      const command: GameCommand = currentEncounter
+        ? { type: "dungeon.resolve" }
+        : { type: "dungeon.explore", floor: dungeon.activeDungeonFloor };
+      void dispatchAuthoritativeCommand(command);
+    }, 1000);
+    return () => window.clearTimeout(handle);
+  }, [currentEncounter, currentUser, dispatchAuthoritativeCommand, dungeon.activeDungeonFloor, dungeon.autoExplore, isOnline]);
 
   const handleConfirmRecruit = () => {
     if (!pendingRecruit) return;
-    const cost = 100 + dungeon.heroes.length * 150;
-    dungeon.handleRecruitCustomHero(pendingRecruit, cost);
-    setPendingRecruit(null);
+    void dispatchAuthoritativeCommand({ type: "hero.recruit_confirm", name: pendingRecruit.name }).then((ok) => {
+      if (ok) setPendingRecruit(null);
+    });
   };
 
   const handleCancelRecruit = () => {
-    setPendingRecruit(null);
+    void dispatchAuthoritativeCommand({ type: "hero.recruit_cancel" });
   };
 
   const handleUpdatePendingName = (name: string) => {
@@ -185,27 +295,30 @@ export default function App() {
     const amount = parseInt(match[2], 10);
 
     if (letter === "D") {
-      dungeon.setHighestFloorReached(amount);
+      void dispatchAuthoritativeCommand({ type: "cheat.set_highest_floor", floor: amount }).then((ok) => {
+        if (!ok) return;
+        addLog(`Triche serveur appliquée : étage maximal ${amount}.`, "victory");
+        setCheatInput("");
+      });
+      return;
       addLog(`🧙‍♂️ TRICHE : Le niveau le plus haut exploré du donjon est désormais l'Étage ${amount} ! ✨`, "victory");
       setCheatInput("");
       return;
     }
 
     if (letter === "A") {
-      town.setResources(prev => ({
-        ...prev,
-        gold: prev.gold + amount,
-        food: prev.food + amount,
-        wood: prev.wood + amount,
-        stone: prev.stone + amount,
-        ore: prev.ore + amount
-      }));
+      void dispatchAuthoritativeCommand({ type: "cheat.grant_resources", amounts: { gold: amount, food: amount, wood: amount, stone: amount, ore: amount } }).then((ok) => {
+        if (!ok) return;
+        addLog(`Triche serveur appliquée : +${amount} à toutes les ressources.`, "victory");
+        setCheatInput("");
+      });
+      return;
       addLog(`🧙‍♂️ TRICHE : +${amount} dans TOUTES les ressources ! ✨`, "victory");
       setCheatInput("");
       return;
     }
 
-    const resourceMap: Record<string, keyof typeof town.resources> = {
+    const resourceMap: Record<string, "gold" | "food" | "wood" | "stone" | "ore"> = {
       G: "gold",
       N: "food",
       B: "wood",
@@ -213,103 +326,17 @@ export default function App() {
       M: "ore"
     };
     
-    const resKey = resourceMap[letter] as "gold" | "food" | "wood" | "stone" | "ore";
+    const resKey = resourceMap[letter];
 
     if (resKey) {
-      town.setResources(prev => ({
-        ...prev,
-        [resKey]: prev[resKey] + amount
-      }));
-      const namesInFrench: Record<string, string> = {
-        gold: "Or",
-        food: "Nourriture",
-        wood: "Bois",
-        stone: "Pierre",
-        ore: "Minerai"
-      };
-      addLog(`🧙‍♂️ TRICHE : +${amount} ${namesInFrench[resKey]} ajoutés ! ✨`, "victory");
-      setCheatInput("");
+      void dispatchAuthoritativeCommand({ type: "cheat.grant_resources", amounts: { [resKey]: amount } }).then((ok) => {
+        if (!ok) return;
+        addLog(`Triche serveur appliquée : +${amount} ${resKey}.`, "victory");
+        setCheatInput("");
+      });
+      return;
     }
-  }, [cheatInput, town.setResources, dungeon.setHighestFloorReached, addLog, isOnline, cheatsAllowedForUser]);
-
-  // SAVE GAME TO LOCALSTORAGE AND THE AUTHORITATIVE SUPABASE API
-  const saveGame = useCallback(async (forceCloud: boolean = false) => {
-    if (!cityName || !isOnline) return;
-    try {
-      const stateToSave = {
-        cityName,
-        resources: town.resources,
-        buildings: town.buildings,
-        citizens: town.citizens,
-        totalCitizens: town.totalCitizens,
-        unlockedDistricts: town.unlockedDistricts,
-        heroes: dungeon.heroes,
-        storedItems: dungeon.storedItems,
-        forgeMaterials: dungeon.forgeMaterials,
-        itemBlueprints: dungeon.itemBlueprints,
-        activeDungeonFloor: dungeon.activeDungeonFloor,
-        activeDungeonRoom: dungeon.activeDungeonRoom,
-        highestFloorReached: dungeon.highestFloorReached,
-        unlockedRaces: dungeon.unlockedRaces,
-        battleLogs,
-        autoExplore: dungeon.autoExplore,
-        isMigrationPending: town.isMigrationPending
-      };
-      if (currentUser?.id) await writeGameCache(currentUser.id, stateToSave);
-
-      if (currentUser) {
-        const now = Date.now();
-        const timeSinceLastSave = now - lastCloudSaveTimeRef.current;
-        const throttleLimit = 30000; // 30 seconds
-
-        const shouldSaveToCloud = forceCloud || (!isCloudQuotaExceeded && timeSinceLastSave >= throttleLimit);
-
-        if (shouldSaveToCloud) {
-          setIsSyncing(true);
-          // Generic client snapshot writes are intentionally local-only. The
-          // authoritative API accepts typed domain commands, never save_game.
-          lastCloudSaveTimeRef.current = now;
-          setIsCloudQuotaExceeded(false); // Reset on successful write
-        } else {
-          console.log(`Cloud sync throttled. Next allowed in ${Math.round((throttleLimit - timeSinceLastSave) / 1000)}s.`);
-        }
-      }
-    } catch (err: any) {
-      if (err instanceof GameApiError && err.status === 409) {
-        addLog("⚔️ Conflit de révision : l’état canonique va être rechargé.", "info");
-        setReconnectNonce((value) => value + 1);
-        return;
-      }
-      if (!(err instanceof GameApiError) || err.status >= 500) setApiAvailable(false);
-      console.error("Supabase save failed", err);
-      if (err && String(err).toLowerCase().includes("quota")) {
-        setIsCloudQuotaExceeded(true);
-      }
-    } finally {
-      setIsSyncing(false);
-    }
-  }, [
-    cityName,
-    town.resources,
-    town.buildings,
-    town.citizens,
-    town.totalCitizens,
-    town.unlockedDistricts,
-    dungeon.heroes,
-    dungeon.storedItems,
-    dungeon.forgeMaterials,
-    dungeon.itemBlueprints,
-    dungeon.activeDungeonFloor,
-    dungeon.activeDungeonRoom,
-    dungeon.highestFloorReached,
-    dungeon.unlockedRaces,
-    battleLogs,
-    dungeon.autoExplore,
-    isCloudQuotaExceeded,
-    currentUser,
-    isOnline,
-    gameRevision
-  ]);
+  }, [cheatInput, addLog, isOnline, cheatsAllowedForUser, dispatchAuthoritativeCommand]);
 
   // Purge the legacy shared localStorage snapshot. Offline state is now
   // scoped per authenticated user in IndexedDB and remains read-only.
@@ -333,37 +360,18 @@ export default function App() {
           setIsSyncing(true);
           const parsed = await callGameApi<any>("/bootstrap", { method: "POST" });
           setApiAvailable(true);
-          if (Number.isInteger(parsed?.revision)) setGameRevision(parsed.revision);
+          if (Number.isInteger(parsed?.revision)) {
+            gameRevisionRef.current = parsed.revision;
+            setGameRevision(parsed.revision);
+          }
 
           if (parsed && parsed.state) {
             const state = parsed.state;
-            if (state.cityName) {
-              setCityName(state.cityName);
-            } else {
-              setCityName("");
-            }
-            if (state.resources) town.setResources(state.resources);
-            if (state.buildings) town.setBuildings(state.buildings);
-            if (state.citizens) town.setCitizens({ ...state.citizens });
-            if (state.totalCitizens !== undefined) town.setTotalCitizens(state.totalCitizens);
-            if (state.isMigrationPending !== undefined) town.setIsMigrationPending(!!state.isMigrationPending);
-            if (state.unlockedDistricts) town.setUnlockedDistricts(state.unlockedDistricts);
-            if (state.storedItems) dungeon.setStoredItems(state.storedItems);
-            if (state.forgeMaterials) dungeon.setForgeMaterials(state.forgeMaterials);
-            if (state.itemBlueprints) dungeon.setItemBlueprints(state.itemBlueprints);
-            if (state.heroes) dungeon.setHeroes(state.heroes.map((h: Hero) => {
-              const refreshed = refreshHeroDerivedStats(h);
-              refreshed.currentHp = Math.min(refreshed.calculatedStats.maxHp, h.currentHp);
-              return refreshed;
-            }));
-            if (state.activeDungeonFloor !== undefined) dungeon.setActiveDungeonFloor(state.activeDungeonFloor);
-            if (state.activeDungeonRoom !== undefined) dungeon.setActiveDungeonRoom(state.activeDungeonRoom);
-            if (state.highestFloorReached !== undefined) dungeon.setHighestFloorReached(state.highestFloorReached);
-            if (state.unlockedRaces) dungeon.setUnlockedRaces(state.unlockedRaces);
+            await applyAuthoritativeState(state, parsed.revision, String(user.id));
             addLog("☁️ Royaume synchronisé : Sauvegarde Supabase chargée avec succès !", "victory");
           } else {
             setCityName("");
-            town.setResources({ gold: 0, food: 0, wood: 0, stone: 0, ore: 0 });
+            setTownResources({ gold: 0, food: 0, wood: 0, stone: 0, ore: 0 });
             addLog("👑 Bienvenue souverain ! Veuillez nommer votre cité pour fonder votre campement.", "info");
           }
         } catch (err) {
@@ -376,22 +384,10 @@ export default function App() {
           }
           console.error("Supabase sync error", err);
           const cached = await readGameCache(user.id).catch(() => null);
-          if (cached?.cityName) setCityName(String(cached.cityName));
-          if (cached?.resources) town.setResources(cached.resources as any);
-          if (cached?.buildings) town.setBuildings(cached.buildings as any);
-          if (cached?.citizens) town.setCitizens(cached.citizens as any);
-          if (cached?.totalCitizens !== undefined) town.setTotalCitizens(Number(cached.totalCitizens));
-          if (cached?.unlockedDistricts) town.setUnlockedDistricts(cached.unlockedDistricts as any);
-          if (cached?.heroes) dungeon.setHeroes(cached.heroes as any);
-          if (cached?.storedItems) dungeon.setStoredItems(cached.storedItems as any);
-          if (cached?.forgeMaterials) dungeon.setForgeMaterials(cached.forgeMaterials as any);
-          if (cached?.itemBlueprints) dungeon.setItemBlueprints(cached.itemBlueprints as any);
-          if (cached?.activeDungeonFloor !== undefined) dungeon.setActiveDungeonFloor(Number(cached.activeDungeonFloor));
-          if (cached?.activeDungeonRoom !== undefined) dungeon.setActiveDungeonRoom(Number(cached.activeDungeonRoom));
-          if (cached?.highestFloorReached !== undefined) dungeon.setHighestFloorReached(Number(cached.highestFloorReached));
-          if (cached?.unlockedRaces) dungeon.setUnlockedRaces(cached.unlockedRaces as any);
+          if (cached) await applyAuthoritativeState(cached, Number(cached.revision), String(user.id));
+          if (cached?.unlockedRaces) setUnlockedRaces(cached.unlockedRaces as any);
           if (cached?.battleLogs) setBattleLogs(cached.battleLogs as any);
-          if (cached?.autoExplore !== undefined) dungeon.setAutoExplore(Boolean(cached.autoExplore));
+          if (cached?.autoExplore !== undefined) setAutoExplore(Boolean(cached.autoExplore));
           addLog(cached ? "📖 Session hors connexion : cache local en lecture seule chargé." : "❌ Échec de la récupération des données Supabase.", cached ? "info" : "defeat");
         } finally {
           setIsSyncing(false);
@@ -402,44 +398,38 @@ export default function App() {
         setGameRevision(0);
         setCityName("");
         setIsInitialGameLoadDone(true);
-        town.setResources({ gold: 0, food: 0, wood: 0, stone: 0, ore: 0 });
+        setTownResources({ gold: 0, food: 0, wood: 0, stone: 0, ore: 0 });
         addLog("🔑 Veuillez vous connecter pour commencer la conquête de l'empire !", "info");
       }
     };
     getAuthSnapshot().then(({ user }) => { if (active) void applySnapshot(user); });
     const { data: subscription } = onAuthStateChange(({ user }) => { if (active) void applySnapshot(user); });
     return () => { active = false; subscription.subscription.unsubscribe(); };
-  }, [addLog, reconnectNonce]);
-
-  // Set up saveGameRef to always point to the latest saveGame function
-  const saveGameRef = useRef<(forceCloud?: boolean) => Promise<void>>();
-  useEffect(() => {
-    saveGameRef.current = saveGame;
-  }, [saveGame]);
-
-  // Auto-save cycle every 60 seconds
-  useEffect(() => {
-    const handle = setInterval(() => {
-      saveGameRef.current?.();
-    }, 60000);
-    return () => clearInterval(handle);
-  }, []);
-
-  // Auto-save immediately whenever stored items count changes
-  const lastStoredItemsCountRef = useRef<number>(0);
-  useEffect(() => {
-    if (dungeon.storedItems) {
-      const currentCount = dungeon.storedItems.length;
-      if (currentCount !== lastStoredItemsCountRef.current) {
-        lastStoredItemsCountRef.current = currentCount;
-        saveGameRef.current?.();
-      }
-    }
-  }, [dungeon.storedItems]);
+  }, [
+    addLog,
+    applyAuthoritativeState,
+    setAutoExplore,
+    setUnlockedRaces,
+    reconnectNonce,
+    setBattleLogs,
+    setTownResources,
+  ]);
 
   const handleManualSaveCloud = useCallback(async () => {
-    await saveGame(true);
-  }, [saveGame]);
+    if (!currentUser || !isOnline) return;
+    try {
+      setIsSyncing(true);
+      const parsed = await callGameApi<any>("/bootstrap", { method: "POST" });
+      await applyAuthoritativeState(parsed?.state, parsed?.revision, String(currentUser.id));
+      setApiAvailable(true);
+      addLog("☁️ État canonique actualisé depuis le serveur.", "victory");
+    } catch (error) {
+      if (!(error instanceof GameApiError) || error.status >= 500) setApiAvailable(false);
+      addLog("Échec de l’actualisation de l’état canonique.", "defeat");
+    } finally {
+      setIsSyncing(false);
+    }
+  }, [addLog, applyAuthoritativeState, currentUser, isOnline]);
 
   // Lock offline users to the Account panel
   useEffect(() => {
@@ -500,72 +490,10 @@ export default function App() {
     }
   };
 
-  // REAL-TIME CLOCK / RESOURCE TICK PROCESSOR
-  useEffect(() => {
-    if (!currentUser || !isOnline) return;
-    const handle = setInterval(() => {
-      // 1. RESOURCE ACCUMULATION
-      const rates = town.getRates();
-      town.setResources((prev) => ({
-        ...prev,
-        food: prev.food + rates.food,
-        wood: prev.wood + rates.wood,
-        stone: prev.stone + rates.stone,
-        ore: prev.ore + rates.ore
-      }));
-
-      // 2. CITIZEN IMMIGRATION GROWTH TIMER
-      town.performImmigrationTick();
-
-      // 3. AUTO HEAL & MANA REGEN SYSTEM OUTFLOW FROM BATTLE
-      dungeon.setHeroes((prevHeroes) => {
-        return prevHeroes.map((hero) => {
-          if (hero.status === "resting") {
-            const maxHp = hero.calculatedStats.maxHp;
-            const maxMana = hero.calculatedStats.maxMana || 0;
-
-            const lizardBonus = hero.race === "Homme-Lézard" ? 5 : 0;
-            const healingTick = 6 + lizardBonus;
-            const manaTick = 5;
-
-            const newHp = Math.min(maxHp, hero.currentHp + healingTick);
-            const newMana = Math.min(maxMana, (hero.currentMana || 0) + manaTick);
-
-            const isFullyHealed = newHp === maxHp;
-            const isFullyCharged = maxMana === 0 || newMana === maxMana;
-
-            if (isFullyHealed && isFullyCharged) {
-              addLog(`💚 RÉTABLISSEMENT : ${hero.name} s'est entièrement rétabli (PV & Mana) et attend de repartir dans les abysses !`, "info");
-              return { ...hero, currentHp: newHp, currentMana: newMana, status: "idle" as const };
-            }
-            return { ...hero, currentHp: newHp, currentMana: newMana };
-          }
-          return hero;
-        });
-      });
-    }, 1000);
-
-    return () => clearInterval(handle);
-  }, [
-    currentUser,
-    town.getRates,
-    town.buildings,
-    town.totalCitizens,
-    town.setResources,
-    town.setCitizenGrowthProgress,
-    town.setTotalCitizens,
-    town.setCitizens,
-    town.isMigrationPending,
-    town.triggerCitizenMigration,
-    town.performImmigrationTick,
-    dungeon.setHeroes,
-    addLog,
-    isOnline
-  ]);
+  // CDI-051: canonical idle/health progression is applied by bootstrap or
+  // command responses from game-api; React does not run a mutation timer.
 
   const activeRates = town.getRates();
-  const recruitmentCost = 100 + dungeon.heroes.length * 150;
-
   return (
     <div className="min-h-screen bg-[#110905] text-[#fbf7f0] flex flex-col font-sans selection:bg-[#ae8650] selection:text-white">
 
@@ -709,17 +637,11 @@ export default function App() {
         <div className="flex-1 bg-[#150D08]/90 flex items-center justify-center p-4">
           <LoginPage
             onLoginSuccess={(name, startingHeroes) => {
-              setCityName(name);
-              town.setResources({ gold: 125, food: 75, wood: 40, stone: 0, ore: 0 });
-              town.setBuildings({ "habitation": 1, "guilde": 0 });
-              town.setCitizens({ unassigned: 3, woodcutters: 0, farmers: 0, miners: 0, quarrymen: 0 });
-              town.setTotalCitizens(3);
-              town.setUnlockedDistricts({});
-              dungeon.setHeroes(startingHeroes || []);
-              dungeon.setActiveDungeonFloor(1);
-              dungeon.setActiveDungeonRoom(1);
-              dungeon.setHighestFloorReached(1);
-              setBattleLogs([]);
+              void dispatchAuthoritativeCommand({
+                type: "onboarding.start",
+                cityName: name,
+                starterHeroes: (startingHeroes ?? []).map((hero) => ({ name: hero.name, race: hero.race, gender: hero.gender })),
+              });
             }}
             addLog={addLog}
           />
@@ -862,22 +784,21 @@ export default function App() {
                 citizens={town.citizens}
                 totalCitizensCount={town.totalCitizens}
                 unlockedDistricts={town.unlockedDistricts}
-                onUpgradeBuilding={town.handleUpgradeBuilding}
-                onAllocateCitizen={town.handleAllocateCitizen}
-                onUnlockDistrict={town.handleUnlockDistrict}
+                onUpgradeBuilding={(buildingId) => { void dispatchAuthoritativeCommand({ type: "building.upgrade", buildingId }); }}
+                onAllocateCitizen={(role, amount) => { void dispatchAuthoritativeCommand({ type: "citizens.allocate", role, amount }); }}
+                onUnlockDistrict={(districtId) => { void dispatchAuthoritativeCommand({ type: "district.unlock", districtId }); }}
                 citizenGrowthProgress={town.citizenGrowthProgress}
                 highestFloorReached={dungeon.highestFloorReached}
                 heroes={dungeon.heroes}
-                activeDungeonFloor={dungeon.activeDungeonFloor}
                 isMigrationPending={town.isMigrationPending}
-                storedItems={dungeon.storedItems}
-                setStoredItems={dungeon.setStoredItems}
                 forgeMaterials={dungeon.forgeMaterials}
-                setForgeMaterials={dungeon.setForgeMaterials}
                 itemBlueprints={dungeon.itemBlueprints}
-                setItemBlueprints={dungeon.setItemBlueprints}
                 addLog={addLog}
                 isOnline={isOnline}
+                pendingForge={pendingForge}
+                onStartForge={(recipeId) => { void dispatchAuthoritativeCommand({ type: "forge.start", recipeId }); }}
+                onFinalizeForge={(previewId, accepted, chosenModifierStat) => { void dispatchAuthoritativeCommand({ type: "forge.finalize", previewId, accepted, chosenModifierStat }); }}
+                onCancelForge={(previewId) => { void dispatchAuthoritativeCommand({ type: "forge.cancel", previewId }); }}
               />
             </div>
           )}
@@ -889,11 +810,14 @@ export default function App() {
                 heroes={dungeon.heroes}
                 resources={town.resources}
                 buildings={town.buildings}
-                onDismissHero={dungeon.handleDismissHero}
-                onToggleHeroActive={dungeon.handleToggleHeroActive}
-                onRecruitHero={handleInitiateNewRecruitment}
-                onUnequipItem={dungeon.handleUnequipItem}
-                onEquipItem={dungeon.handleEquipItem}
+                onDismissHero={(heroId) => { void dispatchAuthoritativeCommand({ type: "hero.dismiss", heroId }); }}
+                onToggleHeroActive={(heroId) => {
+                  const hero = dungeon.heroes.find((entry) => entry.id === heroId);
+                  if (hero) void dispatchAuthoritativeCommand({ type: "hero.activity", heroId, active: !hero.isActive });
+                }}
+                onRecruitHero={() => { void dispatchAuthoritativeCommand({ type: "hero.recruit_offer" }); }}
+                onUnequipItem={(heroId, slot) => { void dispatchAuthoritativeCommand({ type: "hero.unequip", heroId, slot }); }}
+                onEquipItem={(heroId, itemId, rarity, modifiers) => { void dispatchAuthoritativeCommand({ type: "hero.equip", heroId, itemId, rarity, modifiers }); }}
                 storedItems={dungeon.storedItems}
                 onGoToTab={setActiveTab}
               />
@@ -912,9 +836,15 @@ export default function App() {
                 autoExplore={dungeon.autoExplore}
                 battleLogs={battleLogs}
                 highestFloorReached={dungeon.highestFloorReached}
-                onToggleAutoExplore={() => dungeon.setAutoExploreMutation(!dungeon.autoExplore)}
-                onChangeFloor={dungeon.handleChangeFloor}
-                onRetreatParty={dungeon.handleRetreatParty}
+                onToggleAutoExplore={() => { void dispatchAuthoritativeCommand({ type: "dungeon.auto_explore", enabled: !dungeon.autoExplore }); }}
+                hasActiveEncounter={currentEncounter !== null}
+                onExplore={() => { void dispatchAuthoritativeCommand({ type: "dungeon.explore", floor: dungeon.activeDungeonFloor }); }}
+                onResolveEncounter={() => { void dispatchAuthoritativeCommand({ type: "dungeon.resolve" }); }}
+                onChangeFloor={(direction) => {
+                  const floor = Math.max(1, dungeon.activeDungeonFloor + (direction === "next" ? 1 : -1));
+                  void dispatchAuthoritativeCommand({ type: "dungeon.select_floor", floor });
+                }}
+                onRetreatParty={() => { void dispatchAuthoritativeCommand({ type: "dungeon.retreat" }); }}
                 onClearBattleLogs={clearBattleLogs}
                 combatTimer={dungeon.combatTimer}
                 onResetLevel={() => {
@@ -941,7 +871,6 @@ export default function App() {
                 onHardReset={hardResetGame}
                 onDeleteAccount={deleteAccount}
                 addLog={addLog}
-                isCloudQuotaExceeded={isCloudQuotaExceeded}
               />
             </div>
           )}
@@ -952,9 +881,9 @@ export default function App() {
               <StoragePanel
                 storedItems={dungeon.storedItems}
                 heroes={dungeon.heroes}
-                onEquipItem={dungeon.handleEquipItem}
+                onEquipItem={(heroId, itemId, rarity, modifiers) => { void dispatchAuthoritativeCommand({ type: "hero.equip", heroId, itemId, rarity, modifiers }); }}
                 isForgeUnlocked={(town.buildings["forge"] || 0) >= 1}
-                onScrapItem={dungeon.handleScrapItem}
+                onScrapItem={(itemId, rarity, modifiers) => { void dispatchAuthoritativeCommand({ type: "inventory.recycle", itemId, rarity, modifiers }); }}
                 forgeMaterials={dungeon.forgeMaterials}
               />
             </div>

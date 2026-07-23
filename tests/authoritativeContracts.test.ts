@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { validateCanonicalCommandEnvelope, validateCanonicalGameState } from "../shared/contracts/authoritative";
+import { CANONICAL_COMMAND_TYPES, validateCanonicalCommandEnvelope, validateCanonicalGameState } from "../shared/contracts/authoritative";
 
 const validEnvelope = {
   commandId: "11111111-1111-4111-8111-111111111111",
@@ -26,6 +26,17 @@ describe("authoritative shared contracts", () => {
 
   it("rejects unsupported command types", () => {
     expect(validateCanonicalCommandEnvelope({ ...validEnvelope, command: { type: "building.upgrade_local" } })).toContain("unsupported command type");
+  });
+
+  it("keeps the authoritative command registry unique and complete", () => {
+    expect(new Set(CANONICAL_COMMAND_TYPES).size).toBe(CANONICAL_COMMAND_TYPES.length);
+    expect(CANONICAL_COMMAND_TYPES).toEqual(expect.arrayContaining([
+      "onboarding.start",
+      "hero.recruit_offer",
+      "forge.finalize",
+      "dungeon.select_floor",
+      "cheat.grant_resources",
+    ]));
   });
 
   it("requires canonical state fields and names", () => {

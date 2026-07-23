@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   Home,
   Grape,
@@ -27,7 +27,6 @@ import {
   Resources,
   CitizenAllocation,
   Hero,
-  StoredItemStack,
   StoredForgeMaterialStack,
   ItemBlueprint,
   ItemInfo,
@@ -46,11 +45,6 @@ import {
 import { formatResourceValue } from "./IconDetails";
 import {
   BASIC_FORGE_CRAFTABLE_ITEMS,
-  BASIC_FORGE_CRAFT_COST,
-  BASIC_FORGE_UPGRADE_COSTS,
-  BASIC_FORGE_BONUS_MODIFIER_VALUES,
-  startBasicForgeCraftFromBlueprint,
-  finalizeBasicForgeCraft,
   BasicForgeUpgradeProc,
   FORGE_MATERIALS
 } from "../utils/gameCalculations";
@@ -67,16 +61,15 @@ interface TownPanelProps {
   citizenGrowthProgress: number;
   highestFloorReached: number;
   heroes: Hero[];
-  activeDungeonFloor: number;
   isMigrationPending?: boolean;
-  storedItems: StoredItemStack[];
-  setStoredItems: React.Dispatch<React.SetStateAction<StoredItemStack[]>>;
   forgeMaterials: StoredForgeMaterialStack[];
-  setForgeMaterials: React.Dispatch<React.SetStateAction<StoredForgeMaterialStack[]>>;
   itemBlueprints: ItemBlueprint[];
-  setItemBlueprints: React.Dispatch<React.SetStateAction<ItemBlueprint[]>>;
   addLog: (message: string, type?: "info" | "victory" | "defeat" | "loot" | "combat-hero" | "combat-enemy") => void;
   isOnline: boolean;
+  pendingForge?: { previewId: string; itemId: string; upgradeProc?: BasicForgeUpgradeProc } | null;
+  onStartForge: (recipeId: string) => void;
+  onFinalizeForge: (previewId: string, accepted: boolean, chosenModifierStat?: string) => void;
+  onCancelForge: (previewId: string) => void;
 }
 
 export default function TownPanel({
@@ -91,16 +84,15 @@ export default function TownPanel({
   citizenGrowthProgress,
   highestFloorReached,
   heroes,
-  activeDungeonFloor,
   isMigrationPending = false,
-  storedItems,
-  setStoredItems,
   forgeMaterials,
-  setForgeMaterials,
   itemBlueprints,
-  setItemBlueprints,
   addLog,
-  isOnline
+  isOnline,
+  pendingForge = null,
+  onStartForge,
+  onFinalizeForge,
+  onCancelForge
 }: TownPanelProps) {
   const [activeSubTab, setActiveSubTab] = useState<"citizens" | "buildings" | "districts" | "forge">("citizens");
 
@@ -111,6 +103,17 @@ export default function TownPanel({
   const [upgradeAccepted, setUpgradeAccepted] = useState<boolean>(false);
   const [chosenModifierStat, setChosenModifierStat] = useState<string | undefined>(undefined);
   const [craftError, setCraftError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!pendingForge) {
+      setActiveCraftPreview(null);
+      setActiveCraftUpgradeProc("none");
+      return;
+    }
+    const item = ITEM_LIBRARY.find((entry) => entry.id === pendingForge.itemId);
+    setActiveCraftPreview(item ? { ...item } : null);
+    setActiveCraftUpgradeProc(pendingForge.upgradeProc ?? "none");
+  }, [pendingForge]);
 
   const craftableItems = useMemo(() => {
     const baseList = [...BASIC_FORGE_CRAFTABLE_ITEMS];
@@ -183,25 +186,7 @@ export default function TownPanel({
       addLog("📡 Mode hors connexion : les mutations sont verrouillées.", "info");
       return;
     }
-    setCraftError(null);
-    const result = startBasicForgeCraftFromBlueprint(
-      { unlocked: true },
-      forgeMaterials,
-      itemBlueprints,
-      selectedBlueprintId
-    );
-
-    if (result.success && result.craftedPreview) {
-      setForgeMaterials(result.forgeMaterials);
-      setActiveCraftPreview(result.craftedPreview);
-      setActiveCraftUpgradeProc(result.upgradeProc);
-      setUpgradeAccepted(false);
-      const compat = getCompatibleModifiers(result.craftedPreview.itemType);
-      setChosenModifierStat(compat[0]);
-    } else {
-      setCraftError(result.message);
-      addLog(`⚠️ Forge : ${result.message}`, "defeat");
-    }
+    onStartForge(selectedBlueprintId);
   };
 
   const handleFinalizeCraft = () => {
@@ -210,45 +195,18 @@ export default function TownPanel({
       return;
     }
     if (!activeCraftPreview) return;
-    const result = finalizeBasicForgeCraft(
-      storedItems,
-      forgeMaterials,
-      activeCraftPreview,
-      activeCraftUpgradeProc,
-      {
-        accepted: upgradeAccepted,
-        chosenModifierStat: upgradeAccepted ? chosenModifierStat : undefined
-      }
-    );
-
-    if (result.success && result.finalItem) {
-      setStoredItems(result.storedItems);
-      setForgeMaterials(result.forgeMaterials);
-      addLog(`🎉 Forge : ${result.message}`, "victory");
-      setActiveCraftPreview(null);
-      setActiveCraftUpgradeProc("none");
-      setUpgradeAccepted(false);
-      setChosenModifierStat(undefined);
-      setCraftError(null);
-    } else {
-      setCraftError(result.message);
-      addLog(`⚠️ Forge : Échec de finalisation. ${result.message}`, "defeat");
-    }
+    if (!pendingForge) return;
+    onFinalizeForge(pendingForge.previewId, upgradeAccepted, upgradeAccepted ? chosenModifierStat : undefined);
   };
 
   const handleCancelCraft = () => {
-    setActiveCraftPreview(null);
-    setActiveCraftUpgradeProc("none");
-    setUpgradeAccepted(false);
-    setChosenModifierStat(undefined);
-    setCraftError(null);
-    addLog(`🔨 Forge : Fabrication annulée. Les matériaux de base ont été consumés dans les flammes.`, "info");
+    if (!pendingForge) return;
+    onCancelForge(pendingForge.previewId);
   };
 
   const guildLevel = buildings["guilde"] || 0;
   const maxHeroCapacity = guildLevel + 2;
   const maxCitizens = (buildings["habitation"] || 0) * 3;
-  const recruitCost = 100 + heroes.length * 150;
 
   // Render job icon helper
   const getJobIcon = (job: string) => {

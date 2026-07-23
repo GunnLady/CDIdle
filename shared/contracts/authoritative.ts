@@ -21,11 +21,14 @@ export interface CanonicalGameState {
 }
 
 export type CanonicalGameCommand =
-  | { type: "onboarding.start"; cityName: string }
+  | { type: "onboarding.start"; cityName: string; starterHeroes: Array<{ name: string; race: string; gender: string }> }
   | { type: "building.upgrade"; buildingId: string }
   | { type: "citizens.allocate"; role: "farmers" | "woodcutters" | "quarrymen" | "miners" | "unassigned"; amount: number }
   | { type: "district.unlock"; districtId: string }
   | { type: "hero.recruit" }
+  | { type: "hero.recruit_offer" }
+  | { type: "hero.recruit_confirm"; name?: string }
+  | { type: "hero.recruit_cancel" }
   | { type: "hero.dismiss"; heroId: string }
   | { type: "hero.activity"; heroId: string; active: boolean }
   | { type: "hero.equip"; heroId: string; itemId: string; rarity: CanonicalRarity; modifiers?: CanonicalModifier[] }
@@ -36,7 +39,10 @@ export type CanonicalGameCommand =
   | { type: "forge.start"; recipeId: string }
   | { type: "forge.finalize"; previewId: string; accepted?: boolean; chosenModifierStat?: string }
   | { type: "forge.cancel"; previewId: string }
+  | { type: "cheat.grant_resources"; amounts: Partial<Record<"gold" | "food" | "wood" | "stone" | "ore", number>> }
+  | { type: "cheat.set_highest_floor"; floor: number }
   | { type: "dungeon.explore"; floor: number }
+  | { type: "dungeon.select_floor"; floor: number }
   | { type: "dungeon.resolve" }
   | { type: "dungeon.auto_explore"; enabled: boolean }
   | { type: "dungeon.retreat" };
@@ -51,9 +57,10 @@ export interface CanonicalCommandEnvelope {
 
 export const CANONICAL_COMMAND_TYPES = [
   "onboarding.start", "building.upgrade", "citizens.allocate", "district.unlock",
-  "hero.recruit", "hero.dismiss", "hero.activity", "hero.equip", "hero.unequip",
+  "hero.recruit", "hero.recruit_offer", "hero.recruit_confirm", "hero.recruit_cancel", "hero.dismiss", "hero.activity", "hero.equip", "hero.unequip",
   "inventory.add", "inventory.remove", "inventory.recycle", "forge.start", "forge.finalize", "forge.cancel",
-  "dungeon.explore", "dungeon.resolve", "dungeon.auto_explore", "dungeon.retreat",
+  "cheat.grant_resources", "cheat.set_highest_floor",
+  "dungeon.explore", "dungeon.select_floor", "dungeon.resolve", "dungeon.auto_explore", "dungeon.retreat",
 ] as const;
 
 export function validateCanonicalCommandEnvelope(input: unknown): string[] {

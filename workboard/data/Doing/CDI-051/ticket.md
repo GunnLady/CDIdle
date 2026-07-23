@@ -1,7 +1,7 @@
 ---
 id: CDI-051
 title: Raccordement UI aux commandes autoritaires
-status: Later
+status: Doing
 area: integration
 priority: P1
 size: L

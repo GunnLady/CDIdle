@@ -34,6 +34,9 @@ interface DungeonPanelProps {
   battleLogs: BattleLogEntry[];
   highestFloorReached: number;
   onToggleAutoExplore: () => void;
+  hasActiveEncounter: boolean;
+  onExplore: () => void;
+  onResolveEncounter: () => void;
   onChangeFloor: (direction: "prev" | "next") => void;
   onRetreatParty: () => void;
   onClearBattleLogs: () => void;
@@ -51,6 +54,9 @@ export default function DungeonPanel({
   battleLogs,
   highestFloorReached,
   onToggleAutoExplore,
+  hasActiveEncounter,
+  onExplore,
+  onResolveEncounter,
   onChangeFloor,
   onRetreatParty,
   onClearBattleLogs,
@@ -605,6 +611,13 @@ export default function DungeonPanel({
         {/* Toggles and status controls */}
         <div className="flex flex-col gap-2">
           <div className="flex gap-2.5">
+            <button
+              onClick={hasActiveEncounter ? onResolveEncounter : onExplore}
+              disabled={activeHeroes.length === 0}
+              className="flex-1 bg-[#3b2514] hover:bg-[#5a351b] text-[#f4d28b] border-2 border-[#8c5a2b]/60 py-2.5 px-3 rounded text-[11px] font-bold font-serif tracking-widest transition cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed uppercase"
+            >
+              {hasActiveEncounter ? "Résoudre l’encounter" : "Explorer la salle"}
+            </button>
             <button
               onClick={onToggleAutoExplore}
               className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 px-3 rounded text-[11px] font-bold transition cursor-pointer font-serif tracking-widest border ${

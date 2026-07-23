@@ -2,6 +2,36 @@ import { describe, expect, it } from "vitest";
 import { applyTownCommand, initialTownState } from "../supabase/functions/game-api/town-authority";
 
 describe("authoritative town commands", () => {
+  it("creates onboarding state from sanitized starter identities", () => {
+    const result = applyTownCommand(initialTownState(), {
+      type: "onboarding.start",
+      cityName: "Oakhaven",
+      starterHeroes: [
+        { name: "Ada", race: "Humain", gender: "Female" },
+        { name: "Borin", race: "Nain", gender: "Male" },
+      ],
+      commandId: "onboarding-command",
+    });
+    expect(result.state).toMatchObject({ cityName: "Oakhaven", resources: { gold: 125, food: 75, wood: 40 }, heroes: [{ name: "Ada", baseStats: { str: 5 } }, { name: "Borin", baseStats: { str: 5 } }] });
+    expect(() => applyTownCommand(result.state, { type: "onboarding.start", cityName: "Again", starterHeroes: [] })).toThrow("onboarding is already complete");
+    expect(() => applyTownCommand(initialTownState(), {
+      type: "onboarding.start",
+      cityName: "Unsafe",
+      starterHeroes: [
+        { name: "Ada", race: "Admin", gender: "Female" },
+        { name: "Borin", race: "Nain", gender: "Male" },
+      ],
+    })).toThrow("starter hero identity is invalid");
+    expect(() => applyTownCommand({ ...initialTownState(), heroes: [{ id: "existing" }] }, {
+      type: "onboarding.start",
+      cityName: "Again",
+      starterHeroes: [
+        { name: "Ada", race: "Humain", gender: "Female" },
+        { name: "Borin", race: "Nain", gender: "Male" },
+      ],
+    })).toThrow("onboarding is already complete");
+  });
+
   it("applies a building upgrade atomically", () => {
     const current = initialTownState();
     current.resources.gold = 100;
@@ -9,6 +39,12 @@ describe("authoritative town commands", () => {
     const result = applyTownCommand(current, { type: "building.upgrade", buildingId: "ferme" });
     expect(result.state).toMatchObject({ buildings: { ferme: 1 }, resources: { gold: 90, food: 90 } });
     expect(result.events).toEqual([{ type: "building.upgraded", buildingId: "ferme", level: 1 }]);
+  });
+
+  it("gates authoritative cheats behind the runtime flag", () => {
+    expect(() => applyTownCommand(initialTownState(), { type: "cheat.grant_resources", amounts: { gold: 10 } })).toThrow("cheats are disabled");
+    const result = applyTownCommand(initialTownState(), { type: "cheat.grant_resources", amounts: { gold: 10 } }, { allowCheats: true });
+    expect(result.state).toMatchObject({ resources: { gold: 85 } });
   });
 
   it("rejects allocation until its profession building exists", () => {
@@ -29,6 +65,19 @@ describe("authoritative town commands", () => {
     expect(recruited.state).toMatchObject({ resources: { gold: 400 }, heroes: [{ id: "hero-hero-command", isActive: false }] });
     const dismissed = applyTownCommand(recruited.state, { type: "hero.dismiss", heroId: "hero-hero-command" });
     expect(dismissed.state).toMatchObject({ heroes: [] });
+  });
+
+  it("persists a recruit offer before confirmation", () => {
+    const current = initialTownState();
+    current.buildings.guilde = 1;
+    current.resources.gold = 500;
+    const offered = applyTownCommand(current, { type: "hero.recruit_offer", commandId: "offer-command" });
+    expect(offered.state).toMatchObject({ pendingRecruit: { id: "candidate-offer-command", classType: "Novice" }, heroes: [] });
+    const confirmed = applyTownCommand(offered.state, { type: "hero.recruit_confirm", name: "Ariane" });
+    expect(confirmed.state).toMatchObject({ resources: { gold: 400 }, pendingRecruit: null, heroes: [{ id: "hero-offer-command", name: "Ariane" }] });
+    const secondOffer = applyTownCommand({ ...confirmed.state, pendingRecruit: null }, { type: "hero.recruit_offer", commandId: "cancel-command" });
+    const cancelled = applyTownCommand(secondOffer.state, { type: "hero.recruit_cancel" });
+    expect(cancelled.state).toMatchObject({ pendingRecruit: null, heroes: [{ name: "Ariane" }] });
   });
 
   it("handles inventory stacks and atomic hero equipment", () => {

@@ -128,5 +128,6 @@ export function serveSupabaseGameApi(options: SupabaseGameApiOptions): unknown {
 const runtimeDeno = (globalThis as typeof globalThis & { Deno?: { env?: { get(name: string): string | undefined; }; serve?: unknown } }).Deno;
 if (runtimeDeno?.serve && (runtimeDeno.env?.get("SUPABASE_URL") ?? runtimeDeno.env?.get("GAME_API_SUPABASE_URL"))) {
   const allowedOrigins = (runtimeDeno.env.get("GAME_API_ALLOWED_ORIGINS") ?? "http://127.0.0.1:3000,http://localhost:3000").split(",").map((origin) => origin.trim()).filter(Boolean);
-  serveSupabaseGameApi({ allowedOrigins, initialState: initialTownState(), applyCommand: async (state, command) => applyTownCommand(state, command) });
+  const allowCheats = runtimeDeno.env.get("GAME_API_ENABLE_CHEATS") === "true";
+  serveSupabaseGameApi({ allowedOrigins, initialState: initialTownState(), applyCommand: async (state, command) => applyTownCommand(state, command, { allowCheats }) });
 }

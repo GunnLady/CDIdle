@@ -24,6 +24,12 @@ describe("authoritative dungeon commands", () => {
     expect(result.events).toEqual([{ type: "dungeon.encounter_started", encounterId: "encounter-cmd-explore", floor: 1, room: 1 }]);
   });
 
+  it("selects only an unlocked floor without starting an encounter", () => {
+    const selected = applyDungeonCommand({ ...state(), highestFloorReached: 3 }, { type: "dungeon.select_floor", floor: 2 });
+    expect(selected.state).toMatchObject({ activeDungeonFloor: 2, activeDungeonRoom: 1, currentEncounter: null, autoExplore: false });
+    expect(() => applyDungeonCommand(state(), { type: "dungeon.select_floor", floor: 2 })).toThrow("requested dungeon floor is not available");
+  });
+
   it("resolves the active encounter server-side with transcript, reward and progression", () => {
     const started = applyDungeonCommand(state(), { type: "dungeon.explore", floor: 1, commandId: "cmd-resolve" });
     const resolved = applyDungeonCommand(started.state, { type: "dungeon.resolve", commandId: "cmd-resolve-result" });
@@ -57,6 +63,10 @@ describe("authoritative dungeon commands", () => {
   it("toggles auto-exploration only for an online command with an active hero", () => {
     const enabled = applyDungeonCommand(state(), { type: "dungeon.auto_explore", enabled: true });
     expect(enabled.state.autoExplore).toBe(true);
+    const started = applyDungeonCommand(enabled.state, { type: "dungeon.explore", floor: 1, commandId: "auto-start" });
+    expect(started.state.autoExplore).toBe(true);
+    const resolved = applyDungeonCommand(started.state, { type: "dungeon.resolve" }, fixedRng());
+    expect(resolved.state.autoExplore).toBe(true);
     const disabled = applyDungeonCommand(enabled.state, { type: "dungeon.auto_explore", enabled: false });
     expect(disabled.state.autoExplore).toBe(false);
     expect(() => applyDungeonCommand({ ...state(), heroes: [] }, { type: "dungeon.auto_explore", enabled: true })).toThrowError("at least one active hero is required");

@@ -11,6 +11,7 @@ export type DungeonState = Record<string, unknown> & {
 
 export type DungeonCommand =
   | { type: "dungeon.explore"; floor: number; commandId?: string }
+  | { type: "dungeon.select_floor"; floor: number; commandId?: string }
   | { type: "dungeon.resolve"; commandId?: string }
   | { type: "dungeon.auto_explore"; enabled: boolean; commandId?: string }
   | { type: "dungeon.retreat"; commandId?: string };
@@ -98,7 +99,7 @@ function resolveFight(state: DungeonState, floor: number, room: number, rng: Dun
     loot.push({ type: "material", ...bossMaterial });
   }
   const encounter = { kind: "fight", floor, room, outcome: victory ? "victory" : "defeat", roundCount: round, enemy: { hp: enemyHp, maxHp: enemyMaxHp }, transcript, rewards: { gold: rewardGold, loot } };
-  return { state: { ...state, ...next, heroes: state.heroes?.map((hero) => heroes.find((updated) => updated.id === hero.id) ?? hero), resources, forgeMaterials, currentEncounter: null, autoExplore: false }, events: [{ type: "dungeon.encounter_resolved", encounter }] };
+  return { state: { ...state, ...next, heroes: state.heroes?.map((hero) => heroes.find((updated) => updated.id === hero.id) ?? hero), resources, forgeMaterials, currentEncounter: null, autoExplore: state.autoExplore ?? false }, events: [{ type: "dungeon.encounter_resolved", encounter }] };
 }
 
 export function applyDungeonCommand(current: Record<string, unknown>, command: Record<string, unknown>, rng?: DungeonRng): { state: DungeonState; events: unknown[] } {
@@ -108,6 +109,11 @@ export function applyDungeonCommand(current: Record<string, unknown>, command: R
   if (typed.type === "dungeon.auto_explore") {
     if (typed.enabled && activeHeroes(state.heroes ?? []).length === 0) throw new DungeonCommandError("NO_ACTIVE_HERO", "at least one active hero is required");
     return { state: { ...state, autoExplore: typed.enabled }, events: [{ type: "dungeon.auto_explore_changed", enabled: typed.enabled }] };
+  }
+  if (typed.type === "dungeon.select_floor") {
+    if (!Number.isInteger(typed.floor) || typed.floor < 1 || typed.floor > highest) throw new DungeonCommandError("FLOOR_NOT_REACHED", "requested dungeon floor is not available");
+    if (state.currentEncounter) throw new DungeonCommandError("ENCOUNTER_ACTIVE", "an encounter is already active");
+    return { state: { ...state, activeDungeonFloor: typed.floor, activeDungeonRoom: 1, autoExplore: false }, events: [{ type: "dungeon.floor_selected", floor: typed.floor }] };
   }
   if (typed.type === "dungeon.retreat") {
     if (!state.currentEncounter) throw new DungeonCommandError("NO_ACTIVE_ENCOUNTER", "there is no active encounter");
@@ -125,5 +131,5 @@ export function applyDungeonCommand(current: Record<string, unknown>, command: R
   const commandId = typed.commandId ?? "dungeon-command";
   const encounterId = `encounter-${commandId}`;
   const currentEncounter = { encounterId, kind: "fight", status: "active", floor, room, commandId };
-  return { state: { ...state, currentEncounter, autoExplore: false }, events: [{ type: "dungeon.encounter_started", encounterId, floor, room }] };
+  return { state: { ...state, currentEncounter, autoExplore: state.autoExplore ?? false }, events: [{ type: "dungeon.encounter_started", encounterId, floor, room }] };
 }

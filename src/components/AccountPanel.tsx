@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import { signInWithEmail, signUpWithEmail, signInWithGoogle, signOut } from "../lib/supabase";
 import {
   Cloud,
-  CloudLightning,
   CloudRain,
   Database,
   Lock,
@@ -31,7 +30,6 @@ interface AccountPanelProps {
   onHardReset: () => Promise<void>;
   onDeleteAccount: () => Promise<void>;
   addLog: (message: string, type?: "info" | "victory" | "defeat" | "loot" | "system") => void;
-  isCloudQuotaExceeded?: boolean;
 }
 
 export default function AccountPanel({
@@ -46,8 +44,7 @@ export default function AccountPanel({
   onSaveCloud,
   onHardReset,
   onDeleteAccount,
-  addLog,
-  isCloudQuotaExceeded = false
+  addLog
 }: AccountPanelProps) {
   // Auth Form states (only used if offline/logged out)
   const [authMode, setAuthMode] = useState<"login" | "signup">("login");
@@ -346,20 +343,8 @@ export default function AccountPanel({
         </div>
       </div>
 
-      {/* CLOUD MANUAL SYNCHRONIZATION ACTION */}
+      {/* AUTHORITATIVE SERVER REFRESH */}
       <div className="space-y-3">
-        {isCloudQuotaExceeded && (
-          <div className="p-3 bg-amber-950/30 border border-amber-500/30 rounded-lg text-xs text-amber-300 leading-relaxed font-sans">
-            <span className="font-bold flex items-center gap-1.5 text-amber-400">
-              <CloudLightning className="w-4 h-4 shrink-0 animate-pulse" />
-              <span>Quota Cloud Journalier Atteint</span>
-            </span>
-            <p className="mt-1">
-              La limite de sauvegarde cloud gratuite est atteinte pour aujourd'hui. Votre progression est <strong>automatiquement sauvegardée en toute sécurité sur votre appareil (Local Storage)</strong>, vous ne perdrez aucun progrès ! La synchronisation cloud reprendra demain.
-            </p>
-          </div>
-        )}
-
         <div className="flex flex-col sm:flex-row gap-3">
           <button
             onClick={onSaveCloud}
@@ -369,12 +354,12 @@ export default function AccountPanel({
             {isSyncing ? (
               <>
                 <RefreshCw className="w-4 h-4 animate-spin" />
-                <span>Synchronisation cloud...</span>
+                <span>Actualisation serveur...</span>
               </>
             ) : (
               <>
                 <Database className="w-4 h-4" />
-                <span>Sauvegarder Progrès (Cloud)</span>
+                <span>Actualiser l’état serveur</span>
               </>
             )}
           </button>

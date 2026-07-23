@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useCallback } from "react";
 import {
   Hero,
   Monster,
@@ -1076,20 +1076,6 @@ export function useDungeonSystem({
       return;
     }
   }, [setHeroes, setCurrentMonster, setEncounterType, setCombatTimer, setResources, setStoredItems, setForgeMaterials, setAutoExplore, setActiveDungeonFloor, setActiveDungeonRoom, setHighestFloorReached, advanceDungeon, addLog, buildings, setCombatTurnIndex]);
-
-  // COMBAT SIMULATION TICK PROCESSOR
-  useEffect(() => {
-    if (!currentUser || !isOnline) return;
-    let battleHandle: NodeJS.Timeout;
-
-    if (autoExplore) {
-      battleHandle = setInterval(() => {
-        runCombatTick();
-      }, 1000);
-    }
-
-    return () => clearInterval(battleHandle);
-  }, [autoExplore, runCombatTick, currentUser, isOnline]);
 
   const handleRetreatParty = useCallback(() => {
     setCurrentMonster(null);

@@ -95,7 +95,7 @@ export function createSupabaseGameApiServices(options: SupabaseAdapterOptions) {
     }
     const result = await request("/rest/v1/rpc/commit_game_command", { method: "POST", body: JSON.stringify({ p_user_id: userId, p_command_id: payload.commandId, p_request_hash: requestHash, p_expected_revision: expected, p_state: transition.state, p_events: transition.events ?? [] }) });
     const value = row(result);
-    return { ok: true, revision: value.revision, state: value.state, commandId: payload.commandId, replayed: false, ...(idleReport ? { idleReport } : {}) };
+    return { ok: true, revision: value.revision, state: value.state, events: transition.events ?? [], commandId: payload.commandId, replayed: false, ...(idleReport ? { idleReport } : {}) };
   }
   async function reset(userId: string): Promise<Record<string, unknown>> { return await request("/rest/v1/rpc/reset_game", { method: "POST", body: JSON.stringify({ p_user_id: userId, p_state: options.initialState }) }) as Record<string, unknown>; }
   async function deleteAccount(userId: string) {
