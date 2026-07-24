@@ -1,16 +1,16 @@
 ---
 id: CDI-051
 title: Raccordement UI aux commandes autoritaires
-status: Doing
+status: Paused
 area: integration
 priority: P1
 size: L
 risk: high
 source: Audit Eclipse CDI-037 du 2026-07-23
-depends_on: ["CDI-023", "CDI-025", "CDI-026", "CDI-027", "CDI-028", "CDI-029", "CDI-031", "CDI-041", "CDI-052"]
+depends_on: ["CDI-023", "CDI-025", "CDI-026", "CDI-027", "CDI-028", "CDI-029", "CDI-031", "CDI-041", "CDI-052", "CDI-053"]
 blocks: ["CDI-045", "CDI-046", "CDI-048", "CDI-049"]
 github_issue: null
-related_docs: ["docs/fullstack-authoritative-plan.md", "docs/architecture/api-command-contracts.md", "docs/architecture/game-api-followups.md", "src/App.tsx", "src/lib/supabase.ts"]
+related_docs: ["docs/fullstack-authoritative-plan.md", "docs/architecture/api-command-contracts.md", "docs/architecture/game-api-followups.md", "docs/development/session-2026-07-24-cdi-051-handoff.md", "src/App.tsx", "src/lib/supabase.ts"]
 ---
 
 # CDI-051 — Raccordement UI aux commandes autoritaires
@@ -31,6 +31,10 @@ et ne divergent pas entre cache local, interface et partie canonique.
 Le client appelle actuellement `bootstrap` et `reset`, mais aucune mutation UI
 n appelle `/commands`. Les hooks locaux continuent donc de produire les
 mutations visibles malgre les autorites serveur deja livrees.
+
+La validation navigateur du 2026-07-24 a aussi identifie une regression :
+les heros crees par l onboarding autoritaire ne recoivent plus leur equipement
+initial. CDI-053 doit corriger cette regression avant la cloture de CDI-051.
 
 ## Perimetre autorise
 
@@ -78,6 +82,7 @@ mutations visibles malgre les autorites serveur deja livrees.
 - [ ] Un rechargement confirme la persistance des mutations.
 - [ ] La sauvegarde manuelle ne pretend pas synchroniser sans commande serveur.
 - [ ] Un echec de `/reset` ne reinitialise ni l interface ni le cache.
+- [ ] CDI-053 restaure l equipement initial autoritaire et sa persistance.
 
 ## Tests
 
@@ -105,4 +110,5 @@ ou perdre des mutations.
 ## Handoff
 
 Fournir la matrice action UI vers commande, les fichiers touches, les tests et
-les preuves navigateur.
+les preuves navigateur. CDI-051 reste bloque par CDI-053 tant que les nouveaux
+heros ne recuperent pas leur equipement initial canonique.

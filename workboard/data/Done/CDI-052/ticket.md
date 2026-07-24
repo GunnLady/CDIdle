@@ -8,7 +8,7 @@ size: L
 risk: high
 source: Audit Eclipse du plan principal le 2026-07-23
 depends_on: ["CDI-007", "CDI-008", "CDI-041"]
-blocks: ["CDI-050", "CDI-051"]
+blocks: ["CDI-050", "CDI-051", "CDI-053"]
 github_issue: null
 related_docs: ["docs/fullstack-authoritative-plan.md", "docs/architecture/game-state-v1.md", "docs/architecture/api-command-contracts.md", "shared/contracts/game-state.ts", "src/domain/commands.ts", "supabase/functions/game-api/town-authority.ts"]
 ---

@@ -88,3 +88,19 @@ Après ces preuves :
 - Parcours offline/online complet.
 - Préservation visuelle du parcours onboarding et du transcript de donjon.
 - Aucun commit ni push n’a été effectué.
+
+## Régression observée le 24 juillet 2026
+
+Preuve utilisateur pendant la validation navigateur :
+
+- à la création des héros, l’équipement de base n’est plus généré ;
+- conséquence : les nouveaux héros arrivent sans leur équipement initial et
+  le coffre reste vide, ce qui bloque aussi la validation manuelle du parcours
+  inventaire ;
+- cause probable à confirmer : `onboarding.start` reconstruit les héros côté
+  serveur avec un équipement vide au lieu de produire leur équipement de
+  novice autoritaire ;
+- statut : **bloquant CDI-051** ;
+- clôture attendue : générer l’équipement initial côté serveur, ajouter un test
+  d’autorité, recréer un compte ou réinitialiser une partie, puis vérifier
+  équipement et persistance après `F5`.
