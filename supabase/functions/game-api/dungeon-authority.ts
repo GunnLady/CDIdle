@@ -6,6 +6,7 @@ export type DungeonState = Record<string, unknown> & {
   heroes?: DungeonHero[];
   resources?: Record<string, number>;
   currentEncounter?: Record<string, unknown> | null;
+  encounterHistory?: ResolvedDungeonEncounter[];
   autoExplore?: boolean;
 };
 
@@ -21,6 +22,17 @@ export class DungeonCommandError extends Error {
 }
 
 type TranscriptEvent = { sequence: number; type: string; [key: string]: unknown };
+export type ResolvedDungeonEncounter = {
+  encounterId: string;
+  kind: "fight";
+  floor: number;
+  room: number;
+  outcome: "victory" | "defeat";
+  roundCount: number;
+  enemy: { hp: number; maxHp: number };
+  transcript: TranscriptEvent[];
+  rewards: { gold: number; loot: Array<Record<string, unknown>> };
+};
 
 export type DungeonRng = {
   next(): number;
@@ -72,14 +84,14 @@ function resolveFight(state: DungeonState, floor: number, room: number, rng: Dun
       if (Number(hero.currentHp ?? 0) <= 0 || enemyHp <= 0) continue;
       const damage = heroAttack(hero) + rng.nextInt(2);
       enemyHp = Math.max(0, enemyHp - damage);
-      transcript.push({ sequence: sequence++, type: "hero.hit", round, heroId: hero.id ?? "unknown", damage, enemyHp });
+      transcript.push({ sequence: sequence++, type: "hero.hit", round, heroId: hero.id ?? "unknown", heroName: String(hero.name ?? "Un héros"), damage, enemyHp });
     }
     if (enemyHp > 0) {
       const target = heroes.find((hero) => Number(hero.currentHp ?? 0) > 0);
       if (target) {
         const damage = 1 + rng.nextInt(2);
         target.currentHp = Math.max(0, Number(target.currentHp ?? 0) - damage);
-        transcript.push({ sequence: sequence++, type: "enemy.hit", round, heroId: target.id ?? "unknown", damage, heroHp: target.currentHp });
+        transcript.push({ sequence: sequence++, type: "enemy.hit", round, heroId: target.id ?? "unknown", heroName: String(target.name ?? "Un héros"), damage, heroHp: target.currentHp });
       }
     }
   }
@@ -98,8 +110,31 @@ function resolveFight(state: DungeonState, floor: number, room: number, rng: Dun
     else forgeMaterials.push(bossMaterial);
     loot.push({ type: "material", ...bossMaterial });
   }
-  const encounter = { kind: "fight", floor, room, outcome: victory ? "victory" : "defeat", roundCount: round, enemy: { hp: enemyHp, maxHp: enemyMaxHp }, transcript, rewards: { gold: rewardGold, loot } };
-  return { state: { ...state, ...next, heroes: state.heroes?.map((hero) => heroes.find((updated) => updated.id === hero.id) ?? hero), resources, forgeMaterials, currentEncounter: null, autoExplore: state.autoExplore ?? false }, events: [{ type: "dungeon.encounter_resolved", encounter }] };
+  const encounter: ResolvedDungeonEncounter = {
+    encounterId: String(state.currentEncounter?.encounterId ?? `encounter-${floor}-${room}`),
+    kind: "fight",
+    floor,
+    room,
+    outcome: victory ? "victory" : "defeat",
+    roundCount: round,
+    enemy: { hp: enemyHp, maxHp: enemyMaxHp },
+    transcript,
+    rewards: { gold: rewardGold, loot },
+  };
+  const encounterHistory = [...(state.encounterHistory ?? []), encounter].slice(-15);
+  return {
+    state: {
+      ...state,
+      ...next,
+      heroes: state.heroes?.map((hero) => heroes.find((updated) => updated.id === hero.id) ?? hero),
+      resources,
+      forgeMaterials,
+      currentEncounter: null,
+      encounterHistory,
+      autoExplore: state.autoExplore ?? false,
+    },
+    events: [{ type: "dungeon.encounter_resolved", encounter }],
+  };
 }
 
 export function applyDungeonCommand(current: Record<string, unknown>, command: Record<string, unknown>, rng?: DungeonRng): { state: DungeonState; events: unknown[] } {

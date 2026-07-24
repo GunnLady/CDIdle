@@ -47,6 +47,7 @@ const StoragePanel = lazy(() => import("./components/StoragePanel"));
 import { callGameApi, GameApiError, getAuthSnapshot, onAuthStateChange, signOut } from "./lib/supabase";
 import { purgeLegacyGameCache, readGameCache, writeGameCache } from "./lib/gameCache";
 import type { GameCommand } from "./domain/commands";
+import type { CanonicalDungeonEncounterRecord } from "../shared/contracts/authoritative";
 
 // Custom Hooks & Utilities
 import { useGameLog } from "./hooks/useGameLog";
@@ -80,9 +81,18 @@ export default function App() {
   const [reconnectNonce, setReconnectNonce] = useState(0);
   const [, setGameRevision] = useState(0);
   const [currentEncounter, setCurrentEncounter] = useState<Record<string, unknown> | null>(null);
+  const [encounterHistory, setEncounterHistory] = useState<CanonicalDungeonEncounterRecord[]>([]);
+  const [encounterPlayback, setEncounterPlayback] = useState<{
+    encounterId: string;
+    visibleCount: number;
+    complete: boolean;
+  } | null>(null);
+  const [isDungeonSequenceRunning, setIsDungeonSequenceRunning] = useState(false);
   const [pendingForge, setPendingForge] = useState<{ previewId: string; itemId: string; upgradeProc?: "none" | "optional" | "forced" } | null>(null);
   const gameRevisionRef = useRef(0);
   const commandQueueRef = useRef<Promise<void>>(Promise.resolve());
+  const encounterPlaybackTokenRef = useRef(0);
+  const dungeonSequenceRunningRef = useRef(false);
   const bootstrapUserRef = useRef<string | null>(null);
   const isOnline = browserOnline && apiAvailable;
   // Google signup is gated by the server-side alpha_allowlist hook and every
@@ -178,6 +188,7 @@ export default function App() {
     if (state.highestFloorReached !== undefined) setDungeonHighestFloorReached(Number(state.highestFloorReached));
     if (state.autoExplore !== undefined) setAutoExplore(Boolean(state.autoExplore));
     if (state.currentEncounter !== undefined) setCurrentEncounter(state.currentEncounter);
+    if (Array.isArray(state.encounterHistory)) setEncounterHistory(state.encounterHistory);
     if (state.pendingForge !== undefined) setPendingForge(state.pendingForge);
     if (state.pendingRecruit !== undefined) setPendingRecruit(state.pendingRecruit ? refreshHeroDerivedStats(state.pendingRecruit) : null);
     if (state.onboardingCandidates !== undefined) {
@@ -209,6 +220,31 @@ export default function App() {
     setUnlockedDistricts,
   ]);
 
+  const playEncounterTranscript = useCallback(async (encounter: CanonicalDungeonEncounterRecord) => {
+    const token = ++encounterPlaybackTokenRef.current;
+    setEncounterPlayback({ encounterId: encounter.encounterId, visibleCount: 0, complete: false });
+    for (let index = 0; index < encounter.transcript.length; index += 1) {
+      await new Promise<void>((resolve) => window.setTimeout(resolve, 400));
+      if (encounterPlaybackTokenRef.current !== token) return;
+      setEncounterPlayback({
+        encounterId: encounter.encounterId,
+        visibleCount: index + 1,
+        complete: false,
+      });
+    }
+    await new Promise<void>((resolve) => window.setTimeout(resolve, 400));
+    if (encounterPlaybackTokenRef.current !== token) return;
+    setEncounterPlayback({
+      encounterId: encounter.encounterId,
+      visibleCount: encounter.transcript.length,
+      complete: true,
+    });
+  }, []);
+
+  useEffect(() => () => {
+    encounterPlaybackTokenRef.current += 1;
+  }, []);
+
   const dispatchAuthoritativeCommand = useCallback((command: GameCommand): Promise<boolean> => {
     if (!currentUser || !isOnline) {
       addLog("📡 Mode hors connexion : mutation verrouillée.", "info");
@@ -227,13 +263,23 @@ export default function App() {
             command,
           }),
         });
+        const resolvedEncounter = (result?.events ?? [])
+          .find((event: any) => event?.type === "dungeon.encounter_resolved")
+          ?.encounter as CanonicalDungeonEncounterRecord | undefined;
+        if (resolvedEncounter) {
+          setEncounterPlayback({
+            encounterId: resolvedEncounter.encounterId,
+            visibleCount: 0,
+            complete: false,
+          });
+        }
         await applyAuthoritativeState(result?.state, result?.revision);
         for (const event of result?.events ?? []) {
-          if (event?.type === "dungeon.encounter_started") addLog("⚔️ Un encounter autoritaire a commencé.", "info");
-          if (event?.type === "dungeon.encounter_resolved") addLog("🏆 Encounter résolu par le serveur.", "victory");
+          if (event?.type === "dungeon.encounter_started") addLog("⚔️ Une rencontre autoritaire a commencé.", "info");
           if (event?.type === "forge.preview_created") addLog("🔥 Prévisualisation de forge créée par le serveur.", "info");
           if (event?.type === "forge.finalized") addLog("🔨 Objet forgé et enregistré par le serveur.", "victory");
         }
+        if (resolvedEncounter) await playEncounterTranscript(resolvedEncounter);
         return true;
       } catch (error) {
         if (error instanceof GameApiError && error.status === 409) {
@@ -256,18 +302,52 @@ export default function App() {
     });
     commandQueueRef.current = operation.then(() => undefined, () => undefined);
     return operation;
-  }, [addLog, applyAuthoritativeState, currentUser, isOnline]);
+  }, [addLog, applyAuthoritativeState, currentUser, isOnline, playEncounterTranscript]);
+
+  const exploreAndResolveDungeon = useCallback(async () => {
+    if (dungeonSequenceRunningRef.current || !currentUser || !isOnline) return false;
+    dungeonSequenceRunningRef.current = true;
+    setIsDungeonSequenceRunning(true);
+    try {
+      if (!currentEncounter) {
+        const explored = await dispatchAuthoritativeCommand({
+          type: "dungeon.explore",
+          floor: dungeon.activeDungeonFloor,
+        });
+        if (!explored) return false;
+      }
+      return await dispatchAuthoritativeCommand({ type: "dungeon.resolve" });
+    } finally {
+      dungeonSequenceRunningRef.current = false;
+      setIsDungeonSequenceRunning(false);
+    }
+  }, [
+    currentEncounter,
+    currentUser,
+    dispatchAuthoritativeCommand,
+    dungeon.activeDungeonFloor,
+    isOnline,
+  ]);
 
   useEffect(() => {
-    if (!currentUser || !isOnline || !dungeon.autoExplore) return;
+    if (!currentEncounter || !currentUser || !isOnline || isDungeonSequenceRunning) return;
+    void exploreAndResolveDungeon();
+  }, [currentEncounter, currentUser, exploreAndResolveDungeon, isDungeonSequenceRunning, isOnline]);
+
+  useEffect(() => {
+    if (!currentUser || !isOnline || !dungeon.autoExplore || currentEncounter || isDungeonSequenceRunning) return;
     const handle = window.setTimeout(() => {
-      const command: GameCommand = currentEncounter
-        ? { type: "dungeon.resolve" }
-        : { type: "dungeon.explore", floor: dungeon.activeDungeonFloor };
-      void dispatchAuthoritativeCommand(command);
+      void exploreAndResolveDungeon();
     }, 1000);
     return () => window.clearTimeout(handle);
-  }, [currentEncounter, currentUser, dispatchAuthoritativeCommand, dungeon.activeDungeonFloor, dungeon.autoExplore, isOnline]);
+  }, [
+    currentEncounter,
+    currentUser,
+    dungeon.autoExplore,
+    exploreAndResolveDungeon,
+    isDungeonSequenceRunning,
+    isOnline,
+  ]);
 
   const handleConfirmRecruit = () => {
     if (!pendingRecruit) return;
@@ -401,8 +481,14 @@ export default function App() {
         }
       } else {
         bootstrapUserRef.current = null;
+        encounterPlaybackTokenRef.current += 1;
+        dungeonSequenceRunningRef.current = false;
         setGameRevision(0);
         setCityName("");
+        setCurrentEncounter(null);
+        setEncounterHistory([]);
+        setEncounterPlayback(null);
+        setIsDungeonSequenceRunning(false);
         setIsInitialGameLoadDone(true);
         setTownResources({ gold: 0, food: 0, wood: 0, stone: 0, ore: 0 });
         addLog("🔑 Veuillez vous connecter pour commencer la conquête de l'empire !", "info");
@@ -451,19 +537,21 @@ export default function App() {
     }
     try {
       setIsSyncing(true);
+      if (currentUser) {
+        await callGameApi("/reset", { method: "POST" });
+      }
       await purgeLegacyGameCache();
       
       // Reset systems
       town.resetTownSystem();
       dungeon.resetDungeonSystem();
       setBattleLogs([]);
+      setCurrentEncounter(null);
+      setEncounterHistory([]);
+      setEncounterPlayback(null);
 
       // Crucially, set cityName to empty string to send user back to the naming page of LoginPage
       setCityName("");
-
-      if (currentUser) {
-        await callGameApi("/reset", { method: "POST" });
-      }
 
       addLog("💣 Remise à zéro totale effectuée ! Créez une nouvelle cité.", "defeat");
     } catch (err) {
@@ -485,6 +573,9 @@ export default function App() {
       town.resetTownSystem();
       dungeon.resetDungeonSystem();
       setBattleLogs([]);
+      setCurrentEncounter(null);
+      setEncounterHistory([]);
+      setEncounterPlayback(null);
       setCityName("");
       await signOut();
       addLog("Compte et données supprimés définitivement.", "defeat");
@@ -849,9 +940,11 @@ export default function App() {
                 battleLogs={battleLogs}
                 highestFloorReached={dungeon.highestFloorReached}
                 onToggleAutoExplore={() => { void dispatchAuthoritativeCommand({ type: "dungeon.auto_explore", enabled: !dungeon.autoExplore }); }}
-                hasActiveEncounter={currentEncounter !== null}
-                onExplore={() => { void dispatchAuthoritativeCommand({ type: "dungeon.explore", floor: dungeon.activeDungeonFloor }); }}
-                onResolveEncounter={() => { void dispatchAuthoritativeCommand({ type: "dungeon.resolve" }); }}
+                activeEncounter={currentEncounter}
+                encounterHistory={encounterHistory}
+                encounterPlayback={encounterPlayback}
+                isExploring={isDungeonSequenceRunning}
+                onExplore={() => { void exploreAndResolveDungeon(); }}
                 onChangeFloor={(direction) => {
                   const floor = Math.max(1, dungeon.activeDungeonFloor + (direction === "next" ? 1 : -1));
                   void dispatchAuthoritativeCommand({ type: "dungeon.select_floor", floor });

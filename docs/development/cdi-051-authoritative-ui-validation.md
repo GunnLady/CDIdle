@@ -10,8 +10,8 @@ documentation de suivi durable et non un handoff de session.
 
 - L’intégration principale CDI-051 est publiée dans `f47993e`.
 - La régression de création des novices est tracée dans `e0fe83e`.
-- CDI-051 est en `Paused`, bloqué par CDI-053.
-- CDI-053 restaure la génération autoritaire complète des novices.
+- CDI-051 est en `Paused`.
+- CDI-053 a restauré puis validé la génération autoritaire complète des novices.
 
 ## Corrections réalisées
 
@@ -66,15 +66,68 @@ Preuves rapportées par l’utilisateur :
 - activation ou désactivation d’un héros via `/game-api/commands` : HTTP 200 ;
 - révision canonique relevée à 12, puis état actif/inactif conservé après
   `F5`.
+- activation de Ragnor puis `dungeon.explore` : rencontre active persistée en
+  révision 19 ;
+- l'ancien flux affichait une carte explicite et un bouton
+  « Résoudre la rencontre » ; cette preuve historique a déclenché son
+  remplacement par une résolution transparente ;
+- `dungeon.resolve` : 200, révision 20, victoire en trois tours, cinq
+  événements de transcript restitués dans le journal, +6 or et passage à la
+  salle 2 ;
+- après `F5`, bootstrap révision 20 : salle 2, 131 or, Ragnor à 100 PV,
+  rencontre nulle et aucune bannière hors connexion.
+
+## Résolution transparente et registre persistant
+
+Évolution confirmée puis implémentée le 24 juillet 2026 :
+
+- `Explorer la salle` exécute `dungeon.explore`, puis `dungeon.resolve` sans
+  second clic et sans bouton de résolution ;
+- le transcript retourné par le serveur apparaît ligne par ligne avec un
+  intervalle de 400 ms ;
+- le verdict et la récompense restent masqués jusqu'à la fin de la lecture ;
+- l'exploration manuelle et l'auto-donjon attendent la fin de cette lecture ;
+- une rencontre active retrouvée au bootstrap reprend automatiquement ;
+- `encounterHistory` conserve côté serveur les 15 derniers combats, leurs
+  transcripts et leurs récompenses ; l'historique est donc disponible après
+  `F5` et sur un autre appareil ;
+- le nom du héros est conservé dans chaque événement afin que les anciens
+  combats restent lisibles après un renvoi ;
+- le reset attend désormais le succès de `/reset` avant de modifier l'interface
+  et le cache.
+
+Preuves Codex :
+
+- `npm.cmd run typecheck` : réussi ;
+- tests ciblés autorité/contrats/ville/API : 4 fichiers, 31 tests, réussis ;
+- test du registre UI progressif et de l'absence de bouton `Résoudre` :
+  1 fichier, 1 test, réussi.
+
+La preuve navigateur de ce nouveau flux reste nécessaire.
+
+## Blocage CDI-054 — parite du moteur de donjon
+
+Le test navigateur du registre a revele que le transcript serveur ne contient
+que `hero.hit` et `enemy.hit`. L audit Git confirme que le backend ne porte pas
+le moteur historique : encounters ponderes, monstres, boss, competences, mana,
+cooldowns, critiques, multi-frappes, esquives, defenses, recompenses, XP et
+progression sont absents ou differents.
+
+CDI-051 ne peut pas etre clos avec un transcript anime mais fonctionnellement
+incomplet. La reprise depend de CDI-054 et de :
+
+`docs/architecture/authoritative-dungeon-parity-audit.md`.
 
 ## Validations navigateur restantes
 
-Après résolution de CDI-053, continuer avec une mutation par domaine :
+Après correction de CDI-053, continuer avec une mutation par domaine :
 
 - héros : activité, équipement ou recrutement ;
 - inventaire : équipement ou recyclage ;
 - forge : démarrage puis finalisation/annulation ;
-- donjon : sélection d’étage, exploration, résolution et auto-donjon ;
+- donjon : valider le nouveau clic unique, la lecture progressive, l'absence de
+  bouton de résolution, le blocage pendant la lecture, l'auto-donjon et la
+  persistance de l'historique après `F5` ;
 - conflit `409` : vérifier le rechargement canonique ;
 - offline/online : aucune mutation hors ligne, cache visible, reprise après
   reconnexion ;
@@ -93,7 +146,7 @@ Après ces preuves :
 - Comportement navigateur du conflit `409`.
 - Parcours offline/online complet.
 - Préservation visuelle du parcours onboarding et du transcript de donjon.
-- Validation complète de la création des novices après CDI-053.
+- Nouveau flux visuel du donjon et historique canonique après `F5`.
 
 ## Régression CDI-053 observée le 24 juillet 2026
 

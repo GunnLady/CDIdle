@@ -122,6 +122,27 @@ du ticket, tandis que la preuve HTTP Edge avec RLS/RPC/transaction atomique
 sera realisee dans le smoke CDI-041 en staging ou production. Ce report est un
 ecart planifie, pas une validation implicite.
 
+## 5. Parite deterministe du donjon — CDI-054
+
+L audit du 24 juillet 2026 confirme que `dungeon-authority.ts` implemente une
+resolution generique et non le moteur historique encore visible dans
+`useDungeonSystem.ts`. Le backend ne consomme pas les memes rolls et ne produit
+pas les memes mutations.
+
+CDI-054 doit :
+
+- extraire la reference Git `640f89f` dans un moteur pur ;
+- injecter un RNG unique sans changer l ordre des consommations ;
+- porter encounters, monstres, boss, tours, competences, critiques, esquives,
+  defenses, recompenses, XP et progression ;
+- produire un transcript complet ;
+- comparer reference et backend avec une meme bande RNG ;
+- s appuyer sur CDI-050 pour persister le RNG atomiquement.
+
+CDI-054 bloque CDI-051, CDI-046, CDI-048 et CDI-049.
+
+Audit : `docs/architecture/authoritative-dungeon-parity-audit.md`.
+
 ## Conditions de reprise
 
 Le suivi sera considéré suffisamment avancé pour reprendre les tranches

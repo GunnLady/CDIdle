@@ -2,6 +2,29 @@ export type CanonicalRarity = "common" | "uncommon" | "rare" | "epic" | "legenda
 
 export type CanonicalModifier = { stat: string; type?: "flat" | "percent"; value: number };
 
+export interface CanonicalDungeonTranscriptEvent {
+  sequence: number;
+  type: "hero.hit" | "enemy.hit";
+  round: number;
+  heroId: string;
+  heroName?: string;
+  damage: number;
+  enemyHp?: number;
+  heroHp?: number;
+}
+
+export interface CanonicalDungeonEncounterRecord {
+  encounterId: string;
+  kind: "fight";
+  floor: number;
+  room: number;
+  outcome: "victory" | "defeat";
+  roundCount: number;
+  enemy: { hp: number; maxHp: number };
+  transcript: CanonicalDungeonTranscriptEvent[];
+  rewards: { gold: number; loot: Array<Record<string, unknown>> };
+}
+
 export interface CanonicalGameState {
   resources: Record<string, number>;
   buildings: Record<string, number>;
@@ -16,6 +39,7 @@ export interface CanonicalGameState {
   activeDungeonRoom: number;
   highestFloorReached: number;
   currentEncounter: Record<string, unknown> | null;
+  encounterHistory: CanonicalDungeonEncounterRecord[];
   autoExplore: boolean;
   citizenGrowthProgress: number;
 }
@@ -86,9 +110,10 @@ export function validateCanonicalGameState(input: unknown): string[] {
   if (!input || typeof input !== "object") return ["state must be an object"];
   const value = input as Record<string, unknown>;
   const errors: string[] = [];
-  for (const field of ["resources", "buildings", "citizens", "districts", "heroes", "storedItems", "forgeMaterials", "itemBlueprints"]) {
+  for (const field of ["resources", "buildings", "citizens", "districts", "heroes", "storedItems", "forgeMaterials", "itemBlueprints", "encounterHistory"]) {
     if (!(field in value)) errors.push(`${field} is required`);
   }
+  if ("encounterHistory" in value && !Array.isArray(value.encounterHistory)) errors.push("encounterHistory must be an array");
   for (const field of ["totalCitizensCount", "activeDungeonFloor", "activeDungeonRoom", "highestFloorReached", "citizenGrowthProgress"]) {
     if (!(field in value)) errors.push(`${field} is required`);
     else if (typeof value[field] !== "number" || !Number.isFinite(value[field])) errors.push(`${field} must be a number`);

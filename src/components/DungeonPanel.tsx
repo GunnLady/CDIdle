@@ -23,6 +23,7 @@ import {
 import { Hero, Monster, BattleLogEntry, DungeonEncounterType } from "../types";
 import { getHeroAttributes } from "../utils/gameCalculations";
 import { getEncounterDetails, getEncounterStatPresentation } from "../utils/dungeonHelpers";
+import type { CanonicalDungeonEncounterRecord } from "../../shared/contracts/authoritative";
 
 interface DungeonPanelProps {
   heroes: Hero[];
@@ -34,9 +35,15 @@ interface DungeonPanelProps {
   battleLogs: BattleLogEntry[];
   highestFloorReached: number;
   onToggleAutoExplore: () => void;
-  hasActiveEncounter: boolean;
+  activeEncounter: Record<string, unknown> | null;
+  encounterHistory: CanonicalDungeonEncounterRecord[];
+  encounterPlayback: {
+    encounterId: string;
+    visibleCount: number;
+    complete: boolean;
+  } | null;
+  isExploring: boolean;
   onExplore: () => void;
-  onResolveEncounter: () => void;
   onChangeFloor: (direction: "prev" | "next") => void;
   onRetreatParty: () => void;
   onClearBattleLogs: () => void;
@@ -54,9 +61,11 @@ export default function DungeonPanel({
   battleLogs,
   highestFloorReached,
   onToggleAutoExplore,
-  hasActiveEncounter,
+  activeEncounter,
+  encounterHistory,
+  encounterPlayback,
+  isExploring,
   onExplore,
-  onResolveEncounter,
   onChangeFloor,
   onRetreatParty,
   onClearBattleLogs,
@@ -75,6 +84,26 @@ export default function DungeonPanel({
       return cat === logFilter;
     });
   }, [battleLogs, logFilter]);
+
+  const visibleEncounterHistory = React.useMemo(
+    () => logFilter === "colony" ? [] : [...encounterHistory].reverse(),
+    [encounterHistory, logFilter],
+  );
+
+  const heroNames = React.useMemo(
+    () => new Map(heroes.map((hero) => [hero.id, hero.name])),
+    [heroes],
+  );
+
+  const formatTranscriptEvent = React.useCallback((
+    event: CanonicalDungeonEncounterRecord["transcript"][number],
+  ) => {
+    const heroName = event.heroName ?? heroNames.get(event.heroId) ?? "Un héros";
+    if (event.type === "hero.hit") {
+      return `Tour ${event.round} — ${heroName} inflige ${event.damage} dégâts.`;
+    }
+    return `Tour ${event.round} — L'ennemi inflige ${event.damage} dégâts à ${heroName}.`;
+  }, [heroNames]);
 
   // Memoized scout calculations for high-performance rendering (display refresh optimization)
   const scoutStats = React.useMemo(() => {
@@ -176,12 +205,22 @@ export default function DungeonPanel({
     }
   }, [activeDungeonFloor]);
 
-  // Auto scroll to top when new logs appear (latest entry is on top)
+  // Keep the newest encounter at the top, then follow its transcript downward
+  // while the turn-by-turn playback grows inside the fixed-height registry.
   useEffect(() => {
-    if (logContainerRef.current) {
-      logContainerRef.current.scrollTop = 0;
+    const container = logContainerRef.current;
+    if (!container) return;
+    if (!encounterPlayback) {
+      container.scrollTop = 0;
+      return;
     }
-  }, [filteredBattleLogs]);
+    const marker = container.querySelector<HTMLElement>("[data-playback-end]");
+    if (!marker) return;
+    const containerRect = container.getBoundingClientRect();
+    const markerRect = marker.getBoundingClientRect();
+    const overflow = markerRect.bottom - containerRect.bottom + 12;
+    if (overflow > 0) container.scrollTop += overflow;
+  }, [encounterHistory, encounterPlayback, filteredBattleLogs]);
 
   const getRarityBadgeColor = (rarity: string) => {
     switch (rarity) {
@@ -612,11 +651,11 @@ export default function DungeonPanel({
         <div className="flex flex-col gap-2">
           <div className="flex gap-2.5">
             <button
-              onClick={hasActiveEncounter ? onResolveEncounter : onExplore}
-              disabled={activeHeroes.length === 0}
+              onClick={onExplore}
+              disabled={activeHeroes.length === 0 || isExploring}
               className="flex-1 bg-[#3b2514] hover:bg-[#5a351b] text-[#f4d28b] border-2 border-[#8c5a2b]/60 py-2.5 px-3 rounded text-[11px] font-bold font-serif tracking-widest transition cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed uppercase"
             >
-              {hasActiveEncounter ? "Résoudre l’encounter" : "Explorer la salle"}
+              {isExploring ? "Exploration en cours…" : "Explorer la salle"}
             </button>
             <button
               onClick={onToggleAutoExplore}
@@ -641,7 +680,7 @@ export default function DungeonPanel({
 
             <button
               onClick={onRetreatParty}
-              disabled={activeHeroes.length === 0}
+              disabled={activeHeroes.length === 0 || isExploring}
               className="flex-1 bg-[#2d1212] hover:bg-[#701a1a] text-[#f2a1a1] border-2 border-red-900/40 py-2.5 px-3 rounded text-[11px] font-bold font-serif tracking-widest transition cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed uppercase"
             >
               Repli au Campement
@@ -783,7 +822,24 @@ export default function DungeonPanel({
 
       {/* 3. ACTIVE MONSTER CARD & CLICK SLASHER - Medieval Theme */}
       <div className="bg-[#18110b] border-2 border-[#5c402b] p-4 rounded-xl flex flex-col md:flex-row gap-4 items-center justify-between shadow-2xl relative overflow-hidden">
-        {currentEncounterType && currentEncounterType !== "fight" ? (
+        {activeEncounter && !currentMonster ? (
+          <div className="flex items-center gap-3.5 grow">
+            <div className="text-4xl p-3 bg-[#110b06] border-2 border-red-900/50 rounded-xl select-none">
+              ⚔️
+            </div>
+            <div>
+              <h4 className="text-sm font-bold text-[#dfdbc7] uppercase tracking-widest font-serif">
+                Rencontre autoritaire prête
+              </h4>
+              <p className="text-[10px] text-[#a89078] font-sans mt-1">
+                Étage {String(activeEncounter.floor ?? activeDungeonFloor)} · Salle {String(activeEncounter.room ?? activeDungeonRoom)}
+              </p>
+              <p className="text-[10px] text-[#caa050] font-mono mt-1">
+                Le serveur déterminera le combat et son résultat à la résolution.
+              </p>
+            </div>
+          </div>
+        ) : currentEncounterType && currentEncounterType !== "fight" ? (
           <>
             {renderActiveEncounter(currentEncounterType)}
 
@@ -1029,9 +1085,10 @@ export default function DungeonPanel({
 
           <button
             onClick={onClearBattleLogs}
+            title="Efface uniquement les notes locales, pas l'historique canonique des combats"
             className="text-[9.5px] font-serif border border-[#5c402b] text-[#dfc3a7] bg-[#22140c] px-2.5 py-1 rounded hover:text-white hover:bg-[#3d2516] flex items-center gap-1 transition cursor-pointer"
           >
-            <RotateCcw className="w-3 h-3 text-[#ae8650]" /> Effacer
+            <RotateCcw className="w-3 h-3 text-[#ae8650]" /> Effacer les notes
           </button>
         </div>
 
@@ -1074,7 +1131,70 @@ export default function DungeonPanel({
           ref={logContainerRef}
           className="flex-1 overflow-y-auto space-y-2 pr-2 pl-3"
         >
-          {filteredBattleLogs.length === 0 ? (
+          {visibleEncounterHistory.map((encounter) => {
+            const playback = encounterPlayback?.encounterId === encounter.encounterId
+              ? encounterPlayback
+              : null;
+            const isComplete = playback?.complete ?? true;
+            const visibleTranscript = playback
+              ? encounter.transcript.slice(0, playback.visibleCount)
+              : encounter.transcript;
+            const victory = encounter.outcome === "victory";
+
+            return (
+              <div
+                key={encounter.encounterId}
+                className={`border-l-4 ${
+                  isComplete
+                    ? victory ? "border-emerald-900/60" : "border-red-950/60"
+                    : "border-amber-700/50"
+                } bg-gradient-to-r from-[#110b06] to-[#18110b] rounded-r-lg p-3 shadow-md mb-3 border-y border-r border-[#5c402b]/20`}
+              >
+                <div className="flex items-center justify-between gap-2 pb-2 mb-2 border-b border-[#5c402b]/25">
+                  <span className="text-[10.5px] font-serif uppercase tracking-wider text-[#dfdbc7] font-bold">
+                    ⚔️ Étage {encounter.floor} · Salle {encounter.room}
+                  </span>
+                  <span className={`text-[9px] font-sans px-1.5 py-0.5 rounded uppercase tracking-wider font-bold border ${
+                    !isComplete
+                      ? "text-amber-500 bg-amber-950/30 border-amber-900/40 animate-pulse"
+                      : victory
+                      ? "text-emerald-400 bg-emerald-950/40 border-emerald-900/50"
+                      : "text-red-400 bg-red-950/40 border-red-900/50"
+                  }`}>
+                    {!isComplete ? "Combat en cours" : victory ? "Victoire" : "Défaite"}
+                  </span>
+                </div>
+
+                <div className="space-y-1.5 pl-2 border-l border-[#5c402b]/15 text-left">
+                  {visibleTranscript.length === 0 ? (
+                    <p className="text-amber-500 italic text-[10px] font-sans animate-pulse">
+                      La rencontre commence…
+                    </p>
+                  ) : visibleTranscript.map((event) => (
+                    <div
+                      key={`${encounter.encounterId}-${event.sequence}`}
+                      className="flex items-start gap-1.5 text-[11px] leading-relaxed break-words font-sans animate-fade-in"
+                    >
+                      <span className="text-[#5c402b] select-none text-[9px] mt-0.5 shrink-0">•</span>
+                      <span className={event.type === "hero.hit" ? "text-sky-300" : "text-rose-400"}>
+                        {formatTranscriptEvent(event)}
+                      </span>
+                    </div>
+                  ))}
+                  {isComplete ? (
+                    <p className={`pt-1 text-[10.5px] font-bold ${victory ? "text-emerald-400" : "text-red-400"}`}>
+                      {victory
+                        ? `Victoire en ${encounter.roundCount} tour(s) · +${encounter.rewards.gold} or`
+                        : `Défaite après ${encounter.roundCount} tour(s)`}
+                    </p>
+                  ) : null}
+                  {playback ? <span data-playback-end className="block h-px" aria-hidden="true" /> : null}
+                </div>
+              </div>
+            );
+          })}
+
+          {visibleEncounterHistory.length === 0 && filteredBattleLogs.length === 0 ? (
             <p className="text-[#5c402b] italic p-2 text-center font-serif text-xs">
               {logFilter === "all"
                 ? "Aucune action inscrite. Activez l'auto-marche pour démarrer le raid !"
@@ -1082,7 +1202,7 @@ export default function DungeonPanel({
                 ? "Aucune action de combat inscrite. Les affrontements s'afficheront ici !"
                 : "Aucun événement de colonie enregistré pour le moment."}
             </p>
-          ) : (
+          ) : filteredBattleLogs.length > 0 ? (
             (() => {
               const groups = groupLogsByRoom(filteredBattleLogs);
               const reversedGroups = [...groups].reverse();
@@ -1142,7 +1262,7 @@ export default function DungeonPanel({
                 );
               });
             })()
-          )}
+          ) : null}
         </div>
       </div>
     </div>

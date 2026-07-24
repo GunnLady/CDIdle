@@ -7,7 +7,7 @@ priority: P1
 size: S
 risk: low
 source: audit global
-depends_on: ["CDI-045", "CDI-050", "CDI-051"]
+depends_on: ["CDI-045", "CDI-050", "CDI-051", "CDI-054"]
 blocks: ["CDI-048", "CDI-049"]
 github_issue: null
 related_docs: ["package.json", ".github/workflows/ci.yml", "docs/fullstack-authoritative-plan.md"]

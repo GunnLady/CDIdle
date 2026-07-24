@@ -7,7 +7,7 @@ priority: P1
 size: L
 risk: high
 source: Audit Eclipse CDI-037 du 2026-07-23
-depends_on: ["CDI-023", "CDI-025", "CDI-026", "CDI-027", "CDI-028", "CDI-029", "CDI-031", "CDI-041", "CDI-052", "CDI-053"]
+depends_on: ["CDI-023", "CDI-025", "CDI-026", "CDI-027", "CDI-028", "CDI-029", "CDI-031", "CDI-041", "CDI-052", "CDI-053", "CDI-054"]
 blocks: ["CDI-045", "CDI-046", "CDI-048", "CDI-049"]
 github_issue: null
 related_docs: ["docs/fullstack-authoritative-plan.md", "docs/architecture/api-command-contracts.md", "docs/architecture/game-api-followups.md", "docs/development/cdi-051-authoritative-ui-validation.md", "src/App.tsx", "src/lib/supabase.ts"]
@@ -32,10 +32,16 @@ Le client appelle actuellement `bootstrap` et `reset`, mais aucune mutation UI
 n appelle `/commands`. Les hooks locaux continuent donc de produire les
 mutations visibles malgre les autorites serveur deja livrees.
 
-La validation navigateur du 2026-07-24 a aussi identifie une regression :
+La validation navigateur du 2026-07-24 a aussi identifie puis fait corriger une regression :
 les heros crees par l onboarding autoritaire ne conservaient plus leur profil
 affiche complet : statistiques, statut elite, competences et equipement.
-CDI-053 doit corriger cette regression avant la cloture de CDI-051.
+CDI-053 a restaure ce profil complet et sa persistance avant la reprise de
+CDI-051.
+
+L audit de parite du 2026-07-24 a ensuite confirme que le moteur de combat
+serveur est une resolution simplifiee et non le port du moteur historique.
+CDI-054 doit restaurer le meme deroule, les memes formules, le meme ordre de
+rolls et un transcript exhaustif avant de reprendre la validation donjon.
 
 ## Perimetre autorise
 
@@ -70,20 +76,21 @@ CDI-053 doit corriger cette regression avant la cloture de CDI-051.
 
 - CDI-023, CDI-025, CDI-026, CDI-027, CDI-028, CDI-029, CDI-031, CDI-041 et
   CDI-052.
+- CDI-054 — parite deterministe du moteur de donjon autoritaire.
 
 ## Criteres d'acceptation
 
 - [ ] Les actions ville utilisent des commandes typees.
 - [ ] Les actions heros, inventaire et forge utilisent des commandes typees.
-- [ ] Les actions donjon utilisent des commandes typees.
+- [x] Les actions donjon utilisent des commandes typees.
 - [ ] Onboarding, cheats, ticks et auto-donjon ne contournent pas l autorite.
 - [ ] L interface applique uniquement l etat canonique retourne.
 - [ ] Le cache local suit la revision canonique apres chaque succes.
 - [ ] Offline, 409, replay et erreurs metier sont couverts.
-- [ ] Un rechargement confirme la persistance des mutations.
+- [x] Un rechargement confirme la persistance des mutations.
 - [ ] La sauvegarde manuelle ne pretend pas synchroniser sans commande serveur.
 - [ ] Un echec de `/reset` ne reinitialise ni l interface ni le cache.
-- [ ] CDI-053 restaure le profil novice autoritaire complet et sa persistance.
+- [x] CDI-053 restaure le profil novice autoritaire complet et sa persistance.
 
 ## Tests
 
@@ -111,5 +118,42 @@ ou perdre des mutations.
 ## Handoff
 
 Fournir la matrice action UI vers commande, les fichiers touches, les tests et
-les preuves navigateur. CDI-051 reste bloque par CDI-053 tant que les nouveaux
-heros ne conservent pas leur profil canonique complet apres creation et `F5`.
+les preuves navigateur. CDI-053 est termine et ne bloque plus CDI-051.
+
+Preuve donjon du 2026-07-24 :
+
+- activation de Ragnor et creation d une rencontre autoritaire jusqu a la
+  revision 19 ;
+- correction du retour visuel : carte de rencontre en attente et libelle
+  `Resoudre la rencontre` ;
+- `dungeon.resolve` 200 revision 20, victoire en trois tours, transcript de
+  cinq evenements affiche, recompense de 6 or et progression vers la salle 2 ;
+- apres `F5`, bootstrap revision 20 : salle 2, 131 or, Ragnor a 100 PV,
+  rencontre nulle et aucune banniere hors connexion.
+
+Evolution UX donjon confirmee le 2026-07-24 :
+
+- un clic sur `Explorer la salle` chaine en interne `dungeon.explore`, puis
+  `dungeon.resolve` ; aucune action utilisateur `Resoudre` ne subsiste ;
+- le transcript canonique est revele ligne par ligne toutes les 400 ms avant
+  d afficher le resultat et la recompense ;
+- une nouvelle exploration et l auto-donjon attendent la fin de cette lecture ;
+- `encounterHistory` persiste les 15 derniers combats resolus dans l etat
+  canonique et reste visible apres bootstrap, rechargement ou autre appareil ;
+- une rencontre active interrompue est reprise et resolue automatiquement ;
+- le reset ne modifie plus l interface ni le cache avant le succes serveur.
+
+Preuves automatisees Codex :
+
+- `npm.cmd run typecheck` : PASS ;
+- autorite, contrats, ville et game-api : 4 fichiers, 31 tests, PASS ;
+- registre UI progressif sans bouton de resolution : 1 fichier, 1 test, PASS.
+
+Preuve navigateur du nouveau flux encore requise apres CDI-054 avant cloture.
+
+Blocage actif :
+
+- CDI-054 restaure la parite fonctionnelle et RNG du donjon ;
+- audit : `docs/architecture/authoritative-dungeon-parity-audit.md` ;
+- CDI-051 reste `Paused` jusqu aux golden tests reference/backend et a la
+  preuve navigateur du transcript complet.

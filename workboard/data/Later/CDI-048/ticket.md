@@ -7,7 +7,7 @@ priority: P1
 size: M
 risk: medium
 source: audit global
-depends_on: ["CDI-046", "CDI-051"]
+depends_on: ["CDI-046", "CDI-051", "CDI-054"]
 blocks: ["CDI-049"]
 github_issue: null
 related_docs: ["src/App.tsx"]

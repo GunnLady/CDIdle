@@ -8,7 +8,7 @@ size: L
 risk: high
 source: Audit Eclipse CDI-037 du 2026-07-23
 depends_on: ["CDI-037", "CDI-052"]
-blocks: ["CDI-046", "CDI-049"]
+blocks: ["CDI-046", "CDI-049", "CDI-054"]
 github_issue: null
 related_docs: ["docs/fullstack-authoritative-plan.md", "docs/architecture/clock-rng.md", "docs/architecture/clock-rng-audit.md", "docs/architecture/game-state-v1.md"]
 ---

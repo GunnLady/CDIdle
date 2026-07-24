@@ -8,6 +8,7 @@ const state = (): DungeonState => ({
   resources: { gold: 0 },
   heroes: [{ id: "hero-1", isActive: true, currentHp: 20, calculatedStats: { physicalDamage: 20 } }],
   currentEncounter: null,
+  encounterHistory: [],
   autoExplore: true,
 });
 
@@ -36,7 +37,27 @@ describe("authoritative dungeon commands", () => {
     expect(resolved.state.currentEncounter).toBeNull();
     expect(resolved.state.activeDungeonRoom).toBe(2);
     expect(resolved.state.resources?.gold).toBeGreaterThan(0);
+    expect(resolved.state.encounterHistory).toHaveLength(1);
+    expect(resolved.state.encounterHistory?.[0]).toMatchObject({ encounterId: "encounter-cmd-resolve", floor: 1, room: 1 });
     expect(resolved.events[0]).toMatchObject({ type: "dungeon.encounter_resolved", encounter: { outcome: "victory", transcript: expect.any(Array), rewards: { gold: expect.any(Number) } } });
+  });
+
+  it("persists only the last fifteen resolved encounters", () => {
+    let current: DungeonState = {
+      ...state(),
+      heroes: [{ id: "hero-1", isActive: true, currentHp: 10_000, calculatedStats: { physicalDamage: 100 } }],
+    };
+    for (let index = 0; index < 16; index += 1) {
+      current = applyDungeonCommand(current, {
+        type: "dungeon.explore",
+        floor: 1,
+        commandId: `history-${index}`,
+      }).state;
+      current = applyDungeonCommand(current, { type: "dungeon.resolve" }, fixedRng()).state;
+    }
+    expect(current.encounterHistory).toHaveLength(15);
+    expect(current.encounterHistory?.[0]).toMatchObject({ encounterId: "encounter-history-1", room: 2 });
+    expect(current.encounterHistory?.[14]).toMatchObject({ encounterId: "encounter-history-15", room: 16 });
   });
 
   it("replays the same server RNG sequence with an injected generator", () => {

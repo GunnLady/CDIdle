@@ -41,6 +41,6 @@ describe("authoritative shared contracts", () => {
 
   it("requires canonical state fields and names", () => {
     const errors = validateCanonicalGameState({ totalCitizens: 3, unlockedDistricts: {} });
-    expect(errors).toEqual(expect.arrayContaining(["totalCitizensCount is required", "districts is required", "forgeMaterials is required", "itemBlueprints is required"]));
+    expect(errors).toEqual(expect.arrayContaining(["totalCitizensCount is required", "districts is required", "forgeMaterials is required", "itemBlueprints is required", "encounterHistory is required"]));
   });
 });

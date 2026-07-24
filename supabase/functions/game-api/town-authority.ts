@@ -21,6 +21,7 @@ export type TownState = {
   activeDungeonRoom?: number;
   highestFloorReached?: number;
   currentEncounter?: Record<string, unknown> | null;
+  encounterHistory?: Array<Record<string, unknown>>;
   autoExplore?: boolean;
   onboardingCandidates?: Array<Record<string, unknown>>;
   pendingOnboardingCityName?: string;
@@ -57,7 +58,7 @@ export const initialTownState = (): TownState => ({
   buildings: { habitation: 1, ferme: 0, scierie: 0, carriere: 0, mine: 0, maison_chef: 0, guilde: 0, academie: 0, temple: 0, cercle: 0, lair: 0, caserne: 0, poste_chasse: 0, forge: 0 },
   citizens: { farmers: 0, woodcutters: 0, quarrymen: 0, miners: 0, unassigned: 3 },
   totalCitizensCount: 3, districts: {}, heroes: [], storedItems: [], forgeMaterials: [], itemBlueprints: [], citizenGrowthProgress: 0
-  , activeDungeonFloor: 1, activeDungeonRoom: 1, highestFloorReached: 1, currentEncounter: null, autoExplore: false,
+  , activeDungeonFloor: 1, activeDungeonRoom: 1, highestFloorReached: 1, currentEncounter: null, encounterHistory: [], autoExplore: false,
   onboardingCandidates: [], pendingOnboardingCityName: ""
 });
 

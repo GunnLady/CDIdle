@@ -8,7 +8,7 @@ size: L
 risk: medium
 source: Plan fullstack autoritaire approuve le 2026-07-15
 depends_on: ["CDI-014", "CDI-015", "CDI-022", "CDI-026", "CDI-027"]
-blocks: ["CDI-031", "CDI-033", "CDI-037", "CDI-051"]
+blocks: ["CDI-031", "CDI-033", "CDI-037", "CDI-051", "CDI-054"]
 attack_speed_rng_note: "La resolution serveur du multi-hit attackSpeed + speed utilise le Rng injecte et produit un transcript rejouable, sans Math.random client."
 github_issue: null
 related_docs: ["docs/fullstack-authoritative-plan.md", "docs/architecture/dungeon-progression-audit.md", "docs/architecture/zero-rebase-audit.md"]
@@ -91,3 +91,11 @@ Une implementation trop large creerait des dependances implicites.
 ## Handoff
 
 Fournir fichiers, commandes, resultats, risques residuels et decisions a transmettre.
+
+Audit correctif du 2026-07-24 :
+
+- le backend livre par CDI-029 est une resolution simplifiee et ne reproduit
+  pas le moteur historique ;
+- l ecart n annule pas les contrats deja livres, mais sa correction complete
+  est portee par CDI-054 ;
+- reference et matrice : `docs/architecture/authoritative-dungeon-parity-audit.md`.
