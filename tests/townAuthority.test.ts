@@ -173,9 +173,9 @@ describe("authoritative town commands", () => {
     });
     expect((recruited.state.heroes as Array<Record<string, unknown>>)[0].activeSkills).toHaveLength(1);
     expect((recruited.state.heroes as Array<Record<string, unknown>>)[0].passiveSkills).toHaveLength(1);
-    expect((recruited.state.heroes as Array<Record<string, unknown>>)[0]).toEqual(
-      generateAuthoritativeNovice("recruit:hero-command", "hero-hero-command"),
-    );
+    const replayedRecruit = applyTownCommand(current, { type: "hero.recruit", commandId: "hero-command" });
+    expect(replayedRecruit.state.heroes).toEqual(recruited.state.heroes);
+    expect(replayedRecruit.state.rngState).toEqual(recruited.state.rngState);
     const dismissed = applyTownCommand(recruited.state, { type: "hero.dismiss", heroId: "hero-hero-command" });
     expect(dismissed.state).toMatchObject({ heroes: [] });
   });

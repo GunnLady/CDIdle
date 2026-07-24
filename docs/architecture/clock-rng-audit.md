@@ -12,16 +12,20 @@
 | `src/hooks/useDungeonSystem.ts` | tirages combat/loot et `Math.random` | prévu dans la migration gameplay | ne pas considérer comme preuve serveur |
 | `src/hooks/useGameLog.ts` | date/identifiant d’affichage | frontière UI | conserver local, hors mutation métier |
 | `supabase/functions/game-api/*` | horloge/UUID de requête | frontière runtime | conserver ; ne pas importer dans le domaine |
-| `supabase/functions/game-api/dungeon-authority.ts` | tirages de combat serveur | migration CDI-037 | RNG injectable ; adaptateur déterministe temporaire en attente de CDI-050 |
+| `supabase/functions/game-api/dungeon-authority.ts` | tirages de combat serveur | migration CDI-037/CDI-050 | RNG canonique obligatoire ; plus de graine dérivée de `commandId` |
 
 ## Contrôle ajouté
 
 `npm run check:determinism` échoue si `Math.random`, `Date.now` ou `new Date`
-réapparaît dans `src/domain`, à l’exception documentée de `random.ts`.
+réapparaît dans `src/domain`, à l’exception documentée de `random.ts`. Il
+interdit aussi `Math.random` dans les autorités serveur `*-authority.ts` et
+dans `authoritative-rng.ts`; le générateur d identifiant de requête de
+`index.ts` reste une frontière runtime autorisée.
 
 ## État
 
 Le contrat domaine, les helpers gameplay et les tirages de combat serveur sont
 maintenant contrôlés. Les hooks UI gardent des tirages locaux et devront être
 raccordés à l’autorité serveur dans CDI-051. La graine et l’avancement
-persistés relèvent de CDI-050.
+persistés sont livrés par CDI-050. CDI-054 doit réutiliser ce flux pour le
+moteur de parité et conserver l’ordre historique des rolls.

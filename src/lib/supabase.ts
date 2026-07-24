@@ -23,6 +23,15 @@ export class GameApiError extends Error {
   }
 }
 
+export type CanonicalStateFailure = { requestId?: string };
+
+export function canonicalStateFailure(error: unknown): CanonicalStateFailure | null {
+  if (!(error instanceof GameApiError) || error.code !== "INVALID_GAME_STATE") return null;
+  const details = error.details as { error?: { requestId?: unknown } } | undefined;
+  const requestId = details?.error?.requestId;
+  return typeof requestId === "string" ? { requestId } : {};
+}
+
 export async function signInWithGoogle() {
   return supabase.auth.signInWithOAuth({ provider: "google", options: { redirectTo: window.location.origin } });
 }

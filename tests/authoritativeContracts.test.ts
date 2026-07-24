@@ -41,6 +41,42 @@ describe("authoritative shared contracts", () => {
 
   it("requires canonical state fields and names", () => {
     const errors = validateCanonicalGameState({ totalCitizens: 3, unlockedDistricts: {} });
-    expect(errors).toEqual(expect.arrayContaining(["totalCitizensCount is required", "districts is required", "forgeMaterials is required", "itemBlueprints is required", "encounterHistory is required"]));
+    expect(errors).toEqual(expect.arrayContaining(["totalCitizensCount is required", "districts is required", "forgeMaterials is required", "itemBlueprints is required", "encounterHistory is required", "rngState is required"]));
+  });
+
+  it("validates the versioned canonical RNG state", () => {
+    const errors = validateCanonicalGameState({
+      resources: {}, buildings: {}, citizens: {}, districts: {}, heroes: [],
+      storedItems: [], forgeMaterials: [], itemBlueprints: [], encounterHistory: [],
+      totalCitizensCount: 3, activeDungeonFloor: 1, activeDungeonRoom: 1,
+      highestFloorReached: 1, citizenGrowthProgress: 0, autoExplore: false,
+      currentEncounter: null,
+      rngState: { algorithm: "other", version: 2, seed: -1, state: 1.5, draws: "0" },
+    });
+    expect(errors).toEqual(expect.arrayContaining([
+      "rngState.algorithm must be xorshift32",
+      "rngState.version must be 1",
+      "rngState.seed must be a non-zero unsigned 32-bit integer",
+      "rngState.state must be a non-zero unsigned 32-bit integer",
+      "rngState.draws must be a non-negative safe integer",
+    ]));
+  });
+
+  it("uses the same inclusive safe-integer draw boundary as the RNG runtime", () => {
+    const errors = validateCanonicalGameState({
+      resources: {}, buildings: {}, citizens: {}, districts: {}, heroes: [],
+      storedItems: [], forgeMaterials: [], itemBlueprints: [], encounterHistory: [],
+      totalCitizensCount: 3, activeDungeonFloor: 1, activeDungeonRoom: 1,
+      highestFloorReached: 1, citizenGrowthProgress: 0, autoExplore: false,
+      currentEncounter: null,
+      rngState: {
+        algorithm: "xorshift32",
+        version: 1,
+        seed: 42,
+        state: 42,
+        draws: Number.MAX_SAFE_INTEGER,
+      },
+    });
+    expect(errors).toEqual([]);
   });
 });

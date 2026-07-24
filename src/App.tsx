@@ -43,8 +43,17 @@ const DungeonPanel = lazy(() => import("./components/DungeonPanel"));
 const HeroPanel = lazy(() => import("./components/HeroPanel"));
 const AccountPanel = lazy(() => import("./components/AccountPanel"));
 import LoginPage from "./components/LoginPage";
+import CanonicalStateAlert from "./components/CanonicalStateAlert";
 const StoragePanel = lazy(() => import("./components/StoragePanel"));
-import { callGameApi, GameApiError, getAuthSnapshot, onAuthStateChange, signOut } from "./lib/supabase";
+import {
+  callGameApi,
+  canonicalStateFailure,
+  GameApiError,
+  getAuthSnapshot,
+  onAuthStateChange,
+  signOut,
+  type CanonicalStateFailure,
+} from "./lib/supabase";
 import { purgeLegacyGameCache, readGameCache, writeGameCache } from "./lib/gameCache";
 import type { GameCommand } from "./domain/commands";
 import type { CanonicalDungeonEncounterRecord } from "../shared/contracts/authoritative";
@@ -78,6 +87,7 @@ export default function App() {
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
   const [browserOnline, setBrowserOnline] = useState<boolean>(() => typeof navigator === "undefined" || navigator.onLine);
   const [apiAvailable, setApiAvailable] = useState<boolean>(() => typeof navigator === "undefined" || navigator.onLine);
+  const [canonicalStateFailureDetails, setCanonicalStateFailureDetails] = useState<CanonicalStateFailure | null>(null);
   const [reconnectNonce, setReconnectNonce] = useState(0);
   const [, setGameRevision] = useState(0);
   const [currentEncounter, setCurrentEncounter] = useState<Record<string, unknown> | null>(null);
@@ -94,7 +104,8 @@ export default function App() {
   const encounterPlaybackTokenRef = useRef(0);
   const dungeonSequenceRunningRef = useRef(false);
   const bootstrapUserRef = useRef<string | null>(null);
-  const isOnline = browserOnline && apiAvailable;
+  const transportOnline = browserOnline && apiAvailable;
+  const isOnline = transportOnline && canonicalStateFailureDetails === null;
   // Google signup is gated by the server-side alpha_allowlist hook and every
   // game-api request is rechecked against the same allowlist at runtime.
   const cheatsAllowedForUser = cheatsEnabled && currentUser?.app_metadata?.provider === "google";
@@ -246,6 +257,10 @@ export default function App() {
   }, []);
 
   const dispatchAuthoritativeCommand = useCallback((command: GameCommand): Promise<boolean> => {
+    if (canonicalStateFailureDetails) {
+      addLog("Sauvegarde canonique incompatible : mutation verrouillée.", "defeat");
+      return Promise.resolve(false);
+    }
     if (!currentUser || !isOnline) {
       addLog("📡 Mode hors connexion : mutation verrouillée.", "info");
       return Promise.resolve(false);
@@ -263,6 +278,7 @@ export default function App() {
             command,
           }),
         });
+        setCanonicalStateFailureDetails(null);
         const resolvedEncounter = (result?.events ?? [])
           .find((event: any) => event?.type === "dungeon.encounter_resolved")
           ?.encounter as CanonicalDungeonEncounterRecord | undefined;
@@ -287,13 +303,26 @@ export default function App() {
             const canonical = await callGameApi<any>("/bootstrap", { method: "POST" });
             await applyAuthoritativeState(canonical?.state, canonical?.revision, String(currentUser.id));
             setApiAvailable(true);
+            setCanonicalStateFailureDetails(null);
           } catch (reloadError) {
-            if (!(reloadError instanceof GameApiError) || reloadError.status >= 500) setApiAvailable(false);
+            const stateFailure = canonicalStateFailure(reloadError);
+            if (stateFailure) {
+              setCanonicalStateFailureDetails(stateFailure);
+              setApiAvailable(true);
+            } else if (!(reloadError instanceof GameApiError) || reloadError.status >= 500) {
+              setApiAvailable(false);
+            }
             addLog("Échec du rechargement canonique après conflit.", "defeat");
           }
           addLog("⚔️ Conflit de révision : rechargement de l’état canonique.", "info");
         } else {
-          if (!(error instanceof GameApiError) || error.status >= 500) setApiAvailable(false);
+          const stateFailure = canonicalStateFailure(error);
+          if (stateFailure) {
+            setCanonicalStateFailureDetails(stateFailure);
+            setApiAvailable(true);
+          } else if (!(error instanceof GameApiError) || error.status >= 500) {
+            setApiAvailable(false);
+          }
           const message = error instanceof GameApiError ? error.message : "Mutation autoritaire indisponible";
           addLog(`❌ ${message}.`, "defeat");
         }
@@ -302,7 +331,7 @@ export default function App() {
     });
     commandQueueRef.current = operation.then(() => undefined, () => undefined);
     return operation;
-  }, [addLog, applyAuthoritativeState, currentUser, isOnline, playEncounterTranscript]);
+  }, [addLog, applyAuthoritativeState, canonicalStateFailureDetails, currentUser, isOnline, playEncounterTranscript]);
 
   const exploreAndResolveDungeon = useCallback(async () => {
     if (dungeonSequenceRunningRef.current || !currentUser || !isOnline) return false;
@@ -446,6 +475,7 @@ export default function App() {
           setIsSyncing(true);
           const parsed = await callGameApi<any>("/bootstrap", { method: "POST" });
           setApiAvailable(true);
+          setCanonicalStateFailureDetails(null);
           if (Number.isInteger(parsed?.revision)) {
             gameRevisionRef.current = parsed.revision;
             setGameRevision(parsed.revision);
@@ -462,6 +492,14 @@ export default function App() {
           }
         } catch (err) {
           const isRevisionConflict = err instanceof GameApiError && err.status === 409;
+          const stateFailure = canonicalStateFailure(err);
+          if (stateFailure) {
+            setCanonicalStateFailureDetails(stateFailure);
+            setApiAvailable(true);
+            console.error("Canonical game state rejected", err);
+            addLog("Sauvegarde incompatible : mutations verrouillées. Réinitialisez la partie ou contactez l’assistance.", "defeat");
+            return;
+          }
           if (!isRevisionConflict) setApiAvailable(false);
           if (isRevisionConflict) {
             bootstrapUserRef.current = null;
@@ -481,6 +519,7 @@ export default function App() {
         }
       } else {
         bootstrapUserRef.current = null;
+        setCanonicalStateFailureDetails(null);
         encounterPlaybackTokenRef.current += 1;
         dungeonSequenceRunningRef.current = false;
         setGameRevision(0);
@@ -514,9 +553,16 @@ export default function App() {
       const parsed = await callGameApi<any>("/bootstrap", { method: "POST" });
       await applyAuthoritativeState(parsed?.state, parsed?.revision, String(currentUser.id));
       setApiAvailable(true);
+      setCanonicalStateFailureDetails(null);
       addLog("☁️ État canonique actualisé depuis le serveur.", "victory");
     } catch (error) {
-      if (!(error instanceof GameApiError) || error.status >= 500) setApiAvailable(false);
+      const stateFailure = canonicalStateFailure(error);
+      if (stateFailure) {
+        setCanonicalStateFailureDetails(stateFailure);
+        setApiAvailable(true);
+      } else if (!(error instanceof GameApiError) || error.status >= 500) {
+        setApiAvailable(false);
+      }
       addLog("Échec de l’actualisation de l’état canonique.", "defeat");
     } finally {
       setIsSyncing(false);
@@ -531,7 +577,7 @@ export default function App() {
   }, [isAuthLoading, currentUser]);
 
   const hardResetGame = async () => {
-    if (!isOnline) {
+    if (!transportOnline) {
       addLog("📡 Mode hors connexion : la réinitialisation est verrouillée.", "info");
       return;
     }
@@ -549,6 +595,7 @@ export default function App() {
       setCurrentEncounter(null);
       setEncounterHistory([]);
       setEncounterPlayback(null);
+      setCanonicalStateFailureDetails(null);
 
       // Crucially, set cityName to empty string to send user back to the naming page of LoginPage
       setCityName("");
@@ -562,7 +609,7 @@ export default function App() {
   };
 
   const deleteAccount = async () => {
-    if (!isOnline) {
+    if (!transportOnline) {
       addLog("📡 Mode hors connexion : la suppression du compte est verrouillée.", "info");
       return;
     }
@@ -576,6 +623,7 @@ export default function App() {
       setCurrentEncounter(null);
       setEncounterHistory([]);
       setEncounterPlayback(null);
+      setCanonicalStateFailureDetails(null);
       setCityName("");
       await signOut();
       addLog("Compte et données supprimés définitivement.", "defeat");
@@ -723,14 +771,21 @@ export default function App() {
         </div>
       </header>
 
-      {!isOnline && currentUser && (
+      {canonicalStateFailureDetails && currentUser && (
+        <CanonicalStateAlert
+          requestId={canonicalStateFailureDetails.requestId}
+          onOpenAccount={() => setActiveTab("account")}
+        />
+      )}
+
+      {!transportOnline && currentUser && (
         <div role="status" className="sticky top-0 z-30 border-b border-amber-700/60 bg-amber-950/95 px-4 py-2 text-center text-sm text-amber-100">
           📡 Mode hors connexion — cache en lecture seule. Les mutations reprendront après reconnexion.
         </div>
       )}
 
       {/* 2. DYNAMIC NAMING POPUP STAGE (BLOCKED IF USER DID NOT CHOOSE A NAME YET) */}
-      {currentUser && !cityName && isInitialGameLoadDone && (
+      {currentUser && !canonicalStateFailureDetails && !cityName && isInitialGameLoadDone && (
         <div className="flex-1 bg-[#150D08]/90 flex items-center justify-center p-4">
           <LoginPage
             authoritativeNovices={onboardingCandidates}

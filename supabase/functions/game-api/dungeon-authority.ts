@@ -40,17 +40,6 @@ export type DungeonRng = {
 };
 
 const clone = <T>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
-const hash = (value: string): number => Array.from(value).reduce((acc, char) => ((acc * 31) + char.charCodeAt(0)) >>> 0, 2166136261);
-const commandRng = (seedValue: string): DungeonRng => {
-  let state = hash(seedValue) || 1;
-  const next = () => {
-    state ^= state << 13;
-    state ^= state >>> 17;
-    state ^= state << 5;
-    return (state >>> 0) / 0x100000000;
-  };
-  return { next, nextInt: (maxExclusive) => Math.floor(next() * maxExclusive) };
-};
 const activeHeroes = (heroes: DungeonHero[]) => heroes.filter((hero) => (hero.isActive ?? true) && Number(hero.currentHp ?? 0) > 0);
 const heroAttack = (hero: DungeonHero) => Math.max(1, Number(hero.calculatedStats?.physicalDamage ?? hero.calculatedStats?.attack ?? 1));
 
@@ -156,8 +145,8 @@ export function applyDungeonCommand(current: Record<string, unknown>, command: R
   }
   if (typed.type === "dungeon.resolve") {
     if (!state.currentEncounter || state.currentEncounter.status !== "active") throw new DungeonCommandError("NO_ACTIVE_ENCOUNTER", "there is no active encounter");
-    const commandId = String(state.currentEncounter.commandId ?? typed.commandId ?? "dungeon-command");
-    return resolveFight(state, floor, room, rng ?? commandRng(`${commandId}:${floor}:${room}`));
+    if (!rng) throw new DungeonCommandError("RNG_REQUIRED", "canonical RNG is required");
+    return resolveFight(state, floor, room, rng);
   }
   if (typed.type !== "dungeon.explore" || !Number.isInteger(typed.floor) || typed.floor !== floor || typed.floor > highest) {
     throw new DungeonCommandError("FLOOR_NOT_REACHED", "requested dungeon floor is not available");

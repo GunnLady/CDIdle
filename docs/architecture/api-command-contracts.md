@@ -24,6 +24,30 @@ Le traitement transactionnel, la déduplication persistée et la limite de débi
 Les quatre commandes sont idempotentes via l'enveloppe commune et leurs
 événements sont commités avec l'état canonique.
 
+## RNG canonique (CDI-050)
+
+- `state.rngState` est restauré avant une mutation stochastique.
+- Le nouvel instantané RNG est commité dans `state` par
+  `commit_game_command`, avec la révision et les événements.
+- Replay et conflit sont résolus avant l’appel de l’autorité métier.
+- Un conflit PostgreSQL tardif `P0002/STALE_REVISION` est également traduit en
+  `REVISION_CONFLICT`, puis la révision canonique est rechargée.
+- Une commande rejetée ne produit aucun état à committer.
+- La résolution de donjon refuse de fonctionner sans RNG injecté.
+
+- Un `rngState` absent sur une sauvegarde ancienne est migre. Un etat present
+  mais invalide ou incompatible est refuse avec le code public
+  `INVALID_GAME_STATE` et un `requestId`; il n est pas reclasse en panne
+  `SERVICE_UNAVAILABLE`.
+- Une graine structurellement valide doit aussi correspondre au `userId`,
+  controle en lecture et par contrainte SQL.
+- Le client conserve le transport en ligne mais verrouille les mutations et
+  affiche une alerte de sauvegarde incompatible. Le reset et la suppression du
+  compte restent accessibles depuis un bouton direct vers l onglet Compte;
+  aucune reparation implicite n ecrase la sauvegarde.
+
+Contrat complet : `docs/architecture/authoritative-rng.md`.
+
 ## Présentation et historique des combats (CDI-051)
 
 - L'interface chaîne `dungeon.explore` puis `dungeon.resolve` depuis une seule

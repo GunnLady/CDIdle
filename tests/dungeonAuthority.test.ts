@@ -33,7 +33,7 @@ describe("authoritative dungeon commands", () => {
 
   it("resolves the active encounter server-side with transcript, reward and progression", () => {
     const started = applyDungeonCommand(state(), { type: "dungeon.explore", floor: 1, commandId: "cmd-resolve" });
-    const resolved = applyDungeonCommand(started.state, { type: "dungeon.resolve", commandId: "cmd-resolve-result" });
+    const resolved = applyDungeonCommand(started.state, { type: "dungeon.resolve", commandId: "cmd-resolve-result" }, fixedRng());
     expect(resolved.state.currentEncounter).toBeNull();
     expect(resolved.state.activeDungeonRoom).toBe(2);
     expect(resolved.state.resources?.gold).toBeGreaterThan(0);
@@ -79,6 +79,11 @@ describe("authoritative dungeon commands", () => {
   it("rejects resolution and retreat without an active encounter", () => {
     expect(() => applyDungeonCommand(state(), { type: "dungeon.resolve" })).toThrowError("there is no active encounter");
     expect(() => applyDungeonCommand(state(), { type: "dungeon.retreat" })).toThrowError("there is no active encounter");
+  });
+
+  it("rejects encounter resolution without the canonical RNG", () => {
+    const started = applyDungeonCommand(state(), { type: "dungeon.explore", floor: 1, commandId: "rng-required" });
+    expect(() => applyDungeonCommand(started.state, { type: "dungeon.resolve" })).toThrowError("canonical RNG is required");
   });
 
   it("toggles auto-exploration only for an online command with an active hero", () => {

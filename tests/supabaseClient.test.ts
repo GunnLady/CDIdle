@@ -23,4 +23,22 @@ describe("Supabase client contract", () => {
 
     vi.unstubAllGlobals();
   });
+
+  it("classifies an invalid canonical save separately from a network outage", async () => {
+    vi.resetModules();
+    const module = await import("../src/lib/supabase");
+    const error = new module.GameApiError(
+      "canonical game state is invalid",
+      500,
+      "INVALID_GAME_STATE",
+      { error: { requestId: "request-rng-1" } },
+    );
+
+    expect(module.canonicalStateFailure(error)).toEqual({
+      requestId: "request-rng-1",
+    });
+    expect(module.canonicalStateFailure(
+      new module.GameApiError("service unavailable", 503, "SERVICE_UNAVAILABLE"),
+    )).toBeNull();
+  });
 });

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { createGameApiHandler, serveGameApi, type ApiServices } from "../supabase/functions/game-api/index";
 
 const services: ApiServices = {
@@ -38,6 +38,38 @@ describe("game-api Edge handler", () => {
     const result = await handler(request("/commands", { method: "POST", body: oversized }));
     expect(result.status).toBe(413);
     await expect(result.json()).resolves.toMatchObject({ error: { code: "PAYLOAD_TOO_LARGE" } });
+  });
+  it("exposes an invalid canonical save without classifying it as an outage", async () => {
+    const invalidStateHandler = createGameApiHandler({
+      allowedOrigins: ["https://app.example.test"],
+      services: {
+        ...services,
+        bootstrap: async () => {
+          throw Object.assign(new Error("canonical RNG state is invalid"), {
+            code: "INVALID_GAME_STATE",
+            reason: "RNG_SEED_USER_MISMATCH",
+          });
+        },
+      },
+    });
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const result = await invalidStateHandler(request("/bootstrap", { method: "POST" }));
+    expect(result.status).toBe(500);
+    await expect(result.json()).resolves.toMatchObject({
+      error: {
+        code: "INVALID_GAME_STATE",
+        message: "canonical game state is invalid",
+      },
+    });
+    expect(consoleError).toHaveBeenCalledWith(
+      "game-api request failed",
+      expect.objectContaining({
+        code: "INVALID_GAME_STATE",
+        reason: "RNG_SEED_USER_MISMATCH",
+        status: 500,
+      }),
+    );
+    consoleError.mockRestore();
   });
   it("exposes a Deno.serve-compatible entrypoint", async () => {
     const previous = (globalThis as typeof globalThis & { Deno?: unknown }).Deno;

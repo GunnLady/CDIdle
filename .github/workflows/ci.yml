@@ -34,6 +34,10 @@ jobs:
         run: npm run check:secrets
       - name: Log safety audit
         run: npm run check:logs
+      - name: Migration safety audit
+        run: npm run check:migrations
+      - name: Determinism guard
+        run: npm run check:determinism
       - name: Typecheck
         run: npm run typecheck
       - name: Lint

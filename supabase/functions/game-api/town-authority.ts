@@ -2,7 +2,16 @@ import { applyInventoryCommand } from "./inventory-authority.ts";
 import { applyForgeCommand } from "./forge-authority.ts";
 import { applyDungeonCommand } from "./dungeon-authority.ts";
 import { generateAuthoritativeNovice } from "./novice-authority.ts";
+import {
+  initialCanonicalRngState,
+  forkCanonicalRng,
+  migrateCanonicalRngState,
+  nextCanonicalSubseed,
+  restoreCanonicalRng,
+  type CanonicalRng,
+} from "./authoritative-rng.ts";
 import type { CanonicalGameCommand } from "../../../shared/contracts/authoritative.ts";
+import type { CanonicalRngState } from "../../../shared/contracts/authoritative.ts";
 
 export type TownResources = { gold: number; food: number; wood: number; stone: number; ore: number };
 export type TownState = {
@@ -25,6 +34,7 @@ export type TownState = {
   autoExplore?: boolean;
   onboardingCandidates?: Array<Record<string, unknown>>;
   pendingOnboardingCityName?: string;
+  rngState: CanonicalRngState;
 };
 
 type TownCommand = CanonicalGameCommand & { commandId?: string };
@@ -53,38 +63,53 @@ const districtCosts: Record<string, TownResources> = {
   quartier_mine: { gold: 1000, food: 200, wood: 800, stone: 800, ore: 500 }
 };
 
-export const initialTownState = (): TownState => ({
+export const initialTownState = (rngSeed?: number): TownState => ({
   resources: { gold: 75, food: 50, wood: 20, stone: 0, ore: 0 },
   buildings: { habitation: 1, ferme: 0, scierie: 0, carriere: 0, mine: 0, maison_chef: 0, guilde: 0, academie: 0, temple: 0, cercle: 0, lair: 0, caserne: 0, poste_chasse: 0, forge: 0 },
   citizens: { farmers: 0, woodcutters: 0, quarrymen: 0, miners: 0, unassigned: 3 },
   totalCitizensCount: 3, districts: {}, heroes: [], storedItems: [], forgeMaterials: [], itemBlueprints: [], citizenGrowthProgress: 0
   , activeDungeonFloor: 1, activeDungeonRoom: 1, highestFloorReached: 1, currentEncounter: null, encounterHistory: [], autoExplore: false,
   onboardingCandidates: [], pendingOnboardingCityName: ""
+  , rngState: initialCanonicalRngState(rngSeed)
 });
 
 class TownCommandError extends Error { constructor(public readonly code: string, message: string) { super(message); } }
 const affordable = (resources: TownResources, cost: TownResources) => Object.keys(cost).every((key) => resources[key as keyof TownResources] >= cost[key as keyof TownResources]);
 const subtract = (resources: TownResources, cost: TownResources): TownResources => ({ gold: resources.gold - cost.gold, food: resources.food - cost.food, wood: resources.wood - cost.wood, stone: resources.stone - cost.stone, ore: resources.ore - cost.ore });
+const nextSeedKey = (rng: CanonicalRng, scope: string) =>
+  `${scope}:${nextCanonicalSubseed(rng).toString(16).padStart(8, "0")}`;
 
 export function applyTownCommand(current: Record<string, unknown>, command: Record<string, unknown>, options: { allowCheats?: boolean } = {}): { state: Record<string, unknown>; events: unknown[] } {
-  const town = { ...initialTownState(), ...current } as TownState;
+  const town = migrateTownState(current);
   const typed = command as TownCommand;
-  if (typed.type === "dungeon.explore" || typed.type === "dungeon.select_floor" || typed.type === "dungeon.resolve" || typed.type === "dungeon.auto_explore" || typed.type === "dungeon.retreat") return applyDungeonCommand(town, command);
+  const rng = restoreCanonicalRng(town.rngState);
+  const withRng = <T extends { state: Record<string, unknown>; events: unknown[] }>(transition: T): T => ({
+    ...transition,
+    state: { ...transition.state, rngState: rng.snapshot() },
+  });
+  if (typed.type === "dungeon.explore" || typed.type === "dungeon.select_floor" || typed.type === "dungeon.resolve" || typed.type === "dungeon.auto_explore" || typed.type === "dungeon.retreat") {
+    const transition = applyDungeonCommand(
+      town,
+      command,
+      typed.type === "dungeon.resolve" ? forkCanonicalRng(rng) : undefined,
+    );
+    return withRng(transition);
+  }
   const heroes = town.heroes ?? [];
   if (typed.type === "hero.recruit_offer") {
     if ((town as TownState & { pendingRecruit?: unknown }).pendingRecruit) throw new TownCommandError("RECRUIT_PENDING", "a recruit offer is already pending");
     const guildLevel = town.buildings.guilde ?? 0;
     if (guildLevel < 1) throw new TownCommandError("GUILD_REQUIRED", "guild building is required");
     if (heroes.length >= Math.max(0, guildLevel) + 2) throw new TownCommandError("CAPACITY_REACHED", "hero capacity reached");
-    const token = String(typed.commandId ?? "offer").replace(/-/g, "");
-    const score = [...token].reduce((sum, char) => sum + char.charCodeAt(0), 0);
+    const seedKey = nextSeedKey(rng, "recruit");
+    const score = Number.parseInt(seedKey.slice(-8), 16);
     const races = ["Humain", "Nain", "Elfe", "Gobelin"];
     const candidate = generateAuthoritativeNovice(
-      `recruit:${typed.commandId ?? "offer"}`,
+      seedKey,
       `candidate-${typed.commandId ?? "offer"}`,
       races[score % races.length],
     );
-    return { state: { ...town, pendingRecruit: candidate }, events: [{ type: "hero.recruit_offer_created", heroId: candidate.id }] };
+    return withRng({ state: { ...town, pendingRecruit: candidate }, events: [{ type: "hero.recruit_offer_created", heroId: candidate.id }] });
   }
   if (typed.type === "hero.recruit_cancel") {
     if (!(town as TownState & { pendingRecruit?: unknown }).pendingRecruit) throw new TownCommandError("RECRUIT_NOT_FOUND", "recruit offer not found");
@@ -118,17 +143,16 @@ export function applyTownCommand(current: Record<string, unknown>, command: Reco
     const cityName = typed.cityName.trim();
     if (!cityName || cityName.length > 48) throw new TownCommandError("INVALID_COMMAND", "city name is invalid");
     if (town.cityName || heroes.length > 0) throw new TownCommandError("ALREADY_STARTED", "onboarding is already complete");
-    const commandId = String(typed.commandId ?? "onboarding");
     const onboardingCandidates = Array.from({ length: 5 }, (_, index) =>
       generateAuthoritativeNovice(
-        `onboarding:${commandId}:${index + 1}`,
-        `candidate-${commandId}-${index + 1}`,
+        nextSeedKey(rng, `onboarding:${index + 1}`),
+        `candidate-${typed.commandId ?? "onboarding"}-${index + 1}`,
       )
     );
-    return {
+    return withRng({
       state: { ...town, onboardingCandidates, pendingOnboardingCityName: cityName },
       events: [{ type: "onboarding.offer_created", heroIds: onboardingCandidates.map((hero) => hero.id) }],
-    };
+    });
   }
   if (typed.type === "onboarding.start") {
     const cityName = typed.cityName.trim();
@@ -179,10 +203,10 @@ export function applyTownCommand(current: Record<string, unknown>, command: Reco
     if (town.resources.gold < cost) throw new TownCommandError("INSUFFICIENT_RESOURCES", "insufficient gold");
     const id = `hero-${typed.commandId ?? `slot-${heroes.length}`}`;
     const hero = generateAuthoritativeNovice(
-      `recruit:${typed.commandId ?? `slot-${heroes.length}`}`,
+      nextSeedKey(rng, "recruit"),
       id,
     );
-    return { state: { ...town, resources: { ...town.resources, gold: town.resources.gold - cost }, heroes: [...heroes, hero] }, events: [{ type: "hero.recruited", heroId: id, cost }] };
+    return withRng({ state: { ...town, resources: { ...town.resources, gold: town.resources.gold - cost }, heroes: [...heroes, hero] }, events: [{ type: "hero.recruited", heroId: id, cost }] });
   }
   if (typed.type === "hero.dismiss") {
     if (!heroes.some((hero) => hero.id === typed.heroId)) throw new TownCommandError("HERO_NOT_FOUND", "hero not found");
@@ -225,6 +249,14 @@ export function applyTownCommand(current: Record<string, unknown>, command: Reco
     return { state: { ...town, resources: subtract(town.resources, cost), districts: { ...town.districts, [typed.districtId]: true } }, events: [{ type: "district.unlocked", districtId: typed.districtId }] };
   }
   throw new TownCommandError("INVALID_COMMAND", "unsupported town command");
+}
+
+export function migrateTownState(current: Record<string, unknown>, legacySeed?: number): TownState {
+  return {
+    ...initialTownState(),
+    ...current,
+    rngState: migrateCanonicalRngState(current.rngState, legacySeed),
+  } as TownState;
 }
 
 export { TownCommandError };

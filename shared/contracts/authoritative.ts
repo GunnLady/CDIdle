@@ -25,6 +25,16 @@ export interface CanonicalDungeonEncounterRecord {
   rewards: { gold: number; loot: Array<Record<string, unknown>> };
 }
 
+export interface CanonicalRngState {
+  algorithm: "xorshift32";
+  version: 1;
+  seed: number;
+  state: number;
+  draws: number;
+}
+
+export const MAX_CANONICAL_RNG_DRAWS = Number.MAX_SAFE_INTEGER;
+
 export interface CanonicalGameState {
   resources: Record<string, number>;
   buildings: Record<string, number>;
@@ -42,6 +52,7 @@ export interface CanonicalGameState {
   encounterHistory: CanonicalDungeonEncounterRecord[];
   autoExplore: boolean;
   citizenGrowthProgress: number;
+  rngState: CanonicalRngState;
 }
 
 export type CanonicalGameCommand =
@@ -110,10 +121,30 @@ export function validateCanonicalGameState(input: unknown): string[] {
   if (!input || typeof input !== "object") return ["state must be an object"];
   const value = input as Record<string, unknown>;
   const errors: string[] = [];
-  for (const field of ["resources", "buildings", "citizens", "districts", "heroes", "storedItems", "forgeMaterials", "itemBlueprints", "encounterHistory"]) {
+  for (const field of ["resources", "buildings", "citizens", "districts", "heroes", "storedItems", "forgeMaterials", "itemBlueprints", "encounterHistory", "rngState"]) {
     if (!(field in value)) errors.push(`${field} is required`);
   }
   if ("encounterHistory" in value && !Array.isArray(value.encounterHistory)) errors.push("encounterHistory must be an array");
+  if ("rngState" in value) {
+    const rngState = value.rngState as Record<string, unknown> | null;
+    if (!rngState || typeof rngState !== "object") errors.push("rngState must be an object");
+    else {
+      if (rngState.algorithm !== "xorshift32") errors.push("rngState.algorithm must be xorshift32");
+      if (rngState.version !== 1) errors.push("rngState.version must be 1");
+      for (const field of ["seed", "state"]) {
+        if (!Number.isInteger(rngState[field]) || Number(rngState[field]) < 1 || Number(rngState[field]) > 0xffff_ffff) {
+          errors.push(`rngState.${field} must be a non-zero unsigned 32-bit integer`);
+        }
+      }
+      if (
+        !Number.isSafeInteger(rngState.draws)
+        || Number(rngState.draws) < 0
+        || Number(rngState.draws) > MAX_CANONICAL_RNG_DRAWS
+      ) {
+        errors.push("rngState.draws must be a non-negative safe integer");
+      }
+    }
+  }
   for (const field of ["totalCitizensCount", "activeDungeonFloor", "activeDungeonRoom", "highestFloorReached", "citizenGrowthProgress"]) {
     if (!(field in value)) errors.push(`${field} is required`);
     else if (typeof value[field] !== "number" || !Number.isFinite(value[field])) errors.push(`${field} must be a number`);

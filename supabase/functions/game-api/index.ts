@@ -1,8 +1,9 @@
 export type ApiEnvelope = Record<string, unknown>;
 import { createSupabaseAuthenticator } from "./auth.ts";
 import { createSupabaseGameApiServices } from "./supabase-adapter.ts";
-import { applyTownCommand, initialTownState } from "./town-authority.ts";
+import { applyTownCommand, initialTownState, migrateTownState } from "./town-authority.ts";
 import { applyIdleAuthority } from "./idle-authority.ts";
+import { canonicalRngSeedFromUserId, initialCanonicalRngState } from "./authoritative-rng.ts";
 import { validateCanonicalCommandEnvelope } from "../../../shared/contracts/authoritative.ts";
 export { applyIdleAuthority, IdleCommandError, MAX_IDLE_SECONDS, type IdleReport } from "./idle-authority.ts";
 export { createSupabaseAuthenticator, type SupabaseAuthOptions } from "./auth.ts";
@@ -100,11 +101,40 @@ export function createGameApiHandler({ allowedOrigins, services }: HandlerOption
       if (request.method === "DELETE" && route === "/account") { await services.deleteAccount(userId); return response({ ok: true }, 200, id, origin); }
       return errorResponse("NOT_FOUND", "route not found", id, 404, origin);
     } catch (error) {
-      const typed = error as { code?: string; status?: number };
+      const typed = error as { code?: string; status?: number; reason?: string };
       if (error instanceof PayloadTooLargeError) return errorResponse("PAYLOAD_TOO_LARGE", error.message, id, 413, origin);
-      const status = typed.status === 409 || typed.code === "REVISION_CONFLICT" ? 409 : typed.status === 404 ? 404 : 503;
-      const code = status === 409 ? "REVISION_CONFLICT" : status === 404 ? "NOT_FOUND" : "SERVICE_UNAVAILABLE";
-      return errorResponse(code, status === 409 ? "revision conflict" : status === 404 ? "resource not found" : "service unavailable", id, status, origin);
+      const invalidGameState = typed.code === "INVALID_GAME_STATE";
+      const status = typed.status === 409 || typed.code === "REVISION_CONFLICT"
+        ? 409
+        : typed.status === 404
+          ? 404
+          : invalidGameState
+            ? 500
+            : 503;
+      const code = invalidGameState
+        ? "INVALID_GAME_STATE"
+        : status === 409
+          ? "REVISION_CONFLICT"
+          : status === 404
+            ? "NOT_FOUND"
+            : "SERVICE_UNAVAILABLE";
+      if (status >= 500) {
+        console.error("game-api request failed", {
+          requestId: id,
+          route,
+          code: typed.code ?? code,
+          status,
+          ...(typed.reason ? { reason: typed.reason } : {}),
+        });
+      }
+      const message = invalidGameState
+        ? "canonical game state is invalid"
+        : status === 409
+          ? "revision conflict"
+          : status === 404
+            ? "resource not found"
+            : "service unavailable";
+      return errorResponse(code, message, id, status, origin);
     }
   };
 }
@@ -120,7 +150,21 @@ export function serveSupabaseGameApi(options: SupabaseGameApiOptions): unknown {
   const deno = (globalThis as typeof globalThis & { Deno?: { env?: { get(name: string): string | undefined }; serve(handler: (request: Request) => Promise<Response>): unknown } }).Deno;
   const env = options.env ?? { SUPABASE_URL: deno?.env?.get("SUPABASE_URL") ?? deno?.env?.get("GAME_API_SUPABASE_URL"), SUPABASE_SERVICE_ROLE_KEY: deno?.env?.get("SUPABASE_SERVICE_ROLE_KEY") ?? deno?.env?.get("GAME_API_SERVICE_ROLE_KEY"), SUPABASE_JWT_SECRET: deno?.env?.get("SUPABASE_JWT_SECRET") ?? deno?.env?.get("GAME_API_JWT_SECRET"), SUPABASE_EXPECTED_ISSUER: deno?.env?.get("SUPABASE_EXPECTED_ISSUER") ?? deno?.env?.get("GAME_API_EXPECTED_ISSUER") };
   if (!env.SUPABASE_URL || !env.SUPABASE_SERVICE_ROLE_KEY || !env.SUPABASE_JWT_SECRET) throw new Error("SUPABASE_RUNTIME_CONFIGURATION_REQUIRED");
-  const services = createSupabaseGameApiServices({ supabaseUrl: env.SUPABASE_URL, serviceRoleKey: env.SUPABASE_SERVICE_ROLE_KEY, initialState: options.initialState, applyCommand: options.applyCommand, applyIdle: applyIdleAuthority });
+  const services = createSupabaseGameApiServices({
+    supabaseUrl: env.SUPABASE_URL,
+    serviceRoleKey: env.SUPABASE_SERVICE_ROLE_KEY,
+    initialState: options.initialState,
+    initialStateForUser: (userId) => {
+      const seed = canonicalRngSeedFromUserId(userId);
+      return {
+        ...migrateTownState(options.initialState),
+        rngState: initialCanonicalRngState(seed),
+      };
+    },
+    migrateState: (state, userId) => migrateTownState(state, canonicalRngSeedFromUserId(userId)),
+    applyCommand: options.applyCommand,
+    applyIdle: applyIdleAuthority,
+  });
   const authenticatedServices = { ...services, authenticate: createSupabaseAuthenticator({ supabaseUrl: env.SUPABASE_URL, serviceRoleKey: env.SUPABASE_SERVICE_ROLE_KEY, jwtSecret: env.SUPABASE_JWT_SECRET, expectedIssuer: env.SUPABASE_EXPECTED_ISSUER }) };
   return serveGameApi({ allowedOrigins: options.allowedOrigins, services: authenticatedServices });
 }

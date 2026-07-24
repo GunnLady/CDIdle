@@ -5,4 +5,8 @@
 - `Clock` expose uniquement `now()`. Le domaine peut recevoir `fixedClock(...)` dans les tests et `systemClock` à la frontière applicative.
 - `Rng` expose `next()` et `nextInt(...)`. `seededRng(seed)` produit la même séquence pour une même graine.
 
-La graine et son état doivent être persistés par le serveur lors de l'exécution autoritaire. Ce ticket définit le contrat et la primitive déterministe ; le remplacement des appels des hooks et la persistance serveur sont traités par les tickets de domaine/backend concernés.
+La persistance serveur est portée par
+`supabase/functions/game-api/authoritative-rng.ts` et
+`GameStateV1.rngState`. Le contrat transactionnel, la migration et les
+garanties replay/conflit sont détaillés dans
+`docs/architecture/authoritative-rng.md`.
