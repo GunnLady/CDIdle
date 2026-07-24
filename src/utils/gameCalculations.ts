@@ -20,7 +20,6 @@ import {
   ItemInfo,
   DamageType,
   ElementalDamageType,
-  DamageResistances,
   Monster,
   ForgeState,
   ItemBlueprint
@@ -40,6 +39,7 @@ import {
 import { BUILDINGS_LIST } from "../data/buildings";
 import type { Rng } from "../domain/random";
 import { systemRng } from "../domain/random";
+import { calculateHeroDerivedStats } from "../../shared/domain/hero-stats";
 
 export const getHeroAttributes = (
   hero: Hero
@@ -347,40 +347,6 @@ export function getHeroEquipmentModifiers(hero: Hero): Modifier[] {
 export const getHeroStats = (
   hero: Hero
 ): CalculatedStats => {
-  const { str, agi, end, int, wiz, dex, luk } = getHeroAttributes(hero);
-
-  // 1. Derived HP: 50 + (END * 10) + (STR * 2) (min: 1)
-  const baseHpValue = 50 + (end * 8) + (str * 1);
-  let maxHp = Math.max(1, baseHpValue);
-  
-  const hp = maxHp;
-
-  // 2. Derived Mana: 20 + (INT * 8) + (WIZ * 5) (min: 1)
-  const mana = Math.max(1, Math.floor(20 + (int * 7) + (wiz * 4)));
-
-  // 3. Derived Physical Damage: 2 + (STR * 1.5) + (DEX * 0.5) (min: 1)
-  let physicalDamage = Math.max(1, Math.floor(2 + (str * 1.3) + (dex * 0.4)));
-
-  // 4. Derived Magic Damage: 2 + (INT * 1.5) + (WIZ * 0.5) (min: 1)
-  let magicDamage = Math.max(1, Math.floor(2 + (int * 1.3) + (wiz * 0.4)));
-
-  // 5. Derived Critical Chance: 5 + (DEX * 0.5) + (LUK * 0.25) (min: 1, max: 100)
-  const baseCrit = 3;
-  const criticalChance = Number(Math.max(1, Math.min(100, baseCrit + (dex * 0.1) + (luk * 0.2))).toFixed(1));
-
-  // 6. Derived Dodge Chance: 3 + (AGI * 0.5) + (LUK * 0.15) (min: 1, max: 90)
-  const dodgeChance = Number(Math.max(3, Math.min(90, 1 + (agi * 0.1) + (luk * 0.2))).toFixed(1));
-
-  // 7. Derived Speed: 10 + (AGI * 1.2) + (DEX * 0.3) (min: 1)
-  const speed = Math.max(1, Math.floor(10 + (agi * 1.2) + (dex * 0.3)));
-
-  // 8. Derived Physical Defense: (END * 0.8) + (STR * 0.3) (min: 0)
-  let physicalDefense = Math.max(0, Math.floor((end * 0.4) + (str * 0.15)));
-
-  // 9. Derived Magic Defense: (WIZ * 0.8) + (INT * 0.3) (min: 0)
-  let magicDefense = Math.max(0, Math.floor((wiz * 0.4) + (int * 0.15)));
-
-  // Collect all modifiers from passive skills generics-style
   const passiveModifiers = ((hero.passiveSkills) || [])
     .map(id => SKILLS_LIBRARY.find(s => s.id === id))
     .filter((s): s is SkillInfo => !!s && s.type === "passive")
@@ -388,81 +354,7 @@ export const getHeroStats = (
 
   const equipmentModifiers = getHeroEquipmentModifiers(hero);
   const allModifiers = [...passiveModifiers, ...equipmentModifiers];
-
-  const applyModifiers = (baseValue: number, statName: string): number => {
-    let finalValue = baseValue;
-    for (const mod of allModifiers) {
-      if (mod.stat === statName) {
-        if (mod.type === "flat") {
-          finalValue += mod.value;
-        } else if (mod.type === "percent") {
-          finalValue += baseValue * (mod.value / 100);
-        }
-      }
-    }
-    return finalValue;
-  };
-
-  const finalMaxHp = Math.max(1, Math.round(applyModifiers(maxHp, "maxHp")));
-  const finalHp = finalMaxHp;
-  const finalMaxMana = Math.max(1, Math.round(applyModifiers(mana, "maxMana")));
-  const finalMana = finalMaxMana;
-  const finalPhysicalDamage = Math.max(1, Math.round(applyModifiers(physicalDamage, "physicalDamage")));
-  const finalMagicDamage = Math.max(1, Math.round(applyModifiers(magicDamage, "magicDamage")));
-  const finalCriticalChance = Number(Math.max(1, Math.min(100, applyModifiers(criticalChance, "criticalChance"))).toFixed(1));
-  const finalDodgeChance = Number(Math.max(1, Math.min(90, applyModifiers(dodgeChance, "dodgeChance"))).toFixed(1));
-  const finalSpeed = Math.max(1, Math.round(applyModifiers(speed, "speed")));
-  const finalPhysicalDefense = Math.max(0, Math.round(applyModifiers(physicalDefense, "physicalDefense")));
-  const finalMagicDefense = Math.max(0, Math.round(applyModifiers(magicDefense, "magicDefense")));
-
-  const elements: ElementalDamageType[] = [
-    "arcane",
-    "fire",
-    "ice",
-    "water",
-    "earth",
-    "wind",
-    "lightning",
-    "holy",
-    "dark",
-    "nature",
-    "sound",
-    "poison",
-    "blood",
-    "radiant"
-  ];
-
-  const resistances = {} as DamageResistances;
-  for (const elem of elements) {
-    const baseValue = finalMagicDefense;
-    const statKey = `${elem}Resistance`;
-    let finalRes = baseValue;
-    for (const mod of allModifiers) {
-      if (mod.stat === statKey) {
-        if (mod.type === "flat") {
-          finalRes += mod.value;
-        } else if (mod.type === "percent") {
-          finalRes += baseValue * (mod.value / 100);
-        }
-      }
-    }
-    resistances[elem] = Math.round(finalRes);
-  }
-
-  return {
-    maxHp: finalMaxHp,
-    hp: finalHp,
-    maxMana: finalMaxMana,
-    mana: finalMana,
-    criticalChance: finalCriticalChance,
-    dodgeChance: finalDodgeChance,
-    physicalDamage: finalPhysicalDamage,
-    magicDamage: finalMagicDamage,
-    speed: finalSpeed,
-    physicalDefense: finalPhysicalDefense,
-    magicDefense: finalMagicDefense,
-    resistances
-  };
+  return calculateHeroDerivedStats(getHeroAttributes(hero), allModifiers) as CalculatedStats;
 };
 
 export const calculateXpNeeded = (nextLevel: number, classType: ClassType): number => {

@@ -31,7 +31,7 @@ describe("authoritative shared contracts", () => {
   it("keeps the authoritative command registry unique and complete", () => {
     expect(new Set(CANONICAL_COMMAND_TYPES).size).toBe(CANONICAL_COMMAND_TYPES.length);
     expect(CANONICAL_COMMAND_TYPES).toEqual(expect.arrayContaining([
-      "onboarding.start",
+      "onboarding.offer", "onboarding.start",
       "hero.recruit_offer",
       "forge.finalize",
       "dungeon.select_floor",

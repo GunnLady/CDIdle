@@ -17,14 +17,22 @@ import {
   Skull
 } from "lucide-react";
 import { Hero } from "../types";
-import { generateSingleNoviceHero } from "../utils/gameCalculations";
 
 interface LoginPageProps {
-  onLoginSuccess: (cityName: string, startingHeroes?: Hero[]) => void;
+  authoritativeNovices: Hero[];
+  pendingCityName: string;
+  onGenerateStartingNovices: (cityName: string) => Promise<boolean>;
+  onLoginSuccess: (cityName: string, startingHeroes?: Hero[]) => Promise<boolean>;
   addLog: (message: string, type?: "info" | "victory" | "defeat" | "loot" | "system") => void;
 }
 
-export default function LoginPage({ onLoginSuccess, addLog }: LoginPageProps) {
+export default function LoginPage({
+  authoritativeNovices,
+  pendingCityName,
+  onGenerateStartingNovices,
+  onLoginSuccess,
+  addLog,
+}: LoginPageProps) {
   const [authMode, setAuthMode] = useState<"login" | "signup">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -51,6 +59,15 @@ export default function LoginPage({ onLoginSuccess, addLog }: LoginPageProps) {
       setShowNamingStep(true);
     });
   }, []);
+
+  useEffect(() => {
+    if (authoritativeNovices.length === 0) return;
+    setCandidateNovices(authoritativeNovices);
+    setSelectedNoviceIds([]);
+    setTempCityName(pendingCityName);
+    setShowNamingStep(false);
+    setShowNoviceChoiceStep(true);
+  }, [authoritativeNovices, pendingCityName]);
 
   const handleGoogleAuth = async () => {
     setError(null);
@@ -120,18 +137,7 @@ export default function LoginPage({ onLoginSuccess, addLog }: LoginPageProps) {
     }
   };
 
-  const generateStartingNovices = () => {
-    const list: Hero[] = [];
-
-    for (let i = 0; i < 5; i++) {
-      const tempHero = generateSingleNoviceHero();
-      list.push(tempHero);
-    }
-    setCandidateNovices(list);
-    setSelectedNoviceIds([]);
-  };
-
-  const handleConfirmCityName = (e: React.FormEvent) => {
+  const handleConfirmCityName = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!tempCityName.trim()) {
       setError("Le nom de votre cité ne peut pas être vide.");
@@ -145,10 +151,12 @@ export default function LoginPage({ onLoginSuccess, addLog }: LoginPageProps) {
       return;
     }
 
-    // Instead of instantly saving, generate starting novices and move to step 3!
-    generateStartingNovices();
-    setShowNamingStep(false);
-    setShowNoviceChoiceStep(true);
+    setLoading(true);
+    const offered = await onGenerateStartingNovices(tempCityName.trim());
+    setLoading(false);
+    if (!offered) {
+      setError("Impossible de générer les novices depuis le serveur. Veuillez réessayer.");
+    }
   };
 
   const handleConfirmStarterSquad = async () => {
@@ -179,9 +187,13 @@ export default function LoginPage({ onLoginSuccess, addLog }: LoginPageProps) {
       // App.tsx owns the single authoritative bootstrap. Starter setup will
       // become a typed command once CDI-051 wires the UI to /commands.
 
+      const completed = await onLoginSuccess(formattedName, finalHeroes);
+      if (!completed) {
+        setError("Impossible de fonder la cité et d'établir l'escouade. Veuillez réessayer.");
+        return;
+      }
       addLog(`🏰 Cité de ${formattedName} ralliée sous vos bannières !`, "victory");
       addLog(`🤝 ${finalHeroes[0].name} et ${finalHeroes[1].name} intègrent de suite l'escouade de votre domaine !`, "victory");
-      onLoginSuccess(formattedName, finalHeroes);
     } catch (err: any) {
       console.error("Failed to complete starter setup:", err);
       setError("Impossible de fonder la cité et d'établir l'escouade. Veuillez réessayer.");

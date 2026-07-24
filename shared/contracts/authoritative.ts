@@ -21,7 +21,8 @@ export interface CanonicalGameState {
 }
 
 export type CanonicalGameCommand =
-  | { type: "onboarding.start"; cityName: string; starterHeroes: Array<{ name: string; race: string; gender: string }> }
+  | { type: "onboarding.offer"; cityName: string }
+  | { type: "onboarding.start"; cityName: string; starterHeroes: Array<{ id: string; name: string }> }
   | { type: "building.upgrade"; buildingId: string }
   | { type: "citizens.allocate"; role: "farmers" | "woodcutters" | "quarrymen" | "miners" | "unassigned"; amount: number }
   | { type: "district.unlock"; districtId: string }
@@ -56,7 +57,7 @@ export interface CanonicalCommandEnvelope {
 }
 
 export const CANONICAL_COMMAND_TYPES = [
-  "onboarding.start", "building.upgrade", "citizens.allocate", "district.unlock",
+  "onboarding.offer", "onboarding.start", "building.upgrade", "citizens.allocate", "district.unlock",
   "hero.recruit", "hero.recruit_offer", "hero.recruit_confirm", "hero.recruit_cancel", "hero.dismiss", "hero.activity", "hero.equip", "hero.unequip",
   "inventory.add", "inventory.remove", "inventory.recycle", "forge.start", "forge.finalize", "forge.cancel",
   "cheat.grant_resources", "cheat.set_highest_floor",

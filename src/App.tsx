@@ -110,6 +110,8 @@ export default function App() {
 
   // Hero customizer recruitment states
   const [pendingRecruit, setPendingRecruit] = useState<Hero | null>(null);
+  const [onboardingCandidates, setOnboardingCandidates] = useState<Hero[]>([]);
+  const [pendingOnboardingCityName, setPendingOnboardingCityName] = useState("");
 
   // Custom Hooks
   const {
@@ -178,6 +180,10 @@ export default function App() {
     if (state.currentEncounter !== undefined) setCurrentEncounter(state.currentEncounter);
     if (state.pendingForge !== undefined) setPendingForge(state.pendingForge);
     if (state.pendingRecruit !== undefined) setPendingRecruit(state.pendingRecruit ? refreshHeroDerivedStats(state.pendingRecruit) : null);
+    if (state.onboardingCandidates !== undefined) {
+      setOnboardingCandidates(state.onboardingCandidates.map((hero: Hero) => refreshHeroDerivedStats(hero)));
+    }
+    if (state.pendingOnboardingCityName !== undefined) setPendingOnboardingCityName(String(state.pendingOnboardingCityName));
     const canonicalRevision = Number.isInteger(revision) ? Number(revision) : gameRevisionRef.current;
     if (Number.isInteger(revision)) {
       gameRevisionRef.current = canonicalRevision;
@@ -636,11 +642,17 @@ export default function App() {
       {currentUser && !cityName && isInitialGameLoadDone && (
         <div className="flex-1 bg-[#150D08]/90 flex items-center justify-center p-4">
           <LoginPage
+            authoritativeNovices={onboardingCandidates}
+            pendingCityName={pendingOnboardingCityName}
+            onGenerateStartingNovices={(name) => dispatchAuthoritativeCommand({
+              type: "onboarding.offer",
+              cityName: name,
+            })}
             onLoginSuccess={(name, startingHeroes) => {
-              void dispatchAuthoritativeCommand({
+              return dispatchAuthoritativeCommand({
                 type: "onboarding.start",
                 cityName: name,
-                starterHeroes: (startingHeroes ?? []).map((hero) => ({ name: hero.name, race: hero.race, gender: hero.gender })),
+                starterHeroes: (startingHeroes ?? []).map((hero) => ({ id: hero.id, name: hero.name })),
               });
             }}
             addLog={addLog}

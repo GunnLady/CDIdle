@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { applyIdleAuthority, MAX_IDLE_SECONDS } from "../supabase/functions/game-api/idle-authority";
+import { generateAuthoritativeNovice } from "../supabase/functions/game-api/novice-authority";
 
 const base = {
   resources: { food: 100, wood: 0, stone: 0, ore: 0 },
@@ -33,6 +34,24 @@ describe("server idle authority", () => {
     ] }, "2026-07-18T00:00:00.000Z", new Date("2026-07-18T00:00:02.000Z"));
     expect(result.report.heroesRecovered).toBe(1);
     expect((result.state.heroes as Array<{ currentHp: number }>)[0].currentHp).toBe(14);
+  });
+
+  it("recovers a generated novice against persisted authoritative maxima", () => {
+    const novice = generateAuthoritativeNovice("idle-novice", "hero-idle") as Record<string, unknown> & {
+      calculatedStats: { maxHp: number; maxMana: number };
+    };
+    const maxHp = novice.calculatedStats.maxHp;
+    const maxMana = novice.calculatedStats.maxMana;
+    const injured = { ...novice, status: "resting", currentHp: 1, currentMana: 0 };
+    const result = applyIdleAuthority(
+      { ...base, heroes: [injured] },
+      "2026-07-18T00:00:00.000Z",
+      new Date("2026-07-18T00:01:00.000Z"),
+    );
+    const recovered = (result.state.heroes as Array<Record<string, unknown>>)[0];
+    expect(recovered.currentHp).toBe(maxHp);
+    expect(recovered.currentMana).toBe(maxMana);
+    expect(result.report.heroesRecovered).toBe(1);
   });
 
   it("rejects a server clock rollback", () => {

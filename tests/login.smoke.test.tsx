@@ -18,7 +18,15 @@ vi.mock("firebase/firestore", () => ({ doc: vi.fn(), setDoc: vi.fn() }));
 
 describe("LoginPage smoke", () => {
   it("se rend avec Firebase entièrement mocké", () => {
-    render(<LoginPage onLoginSuccess={vi.fn()} addLog={vi.fn()} />);
+    render(
+      <LoginPage
+        authoritativeNovices={[]}
+        pendingCityName=""
+        onGenerateStartingNovices={vi.fn().mockResolvedValue(true)}
+        onLoginSuccess={vi.fn().mockResolvedValue(true)}
+        addLog={vi.fn()}
+      />,
+    );
     expect(screen.getAllByRole("button").length).toBeGreaterThan(0);
     expect(screen.getByText(/Google/i)).toBeInTheDocument();
   });

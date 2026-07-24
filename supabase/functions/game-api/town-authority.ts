@@ -1,6 +1,7 @@
 import { applyInventoryCommand } from "./inventory-authority.ts";
 import { applyForgeCommand } from "./forge-authority.ts";
 import { applyDungeonCommand } from "./dungeon-authority.ts";
+import { generateAuthoritativeNovice } from "./novice-authority.ts";
 import type { CanonicalGameCommand } from "../../../shared/contracts/authoritative.ts";
 
 export type TownResources = { gold: number; food: number; wood: number; stone: number; ore: number };
@@ -21,6 +22,8 @@ export type TownState = {
   highestFloorReached?: number;
   currentEncounter?: Record<string, unknown> | null;
   autoExplore?: boolean;
+  onboardingCandidates?: Array<Record<string, unknown>>;
+  pendingOnboardingCityName?: string;
 };
 
 type TownCommand = CanonicalGameCommand & { commandId?: string };
@@ -54,7 +57,8 @@ export const initialTownState = (): TownState => ({
   buildings: { habitation: 1, ferme: 0, scierie: 0, carriere: 0, mine: 0, maison_chef: 0, guilde: 0, academie: 0, temple: 0, cercle: 0, lair: 0, caserne: 0, poste_chasse: 0, forge: 0 },
   citizens: { farmers: 0, woodcutters: 0, quarrymen: 0, miners: 0, unassigned: 3 },
   totalCitizensCount: 3, districts: {}, heroes: [], storedItems: [], forgeMaterials: [], itemBlueprints: [], citizenGrowthProgress: 0
-  , activeDungeonFloor: 1, activeDungeonRoom: 1, highestFloorReached: 1, currentEncounter: null, autoExplore: false
+  , activeDungeonFloor: 1, activeDungeonRoom: 1, highestFloorReached: 1, currentEncounter: null, autoExplore: false,
+  onboardingCandidates: [], pendingOnboardingCityName: ""
 });
 
 class TownCommandError extends Error { constructor(public readonly code: string, message: string) { super(message); } }
@@ -74,23 +78,11 @@ export function applyTownCommand(current: Record<string, unknown>, command: Reco
     const token = String(typed.commandId ?? "offer").replace(/-/g, "");
     const score = [...token].reduce((sum, char) => sum + char.charCodeAt(0), 0);
     const races = ["Humain", "Nain", "Elfe", "Gobelin"];
-    const candidate = {
-      id: `candidate-${typed.commandId ?? "offer"}`,
-      name: `Novice ${token.slice(0, 4) || "Aube"}`,
-      race: races[score % races.length],
-      gender: score % 2 === 0 ? "Female" : "Male",
-      classType: "Novice",
-      level: 1,
-      xp: 0,
-      isActive: false,
-      status: "idle",
-      currentHp: 95,
-      currentMana: 75,
-      baseStats: { str: 5 + score % 3, agi: 5 + (score + 1) % 3, end: 5 + (score + 2) % 3, int: 5 + (score + 3) % 3, wiz: 5 + (score + 4) % 3, dex: 5 + (score + 5) % 3, luk: 5 + (score + 6) % 3 },
-      equipment: { mainHand: null, offHand: null, armor: null, accessory: null },
-      activeSkills: [],
-      passiveSkills: [],
-    };
+    const candidate = generateAuthoritativeNovice(
+      `recruit:${typed.commandId ?? "offer"}`,
+      `candidate-${typed.commandId ?? "offer"}`,
+      races[score % races.length],
+    );
     return { state: { ...town, pendingRecruit: candidate }, events: [{ type: "hero.recruit_offer_created", heroId: candidate.id }] };
   }
   if (typed.type === "hero.recruit_cancel") {
@@ -121,39 +113,55 @@ export function applyTownCommand(current: Record<string, unknown>, command: Reco
     }
     return { state: { ...town, resources }, events: [{ type: "cheat.resources_granted", amounts: typed.amounts }] };
   }
+  if (typed.type === "onboarding.offer") {
+    const cityName = typed.cityName.trim();
+    if (!cityName || cityName.length > 48) throw new TownCommandError("INVALID_COMMAND", "city name is invalid");
+    if (town.cityName || heroes.length > 0) throw new TownCommandError("ALREADY_STARTED", "onboarding is already complete");
+    const commandId = String(typed.commandId ?? "onboarding");
+    const onboardingCandidates = Array.from({ length: 5 }, (_, index) =>
+      generateAuthoritativeNovice(
+        `onboarding:${commandId}:${index + 1}`,
+        `candidate-${commandId}-${index + 1}`,
+      )
+    );
+    return {
+      state: { ...town, onboardingCandidates, pendingOnboardingCityName: cityName },
+      events: [{ type: "onboarding.offer_created", heroIds: onboardingCandidates.map((hero) => hero.id) }],
+    };
+  }
   if (typed.type === "onboarding.start") {
     const cityName = typed.cityName.trim();
     if (!cityName || cityName.length > 48) throw new TownCommandError("INVALID_COMMAND", "city name is invalid");
     if (town.cityName || heroes.length > 0) throw new TownCommandError("ALREADY_STARTED", "onboarding is already complete");
     if (!Array.isArray(typed.starterHeroes) || typed.starterHeroes.length !== 2) throw new TownCommandError("INVALID_COMMAND", "exactly two starter heroes are required");
-    const allowedRaces = new Set(["Humain", "Nain", "Elfe", "Gobelin"]);
-    const allowedGenders = new Set(["Male", "Female"]);
-    const starterHeroes = typed.starterHeroes.map((candidate, index) => {
-      const name = String(candidate.name ?? "").trim();
-      const race = String(candidate.race ?? "");
-      const gender = String(candidate.gender ?? "");
-      if (!name || name.length > 40 || !allowedRaces.has(race) || !allowedGenders.has(gender)) {
-        throw new TownCommandError("INVALID_COMMAND", "starter hero identity is invalid");
-      }
+    if (town.pendingOnboardingCityName !== cityName) throw new TownCommandError("INVALID_COMMAND", "onboarding city does not match the offer");
+    const candidates = town.onboardingCandidates ?? [];
+    const selectedIds = new Set(typed.starterHeroes.map((selection) => String(selection.id ?? "")));
+    if (selectedIds.size !== 2) throw new TownCommandError("INVALID_COMMAND", "starter hero ids must be unique");
+    const starterHeroes = typed.starterHeroes.map((selection, index) => {
+      const candidate = candidates.find((entry) => entry.id === selection.id);
+      if (!candidate) throw new TownCommandError("INVALID_COMMAND", "starter hero was not offered");
+      const name = String(selection.name ?? "").trim();
+      if (!name || name.length > 40) throw new TownCommandError("INVALID_COMMAND", "starter hero identity is invalid");
       return {
+        ...candidate,
         id: `hero-${typed.commandId ?? "onboarding"}-${index + 1}`,
         name,
-        race,
-        gender,
-        classType: "Novice",
-        level: 1,
-        xp: 0,
         isActive: false,
         status: "idle",
-        currentHp: 95,
-        currentMana: 75,
-        baseStats: { str: 5, agi: 5, end: 5, int: 5, wiz: 5, dex: 5, luk: 5 },
-        equipment: { mainHand: null, offHand: null, armor: null, accessory: null },
-        activeSkills: [],
-        passiveSkills: [],
       };
     });
-    return { state: { ...town, cityName, resources: { gold: 125, food: 75, wood: 40, stone: 0, ore: 0 }, heroes: starterHeroes }, events: [{ type: "onboarding.started", cityName, heroIds: starterHeroes.map((hero) => hero.id) }] };
+    return {
+      state: {
+        ...town,
+        cityName,
+        resources: { gold: 125, food: 75, wood: 40, stone: 0, ore: 0 },
+        heroes: starterHeroes,
+        onboardingCandidates: [],
+        pendingOnboardingCityName: "",
+      },
+      events: [{ type: "onboarding.started", cityName, heroIds: starterHeroes.map((hero) => hero.id) }],
+    };
   }
   if (typed.type === "inventory.add" || typed.type === "inventory.remove" || typed.type === "hero.equip" || typed.type === "hero.unequip") {
     return applyInventoryCommand(town, command);
@@ -169,7 +177,10 @@ export function applyTownCommand(current: Record<string, unknown>, command: Reco
     if (heroes.length >= capacity) throw new TownCommandError("CAPACITY_REACHED", "hero capacity reached");
     if (town.resources.gold < cost) throw new TownCommandError("INSUFFICIENT_RESOURCES", "insufficient gold");
     const id = `hero-${typed.commandId ?? `slot-${heroes.length}`}`;
-    const hero = { id, name: "Novice", classType: "Novice", level: 1, isActive: false, status: "idle", currentHp: 1 };
+    const hero = generateAuthoritativeNovice(
+      `recruit:${typed.commandId ?? `slot-${heroes.length}`}`,
+      id,
+    );
     return { state: { ...town, resources: { ...town.resources, gold: town.resources.gold - cost }, heroes: [...heroes, hero] }, events: [{ type: "hero.recruited", heroId: id, cost }] };
   }
   if (typed.type === "hero.dismiss") {
