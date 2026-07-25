@@ -4,15 +4,78 @@ Date : 24 juillet 2026.
 
 ## Decision
 
-Le moteur de donjon serveur actuel n est pas un port du moteur historique.
-C est une implementation simplifiee et independante. La parite fonctionnelle
-et RNG est bloquante pour CDI-051 et les validations finales.
+Le commit `640f89f` sert de trace du dernier comportement fonctionnel complet,
+pas de second moteur à maintenir. CDI-054 restaure ces règles dans un unique
+moteur de donjon autoritaire. Les fixtures golden figent les comportements,
+les mutations et l'ordre des rolls attendus sans dupliquer une implémentation
+exécutable dite « historique ».
 
-Le suivi correctif est CDI-054.
+## Mise en oeuvre CDI-054
+
+Le 25 juillet 2026, le moteur simplifie de
+`supabase/functions/game-api/dungeon-authority.ts` a ete retire du parcours
+actif. La resolution autoritaire appelle desormais le domaine pur
+`src/domain/authoritativeDungeon.ts`.
+
+Le moteur autoritaire porte :
+
+- le tirage pondere des neuf encounters, avec un total historique de 149 ;
+- le combat force de boss en salle 50, sans roll d encounter ni de monstre ;
+- les pools de monstres, le scaling et le roll cosmetique historique de l ID ;
+- les tours dans l ordre des heros, les cooldowns, competences, mana,
+  attaques de base, critiques, multi-frappes, ciblage et esquive ;
+- le comportement historique surprenant des buffs/debuffs : mana et cooldown
+  sont consommes, le message est emis, mais aucun modificateur transitoire
+  n etait effectivement applique par l ancien hook ;
+- la mort, le repos force, l arret de l auto-exploration et la progression ;
+- les bonus d or, materiaux, objets, XP, niveaux et changements de classe ;
+- les branches tresor, repos et tests de statistiques avec leurs mutations ;
+- un transcript structure contenant aussi un message affichable, afin que le
+  client temporise le resultat sans recalculer le combat.
+
+Le contrat partage accepte les anciens transcripts `hero.hit` / `enemy.hit`
+sans message pendant la migration, mais chaque nouvelle resolution CDI-054
+produit `message`, `category` et les donnees fonctionnelles detaillees.
+
+Règles d'autorité restaurées le 25 juillet :
+
+- le donjon consomme exclusivement `hero.calculatedStats` persisté pendant une
+  rencontre ; il ne recalcule jamais les statistiques ;
+- l'XP sans level-up ne recalcule pas les statistiques ;
+- le level-up et l'évolution de classe délèguent leur recalcul au domaine
+  héros `src/domain/hero.ts` ;
+- une erreur du RNG injecté remonte jusqu'à la commande et ne peut plus être
+  convertie silencieusement en rencontre `fight` ;
+- chaque rencontre non-combat produit les étapes de découverte, sélection,
+  tentative, résultat, conséquence, récompense et progression nécessaires à
+  sa restitution ;
+- `useDungeonSystem` ne contient plus de moteur, de RNG ou de mutation de
+  gameplay locale : il projette uniquement l'état canonique dans l'interface.
+
+Les golden tests de `tests/authoritativeDungeonGolden.test.ts` caractérisent
+notamment :
+
+- combat ordinaire : encounter, monstre, ID, critique et drop dans l ordre ;
+- boss : absence des deux rolls interdits avant le roll d ID ;
+- competence : aucune consommation RNG cachee ;
+- tresor : branche, materiau et nombre exact de rolls ;
+- echec de test de statistique : mutation et absence de rolls de recompense.
+
+Les preuves automatisées précédentes sont devenues obsolètes après la
+restauration fonctionnelle du 25 juillet. La matrice complète sera rejouée
+seulement lorsque le moteur, le transcript et les fixtures seront stabilisés.
+
+Restent avant cloture :
+
+- compiler et servir reellement l Edge Function locale avec Supabase ;
+- verifier le transcript progressif complet dans le navigateur puis apres F5 ;
+- compléter les fixtures de caractérisation de chaque branche ;
+- exécuter toute la matrice automatisée ;
+- mettre a jour les preuves et cases du ticket seulement apres ces validations.
 
 ## Reference historique
 
-La reference est le commit Git `640f89f`, derniere version dans laquelle le
+La trace de référence est le commit Git `640f89f`, dernière version dans laquelle le
 moteur local et son timer etaient encore actifs. Le commit `f47993e` a retire
 le timer de `src/hooks/useDungeonSystem.ts` sans porter les regles historiques
 cote serveur.
@@ -165,7 +228,8 @@ parite absolue doit le consommer ou faire approuver une nouvelle convention.
 2. Pour chaque frappe, roll de degats de l arme si elle a une plage.
 3. Pour chaque frappe, roll critique.
 
-Une competence utilisee ne consomme aucun roll dans le moteur historique.
+Une compétence utilisée ne consommait aucun roll dans le comportement
+caractérisé depuis `640f89f`.
 
 ### Riposte
 
@@ -299,7 +363,7 @@ disparaitre.
 
 CDI-051 reprend lorsque :
 
-- les golden tests reference/backend sont verts ;
+- les fixtures golden de toutes les branches sont vertes ;
 - CDI-050 garantit la persistance atomique du RNG ;
 - le transcript complet est conserve dans les quinze derniers encounters ;
 - le navigateur rejoue toutes les actions sans recalculer ;

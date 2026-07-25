@@ -63,14 +63,18 @@ Contrat complet : `docs/architecture/authoritative-rng.md`.
 - Une nouvelle exploration, manuelle ou automatique, attend la fin de la
   présentation du transcript courant.
 
-### Ecart bloquant CDI-054
+### Restauration fonctionnelle CDI-054
 
-Le transport et l historique sont en place, mais le moteur serveur reste une
-resolution simplifiee. Il ne reproduit pas encore la reference `640f89f` :
-encounters ponderes, catalogues, competences, critiques, multi-frappes,
-esquives, defenses, recompenses et progressions divergent.
+Le transport appelle désormais l'unique moteur autoritaire
+`src/domain/authoritativeDungeon.ts`. CDI-054 porte les rencontres pondérées,
+catalogues, compétences, critiques, multi-frappes, esquives, défenses,
+récompenses et progressions caractérisées depuis `640f89f`.
 
-CDI-054 porte la parite fonctionnelle et l ordre exact des rolls. CDI-051 reste
-en pause jusqu aux golden tests reference/backend.
+Le moteur lit les statistiques persistées des héros. Seul le domaine héros
+recalcule les statistiques lors d'un level-up ou d'une évolution de classe.
+Toute erreur du RNG canonique fait échouer atomiquement la commande.
+
+CDI-051 reste en pause jusqu'à la couverture golden complète, la validation
+Edge réelle et le parcours navigateur après `F5`.
 
 Audit : `docs/architecture/authoritative-dungeon-parity-audit.md`.

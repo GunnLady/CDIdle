@@ -73,34 +73,30 @@ export function rollEncounterForgeMaterial(floor: number, rng: Rng = systemRng):
 }
 
 export function getRandomDungeonEncounterType(rng: Rng = systemRng): DungeonEncounterType {
-  try {
-    const keys = Object.keys(DUNGEON_ENCOUNTER_WEIGHTS) as DungeonEncounterType[];
-    let totalWeight = 0;
-    
-    for (const key of keys) {
-      const weight = DUNGEON_ENCOUNTER_WEIGHTS[key];
-      if (weight && weight > 0) {
-        totalWeight += weight;
+  const keys = Object.keys(DUNGEON_ENCOUNTER_WEIGHTS) as DungeonEncounterType[];
+  let totalWeight = 0;
+
+  for (const key of keys) {
+    const weight = DUNGEON_ENCOUNTER_WEIGHTS[key];
+    if (weight && weight > 0) {
+      totalWeight += weight;
+    }
+  }
+
+  if (totalWeight <= 0) {
+    return "fight";
+  }
+
+  const roll = rng.next() * totalWeight;
+  let cumulative = 0;
+  for (const key of keys) {
+    const weight = DUNGEON_ENCOUNTER_WEIGHTS[key];
+    if (weight && weight > 0) {
+      cumulative += weight;
+      if (roll <= cumulative) {
+        return key;
       }
     }
-
-    if (totalWeight <= 0) {
-      return "fight";
-    }
-
-    const roll = rng.next() * totalWeight;
-    let cumulative = 0;
-    for (const key of keys) {
-      const weight = DUNGEON_ENCOUNTER_WEIGHTS[key];
-      if (weight && weight > 0) {
-        cumulative += weight;
-        if (roll <= cumulative) {
-          return key;
-        }
-      }
-    }
-  } catch (error) {
-    console.error("Failed to generate encounter type, falling back to fight:", error);
   }
   return "fight";
 }

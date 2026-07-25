@@ -37,7 +37,6 @@ import {
   Monster,
   BattleLogEntry
 } from "./types";
-import { refreshHeroDerivedStats } from "./utils/gameCalculations";
 const TownPanel = lazy(() => import("./components/TownPanel"));
 const DungeonPanel = lazy(() => import("./components/DungeonPanel"));
 const HeroPanel = lazy(() => import("./components/HeroPanel"));
@@ -151,12 +150,6 @@ export default function App() {
   const town = useTownSystem(townAddLog, highestFloorReached, currentUser, isOnline);
 
   const dungeon = useDungeonSystem({
-    buildings: town.buildings,
-    resources: town.resources,
-    setResources: town.setResources,
-    addLog,
-    currentUser,
-    isOnline,
     highestFloorReached,
     setHighestFloorReached
   });
@@ -193,7 +186,7 @@ export default function App() {
     if (state.storedItems) setStoredItems(state.storedItems);
     if (state.forgeMaterials) setForgeMaterials(state.forgeMaterials);
     if (state.itemBlueprints) setItemBlueprints(state.itemBlueprints);
-    if (state.heroes) setHeroes(state.heroes.map((hero: Hero) => refreshHeroDerivedStats(hero)));
+    if (state.heroes) setHeroes(state.heroes);
     if (state.activeDungeonFloor !== undefined) setActiveDungeonFloor(Number(state.activeDungeonFloor));
     if (state.activeDungeonRoom !== undefined) setActiveDungeonRoom(Number(state.activeDungeonRoom));
     if (state.highestFloorReached !== undefined) setDungeonHighestFloorReached(Number(state.highestFloorReached));
@@ -201,9 +194,9 @@ export default function App() {
     if (state.currentEncounter !== undefined) setCurrentEncounter(state.currentEncounter);
     if (Array.isArray(state.encounterHistory)) setEncounterHistory(state.encounterHistory);
     if (state.pendingForge !== undefined) setPendingForge(state.pendingForge);
-    if (state.pendingRecruit !== undefined) setPendingRecruit(state.pendingRecruit ? refreshHeroDerivedStats(state.pendingRecruit) : null);
+    if (state.pendingRecruit !== undefined) setPendingRecruit(state.pendingRecruit ?? null);
     if (state.onboardingCandidates !== undefined) {
-      setOnboardingCandidates(state.onboardingCandidates.map((hero: Hero) => refreshHeroDerivedStats(hero)));
+      setOnboardingCandidates(state.onboardingCandidates);
     }
     if (state.pendingOnboardingCityName !== undefined) setPendingOnboardingCityName(String(state.pendingOnboardingCityName));
     const canonicalRevision = Number.isInteger(revision) ? Number(revision) : gameRevisionRef.current;
@@ -1008,8 +1001,19 @@ export default function App() {
                 onClearBattleLogs={clearBattleLogs}
                 combatTimer={dungeon.combatTimer}
                 onResetLevel={() => {
-                  dungeon.handleResetLevel();
-                  clearBattleLogs();
+                  void (async () => {
+                    const reset = await dispatchAuthoritativeCommand({
+                      type: "dungeon.select_floor",
+                      floor: dungeon.activeDungeonFloor,
+                    });
+                    if (reset) {
+                      addLog(
+                        "🔄 Étage réinitialisé : l'exploration reprend à la salle 1.",
+                        "info",
+                      );
+                      clearBattleLogs();
+                    }
+                  })();
                 }}
               />
             </div>

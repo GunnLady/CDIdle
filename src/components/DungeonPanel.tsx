@@ -98,6 +98,7 @@ export default function DungeonPanel({
   const formatTranscriptEvent = React.useCallback((
     event: CanonicalDungeonEncounterRecord["transcript"][number],
   ) => {
+    if (event.message) return event.message;
     const heroName = event.heroName ?? heroNames.get(event.heroId) ?? "Un héros";
     if (event.type === "hero.hit") {
       return `Tour ${event.round} — ${heroName} inflige ${event.damage} dégâts.`;
@@ -1152,7 +1153,7 @@ export default function DungeonPanel({
               >
                 <div className="flex items-center justify-between gap-2 pb-2 mb-2 border-b border-[#5c402b]/25">
                   <span className="text-[10.5px] font-serif uppercase tracking-wider text-[#dfdbc7] font-bold">
-                    ⚔️ Étage {encounter.floor} · Salle {encounter.room}
+                    {encounter.kind === "fight" ? "⚔️" : "🧭"} Étage {encounter.floor} · Salle {encounter.room}
                   </span>
                   <span className={`text-[9px] font-sans px-1.5 py-0.5 rounded uppercase tracking-wider font-bold border ${
                     !isComplete
@@ -1161,7 +1162,9 @@ export default function DungeonPanel({
                       ? "text-emerald-400 bg-emerald-950/40 border-emerald-900/50"
                       : "text-red-400 bg-red-950/40 border-red-900/50"
                   }`}>
-                    {!isComplete ? "Combat en cours" : victory ? "Victoire" : "Défaite"}
+                    {!isComplete
+                      ? encounter.kind === "fight" ? "Combat en cours" : "Rencontre en cours"
+                      : victory ? "Victoire" : "Défaite"}
                   </span>
                 </div>
 
@@ -1176,7 +1179,15 @@ export default function DungeonPanel({
                       className="flex items-start gap-1.5 text-[11px] leading-relaxed break-words font-sans animate-fade-in"
                     >
                       <span className="text-[#5c402b] select-none text-[9px] mt-0.5 shrink-0">•</span>
-                      <span className={event.type === "hero.hit" ? "text-sky-300" : "text-rose-400"}>
+                      <span className={
+                        event.category === "combat-hero"
+                          ? "text-sky-300"
+                          : event.category === "combat-enemy" || event.category === "defeat"
+                          ? "text-rose-400"
+                          : event.category === "victory" || event.category === "loot"
+                          ? "text-emerald-400"
+                          : "text-[#c9b99a]"
+                      }>
                         {formatTranscriptEvent(event)}
                       </span>
                     </div>
@@ -1184,8 +1195,12 @@ export default function DungeonPanel({
                   {isComplete ? (
                     <p className={`pt-1 text-[10.5px] font-bold ${victory ? "text-emerald-400" : "text-red-400"}`}>
                       {victory
-                        ? `Victoire en ${encounter.roundCount} tour(s) · +${encounter.rewards.gold} or`
-                        : `Défaite après ${encounter.roundCount} tour(s)`}
+                        ? encounter.kind === "fight"
+                          ? `Victoire en ${encounter.roundCount} tour(s) · +${encounter.rewards.gold} or`
+                          : `Rencontre résolue · +${encounter.rewards.gold} or`
+                        : encounter.kind === "fight"
+                        ? `Défaite après ${encounter.roundCount} tour(s)`
+                        : "Épreuve échouée · l'escouade poursuit sa route"}
                     </p>
                   ) : null}
                   {playback ? <span data-playback-end className="block h-px" aria-hidden="true" /> : null}

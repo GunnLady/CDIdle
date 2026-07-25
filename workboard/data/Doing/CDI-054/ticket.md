@@ -1,7 +1,7 @@
 ---
 id: CDI-054
 title: Parite deterministe du moteur de donjon autoritaire
-status: Later
+status: Doing
 area: vertical
 priority: P1
 size: L

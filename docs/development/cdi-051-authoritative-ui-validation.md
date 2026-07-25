@@ -107,11 +107,11 @@ La preuve navigateur de ce nouveau flux reste nécessaire.
 
 ## Blocage CDI-054 — parite du moteur de donjon
 
-Le test navigateur du registre a revele que le transcript serveur ne contient
-que `hero.hit` et `enemy.hit`. L audit Git confirme que le backend ne porte pas
-le moteur historique : encounters ponderes, monstres, boss, competences, mana,
-cooldowns, critiques, multi-frappes, esquives, defenses, recompenses, XP et
-progression sont absents ou differents.
+Le test navigateur du registre avait révélé que le transcript serveur ne
+contenait que `hero.hit` et `enemy.hit`. CDI-054 restaure désormais dans
+l'unique moteur autoritaire les rencontres pondérées, monstres, boss,
+compétences, mana, cooldowns, critiques, multi-frappes, esquives, défenses,
+récompenses, XP et progression caractérisés depuis `640f89f`.
 
 CDI-051 ne peut pas etre clos avec un transcript anime mais fonctionnellement
 incomplet. La reprise depend de CDI-054 et de :
@@ -162,7 +162,8 @@ Preuve utilisateur pendant la validation navigateur :
 - clôture attendue dans CDI-053 : générer et persister l’offre complète côté
   serveur, promouvoir deux IDs offerts, recréer un compte ou réinitialiser une
   partie, puis vérifier le profil complet et sa persistance après `F5` ;
-- aucun CDI-054 séparé : ce périmètre est regroupé dans CDI-053.
+- CDI-053 a corrigé la génération des novices ; CDI-054, séparé, restaure le
+  moteur de donjon autoritaire et bloque toujours la clôture de CDI-051.
 
 L’audit fonctionnel CDI-053 a identifié puis fait corriger les écarts suivants :
 

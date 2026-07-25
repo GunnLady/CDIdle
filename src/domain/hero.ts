@@ -60,33 +60,65 @@ export function growHeroStats(baseStats: HeroStats, classType: ClassType, rng: R
   return next;
 }
 
-export function addHeroExperience(hero: Hero, xpEarned: number, rng: Rng, buildings: Record<string, number> = {}): Hero {
-  if (!Number.isFinite(xpEarned) || xpEarned < 0) return hero;
+export type HeroExperienceResult = {
+  hero: Hero;
+  levels: number[];
+  classChange?: { from: ClassType; to: ClassType; reason: string };
+  classStayed?: { classType: ClassType; reason: string };
+};
+
+export function addHeroExperienceDetailed(
+  hero: Hero,
+  xpEarned: number,
+  rng: Rng,
+  buildings: Record<string, number> = {},
+): HeroExperienceResult {
+  if (!Number.isFinite(xpEarned) || xpEarned < 0) return { hero, levels: [] };
   let next = { ...hero, baseStats: { ...hero.baseStats }, xp: hero.xp + xpEarned };
-  let leveledUp = false;
+  const levels: number[] = [];
   while (next.xp >= next.xpNeeded) {
     next.xp -= next.xpNeeded;
     next.level += 1;
     next.baseStats = growHeroStats(next.baseStats, next.classType, rng);
     next.xpNeeded = calculateXpNeeded(next.level + 1, next.classType);
-    leveledUp = true;
+    levels.push(next.level);
+  }
+  if (levels.length === 0) {
+    next.currentHp = Math.min(hero.calculatedStats.maxHp, hero.currentHp);
+    next.currentMana = Math.min(hero.calculatedStats.maxMana, hero.currentMana);
+    return { hero: next, levels };
   }
   next = refreshHeroDerivedStats(next);
-  if (!leveledUp) {
-    next.currentHp = Math.min(next.calculatedStats.maxHp, hero.currentHp);
-    next.currentMana = Math.min(next.calculatedStats.maxMana, hero.currentMana);
-    return next;
-  }
   next.currentHp = Math.min(next.calculatedStats.maxHp, hero.currentHp + Math.floor(next.calculatedStats.maxHp * 0.2));
   if (next.classType === "Novice" && next.level >= 10) {
     const evolution = evaluateAutomaticClassChange(next, buildings);
     if (evolution.newClass) {
+      const from = next.classType;
       next = refreshHeroDerivedStats({ ...next, classType: evolution.newClass });
       next.currentHp = next.calculatedStats.maxHp;
       next.currentMana = next.calculatedStats.maxMana;
+      return {
+        hero: next,
+        levels,
+        classChange: { from, to: evolution.newClass, reason: evolution.reason },
+      };
     }
+    return {
+      hero: next,
+      levels,
+      classStayed: { classType: next.classType, reason: evolution.reason },
+    };
   }
-  return next;
+  return { hero: next, levels };
+}
+
+export function addHeroExperience(
+  hero: Hero,
+  xpEarned: number,
+  rng: Rng,
+  buildings: Record<string, number> = {},
+): Hero {
+  return addHeroExperienceDetailed(hero, xpEarned, rng, buildings).hero;
 }
 
 export function chooseAutomaticClass(hero: Hero, buildings: Record<string, number>): ClassType | null {

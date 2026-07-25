@@ -266,6 +266,21 @@ describe("hero domain", () => {
     expect(leveled.xpNeeded).toBeGreaterThan(0);
   });
 
+  it("does not recalculate persisted hero stats when XP does not level up", () => {
+    const hero = makeHero({
+      xp: 0,
+      xpNeeded: 100,
+      calculatedStats: {
+        ...makeHero().calculatedStats,
+        physicalDamage: 777,
+      },
+    });
+    const progressed = addHeroExperience(hero, 10, seededRng(7));
+
+    expect(progressed.xp).toBe(10);
+    expect(progressed.calculatedStats).toEqual(hero.calculatedStats);
+  });
+
   it("recovers part of the hero health after a level-up", () => {
     const hero = makeHero({ id: "hero-hp", currentHp: 1 });
     const leveled = addHeroExperience(hero, hero.xpNeeded, seededRng(7));

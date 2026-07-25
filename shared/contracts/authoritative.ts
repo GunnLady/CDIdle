@@ -4,23 +4,31 @@ export type CanonicalModifier = { stat: string; type?: "flat" | "percent"; value
 
 export interface CanonicalDungeonTranscriptEvent {
   sequence: number;
-  type: "hero.hit" | "enemy.hit";
-  round: number;
-  heroId: string;
+  type: string;
+  message?: string;
+  category?: "info" | "victory" | "defeat" | "loot" | "combat-hero" | "combat-enemy";
+  round?: number;
+  heroId?: string;
   heroName?: string;
-  damage: number;
+  monsterId?: string;
+  monsterName?: string;
+  damage?: number;
+  healing?: number;
   enemyHp?: number;
+  enemyMaxHp?: number;
   heroHp?: number;
+  heroMaxHp?: number;
+  [key: string]: unknown;
 }
 
 export interface CanonicalDungeonEncounterRecord {
   encounterId: string;
-  kind: "fight";
+  kind: "fight" | "trap" | "enigma" | "ambush" | "ritual" | "obstacle" | "negotiation" | "treasure" | "rest";
   floor: number;
   room: number;
   outcome: "victory" | "defeat";
   roundCount: number;
-  enemy: { hp: number; maxHp: number };
+  enemy: { id?: string; name?: string; hp: number; maxHp: number; isBoss?: boolean } | null;
   transcript: CanonicalDungeonTranscriptEvent[];
   rewards: { gold: number; loot: Array<Record<string, unknown>> };
 }
