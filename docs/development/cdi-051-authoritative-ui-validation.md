@@ -257,6 +257,12 @@ ordinaire, Mage et Acolyte. Pour chaque réponse `/commands`, puis après `F5` :
 - vérifier la révision, les PV/PM restaurés, les cooldowns vides et la
   persistance exacte après bootstrap.
 
+Avant la vocation, un level-up ordinaire doit restaurer une seule fois 20 %
+des PV max et 30 % des PM max, même si la récompense franchit plusieurs
+niveaux. Un simple gain d XP ne recalcule pas les `calculatedStats`, tandis
+qu un équipement ou déséquipement les recalcule. `xpNeeded` doit correspondre
+à la formule canonique pour le niveau et la classe après migration.
+
 ## Validation CDI-054 observée le 25 juillet 2026
 
 Preuve utilisateur sur l'environnement Supabase local :
@@ -302,3 +308,36 @@ l'état initial complet sans déconnecter Google et persisté ce résultat aprè
 `F5`.
 Le retour en haut après reset et la restauration de l'onglet actif après `F5`
 ont aussi été confirmés dans le navigateur local.
+
+## Validation CDI-058 observée le 26 juillet 2026
+
+Preuve utilisateur sur l environnement Supabase local :
+
+- level-up ordinaire : PV `62/92 -> 80/93`, correspondant a
+  `62 + floor(93 * 20 %)`, et PM `0/92 -> 31/104`, correspondant a
+  `floor(104 * 30 %)` ;
+- croissance Novice de cinq points, statistiques derivees recalculees et etat
+  strictement identique apres `F5` ;
+- transcript chiffre confirme sur le niveau suivant avec PV
+  `82/93 -> 93/93`, PM `21/104 -> 57/123` et gains de statistiques detailles ;
+- vocation Mage niveau 10 : deux sorts elementaires distincts, passif Mage,
+  passif Novice conserve, actif Novice retire, cooldowns vides, restauration
+  complete et persistance apres `F5` ;
+- boss d etage 30 : `+8584 XP`, neuf niveaux `1 -> 10`, recuperation unique
+  PV `1/200 -> 47/233` et PM `0/100 -> 26/89`, quarante-cinq points de
+  croissance et evaluation unique de la vocation sur le niveau final ;
+- apres `F5`, niveau, XP, PV/PM, attributs et transcript multi-niveaux sont
+  identiques ;
+- replay exact de `dungeon.resolve` : `replayed: true`, commande
+  `7b330a45-cb07-4e3d-8344-721733f1a415`, revision `119`, RNG
+  `draws: 14` et `state: 1434733041`, sans revision `120`, nouvelle rencontre
+  ou recompense dupliquee apres `F5`.
+
+La recette a aussi revele des informations fonctionnelles masquees dans le
+texte du transcript. Le moteur autoritaire affiche desormais les PV/PM et gains
+de statistiques du level-up, distingue les coups critiques, marque les frappes
+bonus sans compteur et explique un KO avec attaquant, degats et transition des
+PV vers zero. Les golden tests verrouillent ces formats. Apres build actualise,
+le smoke navigateur final a confirme `[Coup critique]`,
+`[Frappe bonus] [Coup critique]` sans compteur et le KO cause par le Minotaure
+Vagabond avec 223 degats et la transition `1 -> 0/233 PV`.

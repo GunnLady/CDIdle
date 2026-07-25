@@ -46,6 +46,11 @@ describe("catalogue invariants", () => {
     for (const classInfo of CLASS_INFO_LIST) {
       expect(classInfo.activeSkills.every((id) => skillsById.get(id)?.type === "active")).toBe(true);
       expect(classInfo.passiveSkills.every((id) => skillsById.get(id)?.type === "passive")).toBe(true);
+      if (classInfo.tier === 1) {
+        expect(classInfo.mainStats.length).toBeGreaterThan(0);
+        expect(classInfo.jobChangeBuildingId).toBeTruthy();
+        expect(BUILDINGS_LIST.some((building) => building.id === classInfo.jobChangeBuildingId)).toBe(true);
+      }
     }
     const mage = CLASS_INFO_LIST.find((entry) => entry.type === "Mage");
     expect(mage?.activeSkills).toHaveLength(6);
@@ -56,7 +61,20 @@ describe("catalogue invariants", () => {
     const acolyte = CLASS_INFO_LIST.find((entry) => entry.type === "Acolyte");
     expect(acolyte?.activeSkills).not.toContain("minor_heal");
     expect(skillsById.get("minor_heal")?.type).toBe("active");
-
+    expect(Object.fromEntries(
+      CLASS_INFO_LIST.filter((entry) => entry.tier === 1)
+        .map((entry) => [entry.type, entry.jobChangeBuildingId]),
+    )).toEqual({
+      Guerrier: "caserne",
+      Voleur: "lair",
+      Archer: "poste_chasse",
+      Mage: "academie",
+      Acolyte: "temple",
+      "Aède": "academie",
+      Druide: "cercle",
+      Artificier: "forge",
+      Pugiliste: "caserne",
+    });
     for (const monster of [...MONSTERS_LIBRARY, ...BOSSES_LIBRARY]) {
       expect(monster.name).toBeTruthy();
       expect(monster.atk).toBeGreaterThanOrEqual(0);

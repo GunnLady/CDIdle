@@ -138,6 +138,15 @@ describe("authoritative shared contracts", () => {
     }))).toContain("hero.passiveSkills contains non-passive skill heavy_blow");
   });
 
+  it("rejects progression thresholds inconsistent with level and class", () => {
+    expect(validateAuthoritativeHero(makeHero({ xpNeeded: 120 }))).toContain(
+      "hero.xpNeeded must equal 100 for level 1 Novice",
+    );
+    expect(validateAuthoritativeHero(makeHero({ xp: 100, xpNeeded: 100 }))).toContain(
+      "hero.xp must be lower than xpNeeded after canonical progression",
+    );
+  });
+
   it("uses the same inclusive safe-integer draw boundary as the RNG runtime", () => {
     const errors = validateCanonicalGameState({
       resources: {}, buildings: {}, citizens: {}, districts: {}, heroes: [],

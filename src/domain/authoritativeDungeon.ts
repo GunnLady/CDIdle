@@ -120,12 +120,51 @@ function logExperienceAward(
     heroName: original.name,
     xp,
   });
-  for (const level of award.levels) {
+  if (award.levels.length > 0) {
+    const statLabels: Record<keyof Hero["baseStats"], string> = {
+      str: "FOR",
+      agi: "AGI",
+      end: "END",
+      int: "INT",
+      wiz: "SAG",
+      dex: "DEX",
+      luk: "CHA",
+    };
+    const statGains = (Object.keys(statLabels) as (keyof Hero["baseStats"])[])
+      .map((stat) => ({ stat, amount: award.hero.baseStats[stat] - original.baseStats[stat] }))
+      .filter(({ amount }) => amount > 0);
+    const statSummary = statGains
+      .map(({ stat, amount }) => `${statLabels[stat]} +${amount}`)
+      .join(", ");
+    const levelSummary = award.levels.length === 1
+      ? `passe niveau ${award.hero.level}`
+      : `gagne ${award.levels.length} niveaux (${original.level} → ${award.hero.level})`;
     log(
       "hero.level_up",
-      `${original.name} passe niveau ${level}. Sa santé et ses caractéristiques progressent.`,
+      `${original.name} ${levelSummary} ! `
+        + `PV ${original.currentHp}/${original.calculatedStats.maxHp} → `
+        + `${award.hero.currentHp}/${award.hero.calculatedStats.maxHp} ; `
+        + `Mana ${original.currentMana}/${original.calculatedStats.maxMana} → `
+        + `${award.hero.currentMana}/${award.hero.calculatedStats.maxMana} ; `
+        + `caractéristiques : ${statSummary}.`,
       "victory",
-      { heroId: original.id, heroName: original.name, level },
+      {
+        heroId: original.id,
+        heroName: original.name,
+        level: award.hero.level,
+        levels: award.levels,
+        levelBefore: original.level,
+        levelAfter: award.hero.level,
+        hpBefore: original.currentHp,
+        hpMaxBefore: original.calculatedStats.maxHp,
+        hpAfter: award.hero.currentHp,
+        hpMaxAfter: award.hero.calculatedStats.maxHp,
+        manaBefore: original.currentMana,
+        manaMaxBefore: original.calculatedStats.maxMana,
+        manaAfter: award.hero.currentMana,
+        manaMaxAfter: award.hero.calculatedStats.maxMana,
+        statGains: Object.fromEntries(statGains.map(({ stat, amount }) => [stat, amount])),
+      },
     );
   }
   if (award.classChange) {
@@ -512,9 +551,14 @@ function resolveFight(
           const damage = applySplitDamageDefenseOrResistance(criticalDamage, damageTypes, monster);
           totalDamage += damage;
           const nextHp = Math.max(0, monster.hp - totalDamage);
+          const hitLabels = [
+            strike > 1 ? "[Frappe bonus]" : null,
+            critical ? "[Coup critique]" : null,
+          ].filter((label): label is string => label !== null);
+          const hitPrefix = hitLabels.length > 0 ? `${hitLabels.join(" ")} ` : "";
           log(
             critical ? "hero.hit.critical" : "hero.hit",
-            `${hero.name} inflige ${damage} degats a ${monster.name}.`,
+            `${hitPrefix}${hero.name} inflige ${damage} dégâts à ${monster.name}.`,
             "combat-hero",
             {
               round,
@@ -563,6 +607,7 @@ function resolveFight(
     for (let strike = 1; strike <= strikes; strike += 1) {
       const living = heroes.filter((hero) => hero.isActive && hero.currentHp > 0);
       if (living.length === 0) break;
+      const strikePrefix = strike > 1 ? "[Frappe bonus] " : "";
       const target = living[rng.nextInt(living.length)];
       const targetIndex = heroes.findIndex((hero) => hero.id === target.id);
       const targetStats = persistedCombatStats(target);
@@ -574,7 +619,7 @@ function resolveFight(
       if (dodged) {
         log(
           "enemy.dodged",
-          `${target.name} esquive l'attaque de ${monster.name}.`,
+          `${strikePrefix}${target.name} esquive l'attaque de ${monster.name}.`,
           "combat-enemy",
           {
             round,
@@ -597,8 +642,10 @@ function resolveFight(
       log(
         hp === 0 ? "hero.defeated" : "enemy.hit",
         hp === 0
-          ? `${target.name} s'ecroule et retourne aux dortoirs.`
-          : `${monster.name} inflige ${damage} degats a ${target.name}.`,
+          ? `${strikePrefix}${monster.name} inflige ${damage} dégâts à ${target.name} `
+            + `(${target.currentHp} → 0/${targetStats.maxHp} PV). `
+            + `${target.name} s'écroule et retourne aux dortoirs.`
+          : `${strikePrefix}${monster.name} inflige ${damage} dégâts à ${target.name}.`,
         hp === 0 ? "defeat" : "combat-enemy",
         {
           round,
@@ -611,6 +658,7 @@ function resolveFight(
           damage,
           damageType: monster.damageType,
           defense,
+          heroHpBefore: target.currentHp,
           heroHp: hp,
           heroMaxHp: targetStats.maxHp,
         },

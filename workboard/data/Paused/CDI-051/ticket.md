@@ -7,7 +7,7 @@ priority: P1
 size: L
 risk: high
 source: Audit Eclipse CDI-037 du 2026-07-23
-depends_on: ["CDI-023", "CDI-025", "CDI-026", "CDI-027", "CDI-028", "CDI-029", "CDI-031", "CDI-041", "CDI-052", "CDI-053", "CDI-054", "CDI-057"]
+depends_on: ["CDI-023", "CDI-025", "CDI-026", "CDI-027", "CDI-028", "CDI-029", "CDI-031", "CDI-041", "CDI-052", "CDI-053", "CDI-054", "CDI-057", "CDI-058"]
 blocks: ["CDI-045", "CDI-046", "CDI-048", "CDI-049"]
 github_issue: null
 related_docs: ["docs/fullstack-authoritative-plan.md", "docs/architecture/api-command-contracts.md", "docs/architecture/game-api-followups.md", "docs/development/cdi-051-authoritative-ui-validation.md", "src/App.tsx", "src/lib/supabase.ts"]
@@ -47,6 +47,10 @@ La reprise CDI-054 restaure aussi la vocation T0 vers T1 : actif Novice retire,
 passif Novice conserve, tirages de classe autoritaires et cas particuliers
 Mage/Acolyte. La preuve navigateur apres `F5` reste requise dans CDI-051.
 
+CDI-058 verrouille les invariants de progression avant cette preuve finale :
+seuil XP derive, croissance et nombre de rolls, recuperation unique de 20 % PV
+et 30 % PM, convergence niveaux 10 a 13 et vocations integrees.
+
 ## Perimetre autorise
 
 - Construire les enveloppes de commandes avec UUID, idempotence et revision.
@@ -82,6 +86,7 @@ Mage/Acolyte. La preuve navigateur apres `F5` reste requise dans CDI-051.
   CDI-052.
 - CDI-054 — parite deterministe du moteur de donjon autoritaire.
 - CDI-057 — parite Ville autoritaire et desactivation temporaire des districts.
+- CDI-058 — invariants et preuves de progression des heros.
 
 ## Criteres d'acceptation
 

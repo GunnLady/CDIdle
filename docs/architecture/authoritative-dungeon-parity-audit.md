@@ -260,7 +260,8 @@ Croissance :
 
 - Novice : cinq points, deux rolls par point, soit dix rolls ;
 - classe superieure : huit points, deux rolls par point, soit seize rolls ;
-- fallback sans statistiques principales : huit rolls.
+- une classe T1 sans statistiques principales est refusée avant tout roll ; le
+  fallback historique silencieux n est pas conservé dans l autorité stricte.
 
 Si ce level-up déclenche une vocation T0 vers T1, les rolls de compétences
 suivent immédiatement la croissance :
@@ -273,6 +274,11 @@ suivent immédiatement la croissance :
 Le passif Novice est conservé, l’actif Novice est retiré et les cooldowns sont
 réinitialisés. Le transcript `hero.class_changed` transporte les listes
 résultantes sans recalcul client.
+
+Un level-up restaure une seule fois 20 % des PV max et 30 % des PM max, même
+si une récompense franchit plusieurs niveaux. Sans level-up, le gain d XP ne
+recalcule pas les statistiques persistées ; équipement et déséquipement les
+recalculent explicitement.
 
 ## RNG de la résolution simplifiée remplacée
 
@@ -321,9 +327,10 @@ resistances.
 ### Attaques
 
 ```text
-{hero} attaque {monster} pour {damage} degats.
-[Coup critique] {hero} inflige {damage} degats.
-[Frappe agile {index}/{count}] {hero} inflige {damage} degats.
+{hero} inflige {damage} dégâts à {monster}.
+[Coup critique] {hero} inflige {damage} dégâts à {monster}.
+[Frappe bonus] {hero} inflige {damage} dégâts à {monster}.
+[Frappe bonus] [Coup critique] {hero} inflige {damage} dégâts à {monster}.
 {enemyHp}/{enemyMaxHp} PV ennemis restants.
 ```
 
@@ -333,10 +340,11 @@ final.
 ### Riposte
 
 ```text
-{monster} inflige {damage} degats a {hero}.
+{monster} inflige {damage} dégâts à {hero}.
+[Frappe bonus] {monster} inflige {damage} dégâts à {hero}.
 {heroHp}/{heroMaxHp} PV restants.
 {hero} esquive l attaque de {monster}.
-{hero} s ecroule et retourne aux dortoirs.
+{monster} inflige {damage} dégâts à {hero} ({heroHpBefore} → 0/{heroMaxHp} PV). {hero} s'écroule et retourne aux dortoirs.
 ```
 
 Donnees : index de frappe, cible, defense, roll esquive, PV, activation et

@@ -11,6 +11,8 @@ import {
   generateNoviceStats,
   generateSingleNoviceHero,
   getNoviceClassDecisionPolicy,
+  evaluateAutomaticClassChange,
+  refreshHeroDerivedStats,
 } from "../src/utils/gameCalculations";
 import {
   getEncounterDetails,
@@ -21,11 +23,12 @@ import {
 } from "../src/utils/dungeonHelpers";
 import type { Hero } from "../src/types";
 import { getBuildingMaxLevel } from "../src/data/buildings";
+import { CLASS_INFO_LIST } from "../src/data/heroes";
 import { makeCitizens, makeHero, makeStoredItem } from "./fixtures/game";
 import { createInitialGameState, splitGameState, validateGameState } from "../src/domain/gameState";
 import { isCommandSuccess, validateCommandEnvelope, type CommandEnvelope } from "../src/domain/commands";
 import { fixedClock, seededRng } from "../src/domain/random";
-import { addHeroExperience, assignTier1Skills, canActivateHero, dismissHero, recruitHero, recruitmentCost, recruitmentEligibility, setHeroActivity } from "../src/domain/hero";
+import { addHeroExperience, assignTier1Skills, canActivateHero, dismissHero, growHeroStats, recruitHero, recruitmentCost, recruitmentEligibility, setHeroActivity } from "../src/domain/hero";
 import { addStack, removeStack, type InventoryState } from "../src/domain/inventory";
 import { applyUpgradeCost, recycleItem, startBasicCraft } from "../src/domain/forge";
 import { advanceRoom, changeFloor, validateDungeonProgress, type DungeonProgressState } from "../src/domain/dungeonProgression";
@@ -62,6 +65,8 @@ describe("gameCalculations", () => {
     expect(calculateXpNeeded(1, "Novice")).toBe(100);
     expect(calculateXpNeeded(2, "Novice")).toBe(100);
     expect(calculateXpNeeded(2, "Guerrier")).toBe(125);
+    expect(calculateXpNeeded(10, "Novice")).toBe(2563);
+    expect(calculateXpNeeded(10, "Guerrier")).toBe(3204);
   });
 
   it("ne débloque aucune classe sans bâtiment requis", () => {
@@ -93,9 +98,11 @@ describe("gameCalculations", () => {
     const hero = makeHero();
     const equipped = equipItem(hero, storage, "starter_sword", "common");
     expect(equipped.equipment?.mainHand?.itemId).toBe("starter_sword");
+    expect(equipped.calculatedStats).not.toEqual(hero.calculatedStats);
     expect(storage).toHaveLength(0);
     const unequipped = unequipItem(equipped, storage, "mainHand");
     expect(unequipped.equipment?.mainHand).toBeNull();
+    expect(unequipped.calculatedStats).toEqual(refreshHeroDerivedStats(hero).calculatedStats);
     expect(storage).toHaveLength(1);
   });
 });
@@ -175,13 +182,6 @@ describe("hero domain", () => {
     expect(getNoviceClassDecisionPolicy(13)).toEqual({ minScore: 0, gapThreshold: 0 });
   });
 
-  it("applies the novice convergence policy", () => {
-    expect(getNoviceClassDecisionPolicy(10)).toEqual({ minScore: 55, gapThreshold: 6 });
-    expect(getNoviceClassDecisionPolicy(11)).toEqual({ minScore: 45, gapThreshold: 4 });
-    expect(getNoviceClassDecisionPolicy(12)).toEqual({ minScore: 30, gapThreshold: 2 });
-    expect(getNoviceClassDecisionPolicy(13)).toEqual({ minScore: 0, gapThreshold: 0 });
-  });
-
   it("calculates recruitment costs predictably", () => {
     expect(recruitmentCost(0)).toBe(100);
     expect(recruitmentCost(3)).toBe(550);
@@ -211,17 +211,119 @@ describe("hero domain", () => {
   });
 
   it("recovers part of the hero health after a level-up", () => {
-    const hero = makeHero({ id: "hero-hp", currentHp: 1 });
+    const hero = makeHero({ id: "hero-hp", currentHp: 1, currentMana: 0 });
     const leveled = addHeroExperience(hero, hero.xpNeeded, seededRng(7));
-    expect(leveled.currentHp).toBeGreaterThan(hero.currentHp);
-    expect(leveled.currentHp).toBeLessThanOrEqual(leveled.calculatedStats.maxHp);
+    expect(leveled.currentHp).toBe(Math.min(
+      leveled.calculatedStats.maxHp,
+      hero.currentHp + Math.floor(leveled.calculatedStats.maxHp * 0.2),
+    ));
+    expect(leveled.currentMana).toBe(Math.min(
+      leveled.calculatedStats.maxMana,
+      hero.currentMana + Math.floor(leveled.calculatedStats.maxMana * 0.3),
+    ));
+  });
+
+  it("recovers health and mana only once after a multi-level reward", () => {
+    const hero = makeHero({ id: "hero-multi", currentHp: 1, currentMana: 0 });
+    const leveled = addHeroExperience(hero, 250, seededRng(7));
+    expect(leveled.level).toBe(3);
+    expect(leveled.xp).toBe(0);
+    expect(leveled.currentHp).toBe(Math.min(
+      leveled.calculatedStats.maxHp,
+      hero.currentHp + Math.floor(leveled.calculatedStats.maxHp * 0.2),
+    ));
+    expect(leveled.currentMana).toBe(Math.min(
+      leveled.calculatedStats.maxMana,
+      hero.currentMana + Math.floor(leveled.calculatedStats.maxMana * 0.3),
+    ));
+  });
+
+  it("consumes two RNG draws per growth point", () => {
+    const counted = () => {
+      let draws = 0;
+      return {
+        rng: {
+          next: () => { draws += 1; return 0; },
+          nextInt: () => { draws += 1; return 0; },
+        },
+        draws: () => draws,
+      };
+    };
+    const noviceTape = counted();
+    const novice = growHeroStats(
+      { str: 9, agi: 8, end: 7, int: 6, wiz: 5, dex: 4, luk: 3 },
+      "Novice",
+      noviceTape.rng,
+    );
+    expect(noviceTape.draws()).toBe(10);
+    expect(novice.str).toBe(14);
+
+    const tier1Tape = counted();
+    const warrior = growHeroStats(
+      { str: 9, agi: 8, end: 7, int: 6, wiz: 5, dex: 4, luk: 3 },
+      "Guerrier",
+      tier1Tape.rng,
+    );
+    expect(tier1Tape.draws()).toBe(16);
+    expect(warrior.str).toBe(17);
+  });
+
+  it("recomputes a Novice's top three base stats before each gained level", () => {
+    const groupRolls = [0.99, 0.99, 0.99, 0.99, 0.99, 0, 0, 0, 0, 0];
+    let groupIndex = 0;
+    const hero = makeHero({
+      baseStats: { str: 3, agi: 3, end: 3, int: 3, wiz: 3, dex: 3, luk: 3 },
+      currentHp: 1,
+      currentMana: 0,
+    });
+    const leveled = addHeroExperience(hero, 250, {
+      next: () => groupRolls[groupIndex++],
+      nextInt: () => 0,
+    });
+
+    expect(groupIndex).toBe(10);
+    expect(leveled.baseStats).toMatchObject({ int: 13, str: 3, agi: 3, end: 3 });
+  });
+
+  it("rejects an empty Tier 1 growth catalog before consuming RNG", () => {
+    const warrior = CLASS_INFO_LIST.find((entry) => entry.type === "Guerrier");
+    expect(warrior).toBeDefined();
+    if (!warrior) return;
+    const original = warrior.mainStats;
+    let draws = 0;
+    try {
+      warrior.mainStats = [];
+      expect(() => growHeroStats(makeHero().baseStats, "Guerrier", {
+        next: () => { draws += 1; return 0; },
+        nextInt: () => { draws += 1; return 0; },
+      })).toThrow("EMPTY_CLASS_MAIN_STATS:Guerrier");
+      expect(draws).toBe(0);
+    } finally {
+      warrior.mainStats = original;
+    }
   });
 
   it("does not evolve a Novice without an eligible profession building", () => {
-    const hero = makeHero({ id: "hero-novice", level: 9, xp: 0, xpNeeded: 100 });
-    const leveled = addHeroExperience(hero, 100, seededRng(7), {});
+    const xpNeeded = calculateXpNeeded(10, "Novice");
+    const hero = makeHero({ id: "hero-novice", level: 9, xp: 0, xpNeeded });
+    const leveled = addHeroExperience(hero, xpNeeded, seededRng(7), {});
     expect(leveled.level).toBe(10);
     expect(leveled.classType).toBe("Novice");
+  });
+
+  it("applies the documented Novice convergence through the real evaluator", () => {
+    const profile = (level: number, score: number) => makeHero({
+      level,
+      baseStats: { str: score, agi: 1, end: score, int: 1, wiz: 1, dex: 1, luk: 1 },
+    });
+    const candidates = Array.from({ length: 40 }, (_, index) => index + 1);
+    const decision = (level: number, score: number) =>
+      evaluateAutomaticClassChange(profile(level, score), { caserne: 1 }).newClass;
+
+    expect(candidates.some((score) => decision(10, score) === null && decision(11, score) !== null)).toBe(true);
+    expect(candidates.some((score) => decision(11, score) === null && decision(12, score) !== null)).toBe(true);
+    expect(decision(13, 1)).not.toBeNull();
+    expect(evaluateAutomaticClassChange(profile(13, 40), {}).newClass).toBeNull();
   });
 
   it("assigns Tier 1 skills while preserving only the Novice passive", () => {

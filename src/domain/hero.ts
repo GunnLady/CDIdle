@@ -48,9 +48,15 @@ export function setHeroActivity(heroes: Hero[], heroId: string, active: boolean)
 export function growHeroStats(baseStats: HeroStats, classType: ClassType, rng: Rng): HeroStats {
   const keys: (keyof HeroStats)[] = ["str", "agi", "end", "int", "wiz", "dex", "luk"];
   const classInfo = CLASS_INFO_LIST.find((entry) => entry.type === classType);
-  const prioritized = classInfo?.tier && classInfo.tier > 0 ? classInfo.mainStats : [...keys].sort((a, b) => baseStats[b] - baseStats[a]).slice(0, 3);
+  if (!classInfo) throw new Error(`INVALID_HERO_CLASS:${classType}`);
+  if (classInfo.tier > 0 && classInfo.mainStats.length === 0) {
+    throw new Error(`EMPTY_CLASS_MAIN_STATS:${classType}`);
+  }
+  const prioritized = classInfo.tier > 0
+    ? classInfo.mainStats
+    : [...keys].sort((a, b) => baseStats[b] - baseStats[a]).slice(0, 3);
   const fallback = keys.filter((key) => !prioritized.includes(key));
-  const points = classInfo?.tier && classInfo.tier > 0 ? 8 : 5;
+  const points = classInfo.tier > 0 ? 8 : 5;
   const next = { ...baseStats };
   for (let index = 0; index < points; index += 1) {
     const pool = rng.next() < 0.8 ? prioritized : fallback;
@@ -156,6 +162,10 @@ export function addHeroExperienceDetailed(
   }
   next = refreshHeroDerivedStats(next);
   next.currentHp = Math.min(next.calculatedStats.maxHp, hero.currentHp + Math.floor(next.calculatedStats.maxHp * 0.2));
+  next.currentMana = Math.min(
+    next.calculatedStats.maxMana,
+    hero.currentMana + Math.floor(next.calculatedStats.maxMana * 0.3),
+  );
   if (next.classType === "Novice" && next.level >= 10) {
     const evolution = evaluateAutomaticClassChange(next, buildings);
     if (evolution.newClass) {

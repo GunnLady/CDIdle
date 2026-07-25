@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { applyTownCommand, initialTownState } from "../supabase/functions/game-api/town-authority";
+import { applyTownCommand, initialTownState, migrateTownState } from "../supabase/functions/game-api/town-authority";
 import { generateAuthoritativeNoviceEquipment } from "../supabase/functions/game-api/inventory-authority";
 import { generateAuthoritativeNovice } from "../supabase/functions/game-api/novice-authority";
 import { refreshHeroDerivedStats } from "../src/utils/gameCalculations";
@@ -12,6 +12,27 @@ const withoutIdentity = (hero: Record<string, unknown>) => {
 };
 
 describe("authoritative town commands", () => {
+  it("migrates a derived XP threshold without consuming gameplay RNG", () => {
+    const current = {
+      ...initialTownState(),
+      heroes: [makeHero({ xpNeeded: 120 })],
+      onboardingCandidates: [makeHero({ id: "candidate", xpNeeded: 120 })],
+      pendingRecruit: makeHero({ id: "pending", xpNeeded: 120 }),
+    };
+    const migrated = migrateTownState(current);
+    expect((migrated.heroes as unknown as Hero[])[0].xpNeeded).toBe(100);
+    expect((migrated.onboardingCandidates as unknown as Hero[])[0].xpNeeded).toBe(100);
+    expect((migrated.pendingRecruit as unknown as Hero).xpNeeded).toBe(100);
+    expect(migrated.rngState).toEqual(current.rngState);
+  });
+
+  it("rejects excess persisted XP that would require random level growth to repair", () => {
+    expect(() => migrateTownState({
+      ...initialTownState(),
+      heroes: [makeHero({ xp: 110, xpNeeded: 120 })],
+    })).toThrow("canonical game state is invalid");
+  });
+
   it("rejects a malformed persisted hero before applying any command", () => {
     const malformed = {
       ...makeHero(),

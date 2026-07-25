@@ -74,6 +74,11 @@ Le moteur lit les statistiques persistées des héros. Seul le domaine héros
 recalcule les statistiques lors d'un level-up ou d'une évolution de classe.
 Toute erreur du RNG canonique fait échouer atomiquement la commande.
 
+Un équipement ou déséquipement déclenche également le recalcul explicite des
+statistiques dérivées. Un gain d XP sans niveau les conserve. Un level-up
+restaure une seule fois 20 % PV max et 30 % PM max ; une vocation restaure
+ensuite intégralement PV et PM.
+
 Lors d’une évolution T0 vers T1, le domaine héros conserve uniquement le
 passif Novice et remplace ses actifs. Une classe ordinaire tire un actif et un
 passif de classe. Le Mage tire deux sorts élémentaires distincts et un passif.

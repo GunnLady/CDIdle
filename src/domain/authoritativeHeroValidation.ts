@@ -1,6 +1,22 @@
 import { validateCanonicalHero } from "../../shared/contracts/authoritative.ts";
-import { getSkillById } from "../data/gameData.ts";
-import type { Hero } from "../types.ts";
+import { CLASS_INFO_LIST, getSkillById } from "../data/gameData.ts";
+import type { ClassType, Hero } from "../types.ts";
+import { calculateXpNeeded } from "../utils/gameCalculations.ts";
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  Boolean(value) && typeof value === "object" && !Array.isArray(value);
+
+function expectedXpNeeded(hero: Pick<Hero, "level" | "classType">): number {
+  return calculateXpNeeded(hero.level + 1, hero.classType);
+}
+
+export function migrateAuthoritativeHeroProgression(input: unknown): unknown {
+  if (!isRecord(input) || !Number.isInteger(input.level)) return input;
+  const classInfo = CLASS_INFO_LIST.find((entry) => entry.type === input.classType);
+  if (!classInfo) return input;
+  const xpNeeded = calculateXpNeeded(Number(input.level) + 1, input.classType as ClassType);
+  return input.xpNeeded === xpNeeded ? input : { ...input, xpNeeded };
+}
 
 export function validateAuthoritativeHero(
   input: unknown,
@@ -8,7 +24,15 @@ export function validateAuthoritativeHero(
 ): string[] {
   const errors = validateCanonicalHero(input, path);
   if (errors.length > 0) return errors;
-  return validateAuthoritativeHeroSkills(input as Hero, path);
+  const hero = input as Hero;
+  const expected = expectedXpNeeded(hero);
+  if (hero.xpNeeded !== expected) {
+    errors.push(`${path}.xpNeeded must equal ${expected} for level ${hero.level} ${hero.classType}`);
+  }
+  if (hero.xp >= hero.xpNeeded) {
+    errors.push(`${path}.xp must be lower than xpNeeded after canonical progression`);
+  }
+  return [...errors, ...validateAuthoritativeHeroSkills(hero, path)];
 }
 
 export function validateAuthoritativeHeroSkills(

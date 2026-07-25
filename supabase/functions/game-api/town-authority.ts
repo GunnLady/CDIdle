@@ -16,6 +16,7 @@ import {
   type CanonicalRngState,
 } from "../../../shared/contracts/authoritative.ts";
 import {
+  migrateAuthoritativeHeroProgression,
   validateAuthoritativeHero,
   validateAuthoritativeHeroes,
 } from "../../../src/domain/authoritativeHeroValidation.ts";
@@ -268,6 +269,15 @@ export function migrateTownState(current: Record<string, unknown>, legacySeed?: 
     resources: mergeMap(defaults.resources, current.resources),
     buildings: mergeMap(defaults.buildings, current.buildings),
     citizens: mergeMap(defaults.citizens, current.citizens),
+    heroes: Array.isArray(current.heroes)
+      ? current.heroes.map(migrateAuthoritativeHeroProgression)
+      : current.heroes ?? defaults.heroes,
+    onboardingCandidates: Array.isArray(current.onboardingCandidates)
+      ? current.onboardingCandidates.map(migrateAuthoritativeHeroProgression)
+      : current.onboardingCandidates,
+    pendingRecruit: current.pendingRecruit
+      ? migrateAuthoritativeHeroProgression(current.pendingRecruit)
+      : current.pendingRecruit,
     rngState: migrateCanonicalRngState(current.rngState, legacySeed),
   } as TownState;
   const errors = [

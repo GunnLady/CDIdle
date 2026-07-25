@@ -708,7 +708,7 @@ export default function HeroPanel({
                                 <span>Vocation Automatique</span>
                               </div>
                               <p className="text-xs text-[#a89078] leading-relaxed font-sans">
-                                Ce héros s'orientera automatiquement vers une spécialisation de Tier 1 dès le <span className="text-amber-500 font-semibold">Niveau 10</span>, si les infrastructures requises sont bâties dans votre Colonie et qu'une affinité claire se dessine dans ses statistiques.
+                                Ce héros cherchera une spécialisation de Tier 1 dès le <span className="text-amber-500 font-semibold">Niveau 10</span> si une infrastructure de métier est disponible. Une affinité ambiguë peut retarder le choix, mais une vocation disponible sera retenue au plus tard au niveau 13.
                               </p>
                             </div>
                           )}

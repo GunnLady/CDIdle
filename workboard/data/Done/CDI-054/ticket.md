@@ -8,7 +8,7 @@ size: L
 risk: high
 source: Audit de parite combat historique/backend du 2026-07-24
 depends_on: ["CDI-015", "CDI-029", "CDI-050", "CDI-052"]
-blocks: ["CDI-051", "CDI-046", "CDI-048", "CDI-049"]
+blocks: ["CDI-051", "CDI-046", "CDI-048", "CDI-049", "CDI-058"]
 github_issue: null
 related_docs: ["docs/fullstack-authoritative-plan.md", "docs/architecture/authoritative-dungeon-parity-audit.md", "docs/architecture/api-command-contracts.md", "docs/architecture/clock-rng.md", "docs/architecture/game-api-followups.md", "supabase/functions/game-api/dungeon-authority.ts", "src/hooks/useDungeonSystem.ts"]
 ---

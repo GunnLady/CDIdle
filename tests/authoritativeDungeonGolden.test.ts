@@ -630,7 +630,13 @@ describe("authoritative dungeon golden behavior characterized from 640f89f", () 
     );
 
     expect(tape.draws()).toBe(7);
-    expect(result.encounter.transcript.filter((event) => event.type === "hero.hit")).toHaveLength(3);
+    const hits = result.encounter.transcript.filter((event) => event.type === "hero.hit");
+    expect(hits).toHaveLength(3);
+    expect(hits.map((event) => event.message)).toEqual([
+      "Héros fixture inflige 100 dégâts à Rat Énorme des Égouts.",
+      "[Frappe bonus] Héros fixture inflige 100 dégâts à Rat Énorme des Égouts.",
+      "[Frappe bonus] Héros fixture inflige 100 dégâts à Rat Énorme des Égouts.",
+    ]);
   });
 
   it("records a critical hit at the characterized roll position", () => {
@@ -658,10 +664,44 @@ describe("authoritative dungeon golden behavior characterized from 640f89f", () 
     expect(tape.draws()).toBe(6);
     expect(result.encounter.transcript[1]).toMatchObject({
       type: "hero.hit.critical",
+      message: "[Coup critique] Héros fixture inflige 150 dégâts à Rat Énorme des Égouts.",
       critical: true,
       strike: 1,
       strikeCount: 1,
       round: 1,
+    });
+  });
+
+  it("announces a critical bonus strike without losing its structured markers", () => {
+    const tape = tapeRng([
+      0.10, // encounter
+      0.00, // monster
+      0.25, // visual id
+      0.00, 0.00, 0.00, // critical checks
+      0.99, // no material
+    ]);
+    const fastCriticalHero = makeHero({
+      calculatedStats: {
+        ...makeHero().calculatedStats,
+        physicalDamage: 100,
+        speed: 250,
+        criticalChance: 100,
+      },
+    });
+    const result = resolveAuthoritativeDungeonEncounter(
+      state({ heroes: [fastCriticalHero] }),
+      "golden-critical-multistrike",
+      tape.rng,
+    );
+    const hits = result.encounter.transcript.filter((event) => event.type === "hero.hit.critical");
+
+    expect(tape.draws()).toBe(7);
+    expect(hits).toHaveLength(3);
+    expect(hits[1]).toMatchObject({
+      message: "[Frappe bonus] [Coup critique] Héros fixture inflige 150 dégâts à Rat Énorme des Égouts.",
+      strike: 2,
+      strikeCount: 3,
+      critical: true,
     });
   });
 
@@ -701,6 +741,13 @@ describe("authoritative dungeon golden behavior characterized from 640f89f", () 
       "hero.defeated",
       "encounter.defeat",
     ]);
+    expect(result.encounter.transcript[2]).toMatchObject({
+      message: "Rat Énorme des Égouts inflige 3 dégâts à Ariane (1 → 0/20 PV). Ariane s'écroule et retourne aux dortoirs.",
+      damage: 3,
+      heroHpBefore: 1,
+      heroHp: 0,
+      heroMaxHp: 20,
+    });
     expect(result.state.heroes?.[0]).toMatchObject({
       currentHp: 0,
       isActive: false,
@@ -771,8 +818,8 @@ describe("authoritative dungeon golden behavior characterized from 640f89f", () 
     const levelingHero = makeHero({
       name: "Ariane",
       level: 9,
-      xp: 99,
-      xpNeeded: 100,
+      xp: 2562,
+      xpNeeded: 2563,
       baseStats: { str: 50, agi: 1, end: 50, int: 1, wiz: 1, dex: 1, luk: 1 },
       calculatedStats: {
         ...makeHero().calculatedStats,
@@ -804,6 +851,145 @@ describe("authoritative dungeon golden behavior characterized from 640f89f", () 
     expect(result.state.heroes?.[0].passiveSkills).toHaveLength(1);
     expect(result.encounter.transcript.map((event) => event.type)).toContain("hero.level_up");
     expect(result.encounter.transcript.map((event) => event.type)).toContain("hero.class_changed");
+    const evolved = result.state.heroes?.[0];
+    const levelEvent = result.encounter.transcript.find((event) => event.type === "hero.level_up");
+    expect(levelEvent).toMatchObject({
+      level: 10,
+      levels: [10],
+      levelBefore: 9,
+      levelAfter: 10,
+      hpBefore: 200,
+      hpAfter: evolved?.currentHp,
+      manaBefore: 10,
+      manaAfter: evolved?.currentMana,
+      statGains: { str: 5 },
+    });
+    expect(levelEvent?.message).toBe(
+      `Ariane passe niveau 10 ! PV 200/200 → ${evolved?.currentHp}/${evolved?.calculatedStats.maxHp} ; `
+        + `Mana 10/10 → ${evolved?.currentMana}/${evolved?.calculatedStats.maxMana} ; `
+        + "caractéristiques : FOR +5.",
+    );
+  });
+
+  it("summarizes a multi-level reward in one authoritative transcript event", () => {
+    const tape = tapeRng([
+      0.10, // encounter -> fight
+      0.00, // Minotaur at floor 30+
+      0.25, // visual id
+      0.99, // critical
+      0.99, // material drop -> none
+      ...Array.from({ length: 40 }, () => 0.10), // four Novice levels
+    ]);
+    const levelingHero = makeHero({
+      name: "Ygritte",
+      xp: 99,
+      currentHp: 100,
+      currentMana: 0,
+      calculatedStats: {
+        ...makeHero().calculatedStats,
+        maxHp: 200,
+        hp: 200,
+        maxMana: 100,
+        mana: 100,
+        physicalDamage: 1_000_000,
+        speed: 0,
+        criticalChance: 0,
+      },
+    });
+    const result = resolveAuthoritativeDungeonEncounter(state({
+      activeDungeonFloor: 30,
+      heroes: [levelingHero],
+    }), "golden-multi-level", tape.rng);
+    const levelEvents = result.encounter.transcript.filter((event) => event.type === "hero.level_up");
+
+    expect(tape.draws()).toBe(45);
+    expect(result.state.heroes?.[0].level).toBe(5);
+    expect(levelEvents).toHaveLength(1);
+    expect(levelEvents[0]).toMatchObject({
+      levels: [2, 3, 4, 5],
+      levelBefore: 1,
+      levelAfter: 5,
+      statGains: { str: 20 },
+    });
+    expect(levelEvents[0].message).toContain("Ygritte gagne 4 niveaux (1 → 5) !");
+  });
+
+  it.each([
+    {
+      classType: "Mage",
+      buildings: { academie: 1 },
+      baseStats: { str: 1, agi: 1, end: 1, int: 50, wiz: 1, dex: 50, luk: 1 },
+      skillDraws: 3,
+      activeCount: 2,
+      requiredActive: null,
+    },
+    {
+      classType: "Acolyte",
+      buildings: { temple: 1 },
+      baseStats: { str: 1, agi: 1, end: 1, int: 1, wiz: 50, dex: 50, luk: 1 },
+      skillDraws: 2,
+      activeCount: 2,
+      requiredActive: "minor_heal",
+    },
+  ] as const)("persists the $classType vocation and its authoritative skill rolls", ({
+    classType,
+    buildings,
+    baseStats,
+    skillDraws,
+    activeCount,
+    requiredActive,
+  }) => {
+    const tape = tapeRng([
+      0.10, 0.00, 0.25, 0.99, 0.99, 0.99,
+      ...Array.from({ length: 10 }, () => 0.10),
+      ...Array.from({ length: skillDraws }, () => 0.10),
+    ]);
+    const levelingHero = makeHero({
+      name: `Novice ${classType}`,
+      level: 9,
+      xp: 2562,
+      xpNeeded: 2563,
+      baseStats,
+      activeSkills: ["heavy_blow"],
+      passiveSkills: ["survival_instinct"],
+      calculatedStats: {
+        ...makeHero().calculatedStats,
+        maxHp: 200,
+        hp: 200,
+        maxMana: 100,
+        mana: 100,
+        physicalDamage: 100,
+        physicalDefense: 100,
+      },
+      currentHp: 200,
+      currentMana: 100,
+    });
+
+    const result = resolveAuthoritativeDungeonEncounter(state({
+      heroes: [levelingHero],
+      buildings,
+    }), `golden-level-${classType}`, tape.rng);
+    const evolved = result.state.heroes?.[0];
+    const classEvent = result.encounter.transcript.find((event) => event.type === "hero.class_changed");
+
+    expect(tape.draws()).toBe(14 + skillDraws);
+    expect(evolved).toMatchObject({
+      level: 10,
+      classType,
+      cooldowns: {},
+    });
+    expect(evolved?.activeSkills).toHaveLength(activeCount);
+    if (requiredActive) expect(evolved?.activeSkills).toContain(requiredActive);
+    expect(evolved?.activeSkills).not.toContain("heavy_blow");
+    expect(evolved?.passiveSkills).toContain("survival_instinct");
+    expect(evolved?.passiveSkills).toHaveLength(2);
+    expect(evolved?.currentHp).toBe(evolved?.calculatedStats.maxHp);
+    expect(evolved?.currentMana).toBe(evolved?.calculatedStats.maxMana);
+    expect(classEvent).toMatchObject({
+      classType,
+      activeSkills: evolved?.activeSkills,
+      passiveSkills: evolved?.passiveSkills,
+    });
   });
 
   it("preserves a failed stat-check mutation and consumes no reward rolls", () => {
