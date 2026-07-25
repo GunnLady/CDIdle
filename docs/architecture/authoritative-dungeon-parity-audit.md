@@ -37,6 +37,12 @@ Le contrat partage accepte les anciens transcripts `hero.hit` / `enemy.hit`
 sans message pendant la migration, mais chaque nouvelle resolution CDI-054
 produit `message`, `category` et les donnees fonctionnelles detaillees.
 
+Depuis l'audit du 25 juillet, le chargement canonique valide aussi chaque héros
+avant toute commande : identité, état actif, statut, progression, statistiques
+de base, `calculatedStats`, PV/PM, compétences, résistances et cooldowns. Le
+moteur ne remplace plus une statistique absente par `1`, `0` ou une autre
+valeur implicite ; un état incomplet est refusé avec `INVALID_GAME_STATE`.
+
 Règles d'autorité restaurées le 25 juillet :
 
 - le donjon consomme exclusivement `hero.calculatedStats` persisté pendant une
@@ -92,9 +98,12 @@ Implementation comparee :
 
 - `supabase/functions/game-api/dungeon-authority.ts`
 
-## Matrice des ecarts
+## Matrice des écarts observés avant CDI-054
 
-| Domaine | Reference historique | Backend actuel |
+Cette table décrit la résolution simplifiée présente après `f47993e`. Elle
+constitue la cause de CDI-054, pas l'état du backend après restauration.
+
+| Domaine | Trace `640f89f` | Résolution simplifiée avant CDI-054 |
 |---|---|---|
 | Type d encounter | Tirage pondere de neuf types | Toujours `fight` |
 | Monstre | Catalogue par profondeur | Ennemi anonyme |
@@ -253,9 +262,21 @@ Croissance :
 - classe superieure : huit points, deux rolls par point, soit seize rolls ;
 - fallback sans statistiques principales : huit rolls.
 
-## RNG du backend actuel
+Si ce level-up déclenche une vocation T0 vers T1, les rolls de compétences
+suivent immédiatement la croissance :
 
-Le backend consomme :
+- classe ordinaire : un actif et un passif de classe, deux rolls ;
+- Mage : deux sorts élémentaires distincts puis un passif Mage, trois rolls ;
+- Acolyte : `minor_heal` garanti sans roll, puis un autre actif et un passif,
+  deux rolls.
+
+Le passif Novice est conservé, l’actif Novice est retiré et les cooldowns sont
+réinitialisés. Le transcript `hero.class_changed` transporte les listes
+résultantes sans recalcul client.
+
+## RNG de la résolution simplifiée remplacée
+
+La résolution remplacée consommait :
 
 1. un `nextInt(5)` pour les PV ennemis ;
 2. un `nextInt(2)` par attaque de heros ;
@@ -338,26 +359,30 @@ Etage {floor} securise, etage {nextFloor} debloque.
 Le texte visuel peut evoluer, mais aucune donnee fonctionnelle ne doit
 disparaitre.
 
-## Ecarts d etat critiques
+## Écarts d'état fermés par CDI-054
 
-- Mana, cooldowns, buffs et debuffs ne sont pas appliques.
-- Un heros a zero PV n est pas force inactif et `resting`.
-- La defaite totale ne garantit pas l arret auto.
-- XP, niveaux et changement de classe sont absents.
-- Bonus de race, batiment et passifs sur le loot sont ignores.
-- Les materiaux ordinaires ne sont plus distribues.
-- Toutes les salles deviennent des combats.
+- Mana et cooldowns sont persistés ; les buffs/debuffs conservent le
+  comportement caractérisé de journalisation sans modificateur transitoire.
+- Un héros à zéro PV devient inactif et `resting`.
+- La défaite totale arrête l'auto-exploration.
+- XP, niveaux et changement de classe sont restaurés.
+- Le changement T0 vers T1 attribue les compétences de classe avec le RNG
+  autoritaire, y compris les particularités Mage et Acolyte.
+- Les bonus de race, bâtiment et passifs de loot sont appliqués.
+- Les matériaux ordinaires sont distribués.
+- Les neuf types de rencontres sont restaurés.
 
 ## Strategie de preuve
 
-1. Figer la reference historique sous forme pure.
-2. Remplacer chaque `Math.random` par le meme `Rng` injecte.
-3. Instrumenter index, valeur et usage de chaque roll.
-4. Executer reference et backend avec la meme bande.
-5. Comparer rolls, encounter, monstre, actions, transcript et etat final.
-6. Ajouter des fixtures ordinaires, boss, critique, esquive, competence, mort,
-   level-up, loot et encounter non-combat.
-7. Verifier replay, conflit, bootstrap et reconnexion.
+1. Utiliser `640f89f` comme trace Git, sans conserver un second moteur.
+2. Injecter le même contrat `Rng` dans chaque branche aléatoire.
+3. Figer index, valeur et usage des rolls dans des golden tests.
+4. Comparer encounter, monstre, actions, transcript et état final aux
+   comportements caractérisés.
+5. Couvrir combats, boss, compétences, soins, critiques, esquives, mort,
+   limite de rounds, progression, loot et chaque rencontre non-combat.
+6. Refuser les héros canoniques incomplets et vérifier l'atomicité des rejets.
+7. Vérifier replay, conflit, bootstrap et reconnexion.
 
 ## Condition de deblocage
 
@@ -368,3 +393,19 @@ CDI-051 reprend lorsque :
 - le transcript complet est conserve dans les quinze derniers encounters ;
 - le navigateur rejoue toutes les actions sans recalculer ;
 - un `F5` restitue le meme etat et le meme historique.
+
+## Validation finale CDI-054
+
+La condition de déblocage a été satisfaite localement le 25 juillet 2026 :
+combat et piège résolus automatiquement, transcript progressif, historique
+persistant après `F5`, replay idempotent et vocation T1 autoritaire persistée.
+
+La comparaison « même graine sur une seconde partie » est remplacée par un
+reset du même compte de test ou une fixture contrôlée. La graine canonique
+étant dérivée du `userId`, deux comptes distincts ne doivent pas partager la
+même graine.
+
+Le chargement réel de l'Edge Function a également révélé des imports relatifs
+sans extension dans le nouveau graphe partagé. Tous les imports Edge
+atteignables utilisent désormais une extension `.ts`, avec un test récursif
+anti-régression.

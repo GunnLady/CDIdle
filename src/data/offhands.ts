@@ -1,4 +1,4 @@
-import { OffHandInfo } from "../types";
+import { OffHandInfo } from "../types.ts";
 
 export const OFF_HAND_INFO_LIST: OffHandInfo[] = [
   {

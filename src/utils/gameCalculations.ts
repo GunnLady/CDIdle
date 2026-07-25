@@ -23,7 +23,7 @@ import {
   Monster,
   ForgeState,
   ItemBlueprint
-} from "../types";
+} from "../types.ts";
 import {
   RACE_INFO_LIST,
   CLASS_INFO_LIST,
@@ -35,11 +35,11 @@ import {
   NOVICE_BASIC_ITEM_LIST,
   getItemById,
   WEAPON_INFO_LIST
-} from "../data/gameData";
-import { BUILDINGS_LIST } from "../data/buildings";
-import type { Rng } from "../domain/random";
-import { systemRng } from "../domain/random";
-import { calculateHeroDerivedStats } from "../../shared/domain/hero-stats";
+} from "../data/gameData.ts";
+import { BUILDINGS_LIST } from "../data/buildings.ts";
+import type { Rng } from "../domain/random.ts";
+import { systemRng } from "../domain/random.ts";
+import { calculateHeroDerivedStats } from "../../shared/domain/hero-stats.ts";
 
 export const getHeroAttributes = (
   hero: Hero

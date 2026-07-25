@@ -26,7 +26,7 @@ import { createInitialGameState, splitGameState, validateGameState } from "../sr
 import { isCommandSuccess, validateCommandEnvelope, type CommandEnvelope } from "../src/domain/commands";
 import { fixedClock, seededRng } from "../src/domain/random";
 import { allocateCitizen, townRates, unlockDistrict, upgradeBuilding, type TownState } from "../src/domain/town";
-import { addHeroExperience, canActivateHero, dismissHero, recruitHero, recruitmentCost, recruitmentEligibility, setHeroActivity } from "../src/domain/hero";
+import { addHeroExperience, assignTier1Skills, canActivateHero, dismissHero, recruitHero, recruitmentCost, recruitmentEligibility, setHeroActivity } from "../src/domain/hero";
 import { addStack, removeStack, type InventoryState } from "../src/domain/inventory";
 import { applyUpgradeCost, recycleItem, startBasicCraft } from "../src/domain/forge";
 import { advanceRoom, changeFloor, validateDungeonProgress, type DungeonProgressState } from "../src/domain/dungeonProgression";
@@ -293,6 +293,46 @@ describe("hero domain", () => {
     const leveled = addHeroExperience(hero, 100, seededRng(7), {});
     expect(leveled.level).toBe(10);
     expect(leveled.classType).toBe("Novice");
+  });
+
+  it("assigns Tier 1 skills while preserving only the Novice passive", () => {
+    const novice = makeHero({
+      activeSkills: ["heavy_blow"],
+      passiveSkills: ["survival_instinct"],
+    });
+    const skillTape = () => {
+      let draws = 0;
+      return {
+        rng: {
+          next: () => 0,
+          nextInt: () => {
+            draws += 1;
+            return 0;
+          },
+        },
+        draws: () => draws,
+      };
+    };
+
+    const warriorTape = skillTape();
+    const warrior = assignTier1Skills(novice, "Guerrier", warriorTape.rng);
+    expect(warriorTape.draws()).toBe(2);
+    expect(warrior.activeSkills).toEqual(["cleaving_strike"]);
+    expect(warrior.activeSkills).not.toContain("heavy_blow");
+    expect(warrior.passiveSkills).toEqual(["survival_instinct", "weapon_training"]);
+
+    const acolyteTape = skillTape();
+    const acolyte = assignTier1Skills(novice, "Acolyte", acolyteTape.rng);
+    expect(acolyteTape.draws()).toBe(2);
+    expect(acolyte.activeSkills).toEqual(["minor_heal", "holy_smite"]);
+    expect(acolyte.passiveSkills).toEqual(["survival_instinct", "spiritual_resilience"]);
+
+    const mageTape = skillTape();
+    const mage = assignTier1Skills(novice, "Mage", mageTape.rng);
+    expect(mageTape.draws()).toBe(3);
+    expect(mage.activeSkills).toEqual(["fire_bolt", "ice_shard"]);
+    expect(new Set(mage.activeSkills).size).toBe(2);
+    expect(mage.passiveSkills).toEqual(["survival_instinct", "arcane_training"]);
   });
 
   it("enforces recruitment and active-party invariants", () => {

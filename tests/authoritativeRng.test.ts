@@ -13,16 +13,22 @@ import {
   initialTownState,
   migrateTownState,
 } from "../supabase/functions/game-api/town-authority";
+import { makeHero } from "./fixtures/game";
 
 const activeDungeonState = () => ({
   ...initialTownState(),
-  heroes: [{
+  heroes: [makeHero({
     id: "hero-1",
     name: "Ariane",
     isActive: true,
     currentHp: 100,
-    calculatedStats: { physicalDamage: 20 },
-  }],
+    calculatedStats: {
+      ...makeHero().calculatedStats,
+      maxHp: 100,
+      hp: 100,
+      physicalDamage: 20,
+    },
+  })],
 });
 
 describe("canonical authoritative RNG", () => {
@@ -135,6 +141,8 @@ describe("canonical authoritative RNG", () => {
     );
     expect(firstOffer.state.rngState).toEqual(secondOffer.state.rngState);
     expect((firstOffer.state.rngState as { draws: number }).draws).toBe(5);
+    expect((firstOffer.state.onboardingCandidates as Array<Record<string, unknown>>)
+      .every((candidate) => candidate.race === "Humain")).toBe(true);
   });
 
   it("does not mutate persisted RNG input when a command is rejected", () => {

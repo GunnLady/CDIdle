@@ -1,4 +1,4 @@
-import { Building, Resources } from "../types";
+import { Building, Resources } from "../types.ts";
 
 export const BUILDINGS_LIST: Omit<Building, "level">[] = [
   {

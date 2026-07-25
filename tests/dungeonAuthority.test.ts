@@ -1,12 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { applyDungeonCommand, type DungeonRng, type DungeonState } from "../supabase/functions/game-api/dungeon-authority";
+import { makeHero } from "./fixtures/game";
 
 const state = (): DungeonState => ({
   activeDungeonFloor: 1,
   activeDungeonRoom: 1,
   highestFloorReached: 1,
   resources: { gold: 0 },
-  heroes: [{ id: "hero-1", isActive: true, currentHp: 20, calculatedStats: { physicalDamage: 20 } }],
+  heroes: [makeHero({ id: "hero-1", isActive: true, currentHp: 20 })],
   currentEncounter: null,
   encounterHistory: [],
   autoExplore: true,
@@ -45,7 +46,17 @@ describe("authoritative dungeon commands", () => {
   it("persists only the last fifteen resolved encounters", () => {
     let current: DungeonState = {
       ...state(),
-      heroes: [{ id: "hero-1", isActive: true, currentHp: 10_000, calculatedStats: { physicalDamage: 100 } }],
+      heroes: [makeHero({
+        id: "hero-1",
+        isActive: true,
+        currentHp: 10_000,
+        calculatedStats: {
+          ...makeHero().calculatedStats,
+          maxHp: 10_000,
+          hp: 10_000,
+          physicalDamage: 100,
+        },
+      })],
     };
     for (let index = 0; index < 16; index += 1) {
       current = applyDungeonCommand(current, {

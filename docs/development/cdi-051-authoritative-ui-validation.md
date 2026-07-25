@@ -118,6 +118,15 @@ incomplet. La reprise depend de CDI-054 et de :
 
 `docs/architecture/authoritative-dungeon-parity-audit.md`.
 
+Durcissement CDI-054 du 25 juillet :
+
+- validation canonique imbriquée de chaque héros avant chargement ou commande ;
+- rejet `INVALID_GAME_STATE` au lieu de statistiques de combat implicites ;
+- suppression de `currentMonster`, `currentEncounterType`, `combatTimer` et des
+  anciennes cartes de résolution locale dans `DungeonPanel` ;
+- golden tests renforcés sur les mutations exactes des six épreuves, le soin
+  de groupe et la limite atomique de 100 rounds.
+
 ## Validations navigateur restantes
 
 Après correction de CDI-053, continuer avec une mutation par domaine :
@@ -224,3 +233,37 @@ Preuve intermédiaire navigateur du 24 juillet 2026 :
   révision 17 ;
 - bootstrap final : 200, révision 17, `quick_dagger` persistée sur Ragnor,
   absente du coffre et `calculatedStats.criticalChance` égal à 4.9.
+
+## Validation à ajouter pour la vocation T1
+
+Faire évoluer trois Novices avec des bâtiments permettant de forcer une classe
+ordinaire, Mage et Acolyte. Pour chaque réponse `/commands`, puis après `F5` :
+
+- vérifier que l’actif Novice a disparu et que son passif est conservé ;
+- classe ordinaire : un actif et un passif de classe ;
+- Mage : deux sorts élémentaires distincts et un passif Mage ;
+- Acolyte : `minor_heal`, un autre actif et un passif Acolyte ;
+- vérifier la révision, les PV/PM restaurés, les cooldowns vides et la
+  persistance exacte après bootstrap.
+
+## Validation CDI-054 observée le 25 juillet 2026
+
+Preuve utilisateur sur l'environnement Supabase local :
+
+- bootstrap 200, révision 31, RNG canonique à deux tirages ;
+- combat Gobelin : résolution automatique, transcript progressif complet,
+  révision 33 et RNG à trois tirages ;
+- après `F5`, révision, RNG, état et historique strictement identiques ;
+- replay exact : 200, `replayed: true`, aucune récompense ni rencontre
+  dupliquée ;
+- rencontre `trap` : résolution automatique, révision 35 et RNG à quatre
+  tirages ;
+- fixture locale : Ragnor passe Novice niveau 9 à Guerrier niveau 10 ;
+- actif `weakening_shout`, passif Novice `survival_instinct` conservé,
+  passif Guerrier `weapon_training`, cooldowns vides et PV/PM restaurés ;
+- après `F5`, profil, transcript et RNG (`draws: 5`,
+  `state: 2640898453`) restent identiques.
+
+Les cas particuliers Mage et Acolyte sont couverts par les tests
+déterministes. Leur reproduction navigateur reste une validation UI de
+CDI-051, pas un blocage du moteur CDI-054.

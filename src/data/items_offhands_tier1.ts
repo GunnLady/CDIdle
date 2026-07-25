@@ -1,5 +1,5 @@
-import { ItemInfo } from "../types";
-import { createOffhand } from "./itemBuilders";
+import { ItemInfo } from "../types.ts";
+import { createOffhand } from "./itemBuilders.ts";
 
 export const TIER1_ITEM_OFFHAND_LIST: ItemInfo[] = [
   // SHIELD

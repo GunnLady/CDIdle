@@ -33,6 +33,20 @@ describe("catalogue invariants", () => {
     expect(unique(RACE_INFO_LIST.map((race) => race.id))).toBe(true);
     expect(unique(CLASS_INFO_LIST.map((entry) => entry.type))).toBe(true);
     expect(unique(SKILLS_LIBRARY.map((skill) => skill.id))).toBe(true);
+    const skillsById = new Map(SKILLS_LIBRARY.map((skill) => [skill.id, skill]));
+    for (const classInfo of CLASS_INFO_LIST) {
+      expect(classInfo.activeSkills.every((id) => skillsById.get(id)?.type === "active")).toBe(true);
+      expect(classInfo.passiveSkills.every((id) => skillsById.get(id)?.type === "passive")).toBe(true);
+    }
+    const mage = CLASS_INFO_LIST.find((entry) => entry.type === "Mage");
+    expect(mage?.activeSkills).toHaveLength(6);
+    expect(mage?.activeSkills.every((id) => {
+      const skill = skillsById.get(id);
+      return skill?.effect.type === "damage" && skill.effect.damageType !== "physical";
+    })).toBe(true);
+    const acolyte = CLASS_INFO_LIST.find((entry) => entry.type === "Acolyte");
+    expect(acolyte?.activeSkills).not.toContain("minor_heal");
+    expect(skillsById.get("minor_heal")?.type).toBe("active");
 
     for (const monster of [...MONSTERS_LIBRARY, ...BOSSES_LIBRARY]) {
       expect(monster.name).toBeTruthy();

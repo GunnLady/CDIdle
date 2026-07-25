@@ -980,8 +980,6 @@ export default function App() {
             <div className={`w-full ${isOnline ? "" : "pointer-events-none opacity-80"}`} aria-disabled={!isOnline}>
               <DungeonPanel
                 heroes={dungeon.heroes}
-                currentMonster={dungeon.currentMonster}
-                currentEncounterType={dungeon.currentEncounterType}
                 activeDungeonFloor={dungeon.activeDungeonFloor}
                 activeDungeonRoom={dungeon.activeDungeonRoom}
                 autoExplore={dungeon.autoExplore}
@@ -999,7 +997,6 @@ export default function App() {
                 }}
                 onRetreatParty={() => { void dispatchAuthoritativeCommand({ type: "dungeon.retreat" }); }}
                 onClearBattleLogs={clearBattleLogs}
-                combatTimer={dungeon.combatTimer}
                 onResetLevel={() => {
                   void (async () => {
                     const reset = await dispatchAuthoritativeCommand({

@@ -1,4 +1,4 @@
-import { Modifier, ModifierType } from "../types";
+import { Modifier, ModifierType } from "../types.ts";
 
 export interface RawModifierInput {
   stat: string;

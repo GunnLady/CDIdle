@@ -38,10 +38,14 @@ affiche complet : statistiques, statut elite, competences et equipement.
 CDI-053 a restaure ce profil complet et sa persistance avant la reprise de
 CDI-051.
 
-L audit de parite du 2026-07-24 a ensuite confirme que le moteur de combat
-serveur est une resolution simplifiee et non le port du moteur historique.
-CDI-054 doit restaurer le meme deroule, les memes formules, le meme ordre de
-rolls et un transcript exhaustif avant de reprendre la validation donjon.
+L audit de parite du 2026-07-24 a ensuite identifie la resolution serveur
+simplifiee. CDI-054 la remplace par un moteur autoritaire unique caracterise
+depuis la trace Git `640f89f`, avec RNG injecte, transcript exhaustif et
+validation stricte des heros canoniques.
+
+La reprise CDI-054 restaure aussi la vocation T0 vers T1 : actif Novice retire,
+passif Novice conserve, tirages de classe autoritaires et cas particuliers
+Mage/Acolyte. La preuve navigateur apres `F5` reste requise dans CDI-051.
 
 ## Perimetre autorise
 
@@ -91,6 +95,8 @@ rolls et un transcript exhaustif avant de reprendre la validation donjon.
 - [ ] La sauvegarde manuelle ne pretend pas synchroniser sans commande serveur.
 - [ ] Un echec de `/reset` ne reinitialise ni l interface ni le cache.
 - [x] CDI-053 restaure le profil novice autoritaire complet et sa persistance.
+- [ ] La vocation T1 affiche et persiste les competences autoritaires attendues
+      pour une classe ordinaire, un Mage et un Acolyte.
 
 ## Tests
 
@@ -149,11 +155,17 @@ Preuves automatisees Codex :
 - autorite, contrats, ville et game-api : 4 fichiers, 31 tests, PASS ;
 - registre UI progressif sans bouton de resolution : 1 fichier, 1 test, PASS.
 
-Preuve navigateur du nouveau flux encore requise apres CDI-054 avant cloture.
+Preuve navigateur du nouveau flux obtenue le 2026-07-25 pendant CDI-054 :
+
+- combat et rencontre `trap` resolus sans bouton manuel ;
+- transcript progressif complet et historique persistant apres `F5` ;
+- replay idempotent sans mutation ;
+- vocation Guerrier, competences, statistiques et cooldowns persistants.
 
 Blocage actif :
 
-- CDI-054 restaure la parite fonctionnelle et RNG du donjon ;
+- CDI-054 a restaure et valide le comportement fonctionnel et RNG du donjon
+  dans une seule implementation autoritaire ;
 - audit : `docs/architecture/authoritative-dungeon-parity-audit.md` ;
-- CDI-051 reste `Paused` jusqu aux golden tests reference/backend et a la
-  preuve navigateur du transcript complet.
+- Le blocage CDI-054 est leve. CDI-051 reste `Paused` jusqu a sa reprise
+  explicite pour terminer ses autres validations UI autoritaires.

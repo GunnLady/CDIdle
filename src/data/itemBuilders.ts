@@ -5,8 +5,8 @@ import {
   AccessoryItemInfo,
   Rarity,
   DamageType
-} from "../types";
-import { createModifiers } from "./modifierBuilder";
+} from "../types.ts";
+import { createModifiers } from "./modifierBuilder.ts";
 
 export { createModifiers };
 

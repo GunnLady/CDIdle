@@ -1,5 +1,5 @@
-import { ItemInfo } from "../types";
-import { createWeapon, createArmor, createOffhand, createAccessory } from "./itemBuilders";
+import { ItemInfo } from "../types.ts";
+import { createWeapon, createArmor, createOffhand, createAccessory } from "./itemBuilders.ts";
 
 export const HIGH_TIER_ITEM_LIST: ItemInfo[] = [
   // =========================

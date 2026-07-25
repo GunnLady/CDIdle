@@ -137,7 +137,12 @@ CDI-054 doit :
   defenses, recompenses, XP et progression ;
 - produire un transcript complet ;
 - figer chaque branche avec une bande RNG et un état final attendus ;
+- valider strictement chaque héros canonique et refuser tout état incomplet ;
+- ne conserver aucun fallback de statistique ni projection de combat locale ;
 - s appuyer sur CDI-050 pour persister le RNG atomiquement.
+- restaurer la vocation T0 vers T1 : passif Novice conserve, actif Novice
+  retire, pools T1 tires par le RNG autoritaire, avec deux actifs elementaires
+  pour le Mage et `minor_heal` garanti pour l Acolyte.
 
 CDI-054 bloque CDI-051, CDI-046, CDI-048 et CDI-049.
 

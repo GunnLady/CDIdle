@@ -1,10 +1,10 @@
-import { ItemInfo } from "../types";
-import { TIER1_ITEM_WPN_LIST } from "./items_weapons_tier1";
-import { TIER1_ITEM_ARMOR_LIST } from "./items_armors_tier1";
-import { TIER1_ITEM_OFFHAND_LIST } from "./items_offhands_tier1";
-import { TIER1_ITEM_ACC_LIST } from "./items_accessories_tier1";
-import { HIGH_TIER_ITEM_LIST } from "./items_high_tier";
-import { createWeapon, createOffhand, createArmor } from "./itemBuilders";
+import { ItemInfo } from "../types.ts";
+import { TIER1_ITEM_WPN_LIST } from "./items_weapons_tier1.ts";
+import { TIER1_ITEM_ARMOR_LIST } from "./items_armors_tier1.ts";
+import { TIER1_ITEM_OFFHAND_LIST } from "./items_offhands_tier1.ts";
+import { TIER1_ITEM_ACC_LIST } from "./items_accessories_tier1.ts";
+import { HIGH_TIER_ITEM_LIST } from "./items_high_tier.ts";
+import { createWeapon, createOffhand, createArmor } from "./itemBuilders.ts";
 
 export { TIER1_ITEM_WPN_LIST, TIER1_ITEM_ARMOR_LIST, TIER1_ITEM_OFFHAND_LIST, TIER1_ITEM_ACC_LIST, HIGH_TIER_ITEM_LIST };
 

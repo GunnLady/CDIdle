@@ -1,5 +1,5 @@
-import { ItemInfo } from "../types";
-import { createAccessory } from "./itemBuilders";
+import { ItemInfo } from "../types.ts";
+import { createAccessory } from "./itemBuilders.ts";
 
 export const TIER1_ITEM_ACC_LIST: ItemInfo[] = [
   // Rings

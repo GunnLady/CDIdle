@@ -2,6 +2,7 @@ import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import DungeonPanel from "../src/components/DungeonPanel";
 import type { CanonicalDungeonEncounterRecord } from "../shared/contracts/authoritative";
+import type React from "react";
 
 const encounter: CanonicalDungeonEncounterRecord = {
   encounterId: "encounter-test",
@@ -20,8 +21,6 @@ const encounter: CanonicalDungeonEncounterRecord = {
 
 const props = {
   heroes: [],
-  currentMonster: null,
-  currentEncounterType: null,
   activeDungeonFloor: 2,
   activeDungeonRoom: 8,
   autoExplore: false,
@@ -36,9 +35,8 @@ const props = {
   onChangeFloor: vi.fn(),
   onRetreatParty: vi.fn(),
   onClearBattleLogs: vi.fn(),
-  combatTimer: 0,
   onResetLevel: vi.fn(),
-};
+} satisfies React.ComponentProps<typeof DungeonPanel>;
 
 describe("DungeonPanel authoritative encounter history", () => {
   it("reveals transcript lines progressively without a manual resolve action", () => {

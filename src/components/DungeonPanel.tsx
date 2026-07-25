@@ -6,7 +6,6 @@
 import React, { useEffect, useRef } from "react";
 import {
   Compass,
-  Layers,
   Sword,
   Shield,
   Activity,
@@ -14,21 +13,13 @@ import {
   Pause,
   ArrowLeft,
   ArrowRight,
-  Flame,
-  Clock,
-  Sparkles,
-  Zap,
   RotateCcw
 } from "lucide-react";
-import { Hero, Monster, BattleLogEntry, DungeonEncounterType } from "../types";
-import { getHeroAttributes } from "../utils/gameCalculations";
-import { getEncounterDetails, getEncounterStatPresentation } from "../utils/dungeonHelpers";
+import { Hero, BattleLogEntry } from "../types";
 import type { CanonicalDungeonEncounterRecord } from "../../shared/contracts/authoritative";
 
 interface DungeonPanelProps {
   heroes: Hero[];
-  currentMonster: Monster | null;
-  currentEncounterType: DungeonEncounterType | null;
   activeDungeonFloor: number;
   activeDungeonRoom: number;
   autoExplore: boolean;
@@ -47,14 +38,11 @@ interface DungeonPanelProps {
   onChangeFloor: (direction: "prev" | "next") => void;
   onRetreatParty: () => void;
   onClearBattleLogs: () => void;
-  combatTimer: number; // visual progress of the tick
   onResetLevel: () => void;
 }
 
 export default function DungeonPanel({
   heroes,
-  currentMonster,
-  currentEncounterType,
   activeDungeonFloor,
   activeDungeonRoom,
   autoExplore,
@@ -69,7 +57,6 @@ export default function DungeonPanel({
   onChangeFloor,
   onRetreatParty,
   onClearBattleLogs,
-  combatTimer,
   onResetLevel
 }: DungeonPanelProps) {
   const activeHeroes = heroes.filter((h) => h.isActive);
@@ -223,19 +210,6 @@ export default function DungeonPanel({
     if (overflow > 0) container.scrollTop += overflow;
   }, [encounterHistory, encounterPlayback, filteredBattleLogs]);
 
-  const getRarityBadgeColor = (rarity: string) => {
-    switch (rarity) {
-      case "legendary":
-        return "border-amber-500 bg-amber-950/20 text-amber-400";
-      case "epic":
-        return "border-purple-500 bg-purple-950/20 text-purple-400";
-      case "rare":
-        return "border-blue-500 bg-blue-950/20 text-blue-400";
-      default:
-        return "border-slate-700 bg-slate-900 text-gray-400";
-    }
-  };
-
   const getLogColor = (type: string) => {
     switch (type) {
       case "victory":
@@ -254,35 +228,6 @@ export default function DungeonPanel({
     }
   };
 
-  const getEncounterUIInfoLegacy = (type: DungeonEncounterType) => {
-    switch (type) {
-      case "trap":
-        return { name: "Salle Piégée", emoji: "⚙️", stats: "⚡ AGI + 🎯 DEX", color: "text-amber-400 border-amber-900/40 bg-amber-950/10" };
-      case "enigma":
-        return { name: "Chambre des Énigmes", emoji: "🧩", stats: "🧠 INT + 🔮 SAG", color: "text-purple-400 border-purple-900/40 bg-purple-950/10" };
-      case "ambush":
-        return { name: "Embuscade Impromptue", emoji: "🥷", stats: "⚡ AGI + 🍀 CHA", color: "text-rose-400 border-rose-900/40 bg-rose-950/10" };
-      case "ritual":
-        return { name: "Autel de Rituel", emoji: "🔮", stats: "🎯 DEX + 🔮 SAG", color: "text-indigo-400 border-indigo-900/40 bg-indigo-950/10" };
-      case "obstacle":
-        return { name: "Obstacle de Taille", emoji: "🪨", stats: "⚔️ FOR + ⚡ AGI", color: "text-yellow-500 border-yellow-900/40 bg-yellow-950/10" };
-      case "negotiation":
-        return { name: "Négociation Mystique", emoji: "🤝", stats: "🔮 SAG + 🍀 CHA", color: "text-teal-400 border-teal-900/40 bg-teal-950/10" };
-      case "treasure":
-        return { name: "Chambre au Trésor", emoji: "📦", stats: "Aucun", color: "text-emerald-400 border-emerald-900/40 bg-emerald-950/10" };
-      case "rest":
-        return { name: "Feu de Camp de Repos", emoji: "⛺", stats: "Aucun", color: "text-sky-400 border-sky-900/40 bg-sky-950/10" };
-      default:
-        return { name: "Épreuve Inconnue", emoji: "❓", stats: "???", color: "text-slate-400 border-slate-900 bg-slate-950/10" };
-    }
-  };
-
-  const getEncounterUIInfo = (type: DungeonEncounterType) => {
-    const info = getEncounterUIInfoLegacy(type);
-    const presentation = getEncounterStatPresentation(type);
-    return presentation ? { ...info, stats: presentation.stats } : info;
-  };
-
   interface RoomGroup {
     roomNum: number;
     roomName: string;
@@ -296,7 +241,7 @@ export default function DungeonPanel({
     const roomMatch = message.match(/chambre\s+(\d+)/i);
     const roomNum = roomMatch ? parseInt(roomMatch[1], 10) : null;
     
-    let name = "";
+    let name: string;
     let emoji = "⚔️";
     
     if (message.includes("coffre au trésor") || message.includes("📦")) {
@@ -383,207 +328,6 @@ export default function DungeonPanel({
     }
     
     return groups;
-  };
-
-  const renderActiveEncounter = (type: DungeonEncounterType) => {
-    const uiInfo = getEncounterUIInfo(type);
-    const difficulty = 10 + activeDungeonFloor * 2;
-    
-    // Find active slayers to display status / stats
-    const activeSlayers = heroes.filter(h => h.isActive && h.currentHp > 0);
-    
-    // 1. TREASURE CHAMBER
-    if (type === "treasure") {
-      return (
-        <div className="flex flex-col sm:flex-row items-center gap-4 grow w-full">
-          {/* Animated Glowing Chest */}
-          <div className="relative p-5 bg-[#140b05] border-2 border-amber-500/40 rounded-2xl select-none shrink-0 flex items-center justify-center w-24 h-24 overflow-hidden shadow-[0_0_15px_rgba(245,158,11,0.2)]">
-            <div className="absolute inset-0 bg-gradient-to-t from-amber-950/20 to-transparent animate-pulse" />
-            <span className="text-5xl animate-[bounce_2s_infinite]">📦</span>
-            <Sparkles className="absolute text-amber-400 w-5 h-5 top-1.5 right-1.5 animate-pulse" />
-          </div>
-          
-          <div className="grow text-center sm:text-left w-full sm:w-auto">
-            <div className="flex items-center justify-center sm:justify-start gap-2 flex-wrap">
-              <h4 className="text-sm font-bold text-[#dfdbc7] uppercase tracking-widest font-serif flex items-center gap-1.5">
-                {uiInfo.name}
-              </h4>
-              <span className="text-[9px] font-sans text-emerald-400 bg-emerald-950/30 border border-emerald-900/40 px-2 py-0.5 rounded uppercase tracking-wider font-bold">
-                Butin Obscur
-              </span>
-            </div>
-            
-            <p className="text-[11px] text-[#a89078] font-sans mt-1.5 leading-relaxed max-w-lg">
-              Une lourde malle cerclée de fer forgé repose au centre de la pièce. Son couvercle orné de runes anciennes promet de mystérieuses richesses, ou peut-être un fabuleux équipement !
-            </p>
-            
-            <div className="grid grid-cols-2 gap-2 mt-3 p-2 bg-[#110b06]/50 rounded border border-[#5c402b]/25 max-w-sm mx-auto sm:mx-0">
-              <div className="text-[10px] text-[#a89078] font-sans">
-                🪙 <span className="text-amber-500 font-bold">Or Garanti</span> : ~{activeDungeonFloor * 5} Or
-              </div>
-              <div className="text-[10px] text-[#a89078] font-sans">
-                ⚙️ <span className="text-slate-300 font-bold">Composants</span> : Matériaux de forge
-              </div>
-              <div className="col-span-2 text-[9.5px] text-[#ae8650] font-mono border-t border-[#5c402b]/25 pt-1.5 mt-0.5">
-                💎 Chance d'équipement de qualité <span className="text-blue-400 font-bold">Rare</span> !
-              </div>
-            </div>
-          </div>
-        </div>
-      );
-    }
-    
-    // 2. CAMPFIRE REST SITE
-    if (type === "rest") {
-      return (
-        <div className="flex flex-col sm:flex-row items-center gap-4 grow w-full">
-          {/* Flame Ring */}
-          <div className="relative p-5 bg-[#140b05] border-2 border-sky-500/30 rounded-2xl select-none shrink-0 flex items-center justify-center w-24 h-24 overflow-hidden">
-            <div className="absolute inset-0 bg-sky-950/15 animate-pulse" />
-            <span className="text-5xl animate-[pulse_1.5s_infinite]">⛺</span>
-            <Flame className="absolute text-orange-500 w-5 h-5 bottom-2 right-2 animate-bounce" />
-          </div>
-          
-          <div className="grow text-center sm:text-left w-full sm:w-auto">
-            <div className="flex items-center justify-center sm:justify-start gap-2 flex-wrap">
-              <h4 className="text-sm font-bold text-[#dfdbc7] uppercase tracking-widest font-serif">
-                {uiInfo.name}
-              </h4>
-              <span className="text-[9px] font-sans text-sky-400 bg-sky-950/30 border border-sky-900/40 px-2 py-0.5 rounded uppercase tracking-wider font-bold">
-                Trêve Salutaire
-              </span>
-            </div>
-            
-            <p className="text-[11px] text-[#a89078] font-sans mt-1.5 leading-relaxed max-w-lg">
-              Un recoin à l'abri du vent, réchauffé par les braises mourantes d'un précédent bivouac. L'escouade en profite pour panser ses plaies et canaliser les flux magiques.
-            </p>
-            
-            <div className="grid grid-cols-2 gap-2 mt-3 p-2 bg-[#110b06]/50 rounded border border-[#5c402b]/25 max-w-sm mx-auto sm:mx-0">
-              <div className="text-[10px] text-emerald-400 font-sans font-semibold">
-                💚 Restauration PV : <span className="font-mono font-bold">+20% Max PV</span>
-              </div>
-              <div className="text-[10px] text-purple-400 font-sans font-semibold">
-                🔮 Restauration PM : <span className="font-mono font-bold">+20% Max PM</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      );
-    }
-    
-    // STAT CHECK EVENT (TRAP, ENIGMA, AMBUSH, RITUAL, OBSTACLE, NEGOTIATION)
-    const encounterDetails = getEncounterDetails(type);
-    let statA = encounterDetails?.statA ?? "agi";
-    let statB = encounterDetails?.statB ?? "dex";
-    let desc = "";
-    let dangerMsg = "";
-    let successMsg = "";
-    
-    if (type === "trap") {
-      desc = "Un grincement sinistre résonne : des lames circulaires et des dards empoisonnés menacent de découper l'escouade.";
-      dangerMsg = "Échec : L'escouade subit de cuisants dégâts de piège (45% PV perdus !).";
-      successMsg = "Réussite : Évite le piège, gagne de l'expérience et des matériaux de forge.";
-    } else if (type === "enigma") {
-      desc = "Une imposante porte runique bloque l'accès, exigeant la résolution d'une formule astrale gravée sur la pierre.";
-      dangerMsg = "Échec : La décharge runique draine l'énergie magique (-10 PM à toute l'équipe).";
-      successMsg = "Réussite : Ouvre la porte, gagne de l'Or, de l'expérience et +15 PM.";
-    } else if (type === "ambush") {
-      desc = "Des bandits se tapissent dans les ombres des arches, prêts à fondre sur votre expédition sans crier gare.";
-      dangerMsg = "Échec : Embuscade réussie ! Vos héros subissent des blessures (20% PV perdus).";
-      successMsg = "Réussite : Repère l'embuscade et pille les cachettes des bandits (+Or bonus).";
-    } else if (type === "ritual") {
-      desc = "Un autel mystique pulse d'une magie chaotique instable, prête à éclater ou à régénérer vos esprits.";
-      dangerMsg = "Échec : Retour de flamme magique (-15 PM et 10% PV perdus).";
-      successMsg = "Réussite : Stabilise les flux cosmiques, restaurant le mana du groupe.";
-    } else if (type === "obstacle") {
-      desc = "Un colossal éboulement obstrue la voie. Il faut déplacer de lourds blocs rocheux ou escalader avec agilité.";
-      dangerMsg = "Échec : Épuisement général et écorchures (20% PV perdus).";
-      successMsg = "Réussite : Dégage la voie avec brio, gagne de l'Exp et des matériaux.";
-    } else if (type === "negotiation") {
-      desc = "Une entité spectrale exige un lourd tribut ou accepte de marchander des faveurs contre une diplomatie habile.";
-      dangerMsg = "Échec : L'entité hostile dérobe 20 Or avant de s'évanouir dans les limbes.";
-      successMsg = "Réussite : Convainc le spectre et obtient une bourse d'Or substantielle.";
-    }
-    
-    // Select best hero solver
-    let bestHero = activeSlayers[0] || null;
-    let bestScore = 0;
-    
-    if (activeSlayers.length > 0) {
-      let highest = -1;
-      let chosen = activeSlayers[0];
-      for (const hero of activeSlayers) {
-        const attrs = hero.calculatedStats;
-        const valA = (attrs[statA as keyof typeof attrs] as any) || 10;
-        const valB = (attrs[statB as keyof typeof attrs] as any) || 10;
-        const score = Math.floor((Number(valA) + Number(valB)) * 0.5);
-        if (score > highest) {
-          highest = score;
-          chosen = hero;
-        }
-      }
-      bestHero = chosen;
-      bestScore = highest;
-    }
-    
-    return (
-      <div className="flex flex-col sm:flex-row items-stretch gap-4 grow w-full">
-        {/* Left Interactive Panel */}
-        <div className="flex flex-col items-center justify-center bg-[#110b06] border border-[#5c402b]/40 rounded-xl p-3 shrink-0 text-center sm:w-40 gap-2">
-          <div className="text-4xl p-2.5 bg-[#1a110a] border-2 border-[#ae8650]/40 rounded-xl select-none shadow-md">
-            {uiInfo.emoji}
-          </div>
-          <div className="w-full">
-            <span className="text-[8px] font-mono uppercase tracking-widest text-[#a89078] block">ÉPREUVE ACTIVE</span>
-            <span className="text-[10px] font-serif font-bold text-[#dfdbc7] truncate block max-w-[130px] mx-auto">{uiInfo.name}</span>
-          </div>
-          
-          {bestHero && (
-            <div className="w-full mt-1 pt-1.5 border-t border-[#5c402b]/20 text-center">
-              <span className="text-[8px] font-mono text-amber-500 uppercase block">Éclaireur désigné</span>
-              <span className="text-[10px] font-sans font-bold text-[#dfdbc7] block truncate max-w-[130px] mx-auto">👤 {bestHero.name}</span>
-              <span className="text-[9px] font-mono text-emerald-400 bg-emerald-950/20 border border-emerald-900/30 px-1.5 py-0.5 rounded-full mt-1 inline-block">
-                Score : {bestScore}
-              </span>
-            </div>
-          )}
-        </div>
-        
-        {/* Right Panel */}
-        <div className="grow flex flex-col justify-between w-full sm:w-auto text-left">
-          <div>
-            <div className="flex items-center gap-2 flex-wrap">
-              <h4 className="text-xs font-serif font-bold uppercase text-[#dfdbc7] tracking-wider">
-                Obstacle Rencontré
-              </h4>
-              <span className="text-[9px] font-mono text-red-400 bg-red-955/20 border border-red-900/35 px-1.5 py-0.5 rounded">
-                Difficulté : {difficulty}
-              </span>
-            </div>
-            
-            <p className="text-[11px] text-[#a89078] font-sans mt-1 leading-relaxed">
-              {desc}
-            </p>
-            
-            <div className="flex flex-col gap-1.5 mt-2.5 pt-2 border-t border-[#5c402b]/20">
-              <div className="text-[9.5px] font-sans text-emerald-400 flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                <span>{successMsg}</span>
-              </div>
-              <div className="text-[9.5px] font-sans text-rose-400/90 flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
-                <span>{dangerMsg}</span>
-              </div>
-            </div>
-          </div>
-          
-          <div className="flex flex-wrap items-center justify-between gap-2 text-[9px] font-mono text-[#ae8650] bg-[#1a110a]/50 p-2 rounded border border-[#302117]/35 mt-3">
-            <span>🎯 Attributs requis : <strong className="text-[#dfdbc7]">{uiInfo.stats}</strong></span>
-            <span>🍀 Jet additionnel : <strong className="text-[#dfdbc7]">{bestHero ? `1 à ${getHeroAttributes(bestHero).luk || 1} (Jet de Chance)` : "Chance"}</strong></span>
-          </div>
-        </div>
-      </div>
-    );
   };
 
   return (
@@ -821,9 +565,9 @@ export default function DungeonPanel({
         )}
       </div>
 
-      {/* 3. ACTIVE MONSTER CARD & CLICK SLASHER - Medieval Theme */}
+      {/* 3. CANONICAL ENCOUNTER STATUS */}
       <div className="bg-[#18110b] border-2 border-[#5c402b] p-4 rounded-xl flex flex-col md:flex-row gap-4 items-center justify-between shadow-2xl relative overflow-hidden">
-        {activeEncounter && !currentMonster ? (
+        {activeEncounter ? (
           <div className="flex items-center gap-3.5 grow">
             <div className="text-4xl p-3 bg-[#110b06] border-2 border-red-900/50 rounded-xl select-none">
               ⚔️
@@ -840,133 +584,6 @@ export default function DungeonPanel({
               </p>
             </div>
           </div>
-        ) : currentEncounterType && currentEncounterType !== "fight" ? (
-          <>
-            {renderActiveEncounter(currentEncounterType)}
-
-            {/* Combat Clock visual tick */}
-            <div className="flex flex-col items-center gap-2 w-full md:w-auto shrink-0 pr-2">
-              <div className="flex items-center gap-1 text-[10px] text-[#a89078] font-sans bg-[#110b06] border border-[#5c402b]/40 rounded-lg px-2.5 py-1.5 shadow-sm">
-                <Clock className="w-3.5 h-3.5 text-[#ae8650]" />
-                <span>Résolution : <strong className="text-[#dfdbc7] font-mono">{combatTimer}s</strong></span>
-              </div>
-            </div>
-          </>
-        ) : currentMonster ? (
-          <>
-            <div className="flex items-center gap-3.5 self-start md:self-auto grow">
-              <div className="text-4xl p-3 bg-[#110b06] border-2 border-[#ae8650]/50 rounded-xl relative select-none">
-                <span>{currentMonster.image}</span>
-                {currentMonster.isBoss && (
-                  <span className="absolute -top-1.5 -right-1 text-xs animate-bounce" title="Boss de l'Étage !">
-                    👑
-                  </span>
-                )}
-              </div>
-              <div className="grow">
-                <div className="flex items-center gap-2">
-                  <h4 className="text-sm font-bold text-[#dfdbc7] uppercase tracking-widest font-serif">
-                    {currentMonster.name}
-                  </h4>
-                  {currentMonster.isBoss && (
-                    <span className="text-[9px] font-serif text-red-400 bg-red-955/40 border border-red-900/45 uppercase tracking-widest px-2 py-0.5 rounded-full font-bold">
-                      MONSTRE SUPRÊME
-                    </span>
-                  )}
-                </div>
-                <p className="text-[10px] text-[#a89078] font-sans mt-0.5">
-                  Faveur d'or : ~{currentMonster.xpYield} EXP • {currentMonster.goldYield} Or
-                </p>
-                <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-[9px] text-[#ae8650] font-mono mt-1">
-                  <span>⚔️ ATK: <strong className="text-[#dfdbc7]">{currentMonster.atk}</strong> ({
-                    currentMonster.damageType === "physical" ? "Physique" :
-                    currentMonster.damageType === "fire" ? "Feu 🔥" :
-                    currentMonster.damageType === "ice" ? "Glace ❄️" :
-                    currentMonster.damageType === "dark" ? "Ombre 🌙" :
-                    currentMonster.damageType === "arcane" ? "Arcane ✨" :
-                    currentMonster.damageType === "nature" ? "Nature 🌿" :
-                    currentMonster.damageType === "poison" ? "Poison ☠️" :
-                    currentMonster.damageType.toUpperCase()
-                  })</span>
-                  <span>🛡️ DEF: <strong className="text-[#dfdbc7]">{currentMonster.def}</strong> Phys. / <strong className="text-[#dfdbc7]">{currentMonster.magicDef}</strong> Mag.</span>
-                </div>
-
-                {currentMonster.resistances && Object.keys(currentMonster.resistances).length > 0 && (
-                  <div className="flex flex-wrap gap-x-2 gap-y-0.5 text-[9px] font-sans mt-1.5 text-[#8c7460] bg-[#1a110a]/50 p-1.5 rounded-md border border-[#302117]/35 w-full sm:max-w-xs">
-                    <span className="font-serif font-bold text-[#ae8650] mr-1">Résistances :</span>
-                    {Object.entries(currentMonster.resistances).map(([elem, val]) => {
-                      if (val === undefined) return null;
-                      const elementEmoji: Record<string, string> = {
-                        arcane: "✨",
-                        fire: "🔥",
-                        ice: "❄️",
-                        water: "💧",
-                        earth: "⛰️",
-                        wind: "💨",
-                        lightning: "⚡",
-                        holy: "☀️",
-                        dark: "🌙",
-                        nature: "🌿",
-                        sound: "🎵",
-                        poison: "☠️",
-                        blood: "🩸",
-                        radiant: "🌟"
-                      };
-                      const elementFrench: Record<string, string> = {
-                        arcane: "Arcane",
-                        fire: "Feu",
-                        ice: "Glace",
-                        water: "Eau",
-                        earth: "Terre",
-                        wind: "Vent",
-                        lightning: "Foudre",
-                        holy: "Sacré",
-                        dark: "Ombre",
-                        nature: "Nature",
-                        sound: "Son",
-                        poison: "Poison",
-                        blood: "Sang",
-                        radiant: "Éclat"
-                      };
-                      const emoji = elementEmoji[elem] || "🛡️";
-                      const label = elementFrench[elem] || elem;
-                      const sign = val >= 0 ? "+" : "";
-                      const color = val > 0 ? "text-emerald-400 font-semibold" : val < 0 ? "text-red-400 font-semibold" : "text-[#dfdbc7]";
-                      return (
-                        <span key={elem} className="inline-flex items-center gap-0.5 mr-1.5">
-                          {emoji} {label} <span className={color}>{sign}{val}%</span>
-                        </span>
-                      );
-                    })}
-                  </div>
-                )}
-
-                {/* HP GAUGE ENEMY */}
-                <div className="w-full sm:max-w-xs mt-2.5">
-                  <div className="flex justify-between items-center text-[10px] font-serif mb-1">
-                    <span className="text-red-400 font-bold uppercase tracking-widest">Énergie du Monstre</span>
-                    <span className="text-[#dfdbc7] font-bold">
-                      {Math.ceil(currentMonster.hp)} / {currentMonster.maxHp}
-                    </span>
-                  </div>
-                  <div className="w-full h-2 bg-[#110b06] border border-[#5c402b]/40 rounded-full overflow-hidden relative">
-                    <div
-                      className="h-full bg-gradient-to-r from-[#701a1a] to-[#b91c1c] transition-all duration-150"
-                      style={{ width: `${(currentMonster.hp / currentMonster.maxHp) * 100}%` }}
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Combat Clock visual tick */}
-            <div className="flex flex-col items-center gap-2 w-full md:w-auto shrink-0 pr-2">
-              <div className="flex items-center gap-1 text-[10px] text-[#a89078] font-sans bg-[#110b06] border border-[#5c402b]/40 rounded-lg px-2.5 py-1.5 shadow-sm">
-                <Clock className="w-3.5 h-3.5 text-[#ae8650]" />
-                <span>Cycles : <strong className="text-[#dfdbc7] font-mono">{combatTimer}s</strong></span>
-              </div>
-            </div>
-          </>
         ) : (
           <div className="w-full grid grid-cols-1 md:grid-cols-12 gap-5 p-2.5">
             {/* Left side: Animated Compass Radar (CSS animation only, 0 JS re-render overhead) */}
@@ -1224,9 +841,9 @@ export default function DungeonPanel({
               return reversedGroups.map((group) => {
                 const isSystem = group.roomNum === 0;
                 
-                let borderColor = "border-[#5c402b]/40";
-                let bgGradient = "from-[#110b06] to-[#18110b]";
-                let statusBadge = null;
+                let borderColor: string;
+                let bgGradient: string;
+                let statusBadge: React.ReactNode;
                 
                 if (group.status === "victory") {
                   borderColor = "border-emerald-900/60";

@@ -1,5 +1,5 @@
-import { ItemInfo } from "../types";
-import { createWeapon } from "./itemBuilders";
+import { ItemInfo } from "../types.ts";
+import { createWeapon } from "./itemBuilders.ts";
 
 export const TIER1_ITEM_WPN_LIST: ItemInfo[] = [
   // SWORDS

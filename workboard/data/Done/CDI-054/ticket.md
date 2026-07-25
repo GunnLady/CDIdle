@@ -1,7 +1,7 @@
 ---
 id: CDI-054
 title: Parite deterministe du moteur de donjon autoritaire
-status: Doing
+status: Done
 area: vertical
 priority: P1
 size: L
@@ -17,28 +17,29 @@ related_docs: ["docs/fullstack-authoritative-plan.md", "docs/architecture/author
 
 ## Objectif
 
-Remplacer le moteur de donjon serveur simplifie par un port autoritaire du
-dernier moteur historique actif, sans modifier ses regles, ses probabilites,
-ses formules ni l ordre de consommation des rolls.
+Restaurer dans un unique moteur autoritaire les regles du dernier donjon
+fonctionnel trace par `640f89f`, sans maintenir une seconde implementation
+historique executable.
 
 ## Resultat utilisateur
 
-Une exploration autoritaire produit le meme encounter, le meme deroule de
-combat, les memes mutations et le meme transcript que le moteur historique
-lorsqu elle recoit le meme etat initial et la meme sequence RNG.
+Une exploration autoritaire reproduit les comportements caracterises, les
+mutations et l ordre des rolls attendus. Le client ne calcule plus le combat et
+ne lit que le transcript canonique persiste.
 
 ## Contexte
 
 L audit du 2026-07-24 compare la reference Git `640f89f`, derniere version
-active avant le raccordement autoritaire, au backend actuel. Le commit
+active avant le raccordement autoritaire, a la resolution simplifiee alors
+presente dans le backend. Le commit
 `f47993e` a neutralise le timer local sans porter le moteur historique cote
 serveur.
 
-Le backend actuel ne resout que des combats generiques avec deux evenements,
-`hero.hit` et `enemy.hit`. Il ne reproduit pas les encounters ponderes, les
-catalogues de monstres et boss, les armes, competences, critiques, esquives,
-multi-frappes, defenses, resistances, recompenses, XP ou progressions de
-classe. La divergence RNG commence au premier roll.
+La resolution simplifiee a ete remplacee le 25 juillet 2026 par
+`src/domain/authoritativeDungeon.ts`. Le commit `640f89f` reste une trace Git,
+et `tests/authoritativeDungeonGolden.test.ts` fige les comportements retenus.
+Le donjon consomme exclusivement les `calculatedStats` persistees ; les
+recalculs de statistiques appartiennent au domaine heros lors du level-up.
 
 L audit complet, les anciens messages de log et le registre exact des rolls
 sont conserves dans
@@ -46,7 +47,7 @@ sont conserves dans
 
 ## Perimetre autorise
 
-- Extraire le moteur historique de `640f89f` dans un domaine pur partage.
+- Maintenir un unique moteur de donjon pur partage par le backend.
 - Injecter un unique contrat `Rng` dans chaque branche aleatoire.
 - Preserver l ordre des catalogues, formules, seuils et appels RNG.
 - Porter la selection ponderee des encounters et le cas force des boss.
@@ -54,8 +55,11 @@ sont conserves dans
 - Porter competences, mana, cooldowns, buffs, debuffs et soins.
 - Porter critiques, vitesse, multi-frappes, ciblage, esquive et mort.
 - Porter or, materiaux, objets, XP, niveaux, croissance et classe.
+- Restaurer les competences lors du passage T0 vers T1 avec les particularites
+  Mage et Acolyte.
 - Produire un transcript exhaustif, type et persistable.
-- Comparer moteur de reference et backend avec la meme bande RNG.
+- Caracteriser les comportements traces par `640f89f` avec des bandes RNG.
+- Refuser un heros canonique incomplet au lieu d inventer des statistiques.
 - Integrer l etat RNG canonique livre par CDI-050.
 - Conserver la presentation progressive CDI-051 comme simple lecteur du
   transcript serveur.
@@ -83,6 +87,13 @@ sont conserves dans
 - Le transcript contient les informations necessaires pour reconstruire les
   anciens logs sans recalcul client.
 - Le client ne fait qu ordonner et temporiser les evenements signes.
+- La validation canonique verifie chaque heros, ses statistiques de base, ses
+  statistiques calculees, ses PV/PM, competences et cooldowns.
+- Le moteur ne contient aucun fallback de statistique de combat.
+- Une vocation retire l actif Novice, conserve son passif et reinitialise les
+  cooldowns. Les autres classes tirent un actif et un passif ; le Mage tire
+  deux sorts elementaires distincts et un passif ; l Acolyte recoit
+  `minor_heal`, puis tire un autre actif et un passif.
 
 ## Dependances
 
@@ -93,29 +104,37 @@ sont conserves dans
 
 ## Criteres d'acceptation
 
-- [ ] Le moteur historique est fige sous forme de reference pure testable.
-- [ ] Tous les `Math.random` du parcours sont remplaces par le meme `Rng`
+- [x] Un unique moteur autoritaire pur porte les regles caracterisees.
+- [x] Tous les `Math.random` du parcours sont remplaces par le meme `Rng`
       injecte sans modifier l ordre des rolls.
-- [ ] Encounter, monstre, boss et scaling correspondent a la reference.
-- [ ] Ordre des tours, competences, mana et cooldowns correspondent.
-- [ ] Armes, types de degats, defenses et resistances correspondent.
-- [ ] Critiques, multi-frappes, ciblage, esquives et morts correspondent.
-- [ ] Or, materiaux, objets, XP, niveaux et classes correspondent.
-- [ ] Les encounters non-combat necessaires a la parite du roll initial sont
+- [x] Encounter, monstre, boss et scaling correspondent aux fixtures.
+- [x] Ordre des tours, competences, mana et cooldowns sont portes.
+- [x] Armes, types de degats, defenses et resistances sont portes.
+- [x] Critiques, multi-frappes, ciblage, esquives et morts sont portes.
+- [x] Or, materiaux, objets, XP, niveaux et classes sont portes.
+- [x] Les competences T1 sont attribuees deterministement, avec les regles
+      Mage/Acolyte et la conservation du passif Novice.
+- [x] Les encounters non-combat necessaires a la parite du roll initial sont
       portes avec leurs mutations historiques.
-- [ ] Le transcript restitue tous les anciens messages utiles et leurs donnees.
-- [ ] Des golden tests comparent etat, transcript et nombre exact de rolls.
-- [ ] Les memes graines et commandes reproduisent le meme resultat apres
+- [x] Le transcript restitue les messages utiles et leurs donnees.
+- [x] Des golden tests comparent etat, transcript et nombre exact de rolls.
+- [x] Les heros incomplets sont rejetes avant resolution et aucun fallback de
+      statistique n est applique.
+- [x] Les anciens chemins `currentMonster`, `currentEncounterType` et
+      `combatTimer` sont retires du panneau et du hook client.
+- [x] Les memes graines et commandes reproduisent le meme resultat apres
       bootstrap, replay et reconnexion.
-- [ ] Le backend ne depend plus du moteur React pour une regle canonique.
-- [ ] Le parcours navigateur confirme le deroule progressif complet apres F5.
+- [x] Le backend ne depend plus du moteur React pour une regle canonique.
+- [x] Le parcours navigateur confirme le deroule progressif complet apres F5.
 
 ## Tests
 
 - `npm.cmd run check:determinism`
 - `npm.cmd run typecheck`
 - `npm.cmd test -- --run tests/dungeonAuthority.test.ts`
-- tests de caracterisation reference/backend avec bande RNG scriptable
+- `npm.cmd test -- --run tests/authoritativeDungeonGolden.test.ts tests/authoritativeContracts.test.ts tests/dungeonAuthority.test.ts tests/townAuthority.test.ts`
+- `npm.cmd test -- --run tests/utils.test.ts tests/catalogValidation.test.ts tests/authoritativeDungeonGolden.test.ts`
+- tests de caracterisation avec bande RNG scriptable
 - tests de replay, conflit, bootstrap et avancement atomique du RNG
 - `npm.cmd test -- --run`
 - `npm.cmd run build`
@@ -131,7 +150,34 @@ Avec une session authentifiee et une partie connue :
 4. verifier XP, niveaux, or, objets et materiaux ;
 5. verifier chaque ligne du transcript progressif ;
 6. recharger puis comparer etat et historique ;
-7. rejouer la meme graine sur une seconde partie et comparer integralement.
+7. reinitialiser le meme compte de test ou injecter une fixture controlee,
+   puis rejouer les memes commandes et comparer integralement. Deux comptes
+   distincts ne partagent pas une graine, car elle est derivee du `userId`.
+
+## Validation finale du 2026-07-25
+
+Preuves utilisateur sur Supabase local avec session Google authentifiee :
+
+- bootstrap 200 revision 31, RNG `draws: 2` ;
+- combat Gobelin resolu automatiquement, transcript progressif complet,
+  revision 33, RNG `draws: 3`, puis etat identique apres `F5` ;
+- replay exact de la commande : 200, `replayed: true`, revision 33, aucune
+  mutation ni duplication ;
+- rencontre `trap` resolue automatiquement, revision 35, RNG `draws: 4` ;
+- fixture locale de vocation : Ragnor Novice niveau 9 evolue Guerrier niveau
+  10 avec `weakening_shout`, conservation de `survival_instinct`, ajout de
+  `weapon_training`, cooldowns vides et PV/PM au maximum ;
+- apres `F5`, RNG identique (`draws: 5`, `state: 2640898453`), profil et
+  transcript de vocation persistants ;
+- fonction Edge demarree reellement apres correction de tous les imports
+  relatifs du graphe Deno.
+
+Preuves automatisees rapportees vertes par l utilisateur :
+
+- typecheck, tests cibles et suite complete ;
+- garde de determinisme ;
+- build de production ;
+- validation Workboard.
 
 ## Preservation
 
@@ -144,18 +190,21 @@ Avec une session authentifiee et une partie connue :
 ## Risques
 
 - Un seul roll ajoute, retire ou deplace decale toutes les resolutions.
-- Une copie partielle des formules creerait une seconde source de verite.
+- Une copie executable de la reference creerait une seconde source de verite.
 - Les anciens helpers ont des valeurs par defaut `systemRng` dangereuses pour
   le backend si l injection n est pas imposee.
 - Les donnees de catalogue client doivent etre partagees sans import runtime
   React dans l Edge Function.
+- Les heros deja T1 dans une sauvegarde existante ne sont pas rerolles
+  silencieusement. Une migration ulterieure, si elle est necessaire, devra etre
+  versionnee et definir explicitement sa consommation du RNG canonique.
 - La migration du schema doit rester compatible avec les sauvegardes actuelles.
 
 ## Handoff
 
 Fournir :
 
-- table reference/backend mise a jour ;
+- matrice des comportements caracterises mise a jour ;
 - bande RNG et nombre de rolls consommes par scenario ;
 - golden fixtures des encounters ordinaires et boss ;
 - transcripts complets incluant succes, echec, critique, esquive, competence,

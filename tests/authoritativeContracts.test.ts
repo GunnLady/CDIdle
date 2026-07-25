@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { CANONICAL_COMMAND_TYPES, validateCanonicalCommandEnvelope, validateCanonicalGameState } from "../shared/contracts/authoritative";
+import { validateAuthoritativeHero } from "../src/domain/authoritativeHeroValidation";
+import { makeHero } from "./fixtures/game";
 
 const validEnvelope = {
   commandId: "11111111-1111-4111-8111-111111111111",
@@ -60,6 +62,80 @@ describe("authoritative shared contracts", () => {
       "rngState.state must be a non-zero unsigned 32-bit integer",
       "rngState.draws must be a non-negative safe integer",
     ]));
+  });
+
+  it("rejects incomplete or inconsistent canonical heroes", () => {
+    const validHero = makeHero();
+    const errors = validateCanonicalGameState({
+      resources: {}, buildings: {}, citizens: {}, districts: {},
+      heroes: [
+        { ...validHero, calculatedStats: undefined },
+        {
+          ...validHero,
+          id: "broken-ranges",
+          currentHp: 21,
+          currentMana: -1,
+          cooldowns: { heavy_blow: -1 },
+        },
+      ],
+      storedItems: [], forgeMaterials: [], itemBlueprints: [], encounterHistory: [],
+      totalCitizensCount: 3, activeDungeonFloor: 1, activeDungeonRoom: 1,
+      highestFloorReached: 1, citizenGrowthProgress: 0, autoExplore: false,
+      currentEncounter: null,
+      rngState: { algorithm: "xorshift32", version: 1, seed: 42, state: 42, draws: 0 },
+    });
+
+    expect(errors).toEqual(expect.arrayContaining([
+      "heroes[0].calculatedStats must be an object",
+      "heroes[1].currentMana must be a number >= 0",
+      "heroes[1].currentHp must not exceed calculatedStats.maxHp",
+      "heroes[1].cooldowns.heavy_blow must be an integer >= 0",
+    ]));
+  });
+
+  it("rejects unknown races, classes and incomplete secondary resistances", () => {
+    const validHero = makeHero();
+    const errors = validateCanonicalGameState({
+      resources: {}, buildings: {}, citizens: {}, districts: {},
+      heroes: [
+        { ...validHero, race: "Dragon" },
+        { ...validHero, id: "bad-class", classType: "Paladin" },
+        {
+          ...validHero,
+          id: "bad-resistances",
+          calculatedStats: {
+            ...validHero.calculatedStats,
+            resistances: {
+              ...validHero.calculatedStats.resistances,
+              arcane: undefined,
+            },
+          },
+        },
+      ],
+      storedItems: [], forgeMaterials: [], itemBlueprints: [], encounterHistory: [],
+      totalCitizensCount: 3, activeDungeonFloor: 1, activeDungeonRoom: 1,
+      highestFloorReached: 1, citizenGrowthProgress: 0, autoExplore: false,
+      currentEncounter: null,
+      rngState: { algorithm: "xorshift32", version: 1, seed: 42, state: 42, draws: 0 },
+    });
+
+    expect(errors).toEqual(expect.arrayContaining([
+      "heroes[0].race must be a known canonical race",
+      "heroes[1].classType must be Novice or a known Tier 1 class",
+      "heroes[2].calculatedStats.resistances.arcane must be a finite number",
+    ]));
+  });
+
+  it("rejects unknown skills and skills stored under the wrong kind", () => {
+    expect(validateAuthoritativeHero(makeHero({
+      activeSkills: ["missing_active"],
+    }))).toContain("hero.activeSkills contains unknown skill missing_active");
+    expect(validateAuthoritativeHero(makeHero({
+      activeSkills: ["survival_instinct"],
+    }))).toContain("hero.activeSkills contains non-active skill survival_instinct");
+    expect(validateAuthoritativeHero(makeHero({
+      passiveSkills: ["heavy_blow"],
+    }))).toContain("hero.passiveSkills contains non-passive skill heavy_blow");
   });
 
   it("uses the same inclusive safe-integer draw boundary as the RNG runtime", () => {

@@ -4,6 +4,7 @@ import { generateAuthoritativeNoviceEquipment } from "../supabase/functions/game
 import { generateAuthoritativeNovice } from "../supabase/functions/game-api/novice-authority";
 import { refreshHeroDerivedStats } from "../src/utils/gameCalculations";
 import type { Hero } from "../src/types";
+import { makeHero } from "./fixtures/game";
 
 const withoutIdentity = (hero: Record<string, unknown>) => {
   const { id: _id, name: _name, ...profile } = hero;
@@ -11,6 +12,38 @@ const withoutIdentity = (hero: Record<string, unknown>) => {
 };
 
 describe("authoritative town commands", () => {
+  it("rejects a malformed persisted hero before applying any command", () => {
+    const malformed = {
+      ...makeHero(),
+      calculatedStats: undefined,
+    };
+    expect(() => applyTownCommand(
+      { ...initialTownState(), heroes: [malformed] },
+      { type: "building.upgrade", buildingId: "ferme" },
+    )).toThrow("canonical game state is invalid");
+  });
+
+  it("rejects an invalid skill before applying a command or advancing RNG", () => {
+    const current = {
+      ...initialTownState(),
+      heroes: [makeHero({ activeSkills: ["missing_active"] })],
+    };
+    const before = structuredClone(current);
+    let failure: unknown;
+    try {
+      applyTownCommand(current, { type: "building.upgrade", buildingId: "ferme" });
+    } catch (error) {
+      failure = error;
+    }
+    expect(failure).toMatchObject({
+      code: "INVALID_GAME_STATE",
+      reason: expect.stringContaining(
+        "heroes[0].activeSkills contains unknown skill missing_active",
+      ),
+    });
+    expect(current).toEqual(before);
+  });
+
   it("generates deterministic novice equipment from the server catalog", () => {
     const equipment = generateAuthoritativeNoviceEquipment("starter-seed");
     expect(equipment).toEqual(generateAuthoritativeNoviceEquipment("starter-seed"));
@@ -66,6 +99,7 @@ describe("authoritative town commands", () => {
     });
     const candidates = offered.state.onboardingCandidates as Array<Record<string, any>>;
     expect(candidates).toHaveLength(5);
+    expect(candidates.every((candidate) => candidate.race === "Humain")).toBe(true);
     expect(candidates[0]).toMatchObject({
       classType: "Novice",
       level: 1,
@@ -125,7 +159,7 @@ describe("authoritative town commands", () => {
         { id: "candidate-client-injected", name: "Mallory" },
       ],
     })).toThrow("starter hero was not offered");
-    expect(() => applyTownCommand({ ...initialTownState(), heroes: [{ id: "existing" }] }, {
+    expect(() => applyTownCommand({ ...initialTownState(), heroes: [makeHero({ id: "existing" })] }, {
       type: "onboarding.offer",
       cityName: "Again",
     })).toThrow("onboarding is already complete");
@@ -200,6 +234,7 @@ describe("authoritative town commands", () => {
     const confirmed = applyTownCommand(offered.state, { type: "hero.recruit_confirm", name: "Ariane" });
     expect(confirmed.state).toMatchObject({ resources: { gold: 400 }, pendingRecruit: null, heroes: [{ id: "hero-offer-command", name: "Ariane", equipment: { mainHand: { rarity: "common" }, armor: { rarity: "common" } } }] });
     const offeredCandidate = offered.state.pendingRecruit as Record<string, unknown>;
+    expect(offeredCandidate.race).toBe("Humain");
     const confirmedHero = (confirmed.state.heroes as Array<Record<string, unknown>>)[0];
     expect(withoutIdentity(confirmedHero)).toEqual(withoutIdentity(offeredCandidate));
     const secondOffer = applyTownCommand({ ...confirmed.state, pendingRecruit: null }, { type: "hero.recruit_offer", commandId: "cancel-command" });
@@ -208,7 +243,10 @@ describe("authoritative town commands", () => {
   });
 
   it("handles inventory stacks and atomic hero equipment", () => {
-    const current = { ...initialTownState(), heroes: [{ id: "hero-1", level: 1, equipment: {} }] };
+    const current = {
+      ...initialTownState(),
+      heroes: [makeHero({ id: "hero-1", level: 1, equipment: {} })],
+    };
     const added = applyTownCommand(current, { type: "inventory.add", itemId: "starter_sword", rarity: "common", count: 2 });
     expect(added.state.storedItems).toEqual([{ itemId: "starter_sword", rarity: "common", count: 2 }]);
     const equipped = applyTownCommand(added.state, { type: "hero.equip", heroId: "hero-1", itemId: "starter_sword", rarity: "common" });

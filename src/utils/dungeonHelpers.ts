@@ -1,8 +1,8 @@
-import { Hero, DungeonEncounterType, Rarity, SkillInfo } from "../types";
-import { SKILLS_LIBRARY } from "../data/gameData";
-import { getHeroAttributes } from "./gameCalculations";
-import type { Rng } from "../domain/random";
-import { systemRng } from "../domain/random";
+import { Hero, DungeonEncounterType, Rarity, SkillInfo } from "../types.ts";
+import { SKILLS_LIBRARY } from "../data/gameData.ts";
+import { getHeroAttributes } from "./gameCalculations.ts";
+import type { Rng } from "../domain/random.ts";
+import { systemRng } from "../domain/random.ts";
 
 export const DUNGEON_ENCOUNTER_WEIGHTS: Record<DungeonEncounterType, number> = {
   fight: 85,

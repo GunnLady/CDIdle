@@ -3,14 +3,9 @@ import {
   type AuthoritativeDungeonEncounter,
   type AuthoritativeDungeonState,
 } from "../../../src/domain/authoritativeDungeon.ts";
+import type { Hero } from "../../../src/types.ts";
 
-export type DungeonHero = Record<string, unknown> & {
-  id?: string;
-  currentHp?: number;
-  isActive?: boolean;
-  status?: string;
-  calculatedStats?: Record<string, unknown>;
-};
+export type DungeonHero = Hero;
 
 export type DungeonState = Record<string, unknown> & {
   activeDungeonFloor?: number;
@@ -45,7 +40,7 @@ export type DungeonRng = {
 
 const clone = <T>(value: T): T => structuredClone(value);
 const activeHeroes = (heroes: DungeonHero[]) =>
-  heroes.filter((hero) => (hero.isActive ?? true) && Number(hero.currentHp ?? 0) > 0);
+  heroes.filter((hero) => hero.isActive === true && Number(hero.currentHp ?? 0) > 0);
 
 function progress(state: DungeonState): { floor: number; room: number; highest: number } {
   const floor = Number(state.activeDungeonFloor ?? 1);
@@ -82,6 +77,9 @@ function resolveEncounter(state: DungeonState, rng: DungeonRng) {
     }
     if (code === "COMBAT_LIMIT_REACHED") {
       throw new DungeonCommandError("COMBAT_LIMIT_REACHED", "combat action limit reached");
+    }
+    if (code === "INVALID_GAME_STATE") {
+      throw new DungeonCommandError("INVALID_GAME_STATE", "canonical hero state is invalid");
     }
     throw error;
   }

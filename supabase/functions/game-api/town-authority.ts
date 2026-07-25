@@ -10,8 +10,15 @@ import {
   restoreCanonicalRng,
   type CanonicalRng,
 } from "./authoritative-rng.ts";
-import type { CanonicalGameCommand } from "../../../shared/contracts/authoritative.ts";
-import type { CanonicalRngState } from "../../../shared/contracts/authoritative.ts";
+import {
+  validateCanonicalGameState,
+  type CanonicalGameCommand,
+  type CanonicalRngState,
+} from "../../../shared/contracts/authoritative.ts";
+import {
+  validateAuthoritativeHero,
+  validateAuthoritativeHeroes,
+} from "../../../src/domain/authoritativeHeroValidation.ts";
 
 export type TownResources = { gold: number; food: number; wood: number; stone: number; ore: number };
 export type TownState = {
@@ -33,6 +40,7 @@ export type TownState = {
   encounterHistory?: Array<Record<string, unknown>>;
   autoExplore?: boolean;
   onboardingCandidates?: Array<Record<string, unknown>>;
+  pendingRecruit?: Record<string, unknown> | null;
   pendingOnboardingCityName?: string;
   rngState: CanonicalRngState;
 };
@@ -73,7 +81,15 @@ export const initialTownState = (rngSeed?: number): TownState => ({
   , rngState: initialCanonicalRngState(rngSeed)
 });
 
-class TownCommandError extends Error { constructor(public readonly code: string, message: string) { super(message); } }
+class TownCommandError extends Error {
+  constructor(
+    public readonly code: string,
+    message: string,
+    public readonly reason?: string,
+  ) {
+    super(message);
+  }
+}
 const affordable = (resources: TownResources, cost: TownResources) => Object.keys(cost).every((key) => resources[key as keyof TownResources] >= cost[key as keyof TownResources]);
 const subtract = (resources: TownResources, cost: TownResources): TownResources => ({ gold: resources.gold - cost.gold, food: resources.food - cost.food, wood: resources.wood - cost.wood, stone: resources.stone - cost.stone, ore: resources.ore - cost.ore });
 const nextSeedKey = (rng: CanonicalRng, scope: string) =>
@@ -102,12 +118,10 @@ export function applyTownCommand(current: Record<string, unknown>, command: Reco
     if (guildLevel < 1) throw new TownCommandError("GUILD_REQUIRED", "guild building is required");
     if (heroes.length >= Math.max(0, guildLevel) + 2) throw new TownCommandError("CAPACITY_REACHED", "hero capacity reached");
     const seedKey = nextSeedKey(rng, "recruit");
-    const score = Number.parseInt(seedKey.slice(-8), 16);
-    const races = ["Humain", "Nain", "Elfe", "Gobelin"];
     const candidate = generateAuthoritativeNovice(
       seedKey,
       `candidate-${typed.commandId ?? "offer"}`,
-      races[score % races.length],
+      "Humain",
     );
     return withRng({ state: { ...town, pendingRecruit: candidate }, events: [{ type: "hero.recruit_offer_created", heroId: candidate.id }] });
   }
@@ -252,11 +266,28 @@ export function applyTownCommand(current: Record<string, unknown>, command: Reco
 }
 
 export function migrateTownState(current: Record<string, unknown>, legacySeed?: number): TownState {
-  return {
+  const migrated = {
     ...initialTownState(),
     ...current,
     rngState: migrateCanonicalRngState(current.rngState, legacySeed),
   } as TownState;
+  const errors = [
+    ...validateCanonicalGameState(migrated),
+    ...validateAuthoritativeHeroes(migrated.heroes),
+    ...validateAuthoritativeHeroes(migrated.onboardingCandidates ?? [], "onboardingCandidates"),
+    ...(migrated.pendingRecruit
+      ? validateAuthoritativeHero(migrated.pendingRecruit, "pendingRecruit")
+      : []),
+  ];
+  if (errors.length > 0) {
+    const reason = errors.join("; ");
+    throw new TownCommandError(
+      "INVALID_GAME_STATE",
+      `canonical game state is invalid: ${reason}`,
+      reason,
+    );
+  }
+  return migrated;
 }
 
 export { TownCommandError };

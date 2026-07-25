@@ -74,7 +74,22 @@ Le moteur lit les statistiques persistées des héros. Seul le domaine héros
 recalcule les statistiques lors d'un level-up ou d'une évolution de classe.
 Toute erreur du RNG canonique fait échouer atomiquement la commande.
 
-CDI-051 reste en pause jusqu'à la couverture golden complète, la validation
+Lors d’une évolution T0 vers T1, le domaine héros conserve uniquement le
+passif Novice et remplace ses actifs. Une classe ordinaire tire un actif et un
+passif de classe. Le Mage tire deux sorts élémentaires distincts et un passif.
+L’Acolyte reçoit `minor_heal` sans roll, puis tire un autre actif et un passif.
+Ces tirages utilisent le RNG autoritaire de la commande et sont persistés dans
+la même révision.
+
+Le chargement valide chaque héros canonique avant mutation. Une identité, un
+statut, des PV/PM, des compétences, des cooldowns ou des `calculatedStats`
+incomplets produisent `INVALID_GAME_STATE`; le moteur de donjon n'invente
+aucune statistique de remplacement.
+
+Les anciennes projections locales `currentMonster`, `currentEncounterType` et
+`combatTimer` ont été retirées de `DungeonPanel` et de `useDungeonSystem`.
+
+CDI-051 reste en pause jusqu'à la matrice automatisée finale, la validation
 Edge réelle et le parcours navigateur après `F5`.
 
 Audit : `docs/architecture/authoritative-dungeon-parity-audit.md`.

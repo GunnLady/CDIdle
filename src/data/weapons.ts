@@ -1,4 +1,4 @@
-import { WeaponInfo } from "../types";
+import { WeaponInfo } from "../types.ts";
 
 export const WEAPON_INFO_LIST: WeaponInfo[] = [
   {

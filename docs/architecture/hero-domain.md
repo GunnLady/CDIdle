@@ -9,4 +9,21 @@
 
 Lorsqu’un Novice atteint le niveau 10, `addHeroExperience` applique aussi le changement automatique si un bâtiment de métier admissible est présent ; après évolution, les PV et la mana sont restaurés au maximum.
 
+Le passage T0 vers T1 applique également les compétences avec le même `Rng`
+injecté. L’actif Novice est retiré et son passif Novice est conservé :
+
+- Mage : deux sorts élémentaires distincts, puis un passif Mage ;
+- Acolyte : `minor_heal` garanti, un autre actif Acolyte, puis un passif
+  Acolyte ;
+- autres classes T1 : un actif puis un passif de la classe.
+
+Les cooldowns sont réinitialisés lors du changement de vocation. Les pools
+proviennent du catalogue de classe et chaque identifiant doit correspondre à
+une compétence existante du bon type.
+
+Cette attribution intervient uniquement lors de la vocation. Un héros déjà T1
+dans une sauvegarde existante n'est pas rerollé silencieusement : une éventuelle
+migration devra être explicite, versionnée et définir son impact sur le RNG
+canonique.
+
 La génération complète d’un candidat et l’orchestration UI restent dans les hooks jusqu’aux tickets d’intégration autoritaire.

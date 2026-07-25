@@ -14,7 +14,7 @@ export type CanonicalStatModifier = {
   value: number;
 };
 
-const ELEMENTS = [
+export const CANONICAL_RESISTANCE_FIELDS = [
   "arcane", "fire", "ice", "water", "earth", "wind", "lightning", "holy",
   "dark", "nature", "sound", "poison", "blood", "radiant",
 ] as const;
@@ -66,7 +66,7 @@ export function calculateHeroDerivedStats(
     physicalDefense,
     magicDefense,
     resistances: Object.fromEntries(
-      ELEMENTS.map((element) => {
+      CANONICAL_RESISTANCE_FIELDS.map((element) => {
         const resistanceStat = `${element}Resistance`;
         return [element, Math.round(apply(magicDefense, resistanceStat))];
       }),

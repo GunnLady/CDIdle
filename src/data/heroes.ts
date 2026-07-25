@@ -1,4 +1,4 @@
-import { RaceInfo, ClassInfo } from "../types";
+import { RaceInfo, ClassInfo } from "../types.ts";
 
 export const RACE_INFO_LIST: RaceInfo[] = [
   {
@@ -81,7 +81,7 @@ export const CLASS_INFO_LIST: ClassInfo[] = [
     mainStats: ["dex", "agi"],
     jobChangeBuildingId: "poste_chasse",
     mainDerivedStats: ["physicalDamage", "speed", "criticalChance"],
-    activeSkills: ["rapid_shot", "piercing_arrow", "crippling_shot"],
+    activeSkills: ["precise_shot", "piercing_arrow", "crippling_shot"],
     passiveSkills: ["eagle_eye", "steady_aim"],
     color: "#22c55e"
   },
@@ -94,14 +94,12 @@ export const CLASS_INFO_LIST: ClassInfo[] = [
     jobChangeBuildingId: "academie",
     mainDerivedStats: ["maxMana", "magicDamage", "criticalChance"],
     activeSkills: [
-      "arcane_bolt",
       "fire_bolt",
       "ice_shard",
       "water_lance",
       "stone_spike",
       "wind_blade",
-      "lightning_bolt",
-      "mana_shield"
+      "lightning_bolt"
     ],
     passiveSkills: ["arcane_training", "mana_control"],
     color: "#3b82f6"
@@ -162,7 +160,7 @@ export const CLASS_INFO_LIST: ClassInfo[] = [
     mainStats: ["str", "agi"],
     jobChangeBuildingId: "caserne",
     mainDerivedStats: ["maxHp", "physicalDamage", "speed", "dodgeChance"],
-    activeSkills: ["earthen_fist", "wind_kick", "rapid_combo", "battle_focus"],
+    activeSkills: ["earthen_fist", "zephyr_strike", "rapid_combo", "battle_focus"],
     passiveSkills: ["conditioned_body", "combat_reflexes"],
     color: "#ef4444"
   }

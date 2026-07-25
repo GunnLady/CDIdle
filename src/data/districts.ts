@@ -1,4 +1,4 @@
-import { District } from "../types";
+import { District } from "../types.ts";
 
 export const DISTRICTS_LIST: District[] = [
   {

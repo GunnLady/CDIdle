@@ -1,4 +1,4 @@
-import { Monster } from "../types";
+import { Monster } from "../types.ts";
 
 export const MONSTERS_LIBRARY: Omit<Monster, "id" | "hp" | "maxHp">[] = [
   // Early depths (1-5)

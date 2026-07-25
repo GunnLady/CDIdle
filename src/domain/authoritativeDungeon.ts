@@ -1,4 +1,5 @@
 import type {
+  CalculatedStats,
   DamageType,
   DungeonEncounterType,
   Hero,
@@ -7,8 +8,8 @@ import type {
   Resources,
   StoredForgeMaterialStack,
   StoredItemStack,
-} from "../types";
-import { BOSSES_LIBRARY, ITEM_LIBRARY, MONSTERS_LIBRARY, getSkillById } from "../data/gameData";
+} from "../types.ts";
+import { BOSSES_LIBRARY, ITEM_LIBRARY, MONSTERS_LIBRARY, getSkillById } from "../data/gameData.ts";
 import {
   addItemToStorage,
   applyMonsterDefenseOrResistance,
@@ -17,19 +18,20 @@ import {
   getHeroMainHandWeapon,
   getWeaponDamageTypes,
   rollWeaponDamage,
-} from "../utils/gameCalculations";
+} from "../utils/gameCalculations.ts";
 import {
   applyLootModifiers,
   getEncounterDetails,
   getRandomDungeonEncounterType,
   rollEncounterForgeMaterial,
   selectBestHeroForEncounter,
-} from "../utils/dungeonHelpers";
-import type { Rng } from "./random";
+} from "../utils/dungeonHelpers.ts";
+import type { Rng } from "./random.ts";
 import {
   addHeroExperienceDetailed,
   type HeroExperienceResult,
-} from "./hero";
+} from "./hero.ts";
+import { validateAuthoritativeHero } from "./authoritativeHeroValidation.ts";
 
 export type AuthoritativeDungeonTranscriptEvent = {
   sequence: number;
@@ -82,20 +84,15 @@ export type AuthoritativeDungeonResolution = {
 const clone = <T>(value: T): T => structuredClone(value);
 
 function persistedCombatStats(hero: Hero) {
-  const record = hero as unknown as Record<string, unknown>;
-  const persisted = (record.calculatedStats ?? {}) as Record<string, unknown>;
-  return {
-    maxHp: Number(persisted.maxHp ?? record.currentHp ?? 1),
-    maxMana: Number(persisted.maxMana ?? record.currentMana ?? 0),
-    physicalDamage: Number(persisted.physicalDamage ?? persisted.attack ?? 1),
-    magicDamage: Number(persisted.magicDamage ?? 1),
-    speed: Number(persisted.speed ?? 0),
-    physicalDefense: Number(persisted.physicalDefense ?? 0),
-    magicDefense: Number(persisted.magicDefense ?? 0),
-    criticalChance: Number(persisted.criticalChance ?? 0),
-    dodgeChance: Number(persisted.dodgeChance ?? 0),
-    resistances: (persisted.resistances ?? {}) as Record<string, number>,
-  };
+  return hero.calculatedStats;
+}
+
+function requiredCalculatedStat(stats: CalculatedStats, field: string): number {
+  const value = (stats as unknown as Record<string, unknown>)[field];
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    throw new Error(`INVALID_DUNGEON_SKILL_STAT:${field}`);
+  }
+  return value;
 }
 
 function awardExperience(
@@ -104,16 +101,6 @@ function awardExperience(
   rng: Rng,
   buildings: Record<string, number>,
 ): HeroExperienceResult {
-  const record = hero as unknown as Record<string, unknown>;
-  if (
-    !record.baseStats
-    || typeof record.level !== "number"
-    || typeof record.xp !== "number"
-    || typeof record.xpNeeded !== "number"
-    || typeof record.classType !== "string"
-  ) {
-    return { hero, levels: [] };
-  }
   return addHeroExperienceDetailed(hero, xp, rng, buildings);
 }
 
@@ -152,6 +139,8 @@ function logExperienceAward(
         previousClass: award.classChange.from,
         classType: award.classChange.to,
         reason: award.classChange.reason,
+        activeSkills: award.hero.activeSkills,
+        passiveSkills: award.hero.passiveSkills,
       },
     );
   } else if (award.classStayed) {
@@ -326,7 +315,7 @@ function resolveFight(
       let skillUsed = false;
       let totalDamage = 0;
 
-      for (const skillId of hero.activeSkills ?? []) {
+      for (const skillId of hero.activeSkills) {
         const skill = getSkillById(skillId);
         if (!skill || skill.type !== "active") continue;
         const manaCost = skill.manaCost ?? 0;
@@ -334,15 +323,13 @@ function resolveFight(
         const effect = skill.effect;
 
         if (effect.type === "damage") {
-          const statValue = Number(calculatedStats[effect.scalingStat as keyof typeof calculatedStats])
-            || calculatedStats.physicalDamage
-            || 10;
+          const statValue = requiredCalculatedStat(calculatedStats, effect.scalingStat);
           const damagePerHit = applyMonsterDefenseOrResistance(
             Math.floor(statValue * effect.power),
             effect.damageType,
             monster,
           );
-          const damage = damagePerHit * (effect.hitCount || 1);
+          const damage = damagePerHit * (effect.hitCount ?? 1);
           const useful = damage >= monster.hp
             || monster.isBoss
             || monster.atk > 45
@@ -367,7 +354,7 @@ function resolveFight(
               monsterName: monster.name,
               skillId,
               skillName: skill.name,
-              hitCount: effect.hitCount || 1,
+              hitCount: effect.hitCount ?? 1,
               damage,
               damageType: effect.damageType,
               enemyHp: Math.max(0, monster.hp - damage),
@@ -378,9 +365,7 @@ function resolveFight(
         }
 
         if (effect.type === "heal") {
-          const statValue = Number(calculatedStats[effect.scalingStat as keyof typeof calculatedStats])
-            || calculatedStats.magicDamage
-            || 10;
+          const statValue = requiredCalculatedStat(calculatedStats, effect.scalingStat);
           const healAmount = Math.floor(statValue * effect.power);
           const living = heroes.filter((candidate) => candidate.isActive && candidate.currentHp > 0);
           if (skill.target === "all_allies") {
@@ -814,7 +799,7 @@ function resolveNonFight(
     heroes = heroes.map((hero) => {
       if (!hero.isActive || hero.currentHp <= 0) return hero;
       const maxHp = hero.calculatedStats.maxHp;
-      const maxMana = hero.calculatedStats.maxMana || 20;
+      const maxMana = hero.calculatedStats.maxMana;
       const next = {
         ...hero,
         currentHp: Math.min(maxHp, hero.currentHp + Math.max(1, Math.round(maxHp * 0.2))),
@@ -852,7 +837,7 @@ function resolveNonFight(
     if (!selected) throw new Error("NO_ACTIVE_HERO");
     const attributes = getHeroAttributes(selected.bestHero);
     const challengeHeroesBefore = clone(heroes);
-    const luck = attributes.luk || 1;
+    const luck = Math.max(1, attributes.luk);
     const luckRoll = rng.nextInt(Math.max(1, luck)) + 1;
     const difficulty = 10 + floor * 2;
     victory = luckRoll + selected.bestScore >= difficulty;
@@ -897,7 +882,7 @@ function resolveNonFight(
           ? {
               ...hero,
               currentMana: Math.min(
-                hero.calculatedStats.maxMana || 20,
+                hero.calculatedStats.maxMana,
                 hero.currentMana + 15,
               ),
             }
@@ -907,7 +892,7 @@ function resolveNonFight(
       } else if (kind === "ritual") {
         heroes = heroes.map((hero) => {
           if (!hero.isActive || hero.currentHp <= 0) return hero;
-          const maxMana = hero.calculatedStats.maxMana || 20;
+          const maxMana = hero.calculatedStats.maxMana;
           return {
             ...hero,
             currentMana: Math.min(maxMana, hero.currentMana + Math.max(15, Math.round(maxMana * 0.2))),
@@ -1060,7 +1045,13 @@ export function resolveAuthoritativeDungeonEncounter(
 ): AuthoritativeDungeonResolution {
   const floor = Number(source.activeDungeonFloor ?? 1);
   const room = Number(source.activeDungeonRoom ?? 1);
-  const activeHeroes = (source.heroes ?? []).filter((hero) => hero.isActive && hero.currentHp > 0);
+  if (!Array.isArray(source.heroes)) throw new Error("INVALID_GAME_STATE");
+  for (const [index, hero] of source.heroes.entries()) {
+    if (validateAuthoritativeHero(hero, `heroes[${index}]`).length > 0) {
+      throw new Error("INVALID_GAME_STATE");
+    }
+  }
+  const activeHeroes = source.heroes.filter((hero) => hero.isActive && hero.currentHp > 0);
   if (activeHeroes.length === 0) throw new Error("NO_ACTIVE_HERO");
   const kind: DungeonEncounterType = room === 50 ? "fight" : getRandomDungeonEncounterType(rng);
   return kind === "fight"

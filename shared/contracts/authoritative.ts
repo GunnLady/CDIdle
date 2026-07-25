@@ -1,3 +1,5 @@
+import { CANONICAL_RESISTANCE_FIELDS } from "../domain/hero-stats.ts";
+
 export type CanonicalRarity = "common" | "uncommon" | "rare" | "epic" | "legendary";
 
 export type CanonicalModifier = { stat: string; type?: "flat" | "percent"; value: number };
@@ -107,6 +109,144 @@ export const CANONICAL_COMMAND_TYPES = [
   "dungeon.explore", "dungeon.select_floor", "dungeon.resolve", "dungeon.auto_explore", "dungeon.retreat",
 ] as const;
 
+const HERO_BASE_STAT_FIELDS = ["str", "agi", "end", "int", "wiz", "dex", "luk"] as const;
+const HERO_CALCULATED_STAT_FIELDS = [
+  "maxHp",
+  "criticalChance",
+  "dodgeChance",
+  "hp",
+  "maxMana",
+  "mana",
+  "physicalDamage",
+  "magicDamage",
+  "speed",
+  "physicalDefense",
+  "magicDefense",
+] as const;
+const HERO_STATUSES = ["idle", "exploring", "resting"] as const;
+export const CANONICAL_HERO_RACES = [
+  "Humain", "Elfe", "Nain", "Orc", "Gobelin", "Homme-Lézard", "Tieffelin", "Homme-Bête",
+] as const;
+export const CANONICAL_HERO_CLASSES = [
+  "Novice", "Guerrier", "Voleur", "Archer", "Mage", "Acolyte", "Aède", "Druide",
+  "Artificier", "Pugiliste",
+] as const;
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  Boolean(value) && typeof value === "object" && !Array.isArray(value);
+
+const isFiniteNumber = (value: unknown): value is number =>
+  typeof value === "number" && Number.isFinite(value);
+
+function requireFiniteFields(
+  value: Record<string, unknown>,
+  fields: readonly string[],
+  path: string,
+  errors: string[],
+) {
+  for (const field of fields) {
+    if (!isFiniteNumber(value[field])) errors.push(`${path}.${field} must be a finite number`);
+  }
+}
+
+export function validateCanonicalHero(input: unknown, path = "hero"): string[] {
+  if (!isRecord(input)) return [`${path} must be an object`];
+  const hero = input;
+  const errors: string[] = [];
+
+  for (const field of ["id", "name"] as const) {
+    const fieldValue = hero[field];
+    if (typeof fieldValue !== "string" || !fieldValue.trim()) {
+      errors.push(`${path}.${field} must be a non-empty string`);
+    }
+  }
+  if (!CANONICAL_HERO_RACES.includes(hero.race as typeof CANONICAL_HERO_RACES[number])) {
+    errors.push(`${path}.race must be a known canonical race`);
+  }
+  if (!CANONICAL_HERO_CLASSES.includes(hero.classType as typeof CANONICAL_HERO_CLASSES[number])) {
+    errors.push(`${path}.classType must be Novice or a known Tier 1 class`);
+  }
+  if (typeof hero.isActive !== "boolean") errors.push(`${path}.isActive must be a boolean`);
+  if (!HERO_STATUSES.includes(hero.status as typeof HERO_STATUSES[number])) {
+    errors.push(`${path}.status must be idle, exploring or resting`);
+  }
+  if (!Number.isInteger(hero.level) || Number(hero.level) < 1) {
+    errors.push(`${path}.level must be an integer >= 1`);
+  }
+  if (!isFiniteNumber(hero.xp) || Number(hero.xp) < 0) errors.push(`${path}.xp must be a number >= 0`);
+  if (!isFiniteNumber(hero.xpNeeded) || Number(hero.xpNeeded) <= 0) {
+    errors.push(`${path}.xpNeeded must be a number > 0`);
+  }
+  if (!isFiniteNumber(hero.currentHp) || Number(hero.currentHp) < 0) {
+    errors.push(`${path}.currentHp must be a number >= 0`);
+  }
+  if (!isFiniteNumber(hero.currentMana) || Number(hero.currentMana) < 0) {
+    errors.push(`${path}.currentMana must be a number >= 0`);
+  }
+
+  if (!isRecord(hero.baseStats)) errors.push(`${path}.baseStats must be an object`);
+  else requireFiniteFields(hero.baseStats, HERO_BASE_STAT_FIELDS, `${path}.baseStats`, errors);
+
+  if (!isRecord(hero.calculatedStats)) {
+    errors.push(`${path}.calculatedStats must be an object`);
+  } else {
+    requireFiniteFields(
+      hero.calculatedStats,
+      HERO_CALCULATED_STAT_FIELDS,
+      `${path}.calculatedStats`,
+      errors,
+    );
+    if (isFiniteNumber(hero.calculatedStats.maxHp) && hero.calculatedStats.maxHp <= 0) {
+      errors.push(`${path}.calculatedStats.maxHp must be > 0`);
+    }
+    if (isFiniteNumber(hero.calculatedStats.maxMana) && hero.calculatedStats.maxMana < 0) {
+      errors.push(`${path}.calculatedStats.maxMana must be >= 0`);
+    }
+    if (!isRecord(hero.calculatedStats.resistances)) {
+      errors.push(`${path}.calculatedStats.resistances must be an object`);
+    } else {
+      for (const damageType of CANONICAL_RESISTANCE_FIELDS) {
+        const resistance = hero.calculatedStats.resistances[damageType];
+        if (!isFiniteNumber(resistance)) {
+          errors.push(`${path}.calculatedStats.resistances.${damageType} must be a finite number`);
+        }
+      }
+    }
+    if (
+      isFiniteNumber(hero.currentHp)
+      && isFiniteNumber(hero.calculatedStats.maxHp)
+      && hero.currentHp > hero.calculatedStats.maxHp
+    ) {
+      errors.push(`${path}.currentHp must not exceed calculatedStats.maxHp`);
+    }
+    if (
+      isFiniteNumber(hero.currentMana)
+      && isFiniteNumber(hero.calculatedStats.maxMana)
+      && hero.currentMana > hero.calculatedStats.maxMana
+    ) {
+      errors.push(`${path}.currentMana must not exceed calculatedStats.maxMana`);
+    }
+  }
+
+  for (const field of ["activeSkills", "passiveSkills"] as const) {
+    if (!Array.isArray(hero[field]) || hero[field].some((skill) => typeof skill !== "string")) {
+      errors.push(`${path}.${field} must be an array of strings`);
+    }
+  }
+  if (hero.cooldowns !== undefined) {
+    if (!isRecord(hero.cooldowns)) errors.push(`${path}.cooldowns must be an object`);
+    else {
+      for (const [skillId, turns] of Object.entries(hero.cooldowns)) {
+        if (!Number.isInteger(turns) || Number(turns) < 0) {
+          errors.push(`${path}.cooldowns.${skillId} must be an integer >= 0`);
+        }
+      }
+    }
+  }
+
+  return errors;
+}
+
 export function validateCanonicalCommandEnvelope(input: unknown): string[] {
   if (!input || typeof input !== "object") return ["payload must be an object"];
   const value = input as Record<string, unknown>;
@@ -131,6 +271,10 @@ export function validateCanonicalGameState(input: unknown): string[] {
   const errors: string[] = [];
   for (const field of ["resources", "buildings", "citizens", "districts", "heroes", "storedItems", "forgeMaterials", "itemBlueprints", "encounterHistory", "rngState"]) {
     if (!(field in value)) errors.push(`${field} is required`);
+  }
+  if ("heroes" in value) {
+    if (!Array.isArray(value.heroes)) errors.push("heroes must be an array");
+    else value.heroes.forEach((hero, index) => errors.push(...validateCanonicalHero(hero, `heroes[${index}]`)));
   }
   if ("encounterHistory" in value && !Array.isArray(value.encounterHistory)) errors.push("encounterHistory must be an array");
   if ("rngState" in value) {

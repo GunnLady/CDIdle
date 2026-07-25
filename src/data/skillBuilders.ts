@@ -1,5 +1,5 @@
-import { SkillInfo, SkillTarget, SkillEffect, DamageType } from "../types";
-import { createModifiers } from "./modifierBuilder";
+import { SkillInfo, SkillTarget, SkillEffect, DamageType } from "../types.ts";
+import { createModifiers } from "./modifierBuilder.ts";
 
 // Effect Builders
 export function damageEffect(

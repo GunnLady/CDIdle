@@ -1,4 +1,4 @@
-import { AccessoryInfo } from "../types";
+import { AccessoryInfo } from "../types.ts";
 
 export const ACCESSORY_INFO_LIST: AccessoryInfo[] = [
   {

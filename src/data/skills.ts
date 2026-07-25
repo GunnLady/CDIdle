@@ -1,4 +1,4 @@
-import { SkillInfo } from "../types";
+import { SkillInfo } from "../types.ts";
 import {
   createActiveSkill,
   createPassiveSkill,
@@ -8,7 +8,7 @@ import {
   healEffect,
   statModifierEffect,
   lootModifierEffect
-} from "./skillBuilders";
+} from "./skillBuilders.ts";
 
 export const NOVICE_SKILLS: SkillInfo[] = [
   createActiveSkill(

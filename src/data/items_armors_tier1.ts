@@ -1,5 +1,5 @@
-import { ItemInfo } from "../types";
-import { createArmor } from "./itemBuilders";
+import { ItemInfo } from "../types.ts";
+import { createArmor } from "./itemBuilders.ts";
 
 export const TIER1_ITEM_ARMOR_LIST: ItemInfo[] = [
   // GUERRIER / SHIELD
