@@ -1,5 +1,6 @@
 import { GameState, Resources, CitizenAllocation } from "../types";
 import { DEFAULT_UNLOCKED_ITEM_BLUEPRINTS } from "../utils/gameCalculations";
+import { createInitialBuildingLevels } from "../data/buildings";
 
 export const TRANSIENT_GAME_STATE_FIELDS = ["combatTimer", "battleLogs", "currentMonster", "autoExplore"] as const;
 export type PersistentGameState = Omit<GameState, (typeof TRANSIENT_GAME_STATE_FIELDS)[number]>;
@@ -7,11 +8,10 @@ export type TransientGameState = Pick<GameState, (typeof TRANSIENT_GAME_STATE_FI
 
 const INITIAL_RESOURCES: Resources = { gold: 75, food: 50, wood: 20, stone: 0, ore: 0 };
 const INITIAL_CITIZENS: CitizenAllocation = { farmers: 0, woodcutters: 0, quarrymen: 0, miners: 0, unassigned: 3 };
-const INITIAL_BUILDINGS = { habitation: 1, ferme: 0, scierie: 0, carriere: 0, mine: 0, maison_chef: 0, guilde: 0, caserne: 0, temple: 0, academie: 0, forge: 0 };
 
 export function createInitialGameState(): GameState {
   return {
-    resources: { ...INITIAL_RESOURCES }, buildings: { ...INITIAL_BUILDINGS }, citizens: { ...INITIAL_CITIZENS },
+    resources: { ...INITIAL_RESOURCES }, buildings: createInitialBuildingLevels(), citizens: { ...INITIAL_CITIZENS },
     totalCitizensCount: 3, districts: {}, heroes: [], activeDungeonFloor: 1, activeDungeonRoom: 1,
     combatTimer: 2, battleLogs: [], currentMonster: null, autoExplore: true, highestFloorReached: 1,
     soundEnabled: true, storedItems: [], forgeMaterials: [],

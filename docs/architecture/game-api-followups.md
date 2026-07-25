@@ -50,8 +50,12 @@ validées par une écriture optimiste du navigateur.
   déduction atomique des ressources ;
 - allocation et retrait d'un citoyen, avec capacité disponible, bâtiment
   requis et conservation de la somme des affectations ;
-- déblocage d'un district, avec coût, prérequis, unicité et activation des
-  multiplicateurs correspondants.
+- districts : ancien contrat retiré du périmètre actif le 2026-07-25. La
+  commande est refusée et les données existantes restent inertes jusqu'à une
+  refonte fonctionnelle complète.
+
+La parité Ville et la rectification de ces attendus sont portées par CDI-057 et
+`docs/architecture/town-authoritative-parity-audit.md`.
 
 ### Contrat client/serveur
 

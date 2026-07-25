@@ -1,5 +1,7 @@
 import {
   useCallback,
+  useEffect,
+  useMemo,
   useState,
   type Dispatch,
   type SetStateAction,
@@ -11,10 +13,13 @@ import type {
   StoredItemStack,
 } from "../types";
 import { DEFAULT_UNLOCKED_ITEM_BLUEPRINTS } from "../utils/gameCalculations";
+import { projectRestingHeroes } from "../domain/heroRecoveryProjection";
 
 type DungeonSystemOptions = {
   highestFloorReached: number;
   setHighestFloorReached: Dispatch<SetStateAction<number>>;
+  currentUser: unknown;
+  isOnline: boolean;
 };
 
 /**
@@ -27,8 +32,18 @@ type DungeonSystemOptions = {
 export function useDungeonSystem({
   highestFloorReached,
   setHighestFloorReached,
+  currentUser,
+  isOnline,
 }: DungeonSystemOptions) {
-  const [heroes, setHeroes] = useState<Hero[]>([]);
+  const [heroes, setCanonicalHeroes] = useState<Hero[]>([]);
+  const [projectionStartedAt, setProjectionStartedAt] = useState(() => Date.now());
+  const [projectionNow, setProjectionNow] = useState(() => Date.now());
+  const setHeroes = useCallback((next: Hero[]) => {
+    const now = Date.now();
+    setCanonicalHeroes(next);
+    setProjectionStartedAt(now);
+    setProjectionNow(now);
+  }, []);
   const [storedItems, setStoredItems] = useState<StoredItemStack[]>([]);
   const [forgeMaterials, setForgeMaterials] = useState<StoredForgeMaterialStack[]>([]);
   const [itemBlueprints, setItemBlueprints] = useState<ItemBlueprint[]>(
@@ -38,6 +53,17 @@ export function useDungeonSystem({
   const [activeDungeonRoom, setActiveDungeonRoom] = useState(1);
   const [autoExplore, setAutoExplore] = useState(true);
   const [unlockedRaces, setUnlockedRaces] = useState<string[]>(["Humain"]);
+
+  useEffect(() => {
+    if (!currentUser || !isOnline) return;
+    const interval = window.setInterval(() => setProjectionNow(Date.now()), 1_000);
+    return () => window.clearInterval(interval);
+  }, [currentUser, isOnline]);
+
+  const displayHeroes = useMemo(() => projectRestingHeroes(
+    heroes,
+    isOnline ? (projectionNow - projectionStartedAt) / 1_000 : 0,
+  ), [heroes, isOnline, projectionNow, projectionStartedAt]);
 
   const resetDungeonSystem = useCallback(() => {
     setHeroes([]);
@@ -49,10 +75,11 @@ export function useDungeonSystem({
     setHighestFloorReached(1);
     setAutoExplore(true);
     setUnlockedRaces(["Humain"]);
-  }, [setHighestFloorReached]);
+  }, [setHeroes, setHighestFloorReached]);
 
   return {
     heroes,
+    displayHeroes,
     setHeroes,
     storedItems,
     setStoredItems,

@@ -13,10 +13,6 @@ import {
   Lock,
   Plus,
   Minus,
-  Coins,
-  UserPlus,
-  Sparkles,
-  MapPin,
   Flame,
   Swords,
   Target,
@@ -30,12 +26,9 @@ import {
   StoredForgeMaterialStack,
   ItemBlueprint,
   ItemInfo,
-  Modifier,
-  Rarity
 } from "../types";
 import {
   BUILDINGS_LIST,
-  DISTRICTS_LIST,
   checkBuildingUnlocked,
   getBuildingMaxLevel,
   getBuildingUpgradeCost,
@@ -54,14 +47,11 @@ interface TownPanelProps {
   buildings: { [key: string]: number };
   citizens: CitizenAllocation;
   totalCitizensCount: number;
-  unlockedDistricts: { [key: string]: boolean };
   onUpgradeBuilding: (buildingId: string) => void;
   onAllocateCitizen: (job: keyof Omit<CitizenAllocation, "unassigned">, amount: number) => void;
-  onUnlockDistrict: (districtId: string) => void;
   citizenGrowthProgress: number;
   highestFloorReached: number;
   heroes: Hero[];
-  isMigrationPending?: boolean;
   forgeMaterials: StoredForgeMaterialStack[];
   itemBlueprints: ItemBlueprint[];
   addLog: (message: string, type?: "info" | "victory" | "defeat" | "loot" | "combat-hero" | "combat-enemy") => void;
@@ -77,14 +67,11 @@ export default function TownPanel({
   buildings,
   citizens,
   totalCitizensCount,
-  unlockedDistricts,
   onUpgradeBuilding,
   onAllocateCitizen,
-  onUnlockDistrict,
   citizenGrowthProgress,
   highestFloorReached,
   heroes,
-  isMigrationPending = false,
   forgeMaterials,
   itemBlueprints,
   addLog,
@@ -94,7 +81,7 @@ export default function TownPanel({
   onFinalizeForge,
   onCancelForge
 }: TownPanelProps) {
-  const [activeSubTab, setActiveSubTab] = useState<"citizens" | "buildings" | "districts" | "forge">("citizens");
+  const [activeSubTab, setActiveSubTab] = useState<"citizens" | "buildings" | "forge">("citizens");
 
   // Forge System Local States
   const [selectedBlueprintId, setSelectedBlueprintId] = useState<string>("starter_sword");
@@ -273,19 +260,6 @@ export default function TownPanel({
     );
   };
 
-  const getRarityClass = (rarity: string) => {
-    switch (rarity) {
-      case "legendary":
-        return "text-amber-400 border-amber-500/50 bg-amber-950/20";
-      case "epic":
-        return "text-purple-400 border-purple-500/50 bg-purple-950/20";
-      case "rare":
-        return "text-blue-400 border-blue-500/50 bg-blue-950/20";
-      default:
-        return "text-gray-300 border-[#5c402b]/40 bg-slate-900/10";
-    }
-  };
-
   return (
     <div className="space-y-6 animate-fade-in">
       
@@ -341,16 +315,6 @@ export default function TownPanel({
           🏢 Infrastructures ({Object.values(buildings).reduce((a, b) => a + b, 0)} Lvl)
         </button>
         <button
-          onClick={() => setActiveSubTab("districts")}
-          className={`flex-1 py-2 rounded-md font-bold text-center text-xs transition cursor-pointer ${
-            activeSubTab === "districts"
-              ? "bg-[#caa050] text-[#110905]"
-              : "text-[#a89078] hover:text-[#dfdbc7] hover:bg-[#251910]"
-          }`}
-        >
-          🗺️ Districts ({Object.values(unlockedDistricts).filter(Boolean).length} Débloqués)
-        </button>
-        <button
           onClick={() => setActiveSubTab("forge")}
           className={`flex-1 py-2 rounded-md font-bold text-center text-xs transition cursor-pointer ${
             activeSubTab === "forge"
@@ -381,7 +345,7 @@ export default function TownPanel({
 
             <div className="bg-[#100a06] p-3 rounded-lg border border-[#302014] flex flex-col justify-center">
               <div className="flex justify-between text-[11px] font-semibold text-[#dfdbc7] mb-1 font-serif">
-                <span>{isMigrationPending ? "⌛ Migration en cours..." : "Immigration en cours"}</span>
+                <span>Immigration autoritaire</span>
                 <span className="text-amber-500 font-mono">
                   {totalCitizensCount} / {maxCitizens} Paysans
                 </span>
@@ -395,9 +359,7 @@ export default function TownPanel({
               <p className="text-[9.5px] text-[#8f8376] mt-1 text-right italic">
                 {totalCitizensCount >= maxCitizens 
                   ? "Capacité maximale de population atteinte." 
-                  : isMigrationPending
-                    ? "Serrage de mains en cours... (un par un)"
-                    : "Consomme 1 nourriture/s pour immigrer."}
+                  : "Consomme 1 nourriture/s pour immigrer."}
               </p>
             </div>
           </div>
@@ -674,116 +636,7 @@ export default function TownPanel({
         </div>
       )}
 
-      {/* 3. DISTRICTS / SPECIALISATIONS */}
-      {activeSubTab === "districts" && (
-        <div className="bg-[#18110b] border border-[#45301f] rounded-xl p-5 shadow-lg space-y-4">
-          <div className="border-b border-[#3c291a] pb-3 mb-3">
-            <h3 className="text-xs font-bold tracking-widest text-[#caa050] uppercase font-serif mb-1">
-              Spécialisation des Districts
-            </h3>
-            <p className="text-[11px] text-[#a89078]">
-              Érigez des concessions géographiques uniques autour de votre cité pour doubler ou booster durablement vos rendements de paysans.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {DISTRICTS_LIST.map((district) => {
-              const unlocked = unlockedDistricts[district.id] || false;
-              const affordable = !unlocked && isAffordable(district.cost);
-
-              return (
-                <div
-                  key={district.id}
-                  className={`p-4 rounded-xl border-2 flex flex-col justify-between transition duration-150 ${
-                    unlocked
-                      ? "bg-[#1a1c11] border-[#5e701a]/80 shadow-[0_4px_12px_rgba(0,0,0,0.5)]"
-                      : "bg-[#120a06] border-[#302014]"
-                  }`}
-                >
-                  <div>
-                    {/* Header */}
-                    <div className="flex justify-between items-center pb-2 border-b border-[#302014]/60 mb-2">
-                      <div className="flex items-center gap-2">
-                        <MapPin className={`w-4 h-4 ${unlocked ? "text-emerald-400 animate-bounce" : "text-[#ae8650]"}`} />
-                        <h4 className="text-xs font-serif font-black uppercase text-[#dfdbc7]">
-                          {district.name}
-                        </h4>
-                      </div>
-                      {unlocked && (
-                        <span className="text-[8.5px] uppercase font-extrabold tracking-widest px-2 py-0.5 rounded bg-[#2b4c13] text-[#a1f158]">
-                          Inauguré 🟢
-                        </span>
-                      )}
-                    </div>
-
-                    <p className="text-[11px] text-[#a89078] leading-relaxed mb-3">
-                      {district.description}
-                    </p>
-                  </div>
-
-                  {/* Footer costs and unlock trigger */}
-                  <div className="pt-2 border-t border-[#302014]/40 mt-2">
-                    {unlocked ? (
-                      <span className="block text-center text-[10px] text-emerald-400 font-mono font-bold uppercase tracking-widest py-1">
-                        ✨ Production passive activée (+{(district.boostValue * 100).toFixed(0)}%)
-                      </span>
-                    ) : (
-                      <div className="space-y-2">
-                        <div className="bg-black/20 p-2 rounded-lg border border-[#3e2c1c]/50">
-                          <span className="text-[8px] uppercase font-mono font-bold tracking-wider text-[#8c5a2b] block mb-1">
-                            Frais d'inauguration :
-                          </span>
-                          <div className="flex flex-wrap gap-x-2 gap-y-0.5 font-mono text-[9px]">
-                            {district.cost.gold > 0 && (
-                              <span className={resources.gold >= district.cost.gold ? "text-yellow-500 font-semibold" : "text-[#7a6a5b]"}>
-                                💰 {formatResourceValue(district.cost.gold)}
-                              </span>
-                            )}
-                            {district.cost.food > 0 && (
-                              <span className={resources.food >= district.cost.food ? "text-emerald-500 font-semibold" : "text-[#7a6a5b]"}>
-                                🌾 {formatResourceValue(district.cost.food)}
-                              </span>
-                            )}
-                            {district.cost.wood > 0 && (
-                              <span className={resources.wood >= district.cost.wood ? "text-[#d26d36] font-semibold" : "text-[#7a6a5b]"}>
-                                🪵 {formatResourceValue(district.cost.wood)}
-                              </span>
-                            )}
-                            {district.cost.stone > 0 && (
-                              <span className={resources.stone >= district.cost.stone ? "text-gray-300 font-semibold" : "text-[#7a6a5b]"}>
-                                🪨 {formatResourceValue(district.cost.stone)}
-                              </span>
-                            )}
-                            {district.cost.ore > 0 && (
-                              <span className={resources.ore >= district.cost.ore ? "text-[#9653ec] font-semibold" : "text-[#7a6a5b]"}>
-                                ⛓️ {formatResourceValue(district.cost.ore)}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-
-                        <button
-                          onClick={() => onUnlockDistrict(district.id)}
-                          disabled={!affordable}
-                          className={`w-full py-1.5 rounded-lg text-xs font-serif uppercase tracking-widest font-black transition cursor-pointer select-none ${
-                            affordable
-                              ? "bg-[#caa050] hover:bg-[#d9b363] text-[#110905] border border-[#ebd7a0]"
-                              : "bg-[#18110b] border-[#302014] text-[#5c4b3f]/70 cursor-not-allowed"
-                          }`}
-                        >
-                          Acheter le District
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* 4. FORGE (FABRICATION D'EQUIPEMENT) */}
+      {/* 3. FORGE (FABRICATION D'EQUIPEMENT) */}
       {activeSubTab === "forge" && (
         <div className="bg-[#18110b] border border-[#45301f] rounded-xl p-5 shadow-lg space-y-4">
           

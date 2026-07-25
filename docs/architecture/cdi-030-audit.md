@@ -47,10 +47,24 @@ Date : 2026-07-21
   --check` ne remonte pas d'erreur de whitespace (les avertissements LF/CRLF
   sont des conversions Windows Git, pas des écarts fonctionnels).
 
-## Décision pré-push
+## Décision pré-push historique
 
 - Aucun écart réel restant identifié dans le périmètre CDI-030.
 - La preuve HTTP Edge/Supabase/RLS/RPC réelle est un sujet prévu dans CDI-041,
   explicitement différé et non présenté comme vérifié.
+
+## Rectification du 2026-07-25
+
+Le rapport idle était bien calculé et retourné, mais jamais présenté par le
+front. La progression active restait également invisible sans nouvelle
+commande ou `F5`. CDI-057 ajoute un rafraîchissement canonique toutes les
+trente secondes et affiche les retours significatifs. Les bonus Districts sont
+neutralisés dans le moteur idle pendant leur refonte.
+
+Seconde rectification CDI-057 : le moteur repasse désormais un héros
+entièrement rétabli à `idle`. `heroesRecovered` mesure les jauges ayant
+progressé et `heroesFullyRecovered` les fins de récupération. Le heartbeat
+frontend présente uniquement les changements significatifs courts afin de ne
+pas saturer le journal avec chaque soin partiel.
 - Le ticket peut être proposé au passage `Done`, mais aucun commit/push ne doit
   être lancé sans autorisation explicite.

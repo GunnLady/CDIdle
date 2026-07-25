@@ -48,10 +48,10 @@ export const BUILDINGS_LIST: Omit<Building, "level">[] = [
   {
     id: "guilde",
     name: "Campement",
-    description: "Débloque le recrutement et permet d'embaucher +2 champion par niveau.",
+    description: "Débloque le recrutement et ajoute 1 emplacement de héros par niveau, en plus des 2 emplacements initiaux.",
     category: "social",
     icon: "ShieldAlert",
-    bonusPerLevel: 2
+    bonusPerLevel: 1
   },
   {
     id: "temple",
@@ -103,6 +103,9 @@ export const BUILDINGS_LIST: Omit<Building, "level">[] = [
     icon: "Flame"
   }
 ];
+
+export const createInitialBuildingLevels = (): Record<string, number> =>
+  Object.fromEntries(BUILDINGS_LIST.map((building) => [building.id, building.id === "habitation" ? 1 : 0]));
 
 export const getBuildingMaxLevel = (buildingId: string): number => {
   switch (buildingId) {

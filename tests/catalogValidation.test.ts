@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { BUILDINGS_LIST, BUILDING_UNLOCKS, getBuildingMaxLevel, getBuildingUpgradeCost } from "../src/data/buildings";
+import {
+  BUILDINGS_LIST,
+  BUILDING_UNLOCKS,
+  createInitialBuildingLevels,
+  getBuildingMaxLevel,
+  getBuildingUpgradeCost,
+} from "../src/data/buildings";
 import { BOSSES_LIBRARY, MONSTERS_LIBRARY } from "../src/data/monsters";
 import { CLASS_INFO_LIST, RACE_INFO_LIST } from "../src/data/heroes";
 import { ITEM_LIBRARY, validateUniqueItemIds } from "../src/data/items";
@@ -26,6 +32,9 @@ describe("catalogue invariants", () => {
       const cost = getBuildingUpgradeCost(building.id, 0);
       expect(Object.values(cost).every((value) => Number.isFinite(value) && value >= 0)).toBe(true);
     }
+
+    expect(Object.keys(createInitialBuildingLevels()).sort()).toEqual([...ids].sort());
+    expect(BUILDINGS_LIST.find((building) => building.id === "guilde")?.bonusPerLevel).toBe(1);
   });
 
   it("keeps item, race, class, skill and monster registries unique and valid", () => {

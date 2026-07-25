@@ -4,39 +4,7 @@
  */
 
 import React, { lazy, Suspense, useState, useEffect, useCallback, useRef } from "react";
-import {
-  Castle,
-  Coins,
-  Grape,
-  Trees,
-  Hammer,
-  Pickaxe,
-  TrendingUp,
-  UserPlus,
-  HelpCircle,
-  Users,
-  Compass,
-  Sparkles,
-  Info,
-  ShieldAlert,
-  ArrowUpRight,
-  ShieldCheck,
-  Music,
-  Volume2,
-  VolumeX,
-  Plus,
-  X,
-  Cloud,
-  Squirrel,
-  Church
-} from "lucide-react";
-import {
-  Resources,
-  CitizenAllocation,
-  Hero,
-  Monster,
-  BattleLogEntry
-} from "./types";
+import { Hero } from "./types";
 const TownPanel = lazy(() => import("./components/TownPanel"));
 const DungeonPanel = lazy(() => import("./components/DungeonPanel"));
 const HeroPanel = lazy(() => import("./components/HeroPanel"));
@@ -56,6 +24,14 @@ import {
 import { purgeLegacyGameCache, readGameCache, writeGameCache } from "./lib/gameCache";
 import type { GameCommand } from "./domain/commands";
 import type { CanonicalDungeonEncounterRecord } from "../shared/contracts/authoritative";
+import { formatCanonicalIdleReport } from "./domain/idleReport";
+import { shouldRefreshTownAuthority } from "./domain/townHeartbeat";
+import { formatCanonicalTownEvent } from "./domain/townEventLog";
+import {
+  ACTIVE_TAB_STORAGE_KEY,
+  parseActiveTabPreference,
+  type ActiveTab,
+} from "./domain/activeTabPreference";
 
 // Custom Hooks & Utilities
 import { useGameLog } from "./hooks/useGameLog";
@@ -76,7 +52,14 @@ import {
 
 export default function App() {
   // Layout active tab controller (City, Heroes, Dungeon, Storage or Account)
-  const [activeTab, setActiveTab] = useState<"city" | "heroes" | "dungeon" | "account" | "storage">("city");
+  const [activeTab, setActiveTab] = useState<ActiveTab>(() => {
+    if (typeof window === "undefined") return "city";
+    return parseActiveTabPreference(window.sessionStorage.getItem(ACTIVE_TAB_STORAGE_KEY));
+  });
+
+  useEffect(() => {
+    window.sessionStorage.setItem(ACTIVE_TAB_STORAGE_KEY, activeTab);
+  }, [activeTab]);
 
   // Supabase Auth and authoritative game API sync states
   const [currentUser, setCurrentUser] = useState<any>(null);
@@ -123,9 +106,6 @@ export default function App() {
     };
   }, []);
 
-  // Runtime Transient States
-  const [soundEnabled, setSoundEnabled] = useState<boolean>(true);
-  const [showWelcomeMessage, setShowWelcomeMessage] = useState<boolean>(true);
   const [cheatInput, setCheatInput] = useState<string>("");
 
   // Hero customizer recruitment states
@@ -143,24 +123,25 @@ export default function App() {
 
   const [highestFloorReached, setHighestFloorReached] = useState<number>(1);
 
-  const townAddLog = useCallback((message: string, type?: any) => {
-    addLog(message, type, "colony");
-  }, [addLog]);
-
-  const town = useTownSystem(townAddLog, highestFloorReached, currentUser, isOnline);
+  const town = useTownSystem(currentUser, isOnline);
 
   const dungeon = useDungeonSystem({
     highestFloorReached,
-    setHighestFloorReached
+    setHighestFloorReached,
+    currentUser,
+    isOnline,
   });
 
   const {
+    buildings: townBuildings,
+    getRates: getTownRates,
+    resources: townResources,
     setBuildings: setTownBuildings,
     setCitizenGrowthProgress,
     setCitizens: setTownCitizens,
     setResources: setTownResources,
     setTotalCitizens,
-    setUnlockedDistricts,
+    totalCitizens: townTotalCitizens,
   } = town;
   const {
     setActiveDungeonFloor,
@@ -181,7 +162,6 @@ export default function App() {
     if (state.buildings) setTownBuildings(state.buildings);
     if (state.citizens) setTownCitizens({ ...state.citizens });
     if (state.totalCitizensCount !== undefined) setTotalCitizens(Number(state.totalCitizensCount));
-    if (state.districts) setUnlockedDistricts(state.districts);
     if (state.citizenGrowthProgress !== undefined) setCitizenGrowthProgress(Number(state.citizenGrowthProgress));
     if (state.storedItems) setStoredItems(state.storedItems);
     if (state.forgeMaterials) setForgeMaterials(state.forgeMaterials);
@@ -221,7 +201,6 @@ export default function App() {
     setTownBuildings,
     setTownCitizens,
     setTownResources,
-    setUnlockedDistricts,
   ]);
 
   const playEncounterTranscript = useCallback(async (encounter: CanonicalDungeonEncounterRecord) => {
@@ -284,6 +263,8 @@ export default function App() {
         }
         await applyAuthoritativeState(result?.state, result?.revision);
         for (const event of result?.events ?? []) {
+          const townLog = formatCanonicalTownEvent(event);
+          if (townLog) addLog(townLog.message, townLog.type, "colony");
           if (event?.type === "dungeon.encounter_started") addLog("⚔️ Une rencontre autoritaire a commencé.", "info");
           if (event?.type === "forge.preview_created") addLog("🔥 Prévisualisation de forge créée par le serveur.", "info");
           if (event?.type === "forge.finalized") addLog("🔨 Objet forgé et enregistré par le serveur.", "victory");
@@ -477,6 +458,8 @@ export default function App() {
           if (parsed && parsed.state) {
             const state = parsed.state;
             await applyAuthoritativeState(state, parsed.revision, String(user.id));
+            const idleSummary = formatCanonicalIdleReport(parsed.idleReport);
+            if (idleSummary) addLog(idleSummary, "info", "colony");
             addLog("☁️ Royaume synchronisé : Sauvegarde Supabase chargée avec succès !", "victory");
           } else {
             setCityName("");
@@ -539,12 +522,70 @@ export default function App() {
     setTownResources,
   ]);
 
+  // Refresh active city progression from the authoritative clock. The
+  // command queue prevents this heartbeat from racing user mutations.
+  useEffect(() => {
+    if (!currentUser || !browserOnline || !isInitialGameLoadDone || !cityName || canonicalStateFailureDetails) return;
+    const rates = getTownRates();
+    if (!shouldRefreshTownAuthority({
+      rates,
+      food: townResources.food,
+      totalCitizens: townTotalCitizens,
+      habitationLevel: townBuildings.habitation ?? 0,
+      heroes: dungeon.heroes,
+    })) return;
+    let active = true;
+    let pending = false;
+    const refresh = () => {
+      if (pending || document.visibilityState === "hidden") return;
+      pending = true;
+      const operation = commandQueueRef.current.then(async () => {
+        try {
+          const parsed = await callGameApi<any>("/bootstrap", { method: "POST" });
+          if (!active) return;
+          await applyAuthoritativeState(parsed?.state, parsed?.revision, String(currentUser.id));
+          const idleSummary = formatCanonicalIdleReport(parsed?.idleReport);
+          if (idleSummary) addLog(idleSummary, "info", "colony");
+          setApiAvailable(true);
+          setCanonicalStateFailureDetails(null);
+        } catch (error) {
+          if (!active) return;
+          const stateFailure = canonicalStateFailure(error);
+          if (stateFailure) setCanonicalStateFailureDetails(stateFailure);
+          else setApiAvailable(false);
+        }
+      });
+      commandQueueRef.current = operation.then(() => undefined, () => undefined);
+      void operation.finally(() => { pending = false; });
+    };
+    const interval = window.setInterval(refresh, 30_000);
+    return () => {
+      active = false;
+      window.clearInterval(interval);
+    };
+  }, [
+    addLog,
+    applyAuthoritativeState,
+    browserOnline,
+    canonicalStateFailureDetails,
+    cityName,
+    currentUser,
+    dungeon.heroes,
+    getTownRates,
+    isInitialGameLoadDone,
+    townBuildings,
+    townResources.food,
+    townTotalCitizens,
+  ]);
+
   const handleManualSaveCloud = useCallback(async () => {
     if (!currentUser || !isOnline) return;
     try {
       setIsSyncing(true);
       const parsed = await callGameApi<any>("/bootstrap", { method: "POST" });
       await applyAuthoritativeState(parsed?.state, parsed?.revision, String(currentUser.id));
+      const idleSummary = formatCanonicalIdleReport(parsed?.idleReport);
+      if (idleSummary) addLog(idleSummary, "info", "colony");
       setApiAvailable(true);
       setCanonicalStateFailureDetails(null);
       addLog("☁️ État canonique actualisé depuis le serveur.", "victory");
@@ -577,13 +618,12 @@ export default function App() {
     try {
       setIsSyncing(true);
       if (currentUser) {
-        await callGameApi("/reset", { method: "POST" });
+        const reset = await callGameApi<any>("/reset", { method: "POST" });
+        await applyAuthoritativeState(reset?.state, reset?.revision, String(currentUser.id));
       }
       await purgeLegacyGameCache();
       
-      // Reset systems
-      town.resetTownSystem();
-      dungeon.resetDungeonSystem();
+      // Clear transient UI after the canonical reset response was applied.
       setBattleLogs([]);
       setCurrentEncounter(null);
       setEncounterHistory([]);
@@ -592,6 +632,9 @@ export default function App() {
 
       // Crucially, set cityName to empty string to send user back to the naming page of LoginPage
       setCityName("");
+      window.requestAnimationFrame(() => {
+        window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+      });
 
       addLog("💣 Remise à zéro totale effectuée ! Créez une nouvelle cité.", "defeat");
     } catch (err) {
@@ -628,8 +671,8 @@ export default function App() {
     }
   };
 
-  // CDI-051: canonical idle/health progression is applied by bootstrap or
-  // command responses from game-api; React does not run a mutation timer.
+  // Canonical idle/health progression is applied by game-api. React only
+  // requests and renders snapshots; it never computes a gameplay tick.
 
   const activeRates = town.getRates();
   return (
@@ -690,7 +733,7 @@ export default function App() {
                 <GoldIconDetail />
                 <div className="flex flex-col justify-center leading-none">
                   <span className="font-serif font-black text-sm sm:text-base text-[#fbbf24] tracking-wider drop-shadow-[0_1.5px_1px_rgba(0,0,0,0.9)]">
-                    {formatResourceValue(town.resources.gold)}
+                    {formatResourceValue(town.displayResources.gold)}
                   </span>
                 </div>
               </div>
@@ -703,7 +746,7 @@ export default function App() {
                 <FoodIconDetail />
                 <div className="flex flex-col justify-center leading-none">
                   <span className="font-serif font-black text-sm sm:text-base text-[#59ba59] tracking-wider drop-shadow-[0_1.5px_1px_rgba(0,0,0,0.9)]">
-                    {formatResourceValue(town.resources.food)}
+                    {formatResourceValue(town.displayResources.food)}
                   </span>
                   <span className="text-[10px] font-mono text-[#8f8376] font-semibold mt-0.5">
                     +{activeRates.food.toFixed(0)}/s
@@ -719,7 +762,7 @@ export default function App() {
                 <WoodIconDetail />
                 <div className="flex flex-col justify-center leading-none">
                   <span className="font-serif font-black text-sm sm:text-base text-[#d26d36] tracking-wider drop-shadow-[0_1.5px_1px_rgba(0,0,0,0.9)]">
-                    {formatResourceValue(town.resources.wood)}
+                    {formatResourceValue(town.displayResources.wood)}
                   </span>
                   <span className="text-[10px] font-mono text-[#8f8376] font-semibold mt-0.5">
                     +{activeRates.wood.toFixed(0)}/s
@@ -735,7 +778,7 @@ export default function App() {
                 <StoneIconDetail />
                 <div className="flex flex-col justify-center leading-none">
                   <span className="font-serif font-black text-sm sm:text-base text-[#cdcdcd] tracking-wider drop-shadow-[0_1.5px_1px_rgba(0,0,0,0.9)]">
-                    {formatResourceValue(town.resources.stone)}
+                    {formatResourceValue(town.displayResources.stone)}
                   </span>
                   <span className="text-[10px] font-mono text-[#8f8376] font-semibold mt-0.5">
                     +{activeRates.stone.toFixed(0)}/s
@@ -751,7 +794,7 @@ export default function App() {
                 <OreIconDetail />
                 <div className="flex flex-col justify-center leading-none">
                   <span className="font-serif font-black text-sm sm:text-base text-[#9653ec] tracking-wider drop-shadow-[0_1.5px_1px_rgba(0,0,0,0.9)]">
-                    {formatResourceValue(town.resources.ore)}
+                    {formatResourceValue(town.displayResources.ore)}
                   </span>
                   <span className="text-[10px] font-mono text-[#8f8376] font-semibold mt-0.5">
                     +{activeRates.ore.toFixed(0)}/s
@@ -933,15 +976,12 @@ export default function App() {
                 resources={town.resources}
                 buildings={town.buildings}
                 citizens={town.citizens}
-                totalCitizensCount={town.totalCitizens}
-                unlockedDistricts={town.unlockedDistricts}
+                totalCitizensCount={town.displayTotalCitizens}
                 onUpgradeBuilding={(buildingId) => { void dispatchAuthoritativeCommand({ type: "building.upgrade", buildingId }); }}
                 onAllocateCitizen={(role, amount) => { void dispatchAuthoritativeCommand({ type: "citizens.allocate", role, amount }); }}
-                onUnlockDistrict={(districtId) => { void dispatchAuthoritativeCommand({ type: "district.unlock", districtId }); }}
-                citizenGrowthProgress={town.citizenGrowthProgress}
+                citizenGrowthProgress={town.displayCitizenGrowthProgress}
                 highestFloorReached={dungeon.highestFloorReached}
                 heroes={dungeon.heroes}
-                isMigrationPending={town.isMigrationPending}
                 forgeMaterials={dungeon.forgeMaterials}
                 itemBlueprints={dungeon.itemBlueprints}
                 addLog={addLog}
@@ -958,7 +998,7 @@ export default function App() {
           {activeTab === "heroes" && (
             <div className={`w-full ${isOnline ? "" : "pointer-events-none opacity-80"}`} aria-disabled={!isOnline}>
               <HeroPanel
-                heroes={dungeon.heroes}
+                heroes={dungeon.displayHeroes}
                 resources={town.resources}
                 buildings={town.buildings}
                 onDismissHero={(heroId) => { void dispatchAuthoritativeCommand({ type: "hero.dismiss", heroId }); }}

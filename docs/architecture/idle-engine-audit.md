@@ -4,9 +4,11 @@ Date : 2026-07-18
 
 ## Méthode
 
-Cet audit compare l’implémentation de `src/domain/idle.ts` avec le plan
-autoritaire et les tickets dépendants. Les sujets déjà explicitement portés
-par un ticket futur ne sont pas répétés comme des oublis.
+Cet audit historique comparait l’ancienne implémentation
+`src/domain/idle.ts` avec le plan autoritaire et les tickets dépendants. Cette
+implémentation locale a depuis été supprimée au profit de l'unique autorité
+`supabase/functions/game-api/idle-authority.ts`. Les constats ci-dessous sont
+conservés comme trace, pas comme description du runtime actuel.
 
 ## Sujets déjà couverts par des tickets futurs
 
@@ -66,9 +68,21 @@ mais son niveau de détail n’est pas défini.
 Action proposée : préciser le schéma du rapport dans CDI-030, notamment les
 ressources, citoyens et héros affectés.
 
-## Conclusion
+## État des constats au 2026-07-25
 
-Les cinq écarts ci-dessus ne sont pas actuellement suivis par un ticket dédié.
-Les trois premiers touchent directement le contrat du moteur et doivent être
-traités avant son branchement serveur ; les deux derniers doivent être décidés
-dans CDI-030.
+Cet inventaire historique n'est plus une liste d'écarts ouverts :
+
+- IDLE-AUDIT-001 est contractualisé par les timestamps ISO aux frontières et
+  le calcul interne en secondes ;
+- IDLE-AUDIT-002 est fermé par l'autorité serveur authentifiée et le mode
+  offline strictement en lecture seule ;
+- IDLE-AUDIT-003 est fermé par le validateur Ville canonique réutilisé avant
+  toute transition ;
+- IDLE-AUDIT-004 est fermé : un héros entièrement rétabli passe de `resting` à
+  `idle`, avec compteur et test dédiés ;
+- IDLE-AUDIT-005 est fermé pour le besoin actuel : ressources produites,
+  nourriture, citoyens, soins partiels, récupérations complètes et temps
+  écarté sont exposés. Un détail nominatif par héros n'est pas requis.
+
+La preuve navigateur du heartbeat reste portée par CDI-057 ; elle ne remet pas
+en cause la fermeture des écarts du moteur pur.

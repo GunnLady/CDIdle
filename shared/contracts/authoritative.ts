@@ -69,7 +69,7 @@ export type CanonicalGameCommand =
   | { type: "onboarding.offer"; cityName: string }
   | { type: "onboarding.start"; cityName: string; starterHeroes: Array<{ id: string; name: string }> }
   | { type: "building.upgrade"; buildingId: string }
-  | { type: "citizens.allocate"; role: "farmers" | "woodcutters" | "quarrymen" | "miners" | "unassigned"; amount: number }
+  | { type: "citizens.allocate"; role: "farmers" | "woodcutters" | "quarrymen" | "miners"; amount: number }
   | { type: "district.unlock"; districtId: string }
   | { type: "hero.recruit" }
   | { type: "hero.recruit_offer" }

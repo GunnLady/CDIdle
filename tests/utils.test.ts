@@ -25,13 +25,11 @@ import { makeCitizens, makeHero, makeStoredItem } from "./fixtures/game";
 import { createInitialGameState, splitGameState, validateGameState } from "../src/domain/gameState";
 import { isCommandSuccess, validateCommandEnvelope, type CommandEnvelope } from "../src/domain/commands";
 import { fixedClock, seededRng } from "../src/domain/random";
-import { allocateCitizen, townRates, unlockDistrict, upgradeBuilding, type TownState } from "../src/domain/town";
 import { addHeroExperience, assignTier1Skills, canActivateHero, dismissHero, recruitHero, recruitmentCost, recruitmentEligibility, setHeroActivity } from "../src/domain/hero";
 import { addStack, removeStack, type InventoryState } from "../src/domain/inventory";
 import { applyUpgradeCost, recycleItem, startBasicCraft } from "../src/domain/forge";
 import { advanceRoom, changeFloor, validateDungeonProgress, type DungeonProgressState } from "../src/domain/dungeonProgression";
 import { advanceCombatModifiers, calculateMultiStrikeChance, decrementCooldowns, interruptCombat, replayCombatRound, resolveBasicAttack, resolveCombatRound, resolveMultiStrikeCount, resolveSkill, retreatCombat, type CombatState } from "../src/domain/combat";
-import { applyIdle, MAX_IDLE_SECONDS, type IdleState } from "../src/domain/idle";
 
 const hero = (id: string, strength: number, agility: number): Hero => ({
   id,
@@ -52,46 +50,7 @@ const hero = (id: string, strength: number, agility: number): Hero => ({
   activeSkills: [],
 } as unknown as Hero);
 
-const idleState = (overrides: Partial<IdleState> = {}): IdleState => ({
-  resources: { gold: 0, food: 0, wood: 0, stone: 0, ore: 0 },
-  buildings: { habitation: 1, ferme: 1 },
-  citizens: { farmers: 1, woodcutters: 0, quarrymen: 0, miners: 0, unassigned: 0 },
-  totalCitizensCount: 1,
-  districts: {},
-  heroes: [],
-  citizenGrowthProgress: 0,
-  lastProcessedAt: 1000,
-  ...overrides,
-});
-
 describe("gameCalculations", () => {
-  it("applique la production idle, l'immigration et le plafond de 24 heures", () => {
-    const result = applyIdle(idleState({ resources: { gold: 0, food: 100, wood: 0, stone: 0, ore: 0 } }), 1020);
-    expect(result.ok).toBe(true);
-    if (!result.ok) return;
-    expect(result.report.appliedSeconds).toBe(20);
-    expect(result.report.citizensAdded).toBe(1);
-    expect(result.state.totalCitizensCount).toBe(2);
-    expect(result.state.resources.food).toBe(100);
-  });
-
-  it("plafonne le temps, recupere les heros et reste idempotent", () => {
-    const resting = makeHero({ status: "resting", currentHp: 1, currentMana: 0 });
-    const state = idleState({ heroes: [resting], lastProcessedAt: 0 });
-    const result = applyIdle(state, MAX_IDLE_SECONDS + 3600);
-    expect(result.ok).toBe(true);
-    if (!result.ok) return;
-    expect(result.report.discardedSeconds).toBe(3600);
-    expect(result.state.heroes[0].currentHp).toBe(20);
-    expect(result.state.heroes[0].currentMana).toBe(10);
-    expect(applyIdle(result.state, result.state.lastProcessedAt)).toMatchObject({ ok: true, report: { appliedSeconds: 0, discardedSeconds: 0 } });
-    expect(state.heroes[0].currentHp).toBe(1);
-  });
-
-  it("refuse une horloge qui recule", () => {
-    expect(applyIdle(idleState(), 999)).toEqual({ ok: false, error: "CLOCK_ROLLBACK" });
-  });
-
   it("respecte les niveaux maximums des batiments", () => {
     expect(getBuildingMaxLevel("habitation")).toBe(10);
     expect(getBuildingMaxLevel("maison_chef")).toBe(5);
@@ -113,10 +72,9 @@ describe("gameCalculations", () => {
     const rates = calculateRates(
       makeCitizens({ woodcutters: 2, farmers: 1, miners: 1 }),
       { scierie: 3, ferme: 4, mine: 2, maison_chef: 1 },
-      { quartier_bois: true },
       true,
     );
-    expect(rates.wood).toBeCloseTo(7.416, 6);
+    expect(rates.wood).toBeCloseTo(6.18, 6);
     expect(rates.food).toBeCloseTo(4.12, 6);
     expect(rates.ore).toBeCloseTo(2.06, 6);
     expect(rates.stone).toBe(0);
@@ -206,35 +164,6 @@ describe("clock and RNG contracts", () => {
   it("replays helper gameplay generation with an injected RNG", () => {
     expect(generateNoviceStats(seededRng(9))).toEqual(generateNoviceStats(seededRng(9)));
     expect(generateSingleNoviceHero(["Humain"], seededRng(12))).toEqual(generateSingleNoviceHero(["Humain"], seededRng(12)));
-  });
-});
-
-describe("town domain", () => {
-  const state = (): TownState => ({
-    resources: { gold: 1000, food: 1000, wood: 1000, stone: 1000, ore: 1000 },
-    buildings: { habitation: 1, ferme: 1, scierie: 0, carriere: 0, mine: 0, maison_chef: 0 },
-    citizens: { farmers: 0, woodcutters: 0, quarrymen: 0, miners: 0, unassigned: 3 },
-    totalCitizensCount: 3, districts: {}
-  });
-
-  it("enforces building prerequisites for citizen allocation", () => {
-    expect(allocateCitizen(state(), "woodcutters", 1)).toEqual({ ok: false, error: "BUILDING_REQUIRED" });
-    const result = allocateCitizen(state(), "farmers", 1);
-    expect(result.ok && result.state.citizens).toMatchObject({ farmers: 1, unassigned: 2 });
-  });
-
-  it("applies resource costs atomically for building and district actions", () => {
-    const upgraded = upgradeBuilding(state(), "ferme");
-    expect(upgraded.ok).toBe(true);
-    const unlocked = unlockDistrict(state(), "quartier_ferme");
-    expect(unlocked.ok).toBe(true);
-  });
-
-  it("derives rates from the canonical town state", () => {
-    const current = state();
-    current.citizens.farmers = 2;
-    current.citizens.unassigned = 1;
-    expect(townRates(current).food).toBe(2);
   });
 });
 

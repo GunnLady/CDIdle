@@ -1,10 +1,20 @@
 # Domaine ville
 
-`src/domain/town.ts` porte les mutations pures de la ville :
+L'autorité Ville est exclusivement
+`supabase/functions/game-api/town-authority.ts`. L'ancien moteur local
+`src/domain/town.ts` a été supprimé : il dupliquait partiellement les règles
+serveur et n'était appelé par aucun runtime.
 
-- `allocateCitizen` vérifie le bâtiment requis et conserve le total des citoyens ;
-- `upgradeBuilding` vérifie le niveau maximal et débite les ressources atomiquement ;
-- `unlockDistrict` vérifie l’existence, l’unicité et le coût du district ;
-- `townRates` dérive les taux depuis l’état canonique et les bonus de district.
+Le hook React ne porte plus de mutation,
+de timer ou de validation métier Ville ; il contient uniquement l'état rendu,
+les setters utilisés par les snapshots canoniques et le calcul d'affichage des
+taux. Les règles de bâtiments partagées proviennent de
+`src/data/buildings.ts` et les invariants d'entrée de
+`src/domain/authoritativeTownValidation.ts`.
 
-Le hook React conserve pour l’instant l’orchestration UI et les journaux. La migration complète vers ces fonctions sera faite lors de l’intégration autoritaire prévue par les tickets backend.
+La commande historique `district.unlock` reste reconnue par le contrat afin de
+retourner explicitement `DISTRICTS_DISABLED`. Aucune opération District
+n'existe dans le domaine client et les données persistées restent inertes.
+
+Le détail de la comparaison Git et des corrections est conservé dans
+`docs/architecture/town-authoritative-parity-audit.md`.

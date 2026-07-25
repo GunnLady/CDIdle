@@ -27,13 +27,29 @@ describe("server idle authority", () => {
     expect((result.state.citizens as { unassigned: number }).unassigned).toBe(4);
   });
 
+  it("is idempotent when the authoritative timestamp does not advance", () => {
+    const now = new Date("2026-07-18T00:00:20.000Z");
+    const first = applyIdleAuthority(base, "2026-07-18T00:00:00.000Z", now);
+    const replay = applyIdleAuthority(first.state, first.lastProcessedAt, now);
+    expect(replay.state).toEqual(first.state);
+    expect(replay.report).toMatchObject({ elapsedSeconds: 0, appliedSeconds: 0, discardedSeconds: 0 });
+  });
+
   it("counts only heroes whose resting gauges actually changed", () => {
     const result = applyIdleAuthority({ ...base, heroes: [
       { status: "resting", currentHp: 2, currentMana: 0, calculatedStats: { maxHp: 20, maxMana: 10 } },
       { status: "idle", currentHp: 2, currentMana: 0, calculatedStats: { maxHp: 20, maxMana: 10 } },
     ] }, "2026-07-18T00:00:00.000Z", new Date("2026-07-18T00:00:02.000Z"));
     expect(result.report.heroesRecovered).toBe(1);
-    expect((result.state.heroes as Array<{ currentHp: number }>)[0].currentHp).toBe(14);
+    expect((result.state.heroes as Array<{ currentHp: number }>)[0].currentHp).toBeCloseTo(2.8);
+  });
+
+  it("returns a fully restored hero to idle", () => {
+    const result = applyIdleAuthority({ ...base, heroes: [
+      { status: "resting", currentHp: 19.8, currentMana: 9.8, calculatedStats: { maxHp: 20, maxMana: 10 } },
+    ] }, "2026-07-18T00:00:00.000Z", new Date("2026-07-18T00:00:01.000Z"));
+    expect((result.state.heroes as Array<Record<string, unknown>>)[0]).toMatchObject({ status: "idle", currentHp: 20, currentMana: 10 });
+    expect(result.report).toMatchObject({ heroesRecovered: 1, heroesFullyRecovered: 1 });
   });
 
   it("recovers a generated novice against persisted authoritative maxima", () => {

@@ -486,7 +486,6 @@ export const generateNoviceStats = (rng: Rng = systemRng): { stats: HeroStats; i
 export const calculateRates = (
   citizens: CitizenAllocation,
   buildings: { [key: string]: number },
-  unlockedDistricts: { [key: string]: boolean },
   hasUser: boolean
 ): ResourceRates => {
   if (!hasUser) {
@@ -508,11 +507,6 @@ export const calculateRates = (
   foodRate *= globalMultiplier;
   stoneRate *= globalMultiplier;
   oreRate *= globalMultiplier;
-
-  // Apply district upgrades bonuses
-  if (unlockedDistricts["quartier_bois"]) woodRate *= 1.20;
-  if (unlockedDistricts["quartier_ferme"]) foodRate *= 1.25;
-  if (unlockedDistricts["quartier_mine"]) oreRate *= 1.20;
 
   return { wood: woodRate, food: foodRate, stone: stoneRate, ore: oreRate };
 };

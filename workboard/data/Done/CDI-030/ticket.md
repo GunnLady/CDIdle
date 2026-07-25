@@ -8,7 +8,7 @@ size: L
 risk: medium
 source: Plan fullstack autoritaire approuve le 2026-07-15
 depends_on: ["CDI-016", "CDI-022", "CDI-024", "CDI-025", "CDI-026"]
-blocks: ["CDI-031", "CDI-033"]
+blocks: ["CDI-031", "CDI-033", "CDI-057"]
 github_issue: null
 related_docs: ["docs/fullstack-authoritative-plan.md", "docs/architecture/cdi-030-audit.md"]
 ---
@@ -48,10 +48,11 @@ Ce ticket depend de : ["CDI-016", "CDI-022", "CDI-024", "CDI-025", "CDI-026"].
 
 ## Criteres d'acceptation
 
-- [ ] Le perimetre est implemente sans regression hors domaine.
-- [ ] Les invariants sont couverts par des tests reproductibles.
-- [ ] Les preuves et la documentation sont fournies.
-- [ ] La validation HTTP Edge/Supabase/RLS/RPC réelle est explicitement différée vers CDI-041/staging ; aucun smoke test local n'est requis pour clore l'implémentation déterministe.
+- [x] Le perimetre est implemente sans regression hors domaine.
+- [x] Les invariants sont couverts par des tests reproductibles.
+- [x] Les preuves et la documentation sont fournies.
+- [x] La validation HTTP Edge/Supabase/RLS/RPC initialement differee a ete
+      executee dans CDI-041 ; CDI-057 a ensuite raccorde le rafraichissement UI.
 
 ## Tests
 

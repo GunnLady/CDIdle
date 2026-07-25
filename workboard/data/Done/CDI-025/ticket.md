@@ -8,7 +8,7 @@ size: L
 risk: medium
 source: Plan fullstack autoritaire approuve le 2026-07-15
 depends_on: ["CDI-010", "CDI-022", "CDI-024"]
-blocks: ["CDI-030", "CDI-031", "CDI-033", "CDI-051"]
+blocks: ["CDI-030", "CDI-031", "CDI-033", "CDI-051", "CDI-057"]
 github_issue: null
 related_docs: ["docs/fullstack-authoritative-plan.md"]
 ---
@@ -56,7 +56,7 @@ CDI-041 n'a pas fourni une preuve locale ou staging equivalente.
 - [x] Le perimetre est implemente sans regression hors domaine.
 - [x] Les invariants sont couverts par des tests reproductibles.
 - [x] Les preuves et la documentation locales sont fournies.
-- [ ] La validation HTTP Edge/Supabase/RLS/RPC reelle est differee et tracee
+- [x] La validation HTTP Edge/Supabase/RLS/RPC reelle a ete executee et tracee
       dans `docs/architecture/game-api-followups.md` avec CDI-041.
 
 ## Tests

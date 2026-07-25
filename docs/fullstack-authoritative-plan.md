@@ -305,6 +305,10 @@ handoff.
 
 25. **CDI-025 — Ville autoritaire de bout en bout** : bâtiments, allocations et
     districts via commandes serveur. Dépend de CDI-010, CDI-022 et CDI-024.
+
+> Rectification du 2026-07-25 : les districts sont temporairement désactivés
+> par CDI-057 et seront redéfinis dans un plan dédié. Le champ de sauvegarde
+> reste présent mais ne produit aucune mutation ni aucun bonus.
 26. **CDI-026 — Héros et recrutement autoritaires** : candidat serveur,
     confirmation, renvoi et activité. Dépend de CDI-011, CDI-022 et CDI-024.
 27. **CDI-027 — Inventaire et équipement autoritaires** : mutations serveur et

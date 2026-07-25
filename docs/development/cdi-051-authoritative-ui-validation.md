@@ -20,10 +20,13 @@ documentation de suivi durable et non un handoff de session.
 - Conflit `409` suivi d’un rechargement `/bootstrap` immédiat avant la
   prochaine commande.
 - Erreurs métier `400` distinguées d’une indisponibilité serveur.
-- Ville, héros, inventaire, forge, donjon, recrutement, onboarding et cheats
-  raccordés aux commandes autoritaires.
+- Bâtiments et citoyens raccordés aux commandes autoritaires. Les districts
+  sont retirés de l'interface et refusés par l'API jusqu'à leur refonte.
 - Forge locale inaccessible supprimée des handlers actifs.
 - Timers locaux de ressources, immigration, récupération et combat neutralisés.
+- Progression active de Ville rafraîchie par bootstrap autoritaire toutes les
+  trente secondes, sans calcul gameplay local.
+- Rapport idle significatif présenté au retour.
 - Auto-donjon : le client déclenche les commandes, le serveur produit seul les
   mutations canoniques.
 - Sauvegarde manuelle reformulée en actualisation canonique `/bootstrap`.
@@ -54,6 +57,14 @@ Preuves Codex :
 
 Le warning Vitest sur plusieurs `GoTrueClient` reste un warning connu du test,
 pas un échec.
+
+## Rectification Ville CDI-057
+
+L'audit du 2026-07-25 a trouvé un contournement `unassigned`, l'absence des
+prérequis d'étage côté serveur et des districts historiquement incohérents.
+CDI-057 corrige les invariants et les étages, désactive entièrement les
+districts, corrige le libellé du Campement et prune les handlers Ville locaux.
+CDI-051 reste bloqué jusqu'à la validation navigateur de cette correction.
 
 ## Preuves navigateur obtenues
 
@@ -267,3 +278,27 @@ Preuve utilisateur sur l'environnement Supabase local :
 Les cas particuliers Mage et Acolyte sont couverts par les tests
 déterministes. Leur reproduction navigateur reste une validation UI de
 CDI-051, pas un blocage du moteur CDI-054.
+
+## Raccordement Ville CDI-057
+
+- Les améliorations et affectations écrivent leurs événements canoniques dans
+  le journal Ville.
+- La progression active est relue par bootstrap toutes les trente secondes
+  uniquement lorsqu'une production, une immigration ou une récupération peut
+  modifier le snapshot.
+- La fin de récupération replace le héros en `idle` et produit un résumé
+  distinct des soins partiels.
+- La réinitialisation applique directement le snapshot et la révision renvoyés
+  par `/reset`; aucune reconstruction locale de la partie n'est effectuée.
+- Restent à observer dans le navigateur : révision et persistance après une
+  commande Ville, heartbeat actif, immigration ou récupération, puis `F5`.
+
+Preuve locale obtenue le 2026-07-25 : bâtiment et citoyens en 200 avec
+révisions 44/45, persistance après `F5`, heartbeat en 200 révision 51 sans saut
+de ressource, immigration animée et réconciliée, récupération PV/PM animée à
+2 % des maxima puis `idle`, journal présent et contrôles District absents.
+Le reset destructif a également répondu 200, augmenté la révision, restauré
+l'état initial complet sans déconnecter Google et persisté ce résultat après
+`F5`.
+Le retour en haut après reset et la restauration de l'onglet actif après `F5`
+ont aussi été confirmés dans le navigateur local.

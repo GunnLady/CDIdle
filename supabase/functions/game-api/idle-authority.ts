@@ -1,3 +1,5 @@
+import { recoverRestingGauge } from "../../../shared/domain/rest-recovery.ts";
+
 export const MAX_IDLE_SECONDS = 24 * 60 * 60;
 const IMMIGRATION_PROGRESS_PER_SECOND = 5;
 
@@ -9,6 +11,7 @@ export type IdleReport = {
   foodConsumed: number;
   citizensAdded: number;
   heroesRecovered: number;
+  heroesFullyRecovered: number;
 };
 
 export class IdleCommandError extends Error {
@@ -22,13 +25,12 @@ const zeroRates = () => ({ food: 0, wood: 0, stone: 0, ore: 0 });
 function rates(state: Record<string, unknown>) {
   const citizens = (state.citizens as Record<string, unknown> | undefined) ?? {};
   const buildings = (state.buildings as Record<string, unknown> | undefined) ?? {};
-  const districts = (state.districts as Record<string, unknown> | undefined) ?? {};
   const multiplier = 1 + number(buildings.maison_chef) * 0.03;
   return {
-    food: number(citizens.farmers) * number(buildings.ferme) * multiplier * (districts.quartier_ferme ? 1.25 : 1),
-    wood: number(citizens.woodcutters) * number(buildings.scierie) * multiplier * (districts.quartier_bois ? 1.2 : 1),
+    food: number(citizens.farmers) * number(buildings.ferme) * multiplier,
+    wood: number(citizens.woodcutters) * number(buildings.scierie) * multiplier,
     stone: number(citizens.quarrymen) * number(buildings.carriere) * multiplier,
-    ore: number(citizens.miners) * number(buildings.mine) * multiplier * (districts.quartier_mine ? 1.2 : 1),
+    ore: number(citizens.miners) * number(buildings.mine) * multiplier,
   };
 }
 
@@ -80,16 +82,18 @@ export function applyIdleAuthority(
   }
 
   let heroesRecovered = 0;
+  let heroesFullyRecovered = 0;
   const heroes = ((next.heroes as Array<Record<string, unknown>> | undefined) ?? []).map((hero) => {
     if (hero.status !== "resting" || appliedSeconds === 0) return hero;
     const stats = (hero.calculatedStats as Record<string, number> | undefined) ?? {};
     const maxHp = number(stats.maxHp, number(hero.currentHp));
     const maxMana = number(stats.maxMana, number(hero.currentMana));
-    const raceBonus = hero.race === "Homme-Lézard" ? 5 : 0;
-    const currentHp = Math.min(maxHp, number(hero.currentHp) + (6 + raceBonus) * appliedSeconds);
-    const currentMana = Math.min(maxMana, number(hero.currentMana) + 5 * appliedSeconds);
+    const currentHp = recoverRestingGauge(number(hero.currentHp), maxHp, appliedSeconds);
+    const currentMana = recoverRestingGauge(number(hero.currentMana), maxMana, appliedSeconds);
     if (currentHp !== number(hero.currentHp) || currentMana !== number(hero.currentMana)) heroesRecovered += 1;
-    return { ...hero, currentHp, currentMana };
+    const fullyRecovered = currentHp === maxHp && currentMana === maxMana;
+    if (fullyRecovered) heroesFullyRecovered += 1;
+    return { ...hero, currentHp, currentMana, ...(fullyRecovered ? { status: "idle" } : {}) };
   });
 
   next.resources = resources;
@@ -100,6 +104,6 @@ export function applyIdleAuthority(
   return {
     state: next,
     lastProcessedAt: new Date(timestamp).toISOString(),
-    report: { elapsedSeconds, appliedSeconds, discardedSeconds: elapsedSeconds - appliedSeconds, resourcesProduced, foodConsumed, citizensAdded, heroesRecovered },
+    report: { elapsedSeconds, appliedSeconds, discardedSeconds: elapsedSeconds - appliedSeconds, resourcesProduced, foodConsumed, citizensAdded, heroesRecovered, heroesFullyRecovered },
   };
 }

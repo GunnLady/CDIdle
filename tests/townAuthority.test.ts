@@ -184,9 +184,9 @@ describe("authoritative town commands", () => {
     expect(() => applyTownCommand(initialTownState(), { type: "citizens.allocate", role: "farmers", amount: 1 })).toThrow("profession building");
   });
 
-  it("rejects a district without enough resources and preserves the state", () => {
+  it("rejects districts while their redesign is pending and preserves the state", () => {
     const current = initialTownState();
-    expect(() => applyTownCommand(current, { type: "district.unlock", districtId: "quartier_ferme" })).toThrow("insufficient resources");
+    expect(() => applyTownCommand(current, { type: "district.unlock", districtId: "quartier_ferme" })).toThrow("districts are disabled");
     expect(current.districts).toEqual({});
   });
 

@@ -205,16 +205,6 @@ export interface BattleLogEntry {
   category?: "dungeon" | "colony";
 }
 
-export interface District {
-  id: string;
-  name: string;
-  description: string;
-  cost: Resources;
-  isUnlocked: boolean;
-  boostType: keyof Resources | "xp" | "combat";
-  boostValue: number; // e.g. 0.15 = +15%
-}
-
 export interface StoredItemStack {
   itemId: ItemInfo["id"];
   rarity: Rarity;
