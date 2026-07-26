@@ -1,20 +1,24 @@
 # Reprise de session - CDI-058 progression des héros
 
 Date de rédaction : 26 juillet 2026.
+Dernière mise à jour : 26 juillet 2026, après publication de CDI-058.
 
 Ce document permet de reprendre le travail dans une nouvelle conversation sans
 réinterpréter l historique. Charger aussi `AGENTS.md` à la racine du projet,
-puis le ticket `workboard/data/Doing/CDI-058/ticket.md`.
+puis le ticket `workboard/data/Done/CDI-058/ticket.md`.
 
 ## Position actuelle
 
 - Branche : `main`.
-- Dernier commit avant les changements courants :
-  `26d28c5 feat(town): restore authoritative city parity`.
-- Worktree : modifications CDI-058 non commitées.
-- Ticket actif : CDI-058, statut `Doing`, P1, bloque CDI-051.
+- Commit CDI-058 publié :
+  `a7575ec feat: verrouiller la progression autoritaire des héros`.
+- Worktree : propre et aligné avec `origin/main` après publication.
+- Ticket CDI-058 : statut `Done`, P1 ; sa clôture débloque sa dépendance dans
+  CDI-051.
 - CDI-054 reste `Done` et référence la parité donjon historique `640f89f`.
-- Aucun commit ni push CDI-058 n a été exécuté.
+- Commit distant vérifié par Codex. CI distante inconnue au
+  `2026-07-26 01:39 +02:00` : aucun statut renvoyé par le connecteur et CLI
+  `gh` indisponible localement.
 
 ## Décisions produit confirmées
 
@@ -146,7 +150,8 @@ par l utilisateur. CDI-058 peut donc passer a `Done` apres confirmation
 explicite recue.
 
 Aucune validation fonctionnelle CDI-058 ne reste ouverte. Le commit et le push
-restent a effectuer uniquement sur demande explicite de l utilisateur.
+ont été effectués par l utilisateur, puis le commit distant a été vérifié par
+Codex.
 
 ## Attention à la reprise
 
@@ -156,5 +161,5 @@ restent a effectuer uniquement sur demande explicite de l utilisateur.
 - Ne pas appliquer la récupération une fois par niveau.
 - Ne pas modifier les races, classes T2, formule XP ou poids 80/20 dans
   CDI-058.
-- Le worktree contient l ensemble des changements CDI-058 ; préserver toutes
-  les modifications existantes.
+- Le worktree était propre et aligné avec `origin/main` lors de la mise à jour
+  post-push de ce handoff.
