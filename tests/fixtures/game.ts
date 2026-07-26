@@ -1,4 +1,4 @@
-import type { CitizenAllocation, DungeonEncounterType, Hero, Resources, StoredItemStack } from "../../src/types";
+import type { CitizenAllocation, DungeonEncounterType, Hero, Resources, StoredItemInstance } from "../../src/types";
 
 export const makeResources = (overrides: Partial<Resources> = {}): Resources => ({
   gold: 100,
@@ -28,10 +28,10 @@ export const makeBuildings = (overrides: Record<string, number> = {}): Record<st
 
 export const makeEncounter = (type: DungeonEncounterType = "fight"): DungeonEncounterType => type;
 
-export const makeStoredItem = (overrides: Partial<StoredItemStack> = {}): StoredItemStack => ({
+export const makeStoredItem = (overrides: Partial<StoredItemInstance> = {}): StoredItemInstance => ({
+  instanceId: "item-fixture",
   itemId: "wooden_sword",
   rarity: "common",
-  count: 1,
   ...overrides,
 });
 

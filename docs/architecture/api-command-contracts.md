@@ -1,5 +1,20 @@
 # API et commandes
 
+## Forge, inventaire et recyclage (CDI-059)
+
+- `inventory.add` et `inventory.remove` ne font plus partie du contrat client.
+- `forge.start({ recipeId })` verifie le plan, consomme le cout, tire le proc
+  avec le RNG canonique et persiste la preview.
+- `forge.finalize({ previewId, acceptUpgrade, chosenModifierStat })` produit
+  toujours l objet standard avec un `instanceId` deterministe derive de la
+  preview ; `acceptUpgrade` ne concerne que l amelioration.
+- `forge.cancel({ previewId })` est la seule annulation sans objet final.
+- `hero.equip({ heroId, instanceId })` et
+  `inventory.recycle({ instanceId })` ciblent une instance exacte. Le serveur
+  resout seul son modele, sa rarete et ses modificateurs.
+- Les payloads du perimetre refusent les champs inconnus et les identifiants
+  vides avant dispatch.
+
 `src/domain/commands.ts` définit le contrat partagé entre le client et le futur dispatcher serveur.
 
 - `GameCommand` est une union discriminée : chaque mutation possède un `type` stable et des paramètres explicites.

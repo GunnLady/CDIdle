@@ -20,7 +20,7 @@ import {
   ChevronDown,
   Zap
 } from "lucide-react";
-import { Hero, ClassType, RaceType, Resources, HeroEquipment, StoredItemStack, Rarity, ItemInfo, ElementalDamageType, Modifier } from "../types";
+import { Hero, ClassType, RaceType, Resources, HeroEquipment, StoredItemInstance, Rarity, ItemInfo, ElementalDamageType, Modifier } from "../types";
 import { CLASS_INFO_LIST, RACE_INFO_LIST } from "../data/gameData";
 import { getSkillById } from "../data/skills";
 import { getItemById } from "../data/items";
@@ -105,8 +105,8 @@ interface HeroPanelProps {
   onToggleHeroActive: (heroId: string) => void;
   onRecruitHero: () => void;
   onUnequipItem?: (heroId: string, slot: keyof HeroEquipment) => void;
-  onEquipItem?: (heroId: string, itemId: string, rarity: Rarity, modifiers?: Modifier[]) => void;
-  storedItems?: StoredItemStack[];
+  onEquipItem?: (heroId: string, instanceId: string) => void;
+  storedItems?: StoredItemInstance[];
   onGoToTab?: (tab: string) => void;
 }
 
@@ -165,7 +165,7 @@ export default function HeroPanel({
     return `${sign}${mod.value}${unit} ${translateStatKey(mod.stat)}`;
   };
 
-  const getCompatibleItemsForSlot = (slotKey: keyof HeroEquipment): { item: ItemInfo; count: number; rarity: Rarity; modifiers?: Modifier[] }[] => {
+  const getCompatibleItemsForSlot = (slotKey: keyof HeroEquipment): { instanceId: string; item: ItemInfo; rarity: Rarity; modifiers?: Modifier[] }[] => {
     if (!storedItems || storedItems.length === 0) return [];
     
     return storedItems
@@ -177,16 +177,15 @@ export default function HeroPanel({
           hydrated.modifiers = stack.modifiers;
         }
         return {
+          instanceId: stack.instanceId,
           item: hydrated,
-          count: stack.count,
           rarity: stack.rarity,
           modifiers: stack.modifiers
         };
       })
-      .filter((entry): entry is { item: ItemInfo; count: number; rarity: Rarity; modifiers: Modifier[] | undefined } => {
+      .filter((entry): entry is { instanceId: string; item: ItemInfo; rarity: Rarity; modifiers: Modifier[] | undefined } => {
         if (!entry) return false;
-        const { item, count } = entry;
-        if (count <= 0) return false;
+        const { item } = entry;
         
         // Slot filtering
         if (slotKey === "mainHand") {
@@ -283,8 +282,8 @@ export default function HeroPanel({
                 <p className="text-[11px] text-[#8c7460] italic font-sans px-1">
                   Sélectionnez un équipement compatible disponible dans votre coffre :
                 </p>
-                {compatibleEntries.map((entry, idx) => {
-                  const { item, count, rarity } = entry;
+                {compatibleEntries.map((entry) => {
+                  const { item, instanceId } = entry;
                   const rarityColorClass = getRarityBadge(item.rarity);
                   
                   let typeIdLabel = "";
@@ -300,7 +299,7 @@ export default function HeroPanel({
 
                   return (
                     <div 
-                      key={`${item.id}-${rarity}-${idx}`} 
+                      key={instanceId}
                       className="p-3.5 rounded-xl bg-[#1c120c] border border-[#302117] hover:border-[#ae8650]/40 transition space-y-2 text-xs relative"
                     >
                       <div className="flex justify-between items-start flex-wrap gap-2">
@@ -309,9 +308,6 @@ export default function HeroPanel({
                           <span className="text-[10px] text-[#8c7460] font-mono">{typeIdLabel}</span>
                         </div>
                         <div className="flex items-center gap-1.5">
-                          <span className="text-[10px] text-[#ae8650] bg-[#331c10]/50 border border-[#5c402b]/40 px-1.5 py-0.5 rounded font-mono font-bold">
-                            Qté: {count}
-                          </span>
                           <span className={`text-[9px] font-mono uppercase px-1.5 py-0.5 rounded border ${rarityColorClass}`}>
                             {item.rarity}
                           </span>
@@ -323,7 +319,7 @@ export default function HeroPanel({
                                 disabled={isLevelTooLow}
                                 onClick={() => {
                                   if (isLevelTooLow) return;
-                                  onEquipItem(hero.id, item.id, rarity, entry.modifiers);
+                                  onEquipItem(hero.id, instanceId);
                                   setActiveEquipSelector(null);
                                 }}
                                 className={`text-[10px] border px-2.5 py-1 rounded-lg transition font-serif font-semibold ${
@@ -431,7 +427,6 @@ export default function HeroPanel({
     }
 
     const rarityColorClass = getRarityBadge(item.rarity);
-
     return (
       <div className="p-2.5 rounded-lg bg-[#1a120d] border border-[#3e2b1f] space-y-1.5 text-xs">
         <div className="flex justify-between items-start flex-wrap gap-2">

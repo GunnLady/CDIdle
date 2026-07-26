@@ -5,16 +5,16 @@
 
 import React, { useState, useMemo } from "react";
 import { Search, Sparkles, AlertCircle, Eye } from "lucide-react";
-import { StoredItemStack, StoredForgeMaterialStack, Rarity, ItemInfo, Hero, Modifier } from "../types";
+import { StoredItemInstance, StoredForgeMaterialStack, Rarity, ItemInfo, Hero, Modifier } from "../types";
 import { getItemById } from "../data/items";
-import { applyItemRarityScaling, FORGE_MATERIALS, areModifiersEqual } from "../utils/gameCalculations";
+import { applyItemRarityScaling, FORGE_MATERIALS } from "../utils/gameCalculations";
 
 interface StoragePanelProps {
-  storedItems: StoredItemStack[];
+  storedItems: StoredItemInstance[];
   heroes?: Hero[];
-  onEquipItem?: (heroId: string, itemId: string, rarity: Rarity, modifiers?: Modifier[]) => void;
+  onEquipItem?: (heroId: string, instanceId: string) => void;
   isForgeUnlocked?: boolean;
-  onScrapItem?: (itemId: string, rarity: Rarity, modifiers?: Modifier[]) => void;
+  onScrapItem?: (instanceId: string) => void;
   forgeMaterials?: StoredForgeMaterialStack[];
 }
 
@@ -29,7 +29,7 @@ export default function StoragePanel({
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedRarity, setSelectedRarity] = useState<string>("all");
   const [selectedType, setSelectedType] = useState<string>("all");
-  const [equippingItemId, setEquippingItemId] = useState<{ itemId: string; rarity: Rarity; modifiers?: Modifier[] } | null>(null);
+  const [equippingInstanceId, setEquippingInstanceId] = useState<string | null>(null);
 
   // Helper to translate item type
   const translateItemType = (type: string) => {
@@ -96,7 +96,7 @@ export default function StoragePanel({
           item: scaledItem
         };
       })
-      .filter((stack): stack is { itemId: string; rarity: Rarity; count: number; modifiers?: Modifier[]; item: ItemInfo } => stack !== null);
+      .filter((instance): instance is StoredItemInstance & { item: ItemInfo } => instance !== null);
   }, [storedItems]);
 
   // Filter stacks based on search and selected filters
@@ -134,7 +134,7 @@ export default function StoragePanel({
           <div className="bg-[#100805] px-3.5 py-1.5 rounded-lg border border-[#3e2b1f] text-center font-mono">
             <span className="text-[11px] text-[#8c7460] uppercase mr-2 font-serif block sm:inline">Emplacements occupés :</span>
             <span className="text-[#caa050] font-bold text-sm">
-              {resolvedStacks.reduce((acc, s) => acc + s.count, 0)}
+              {resolvedStacks.length}
             </span>
           </div>
         </div>
@@ -240,7 +240,7 @@ export default function StoragePanel({
 
             return (
               <div
-                key={`${stack.itemId}-${stack.rarity}`}
+                key={stack.instanceId}
                 className="p-3.5 rounded-2xl bg-[#1c120a] border border-[#3e2b1f] hover:border-[#caa050]/40 transition-all duration-200 flex flex-col justify-between space-y-3 shadow-md group relative overflow-hidden"
               >
                 {/* Decorative glow for legendary */}
@@ -264,9 +264,6 @@ export default function StoragePanel({
                     <div className="flex flex-col items-end gap-1 shrink-0">
                       <span className={`text-[9px] font-mono uppercase px-1.5 py-0.5 rounded border ${rarityBadgeClass} font-bold`}>
                         {stack.rarity}
-                      </span>
-                      <span className="text-[10px] text-amber-500/90 font-mono bg-[#110a06] border border-[#302117] px-1.5 py-0.5 rounded font-bold">
-                        x{stack.count}
                       </span>
                     </div>
                   </div>
@@ -306,7 +303,7 @@ export default function StoragePanel({
                 {/* Optional Quick Equip & Recycle Actions */}
                 {(onEquipItem || (isForgeUnlocked && onScrapItem)) && (
                   <div className="pt-2 border-t border-[#3e2b1f]/50 mt-1">
-                    {onEquipItem && heroes.length > 0 && equippingItemId?.itemId === stack.itemId && equippingItemId?.rarity === stack.rarity && areModifiersEqual(equippingItemId?.modifiers, stack.modifiers) ? (
+                    {onEquipItem && heroes.length > 0 && equippingInstanceId === stack.instanceId ? (
                       <div className="space-y-1.5">
                         <span className="text-[9px] text-[#caa050] font-bold uppercase tracking-wider block font-serif">
                           Équiper sur quel aventurier ?
@@ -321,8 +318,8 @@ export default function StoragePanel({
                                 disabled={isLevelTooLow}
                                 onClick={() => {
                                   if (isLevelTooLow) return;
-                                  onEquipItem(hero.id, stack.itemId, stack.rarity, stack.modifiers);
-                                  setEquippingItemId(null);
+                                  onEquipItem(hero.id, stack.instanceId);
+                                  setEquippingInstanceId(null);
                                 }}
                                 className={`text-[10px] text-left p-1 rounded font-serif transition-all duration-150 ${
                                   isLevelTooLow
@@ -344,7 +341,7 @@ export default function StoragePanel({
                           })}
                         </div>
                         <button
-                          onClick={() => setEquippingItemId(null)}
+                          onClick={() => setEquippingInstanceId(null)}
                           className="w-full text-center text-[9px] text-red-400 hover:text-red-300 uppercase tracking-widest font-bold pt-1 cursor-pointer block"
                         >
                           Annuler
@@ -354,7 +351,7 @@ export default function StoragePanel({
                       <div className="flex gap-2">
                         {onEquipItem && heroes.length > 0 && (
                           <button
-                            onClick={() => setEquippingItemId({ itemId: stack.itemId, rarity: stack.rarity, modifiers: stack.modifiers })}
+                            onClick={() => setEquippingInstanceId(stack.instanceId)}
                             className="flex-1 bg-[#331c10] hover:bg-[#48281a] border border-[#5c402b]/40 text-amber-500/90 hover:text-amber-400 text-[10.5px] font-bold font-serif py-1 px-2 rounded-lg transition-all duration-200 cursor-pointer text-center"
                           >
                             Équiper
@@ -362,7 +359,7 @@ export default function StoragePanel({
                         )}
                         {isForgeUnlocked && onScrapItem && (
                           <button
-                            onClick={() => onScrapItem(stack.itemId, stack.rarity, stack.modifiers)}
+                            onClick={() => onScrapItem(stack.instanceId)}
                             className="flex-1 bg-red-950/40 hover:bg-red-900/40 border border-red-900/60 text-red-400 hover:text-red-300 text-[10.5px] font-bold font-serif py-1 px-2 rounded-lg transition-all duration-200 cursor-pointer text-center"
                             title="Recycler cet équipement en matériaux"
                           >

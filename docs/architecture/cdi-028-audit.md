@@ -1,5 +1,11 @@
 # Audit détaillé CDI-028
 
+> Reevaluation CDI-059 : cet audit reste une preuve historique. Le raccord UI
+> envoyait `accepted: false` pour une forge standard et le serveur supprimait
+> alors la preview sans objet. Le proc RNG differe vers CDI-037 n avait pas ete
+> porte. CDI-059 corrige ces ecarts, les plans et le recyclage. CDI-060 conserve
+> le catalogue complet et le loot de boss hors de ce correctif.
+
 ## Contrôles sans écart
 
 - démarrage de forge atomique avec forge déverrouillée et coût de matériaux ;

@@ -79,7 +79,7 @@ export function generateAuthoritativeNovice(seedKey: string, id: string, race = 
   const names = isMale ? MALE_FIRST_NAMES : FEMALE_FIRST_NAMES;
   const { stats, isElite } = generateNoviceStats(seedKey);
   const passiveSkill = PASSIVE_SKILLS[identityRng.nextInt(PASSIVE_SKILLS.length)];
-  const equipment = generateAuthoritativeNoviceEquipment(seedKey);
+  const equipment = generateAuthoritativeNoviceEquipment(seedKey, id);
   const calculatedStats = calculateAuthoritativeNoviceStats(stats, passiveSkill, equipment);
 
   return {

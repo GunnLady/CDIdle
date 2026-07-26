@@ -13,7 +13,7 @@ import {
   Modifier,
   Rarity,
   EquippedItemRef,
-  StoredItemStack,
+  StoredItemInstance,
   ForgeMaterial,
   StoredForgeMaterialStack,
   HeroEquipment,
@@ -90,7 +90,8 @@ export const ITEM_RARITY_MODIFIER_COUNTS: Record<Rarity, number> = {
 };
 
 export function scaleModifierByRarity(modifier: Modifier, rarity: Rarity): Modifier {
-  const multiplier = modifier.type === "flat"
+  const type = modifier.type ?? "flat";
+  const multiplier = type === "flat"
     ? ITEM_RARITY_FLAT_MODIFIER_MULTIPLIERS[rarity]
     : ITEM_RARITY_PERCENT_MODIFIER_MULTIPLIERS[rarity];
 
@@ -99,6 +100,7 @@ export function scaleModifierByRarity(modifier: Modifier, rarity: Rarity): Modif
 
   return {
     ...modifier,
+    type,
     value: scaledValue
   };
 }
@@ -559,15 +561,15 @@ export const getNoviceWoodenShield = (): OffHandItemInfo | null => {
   return shield as OffHandItemInfo;
 };
 
-export const generateNoviceStarterEquipment = (rng: Rng = systemRng): HeroEquipment => {
+export const generateNoviceStarterEquipment = (rng: Rng = systemRng, instanceScope = "local-preview"): HeroEquipment => {
   const weapon = getRandomNoviceWeapon(rng);
   const armor = getRandomNoviceArmor(rng);
   const rolledShield = rng.next() < 0.15 ? getNoviceWoodenShield() : null;
 
   return {
-    mainHand: weapon ? { itemId: weapon.id, rarity: weapon.rarity } : null,
-    offHand: rolledShield ? { itemId: rolledShield.id, rarity: rolledShield.rarity } : null,
-    armor: armor ? { itemId: armor.id, rarity: armor.rarity } : null,
+    mainHand: weapon ? { instanceId: `item:${instanceScope}:mainHand`, itemId: weapon.id, rarity: weapon.rarity } : null,
+    offHand: rolledShield ? { instanceId: `item:${instanceScope}:offHand`, itemId: rolledShield.id, rarity: rolledShield.rarity } : null,
+    armor: armor ? { instanceId: `item:${instanceScope}:armor`, itemId: armor.id, rarity: armor.rarity } : null,
     accessory: null
   };
 };
@@ -582,57 +584,29 @@ export function areModifiersEqual(modA?: Modifier[], modB?: Modifier[]): boolean
   });
 }
 
-export function getStoredItemStack(
-  storedItems: StoredItemStack[],
-  itemId: string,
-  rarity: Rarity,
-  modifiers?: Modifier[]
-): StoredItemStack | undefined {
-  return (storedItems || []).find(
-    stack =>
-      stack.itemId === itemId &&
-      stack.rarity === rarity &&
-      areModifiersEqual(stack.modifiers, modifiers)
-  );
+export function getStoredItemInstance(
+  storedItems: StoredItemInstance[],
+  instanceId: string,
+): StoredItemInstance | undefined {
+  return (storedItems || []).find((instance) => instance.instanceId === instanceId);
 }
 
 export function addItemToStorage(
-  storedItems: StoredItemStack[],
-  itemId: string,
-  rarity: Rarity,
-  count: number = 1,
-  modifiers?: Modifier[]
-): StoredItemStack[] {
-  if (!itemId) return storedItems;
-  const existing = getStoredItemStack(storedItems, itemId, rarity, modifiers);
-  if (existing) {
-    existing.count += count;
-  } else {
-    storedItems.push({ itemId, rarity, count, modifiers });
-  }
+  storedItems: StoredItemInstance[],
+  instance: StoredItemInstance,
+): StoredItemInstance[] {
+  if (!instance.instanceId || !instance.itemId) return storedItems;
+  if (getStoredItemInstance(storedItems, instance.instanceId)) throw new Error("DUPLICATE_ITEM_INSTANCE");
+  storedItems.push(instance);
   return storedItems;
 }
 
 export function removeItemFromStorage(
-  storedItems: StoredItemStack[],
-  itemId: string,
-  rarity: Rarity,
-  count: number = 1,
-  modifiers?: Modifier[]
-): StoredItemStack[] {
-  const index = (storedItems || []).findIndex(
-    stack =>
-      stack.itemId === itemId &&
-      stack.rarity === rarity &&
-      areModifiersEqual(stack.modifiers, modifiers)
-  );
-  if (index !== -1) {
-    const stack = storedItems[index];
-    stack.count -= count;
-    if (stack.count <= 0) {
-      storedItems.splice(index, 1);
-    }
-  }
+  storedItems: StoredItemInstance[],
+  instanceId: string,
+): StoredItemInstance[] {
+  const index = (storedItems || []).findIndex((instance) => instance.instanceId === instanceId);
+  if (index !== -1) storedItems.splice(index, 1);
   return storedItems;
 }
 
@@ -647,7 +621,7 @@ export function isMainHandTwoHanded(hero: Hero): boolean {
 
 export function unequipItem(
   hero: Hero,
-  storedItems: StoredItemStack[],
+  storedItems: StoredItemInstance[],
   slot: keyof HeroEquipment
 ): Hero {
   if (!hero.equipment) {
@@ -658,14 +632,7 @@ export function unequipItem(
   if (!ref) return hero;
 
   // Retrieve item ID and rarity safely (supports both EquippedItemRef and full ItemInfo objects)
-  const itemId = ref.itemId || (ref as any).id;
-  const rarity = ref.rarity || (ref as any).rarity || "common";
-  const modifiers = ref.modifiers;
-
-  if (itemId) {
-    // Add back to storage
-    addItemToStorage(storedItems, itemId, rarity, 1, modifiers);
-  }
+  if (ref.instanceId && ref.itemId) addItemToStorage(storedItems, { ...ref });
 
   // Clear slot
   const newEquipment = { ...hero.equipment, [slot]: null };
@@ -679,16 +646,16 @@ export function unequipItem(
 
 export function equipItem(
   hero: Hero,
-  storedItems: StoredItemStack[],
-  itemId: string,
-  rarity: Rarity,
-  modifiers?: Modifier[]
+  storedItems: StoredItemInstance[],
+  instanceId: string,
 ): Hero {
   if (!hero.equipment) {
     hero.equipment = {};
   }
 
-  const resolvedItem = getItemById(itemId);
+  const instance = getStoredItemInstance(storedItems, instanceId);
+  if (!instance) return hero;
+  const resolvedItem = getItemById(instance.itemId);
   if (!resolvedItem) return hero;
 
   if (hero.level < (resolvedItem.requiredLevel ?? 1)) {
@@ -696,11 +663,6 @@ export function equipItem(
   }
 
   // Check stack in storage
-  const stack = getStoredItemStack(storedItems, itemId, rarity, modifiers);
-  if (!stack || stack.count <= 0) {
-    return hero;
-  }
-
   const itemType = resolvedItem.itemType;
   let targetSlot: keyof HeroEquipment;
   if (itemType === "weapon") {
@@ -740,10 +702,10 @@ export function equipItem(
 
   // Now perform the equip
   // First remove the item from storage
-  removeItemFromStorage(storedItems, itemId, rarity, 1, modifiers);
+  removeItemFromStorage(storedItems, instanceId);
 
   // Set the equipment reference
-  tempHero.equipment[targetSlot] = { itemId, rarity, modifiers };
+  tempHero.equipment[targetSlot] = { ...instance };
 
   return refreshHeroDerivedStats(tempHero);
 }
@@ -778,10 +740,17 @@ export const generateSingleNoviceHero = (unlockedRaces: string[] = ["Humain"], r
     passiveSkills.push(randomPassive.id);
   }
 
-  const starterEquipment = generateNoviceStarterEquipment(rng);
+  const rolledStarterEquipment = generateNoviceStarterEquipment(rng);
+  const generatedHeroId = `hero-${Math.floor(rng.next() * 0x1_0000_0000).toString(16)}`;
+  const starterEquipment = Object.fromEntries(
+    Object.entries(rolledStarterEquipment).map(([slot, item]) => [
+      slot,
+      item ? { ...item, instanceId: `item:${generatedHeroId}:${slot}` } : item,
+    ]),
+  ) as HeroEquipment;
 
   const initialHeroStub: Omit<Hero, "calculatedStats"> = {
-    id: `hero-${Math.floor(rng.next() * 0x1_0000_0000).toString(16)}`,
+    id: generatedHeroId,
     name: heroName,
     gender: gender,
     race: chosenRace.name,
@@ -1070,13 +1039,11 @@ export const SCRAP_REWARD_TABLE: Record<Rarity, StoredForgeMaterialStack[]> = {
 };
 
 export function scrapItemFromStorage(
-  storedItems: StoredItemStack[],
+  storedItems: StoredItemInstance[],
   forgeMaterials: StoredForgeMaterialStack[],
-  itemId: string,
-  rarity: Rarity,
-  modifiers?: Modifier[]
+  instanceId: string,
 ): {
-  storedItems: StoredItemStack[];
+  storedItems: StoredItemInstance[];
   forgeMaterials: StoredForgeMaterialStack[];
   rewards: StoredForgeMaterialStack[];
 } {
@@ -1084,13 +1051,7 @@ export function scrapItemFromStorage(
   const updatedStoredItems = (storedItems || []).map(item => ({ ...item }));
   const updatedForgeMaterials = (forgeMaterials || []).map(mat => ({ ...mat }));
 
-  // Find the matching item stack
-  const itemIndex = updatedStoredItems.findIndex(
-    stack =>
-      stack.itemId === itemId &&
-      stack.rarity === rarity &&
-      areModifiersEqual(stack.modifiers, modifiers)
-  );
+  const itemIndex = updatedStoredItems.findIndex((item) => item.instanceId === instanceId);
 
   if (itemIndex === -1) {
     return {
@@ -1100,23 +1061,10 @@ export function scrapItemFromStorage(
     };
   }
 
-  const itemStack = updatedStoredItems[itemIndex];
-  if (itemStack.count <= 0) {
-    return {
-      storedItems: storedItems || [],
-      forgeMaterials: forgeMaterials || [],
-      rewards: []
-    };
-  }
-
-  // Decrease the item stack count by 1
-  itemStack.count -= 1;
-  if (itemStack.count <= 0) {
-    updatedStoredItems.splice(itemIndex, 1);
-  }
+  const [itemInstance] = updatedStoredItems.splice(itemIndex, 1);
 
   // Generate scrap rewards
-  const rewardTemplates = SCRAP_REWARD_TABLE[rarity] || [];
+  const rewardTemplates = SCRAP_REWARD_TABLE[itemInstance.rarity] || [];
   const rewards: StoredForgeMaterialStack[] = rewardTemplates.map(template => ({
     materialId: template.materialId,
     rarity: template.rarity,
@@ -1184,7 +1132,7 @@ export const BASIC_FORGE_UPGRADE_COSTS: Record<Exclude<BasicForgeUpgradeProc, "n
 export const BASIC_FORGE_BONUS_MODIFIER_VALUES: Record<string, Modifier> = {
   physicalDamage: { stat: "physicalDamage", type: "flat", value: 1 },
   magicDamage: { stat: "magicDamage", type: "flat", value: 1 },
-  critChance: { stat: "critChance", type: "flat", value: 1 },
+  criticalChance: { stat: "criticalChance", type: "flat", value: 1 },
   speed: { stat: "speed", type: "percent", value: 2 },
 
   maxHp: { stat: "maxHp", type: "percent", value: 3 },
@@ -1302,16 +1250,17 @@ export function startBasicForgeCraftFromBlueprint(
 }
 
 export function finalizeBasicForgeCraft(
-  storedItems: StoredItemStack[],
+  storedItems: StoredItemInstance[],
   forgeMaterials: StoredForgeMaterialStack[],
   craftedPreview: ItemInfo,
   upgradeProc: BasicForgeUpgradeProc,
   upgrade: {
     accepted: boolean;
     chosenModifierStat?: string;
-  }
+  },
+  instanceId: string,
 ): {
-  storedItems: StoredItemStack[];
+  storedItems: StoredItemInstance[];
   forgeMaterials: StoredForgeMaterialStack[];
   finalItem: ItemInfo | null;
   success: boolean;
@@ -1362,7 +1311,7 @@ export function finalizeBasicForgeCraft(
     if (modTemplate) {
       // Check compatibility
       const isWeapon = finalItem.itemType === "weapon";
-      const allowedWeaponMods = ["physicalDamage", "magicDamage", "critChance", "speed"];
+        const allowedWeaponMods = ["physicalDamage", "magicDamage", "criticalChance", "speed"];
       const allowedArmorMods = [
         "maxHp", "maxMana", "physicalDefense", "magicDefense", "dodgeChance",
         "fireResistance", "iceResistance", "waterResistance", "earthResistance", "windResistance",
@@ -1386,8 +1335,12 @@ export function finalizeBasicForgeCraft(
     }
   }
 
-  // Add the final item to storage (stacking by itemId + rarity + modifiers)
-  addItemToStorage(updatedStoredItems, finalItem.id, finalItem.rarity, 1, finalItem.modifiers);
+  addItemToStorage(updatedStoredItems, {
+    instanceId,
+    itemId: finalItem.id,
+    rarity: finalItem.rarity,
+    modifiers: finalItem.modifiers,
+  });
 
   return {
     storedItems: updatedStoredItems,

@@ -28,6 +28,16 @@ describe("authoritative shared contracts", () => {
 
   it("rejects unsupported command types", () => {
     expect(validateCanonicalCommandEnvelope({ ...validEnvelope, command: { type: "building.upgrade_local" } })).toContain("unsupported command type");
+    expect(validateCanonicalCommandEnvelope({ ...validEnvelope, command: { type: "inventory.add", itemId: "starter_sword", rarity: "legendary", count: 1 } })).toContain("unsupported command type");
+    expect(validateCanonicalCommandEnvelope({ ...validEnvelope, command: { type: "inventory.remove", itemId: "starter_sword", rarity: "common", count: 1 } })).toContain("unsupported command type");
+  });
+
+  it("strictly validates forge and inventory payloads", () => {
+    expect(validateCanonicalCommandEnvelope({ ...validEnvelope, command: { type: "inventory.recycle", itemId: "starter_sword", rarity: "mythic" } })).toEqual(expect.arrayContaining(["command contains unsupported fields", "command.instanceId is required"]));
+    expect(validateCanonicalCommandEnvelope({ ...validEnvelope, command: { type: "inventory.recycle", instanceId: "item-1" } })).toEqual([]);
+    expect(validateCanonicalCommandEnvelope({ ...validEnvelope, command: { type: "hero.equip", heroId: "hero-1", instanceId: "item-1" } })).toEqual([]);
+    expect(validateCanonicalCommandEnvelope({ ...validEnvelope, command: { type: "forge.finalize", previewId: "preview", accepted: false } })).toContain("command contains unsupported fields");
+    expect(validateCanonicalCommandEnvelope({ ...validEnvelope, command: { type: "forge.finalize", previewId: "preview", acceptUpgrade: true } })).toContain("command.chosenModifierStat is required for an upgrade");
   });
 
   it("keeps the authoritative command registry unique and complete", () => {
@@ -44,6 +54,51 @@ describe("authoritative shared contracts", () => {
   it("requires canonical state fields and names", () => {
     const errors = validateCanonicalGameState({ totalCitizens: 3, unlockedDistricts: {} });
     expect(errors).toEqual(expect.arrayContaining(["totalCitizensCount is required", "districts is required", "forgeMaterials is required", "itemBlueprints is required", "encounterHistory is required", "rngState is required"]));
+  });
+
+  it("validates persisted item, material, blueprint and forge preview shapes", () => {
+    const errors = validateCanonicalGameState({
+      resources: {}, buildings: {}, citizens: {}, districts: {}, heroes: [], encounterHistory: [],
+      storedItems: [{ itemId: "starter_sword", rarity: "mythic", count: 0, modifiers: [{ stat: "speed", value: Number.NaN }] }],
+      forgeMaterials: [{ materialId: "metal_scrap", rarity: "common", count: -1 }],
+      itemBlueprints: [{ itemId: "starter_sword", unlocked: "yes" }],
+      pendingForge: { previewId: "preview", recipeId: "starter_sword", itemId: "starter_sword", itemType: "trinket", upgradeProc: "forced" },
+      totalCitizensCount: 3, activeDungeonFloor: 1, activeDungeonRoom: 1,
+      highestFloorReached: 1, citizenGrowthProgress: 0, autoExplore: false,
+      currentEncounter: null,
+      rngState: { algorithm: "xorshift32", version: 1, seed: 42, state: 42, draws: 0 },
+    });
+    expect(errors).toEqual(expect.arrayContaining([
+      "storedItems[0] contains unsupported fields",
+      "storedItems[0].instanceId is required",
+      "storedItems[0].rarity is invalid",
+      "storedItems[0].modifiers[0].value must be finite",
+      "forgeMaterials[0].count must be a positive integer",
+      "itemBlueprints[0].unlocked must be a boolean",
+      "pendingForge.itemType is invalid",
+      "pendingForge.upgradeProc is invalid",
+    ]));
+  });
+
+  it("rejects duplicate item instances across storage and hero equipment", () => {
+    const hero = makeHero({
+      equipment: {
+        mainHand: { instanceId: "item-duplicate", itemId: "starter_sword", rarity: "common" },
+        offHand: null,
+        armor: null,
+        accessory: null,
+      },
+    });
+    const errors = validateCanonicalGameState({
+      resources: {}, buildings: {}, citizens: {}, districts: {}, heroes: [hero],
+      storedItems: [{ instanceId: "item-duplicate", itemId: "starter_sword", rarity: "common" }],
+      forgeMaterials: [], itemBlueprints: [], encounterHistory: [],
+      totalCitizensCount: 3, activeDungeonFloor: 1, activeDungeonRoom: 1,
+      highestFloorReached: 1, citizenGrowthProgress: 0, autoExplore: false,
+      currentEncounter: null,
+      rngState: { algorithm: "xorshift32", version: 1, seed: 42, state: 42, draws: 0 },
+    });
+    expect(errors).toContain("heroes[0].equipment.mainHand.instanceId duplicates storedItems[0]");
   });
 
   it("validates the versioned canonical RNG state", () => {

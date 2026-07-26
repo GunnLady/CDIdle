@@ -1,5 +1,12 @@
 # Audit forge et recyclage
 
+> Reevaluation du 26 juillet 2026 : CDI-059 corrige la finalisation standard,
+> retire `inventory.add/remove` du contrat client, restaure le proc RNG
+> persiste 85/13/2, les couts d amelioration, les plans autoritaires, les cinq
+> tables de recyclage et la validation des modificateurs. Le catalogue complet
+> et le loot de boss sont isoles dans CDI-060. Les sections CDI-013 ci-dessous
+> sont conservees comme historique.
+
 ## Couvert dans CDI-013
 
 - verrouillage de la forge et des plans ;
@@ -19,10 +26,9 @@
 
 ## Écarts non encore couverts
 
-- tests détaillés de chaque table de récompense par rareté ;
-- validation stricte des modificateurs choisis selon le type d’objet ;
-- tests de finalisation preview → objet final lorsque le proc est refusé ou
-  lorsque le matériau d’amélioration manque.
+Les trois ecarts historiques ci-dessous sont couverts par CDI-059 :
 
-Ces points doivent être ajoutés à CDI-028 ou à un ticket P2 dédié avant le
-hardening final ; ils ne sont pas déclarés terminés par CDI-013.
+- tests detailles de chaque table de recompense par rarete ;
+- validation stricte des modificateurs choisis selon le type d objet ;
+- tests de finalisation preview vers objet final lorsque le proc est refuse,
+  ainsi que du refus atomique lorsque le materiau d amelioration manque.

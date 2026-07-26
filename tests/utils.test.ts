@@ -5,7 +5,7 @@ import {
   getAvailableTier1Classes,
   addItemToStorage,
   removeItemFromStorage,
-  getStoredItemStack,
+  getStoredItemInstance,
   equipItem,
   unequipItem,
   generateNoviceStats,
@@ -29,7 +29,7 @@ import { createInitialGameState, splitGameState, validateGameState } from "../sr
 import { isCommandSuccess, validateCommandEnvelope, type CommandEnvelope } from "../src/domain/commands";
 import { fixedClock, seededRng } from "../src/domain/random";
 import { addHeroExperience, assignTier1Skills, canActivateHero, dismissHero, growHeroStats, recruitHero, recruitmentCost, recruitmentEligibility, setHeroActivity } from "../src/domain/hero";
-import { addStack, removeStack, type InventoryState } from "../src/domain/inventory";
+import { addItemInstance, removeItemInstance, type InventoryState } from "../src/domain/inventory";
 import { applyUpgradeCost, recycleItem, startBasicCraft } from "../src/domain/forge";
 import { advanceRoom, changeFloor, validateDungeonProgress, type DungeonProgressState } from "../src/domain/dungeonProgression";
 import { advanceCombatModifiers, calculateMultiStrikeChance, decrementCooldowns, interruptCombat, replayCombatRound, resolveBasicAttack, resolveCombatRound, resolveMultiStrikeCount, resolveSkill, retreatCombat, type CombatState } from "../src/domain/combat";
@@ -85,18 +85,18 @@ describe("gameCalculations", () => {
     expect(rates.stone).toBe(0);
   });
 
-  it("empile et retire les objets par id, rareté et modificateurs", () => {
-    const storage = [makeStoredItem({ count: 2 })];
-    addItemToStorage(storage, "wooden_sword", "common", 3);
-    expect(getStoredItemStack(storage, "wooden_sword", "common")?.count).toBe(5);
-    removeItemFromStorage(storage, "wooden_sword", "common", 5);
-    expect(storage).toHaveLength(0);
+  it("ajoute et retire les objets par identité d'instance", () => {
+    const storage = [makeStoredItem({ instanceId: "item-a" })];
+    addItemToStorage(storage, makeStoredItem({ instanceId: "item-b" }));
+    expect(getStoredItemInstance(storage, "item-b")?.itemId).toBe("wooden_sword");
+    removeItemFromStorage(storage, "item-a");
+    expect(storage.map((item) => item.instanceId)).toEqual(["item-b"]);
   });
 
   it("équipe puis déséquipe un objet en conservant le stockage", () => {
     const storage = [makeStoredItem({ itemId: "starter_sword" })];
     const hero = makeHero();
-    const equipped = equipItem(hero, storage, "starter_sword", "common");
+    const equipped = equipItem(hero, storage, "item-fixture");
     expect(equipped.equipment?.mainHand?.itemId).toBe("starter_sword");
     expect(equipped.calculatedStats).not.toEqual(hero.calculatedStats);
     expect(storage).toHaveLength(0);
@@ -393,14 +393,15 @@ describe("hero domain", () => {
 
 describe("inventory domain", () => {
   const state: InventoryState = { heroes: [], storedItems: [] };
-  it("adds and removes stacks atomically", () => {
-    const added = addStack(state, "wooden_sword", "common", 2);
+  it("adds and removes item instances atomically", () => {
+    const instance = makeStoredItem({ instanceId: "item-domain" });
+    const added = addItemInstance(state, instance);
     expect(added.ok).toBe(true);
     expect(state.storedItems).toEqual([]);
     if (!added.ok) return;
-    expect(removeStack(added.state, "wooden_sword", "common", 3)).toEqual({ ok: false, error: "ITEM_NOT_FOUND" });
-    const removed = removeStack(added.state, "wooden_sword", "common", 1);
-    expect(removed.ok && removed.state.storedItems[0].count).toBe(1);
+    expect(addItemInstance(added.state, instance)).toEqual({ ok: false, error: "INVALID_ITEM" });
+    const removed = removeItemInstance(added.state, "item-domain");
+    expect(removed.ok && removed.state.storedItems).toEqual([]);
   });
 });
 
@@ -423,11 +424,11 @@ describe("forge domain", () => {
   });
 
   it("recycles an item only when the forge is unlocked", () => {
-    const items = [{ itemId: "wooden_sword", rarity: "common" as const, count: 1 }];
-    expect(recycleItem(items, [], false, "wooden_sword", "common")).toEqual({ ok: false, error: "FORGE_LOCKED" });
-    const result = recycleItem(items, [], true, "wooden_sword", "common");
+    const items = [{ instanceId: "item-recycle", itemId: "wooden_sword", rarity: "common" as const }];
+    expect(recycleItem(items, [], false, "item-recycle")).toEqual({ ok: false, error: "FORGE_LOCKED" });
+    const result = recycleItem(items, [], true, "item-recycle");
     expect(result.ok).toBe(true);
-    expect(items[0].count).toBe(1);
+    expect(items).toHaveLength(1);
   });
 });
 

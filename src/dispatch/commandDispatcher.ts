@@ -5,7 +5,7 @@ import { validateCommandEnvelope } from "../domain/commands";
 
 const commandTypes = z.enum([
   "onboarding.offer", "onboarding.start", "building.upgrade", "citizens.allocate", "district.unlock",
-  "hero.recruit", "hero.recruit_offer", "hero.recruit_confirm", "hero.recruit_cancel", "hero.dismiss", "hero.activity", "hero.equip", "hero.unequip", "inventory.add", "inventory.remove", "inventory.recycle", "forge.start", "forge.finalize", "forge.cancel",
+  "hero.recruit", "hero.recruit_offer", "hero.recruit_confirm", "hero.recruit_cancel", "hero.dismiss", "hero.activity", "hero.equip", "hero.unequip", "inventory.recycle", "forge.start", "forge.finalize", "forge.cancel",
   "cheat.grant_resources", "cheat.set_highest_floor",
   "dungeon.explore", "dungeon.select_floor", "dungeon.resolve", "dungeon.auto_explore", "dungeon.retreat",
 ]);

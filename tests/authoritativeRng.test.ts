@@ -135,7 +135,15 @@ describe("canonical authoritative RNG", () => {
       commandId: "offer-b",
     });
     const profiles = (value: unknown) => (value as Array<Record<string, unknown>>)
-      .map(({ id: _id, ...profile }) => profile);
+      .map(({ id: _id, equipment, ...profile }) => ({
+        ...profile,
+        equipment: Object.fromEntries(Object.entries(equipment as Record<string, Record<string, unknown> | null>)
+          .map(([slot, item]) => {
+            if (!item) return [slot, item];
+            const { instanceId: _instanceId, ...itemProfile } = item;
+            return [slot, itemProfile];
+          })),
+      }));
     expect(profiles(firstOffer.state.onboardingCandidates)).toEqual(
       profiles(secondOffer.state.onboardingCandidates),
     );
@@ -143,6 +151,10 @@ describe("canonical authoritative RNG", () => {
     expect((firstOffer.state.rngState as { draws: number }).draws).toBe(5);
     expect((firstOffer.state.onboardingCandidates as Array<Record<string, unknown>>)
       .every((candidate) => candidate.race === "Humain")).toBe(true);
+    const instanceIds = (firstOffer.state.onboardingCandidates as Array<Record<string, any>>)
+      .flatMap((candidate) => Object.values(candidate.equipment as Record<string, { instanceId?: string } | null>))
+      .flatMap((item) => item?.instanceId ? [item.instanceId] : []);
+    expect(new Set(instanceIds).size).toBe(instanceIds.length);
   });
 
   it("does not mutate persisted RNG input when a command is rejected", () => {

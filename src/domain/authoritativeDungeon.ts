@@ -7,7 +7,7 @@ import type {
   Rarity,
   Resources,
   StoredForgeMaterialStack,
-  StoredItemStack,
+  StoredItemInstance,
 } from "../types.ts";
 import { BOSSES_LIBRARY, ITEM_LIBRARY, MONSTERS_LIBRARY, getSkillById } from "../data/gameData.ts";
 import {
@@ -71,7 +71,7 @@ export type AuthoritativeDungeonState = Record<string, unknown> & {
   heroes?: Hero[];
   resources?: Resources;
   buildings?: Record<string, number>;
-  storedItems?: StoredItemStack[];
+  storedItems?: StoredItemInstance[];
   forgeMaterials?: StoredForgeMaterialStack[];
   autoExplore?: boolean;
 };
@@ -807,9 +807,11 @@ function resolveNonFight(
       log("reward.gold", `+${goldReward} or.`, "loot", { gold: goldReward });
     } else if (ITEM_LIBRARY.length > 0) {
       const item = ITEM_LIBRARY[rng.nextInt(ITEM_LIBRARY.length)];
-      addItemToStorage(storedItems, item.id, "rare", 1);
-      loot.push({ type: "item", itemId: item.id, rarity: "rare", count: 1 });
+      const instanceId = `item:dungeon:${encounterId}:loot:${loot.length}`;
+      addItemToStorage(storedItems, { instanceId, itemId: item.id, rarity: "rare" });
+      loot.push({ type: "item", instanceId, itemId: item.id, rarity: "rare", count: 1 });
       log("reward.item", `${item.name} [Rare] obtenu.`, "loot", {
+        instanceId,
         itemId: item.id,
         itemName: item.name,
         rarity: "rare",

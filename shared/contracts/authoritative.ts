@@ -77,13 +77,11 @@ export type CanonicalGameCommand =
   | { type: "hero.recruit_cancel" }
   | { type: "hero.dismiss"; heroId: string }
   | { type: "hero.activity"; heroId: string; active: boolean }
-  | { type: "hero.equip"; heroId: string; itemId: string; rarity: CanonicalRarity; modifiers?: CanonicalModifier[] }
+  | { type: "hero.equip"; heroId: string; instanceId: string }
   | { type: "hero.unequip"; heroId: string; slot: "mainHand" | "offHand" | "armor" | "accessory" }
-  | { type: "inventory.add"; itemId: string; rarity: CanonicalRarity; count?: number; modifiers?: CanonicalModifier[] }
-  | { type: "inventory.remove"; itemId: string; rarity: CanonicalRarity; count?: number; modifiers?: CanonicalModifier[] }
-  | { type: "inventory.recycle"; itemId: string; rarity: CanonicalRarity; modifiers?: CanonicalModifier[] }
+  | { type: "inventory.recycle"; instanceId: string }
   | { type: "forge.start"; recipeId: string }
-  | { type: "forge.finalize"; previewId: string; accepted?: boolean; chosenModifierStat?: string }
+  | { type: "forge.finalize"; previewId: string; acceptUpgrade?: boolean; chosenModifierStat?: string }
   | { type: "forge.cancel"; previewId: string }
   | { type: "cheat.grant_resources"; amounts: Partial<Record<"gold" | "food" | "wood" | "stone" | "ore", number>> }
   | { type: "cheat.set_highest_floor"; floor: number }
@@ -104,10 +102,82 @@ export interface CanonicalCommandEnvelope {
 export const CANONICAL_COMMAND_TYPES = [
   "onboarding.offer", "onboarding.start", "building.upgrade", "citizens.allocate", "district.unlock",
   "hero.recruit", "hero.recruit_offer", "hero.recruit_confirm", "hero.recruit_cancel", "hero.dismiss", "hero.activity", "hero.equip", "hero.unequip",
-  "inventory.add", "inventory.remove", "inventory.recycle", "forge.start", "forge.finalize", "forge.cancel",
+  "inventory.recycle", "forge.start", "forge.finalize", "forge.cancel",
   "cheat.grant_resources", "cheat.set_highest_floor",
   "dungeon.explore", "dungeon.select_floor", "dungeon.resolve", "dungeon.auto_explore", "dungeon.retreat",
 ] as const;
+
+const CANONICAL_RARITIES = ["common", "uncommon", "rare", "epic", "legendary"] as const;
+const CANONICAL_EQUIPMENT_SLOTS = ["mainHand", "offHand", "armor", "accessory"] as const;
+const CANONICAL_MODIFIER_STATS = new Set([
+  "str", "agi", "end", "int", "wiz", "dex", "luk",
+  "maxHp", "maxMana", "physicalDamage", "magicDamage", "criticalChance",
+  "dodgeChance", "speed", "physicalDefense", "magicDefense", "luck", "physicalResistance",
+  ...CANONICAL_RESISTANCE_FIELDS.map((field) => `${field}Resistance`),
+]);
+
+const hasOnlyKeys = (value: Record<string, unknown>, allowed: readonly string[]) =>
+  Object.keys(value).every((key) => allowed.includes(key));
+
+function validateCanonicalModifiers(value: unknown, path: string): string[] {
+  if (value === undefined) return [];
+  if (!Array.isArray(value)) return [`${path} must be an array`];
+  const errors: string[] = [];
+  value.forEach((entry, index) => {
+    if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
+      errors.push(`${path}[${index}] must be an object`);
+      return;
+    }
+    const modifier = entry as Record<string, unknown>;
+    if (!hasOnlyKeys(modifier, ["stat", "type", "value"])) errors.push(`${path}[${index}] contains unsupported fields`);
+    if (typeof modifier.stat !== "string" || !modifier.stat.trim()) errors.push(`${path}[${index}].stat is required`);
+    else if (!CANONICAL_MODIFIER_STATS.has(modifier.stat)) errors.push(`${path}[${index}].stat is invalid`);
+    if (modifier.type !== undefined && modifier.type !== "flat" && modifier.type !== "percent") errors.push(`${path}[${index}].type is invalid`);
+    if (typeof modifier.value !== "number" || !Number.isFinite(modifier.value)) errors.push(`${path}[${index}].value must be finite`);
+  });
+  return errors;
+}
+
+function validateCanonicalCommandPayload(command: Record<string, unknown>): string[] {
+  const errors: string[] = [];
+  const requireString = (field: string) => {
+    if (typeof command[field] !== "string" || !String(command[field]).trim()) errors.push(`command.${field} is required`);
+  };
+  switch (command.type) {
+    case "hero.equip":
+      if (!hasOnlyKeys(command, ["type", "heroId", "instanceId"])) errors.push("command contains unsupported fields");
+      requireString("heroId"); requireString("instanceId");
+      break;
+    case "hero.unequip":
+      if (!hasOnlyKeys(command, ["type", "heroId", "slot"])) errors.push("command contains unsupported fields");
+      requireString("heroId");
+      if (!CANONICAL_EQUIPMENT_SLOTS.includes(command.slot as typeof CANONICAL_EQUIPMENT_SLOTS[number])) errors.push("command.slot is invalid");
+      break;
+    case "inventory.recycle":
+      if (!hasOnlyKeys(command, ["type", "instanceId"])) errors.push("command contains unsupported fields");
+      requireString("instanceId");
+      break;
+    case "forge.start":
+      if (!hasOnlyKeys(command, ["type", "recipeId"])) errors.push("command contains unsupported fields");
+      requireString("recipeId");
+      break;
+    case "forge.finalize":
+      if (!hasOnlyKeys(command, ["type", "previewId", "acceptUpgrade", "chosenModifierStat"])) errors.push("command contains unsupported fields");
+      requireString("previewId");
+      if (command.acceptUpgrade !== undefined && typeof command.acceptUpgrade !== "boolean") errors.push("command.acceptUpgrade must be a boolean");
+      if (command.chosenModifierStat !== undefined && (typeof command.chosenModifierStat !== "string" || !command.chosenModifierStat.trim())) errors.push("command.chosenModifierStat is invalid");
+      if (command.acceptUpgrade === true && command.chosenModifierStat === undefined) errors.push("command.chosenModifierStat is required for an upgrade");
+      if (command.acceptUpgrade !== true && command.chosenModifierStat !== undefined) errors.push("command.chosenModifierStat requires an accepted upgrade");
+      break;
+    case "forge.cancel":
+      if (!hasOnlyKeys(command, ["type", "previewId"])) errors.push("command contains unsupported fields");
+      requireString("previewId");
+      break;
+    default:
+      break;
+  }
+  return errors;
+}
 
 const HERO_BASE_STAT_FIELDS = ["str", "agi", "end", "int", "wiz", "dex", "luk"] as const;
 const HERO_CALCULATED_STAT_FIELDS = [
@@ -243,6 +313,24 @@ export function validateCanonicalHero(input: unknown, path = "hero"): string[] {
       }
     }
   }
+  if (hero.equipment !== undefined) {
+    if (!isRecord(hero.equipment)) errors.push(`${path}.equipment must be an object`);
+    else {
+      for (const slot of CANONICAL_EQUIPMENT_SLOTS) {
+        const equipped = hero.equipment[slot];
+        if (equipped === undefined || equipped === null) continue;
+        if (!isRecord(equipped)) {
+          errors.push(`${path}.equipment.${slot} must be an object or null`);
+          continue;
+        }
+        if (!hasOnlyKeys(equipped, ["instanceId", "itemId", "rarity", "modifiers"])) errors.push(`${path}.equipment.${slot} contains unsupported fields`);
+        if (typeof equipped.instanceId !== "string" || !equipped.instanceId.trim()) errors.push(`${path}.equipment.${slot}.instanceId is required`);
+        if (typeof equipped.itemId !== "string" || !equipped.itemId.trim()) errors.push(`${path}.equipment.${slot}.itemId is required`);
+        if (!CANONICAL_RARITIES.includes(equipped.rarity as typeof CANONICAL_RARITIES[number])) errors.push(`${path}.equipment.${slot}.rarity is invalid`);
+        errors.push(...validateCanonicalModifiers(equipped.modifiers, `${path}.equipment.${slot}.modifiers`));
+      }
+    }
+  }
 
   return errors;
 }
@@ -260,6 +348,8 @@ export function validateCanonicalCommandEnvelope(input: unknown): string[] {
     errors.push("command.type is required");
   } else if (!(CANONICAL_COMMAND_TYPES as readonly string[]).includes((command as Record<string, unknown>).type as string)) {
     errors.push("unsupported command type");
+  } else {
+    errors.push(...validateCanonicalCommandPayload(command as Record<string, unknown>));
   }
   return errors;
 }
@@ -275,6 +365,53 @@ export function validateCanonicalGameState(input: unknown): string[] {
   if ("heroes" in value) {
     if (!Array.isArray(value.heroes)) errors.push("heroes must be an array");
     else value.heroes.forEach((hero, index) => errors.push(...validateCanonicalHero(hero, `heroes[${index}]`)));
+  }
+  if ("storedItems" in value) {
+    if (!Array.isArray(value.storedItems)) errors.push("storedItems must be an array");
+    else value.storedItems.forEach((entry, index) => {
+      if (!isRecord(entry)) {
+        errors.push(`storedItems[${index}] must be an object`);
+        return;
+      }
+      if (!hasOnlyKeys(entry, ["instanceId", "itemId", "rarity", "modifiers"])) errors.push(`storedItems[${index}] contains unsupported fields`);
+      if (typeof entry.instanceId !== "string" || !entry.instanceId.trim()) errors.push(`storedItems[${index}].instanceId is required`);
+      if (typeof entry.itemId !== "string" || !entry.itemId.trim()) errors.push(`storedItems[${index}].itemId is required`);
+      if (!CANONICAL_RARITIES.includes(entry.rarity as typeof CANONICAL_RARITIES[number])) errors.push(`storedItems[${index}].rarity is invalid`);
+      errors.push(...validateCanonicalModifiers(entry.modifiers, `storedItems[${index}].modifiers`));
+    });
+  }
+  if ("forgeMaterials" in value) {
+    if (!Array.isArray(value.forgeMaterials)) errors.push("forgeMaterials must be an array");
+    else value.forgeMaterials.forEach((entry, index) => {
+      if (!isRecord(entry)) {
+        errors.push(`forgeMaterials[${index}] must be an object`);
+        return;
+      }
+      if (typeof entry.materialId !== "string" || !entry.materialId.trim()) errors.push(`forgeMaterials[${index}].materialId is required`);
+      if (!CANONICAL_RARITIES.includes(entry.rarity as typeof CANONICAL_RARITIES[number])) errors.push(`forgeMaterials[${index}].rarity is invalid`);
+      if (!Number.isInteger(entry.count) || Number(entry.count) <= 0) errors.push(`forgeMaterials[${index}].count must be a positive integer`);
+    });
+  }
+  if ("itemBlueprints" in value) {
+    if (!Array.isArray(value.itemBlueprints)) errors.push("itemBlueprints must be an array");
+    else value.itemBlueprints.forEach((entry, index) => {
+      if (!isRecord(entry)) {
+        errors.push(`itemBlueprints[${index}] must be an object`);
+        return;
+      }
+      if (typeof entry.itemId !== "string" || !entry.itemId.trim()) errors.push(`itemBlueprints[${index}].itemId is required`);
+      if (typeof entry.unlocked !== "boolean") errors.push(`itemBlueprints[${index}].unlocked must be a boolean`);
+    });
+  }
+  if ("pendingForge" in value && value.pendingForge !== null && value.pendingForge !== undefined) {
+    if (!isRecord(value.pendingForge)) errors.push("pendingForge must be an object or null");
+    else {
+      for (const field of ["previewId", "recipeId", "itemId", "itemType"] as const) {
+        if (typeof value.pendingForge[field] !== "string" || !String(value.pendingForge[field]).trim()) errors.push(`pendingForge.${field} is required`);
+      }
+      if (!["weapon", "offhand", "armor", "accessory"].includes(String(value.pendingForge.itemType))) errors.push("pendingForge.itemType is invalid");
+      if (!["none", "uncommon", "rare"].includes(String(value.pendingForge.upgradeProc))) errors.push("pendingForge.upgradeProc is invalid");
+    }
   }
   if ("encounterHistory" in value && !Array.isArray(value.encounterHistory)) errors.push("encounterHistory must be an array");
   if ("rngState" in value) {
@@ -305,5 +442,33 @@ export function validateCanonicalGameState(input: unknown): string[] {
   else if (typeof value.autoExplore !== "boolean") errors.push("autoExplore must be a boolean");
   if (!("currentEncounter" in value)) errors.push("currentEncounter is required");
   else if (value.currentEncounter !== null && (typeof value.currentEncounter !== "object" || value.currentEncounter === undefined)) errors.push("currentEncounter must be an object or null");
+  const instanceOwners = new Map<string, string>();
+  const registerInstance = (instanceId: unknown, owner: string) => {
+    if (typeof instanceId !== "string" || !instanceId.trim()) return;
+    const previous = instanceOwners.get(instanceId);
+    if (previous) errors.push(`${owner}.instanceId duplicates ${previous}`);
+    else instanceOwners.set(instanceId, owner);
+  };
+  if (Array.isArray(value.storedItems)) {
+    value.storedItems.forEach((entry, index) => {
+      if (isRecord(entry)) registerInstance(entry.instanceId, `storedItems[${index}]`);
+    });
+  }
+  const registerEquipment = (hero: unknown, owner: string) => {
+      if (!isRecord(hero) || !isRecord(hero.equipment)) return;
+      for (const slot of CANONICAL_EQUIPMENT_SLOTS) {
+        const equipped = hero.equipment[slot];
+        if (isRecord(equipped)) registerInstance(equipped.instanceId, `${owner}.equipment.${slot}`);
+      }
+  };
+  if (Array.isArray(value.heroes)) {
+    value.heroes.forEach((hero, heroIndex) => registerEquipment(hero, `heroes[${heroIndex}]`));
+  }
+  if (Array.isArray(value.onboardingCandidates)) {
+    value.onboardingCandidates.forEach((hero, heroIndex) => registerEquipment(hero, `onboardingCandidates[${heroIndex}]`));
+  }
+  if (isRecord(value.pendingRecruit)) {
+    registerEquipment(value.pendingRecruit, "pendingRecruit");
+  }
   return errors;
 }

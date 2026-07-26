@@ -1,5 +1,5 @@
 import { applyInventoryCommand } from "./inventory-authority.ts";
-import { applyForgeCommand } from "./forge-authority.ts";
+import { applyForgeCommand, DEFAULT_NOVICE_ITEM_BLUEPRINTS } from "./forge-authority.ts";
 import { applyDungeonCommand } from "./dungeon-authority.ts";
 import { generateAuthoritativeNovice } from "./novice-authority.ts";
 import {
@@ -63,7 +63,7 @@ export const initialTownState = (rngSeed?: number): TownState => ({
   resources: { gold: 75, food: 50, wood: 20, stone: 0, ore: 0 },
   buildings: createInitialBuildingLevels(),
   citizens: { farmers: 0, woodcutters: 0, quarrymen: 0, miners: 0, unassigned: 3 },
-  totalCitizensCount: 3, districts: {}, heroes: [], storedItems: [], forgeMaterials: [], itemBlueprints: [], citizenGrowthProgress: 0
+  totalCitizensCount: 3, districts: {}, heroes: [], storedItems: [], forgeMaterials: [], itemBlueprints: DEFAULT_NOVICE_ITEM_BLUEPRINTS.map((entry) => ({ ...entry })), citizenGrowthProgress: 0
   , activeDungeonFloor: 1, activeDungeonRoom: 1, highestFloorReached: 1, currentEncounter: null, encounterHistory: [], autoExplore: false,
   onboardingCandidates: [], pendingOnboardingCityName: ""
   , rngState: initialCanonicalRngState(rngSeed)
@@ -190,11 +190,13 @@ export function applyTownCommand(current: Record<string, unknown>, command: Reco
       events: [{ type: "onboarding.started", cityName, heroIds: starterHeroes.map((hero) => hero.id) }],
     };
   }
-  if (typed.type === "inventory.add" || typed.type === "inventory.remove" || typed.type === "hero.equip" || typed.type === "hero.unequip") {
+  if (typed.type === "hero.equip" || typed.type === "hero.unequip") {
     return applyInventoryCommand(town, command);
   }
   if (typed.type === "forge.start" || typed.type === "forge.finalize" || typed.type === "forge.cancel" || typed.type === "inventory.recycle") {
-    return applyForgeCommand(town, command);
+    return typed.type === "forge.start"
+      ? withRng(applyForgeCommand(town, command, rng))
+      : applyForgeCommand(town, command, rng);
   }
   if (typed.type === "hero.recruit") {
     const guildLevel = town.buildings.guilde ?? 0;
@@ -211,8 +213,19 @@ export function applyTownCommand(current: Record<string, unknown>, command: Reco
     return withRng({ state: { ...town, resources: { ...town.resources, gold: town.resources.gold - cost }, heroes: [...heroes, hero] }, events: [{ type: "hero.recruited", heroId: id, cost }] });
   }
   if (typed.type === "hero.dismiss") {
-    if (!heroes.some((hero) => hero.id === typed.heroId)) throw new TownCommandError("HERO_NOT_FOUND", "hero not found");
-    return { state: { ...town, heroes: heroes.filter((hero) => hero.id !== typed.heroId) }, events: [{ type: "hero.dismissed", heroId: typed.heroId }] };
+    const dismissed = heroes.find((hero) => hero.id === typed.heroId);
+    if (!dismissed) throw new TownCommandError("HERO_NOT_FOUND", "hero not found");
+    const returnedItems = Object.values((dismissed.equipment as Record<string, Record<string, unknown> | null | undefined> | undefined) ?? {})
+      .filter((item): item is Record<string, unknown> => Boolean(item));
+    const storedItems = [...(town.storedItems ?? []), ...returnedItems];
+    return {
+      state: { ...town, heroes: heroes.filter((hero) => hero.id !== typed.heroId), storedItems },
+      events: [{
+        type: "hero.dismissed",
+        heroId: typed.heroId,
+        returnedInstanceIds: returnedItems.map((item) => item.instanceId),
+      }],
+    };
   }
   if (typed.type === "hero.activity") {
     const hero = heroes.find((entry) => entry.id === typed.heroId);
@@ -278,6 +291,9 @@ export function migrateTownState(current: Record<string, unknown>, legacySeed?: 
     pendingRecruit: current.pendingRecruit
       ? migrateAuthoritativeHeroProgression(current.pendingRecruit)
       : current.pendingRecruit,
+    itemBlueprints: Array.isArray(current.itemBlueprints) && current.itemBlueprints.length > 0
+      ? current.itemBlueprints
+      : DEFAULT_NOVICE_ITEM_BLUEPRINTS.map((entry) => ({ ...entry })),
     rngState: migrateCanonicalRngState(current.rngState, legacySeed),
   } as TownState;
   const errors = [

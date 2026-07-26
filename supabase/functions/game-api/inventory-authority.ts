@@ -1,13 +1,13 @@
 import {
-  calculateAuthoritativeNoviceStats,
+  calculateAuthoritativeHeroStats,
   type AuthoritativeNoviceStats,
 } from "./novice-stats-authority.ts";
 
 export type InventoryRarity = "common" | "uncommon" | "rare" | "epic" | "legendary";
 export type InventorySlot = "mainHand" | "offHand" | "armor" | "accessory";
-export type InventoryModifier = Record<string, unknown>;
-export type InventoryStack = { itemId: string; rarity: InventoryRarity; count: number; modifiers?: InventoryModifier[] };
-export type InventoryEquipmentRef = { itemId: string; rarity: InventoryRarity; modifiers?: InventoryModifier[] };
+export type InventoryModifier = { stat: string; type?: "flat" | "percent"; value: number };
+export type InventoryItemInstance = { instanceId: string; itemId: string; rarity: InventoryRarity; modifiers?: InventoryModifier[] };
+export type InventoryEquipmentRef = InventoryItemInstance;
 export type InventoryHero = {
   id: string;
   level?: number;
@@ -50,22 +50,20 @@ function stableHash(value: string): number {
  * Server-owned equivalent of the historical novice equipment generator.
  * The command-derived seed makes the result deterministic and replay-safe.
  */
-export function generateAuthoritativeNoviceEquipment(seedKey: string): Record<InventorySlot, InventoryEquipmentRef | null> {
+export function generateAuthoritativeNoviceEquipment(seedKey: string, ownerId = seedKey): Record<InventorySlot, InventoryEquipmentRef | null> {
   const weaponId = NOVICE_WEAPON_IDS[stableHash(`${seedKey}:weapon`) % NOVICE_WEAPON_IDS.length];
   const armorId = NOVICE_ARMOR_IDS[stableHash(`${seedKey}:armor`) % NOVICE_ARMOR_IDS.length];
   const hasShield = stableHash(`${seedKey}:shield`) % 100 < 15;
   return {
-    mainHand: { itemId: weaponId, rarity: "common" },
-    offHand: hasShield ? { itemId: "wooden_shield", rarity: "common" } : null,
-    armor: { itemId: armorId, rarity: "common" },
+    mainHand: { instanceId: `item:${ownerId}:mainHand`, itemId: weaponId, rarity: "common" },
+    offHand: hasShield ? { instanceId: `item:${ownerId}:offHand`, itemId: "wooden_shield", rarity: "common" } : null,
+    armor: { instanceId: `item:${ownerId}:armor`, itemId: armorId, rarity: "common" },
     accessory: null,
   };
 }
 
 export type InventoryCommand =
-  | { type: "inventory.add"; itemId: string; rarity: InventoryRarity; count?: number; modifiers?: InventoryModifier[] }
-  | { type: "inventory.remove"; itemId: string; rarity: InventoryRarity; count?: number; modifiers?: InventoryModifier[] }
-  | { type: "hero.equip"; heroId: string; itemId: string; rarity: InventoryRarity; modifiers?: InventoryModifier[] }
+  | { type: "hero.equip"; heroId: string; instanceId: string }
   | { type: "hero.unequip"; heroId: string; slot: InventorySlot };
 
 export class InventoryCommandError extends Error {
@@ -73,27 +71,17 @@ export class InventoryCommandError extends Error {
 }
 
 const clone = <T>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
-const sameModifiers = (left?: InventoryModifier[], right?: InventoryModifier[]) => JSON.stringify(left ?? []) === JSON.stringify(right ?? []);
-const stackIndex = (items: InventoryStack[], itemId: string, rarity: InventoryRarity, modifiers?: InventoryModifier[]) =>
-  items.findIndex((entry) => entry.itemId === itemId && entry.rarity === rarity && sameModifiers(entry.modifiers, modifiers));
-
 function ensureItem(itemId: string): ItemDefinition {
   const definition = ITEM_DEFINITIONS[itemId];
   if (!definition) throw new InventoryCommandError("ITEM_NOT_FOUND", "unknown item");
   return definition;
 }
 
-function ensureCount(count: number | undefined): number {
-  const value = count ?? 1;
-  if (!Number.isInteger(value) || value <= 0) throw new InventoryCommandError("INVALID_COUNT", "count must be a positive integer");
-  return value;
-}
-
 function withEquipment(hero: InventoryHero, equipment: InventoryHero["equipment"]): InventoryHero {
-  if (hero.classType !== "Novice" || !hero.baseStats) return { ...hero, equipment };
-  const calculatedStats = calculateAuthoritativeNoviceStats(
+  if (!hero.baseStats) return { ...hero, equipment };
+  const calculatedStats = calculateAuthoritativeHeroStats(
     hero.baseStats,
-    hero.passiveSkills?.[0],
+    hero.passiveSkills,
     equipment ?? {},
   );
   return {
@@ -106,41 +94,26 @@ function withEquipment(hero: InventoryHero, equipment: InventoryHero["equipment"
 }
 
 export function applyInventoryCommand(current: Record<string, unknown>, command: Record<string, unknown>): { state: Record<string, unknown>; events: unknown[] } {
-  const storedItems = clone((current.storedItems as InventoryStack[] | undefined) ?? []);
+  const storedItems = clone((current.storedItems as InventoryItemInstance[] | undefined) ?? []);
   const heroes = clone((current.heroes as InventoryHero[] | undefined) ?? []);
   const typed = command as InventoryCommand;
 
-  if (typed.type === "inventory.add" || typed.type === "inventory.remove") {
-    ensureItem(typed.itemId);
-    const count = ensureCount(typed.count);
-    const index = stackIndex(storedItems, typed.itemId, typed.rarity, typed.modifiers);
-    if (typed.type === "inventory.add") {
-      if (index === -1) storedItems.push({ itemId: typed.itemId, rarity: typed.rarity, count, modifiers: typed.modifiers });
-      else storedItems[index].count += count;
-      return { state: { ...current, storedItems }, events: [{ type: "inventory.added", itemId: typed.itemId, count }] };
-    }
-    if (index === -1 || storedItems[index].count < count) throw new InventoryCommandError("ITEM_NOT_FOUND", "item stack is unavailable");
-    storedItems[index].count -= count;
-    if (storedItems[index].count === 0) storedItems.splice(index, 1);
-    return { state: { ...current, storedItems }, events: [{ type: "inventory.removed", itemId: typed.itemId, count }] };
-  }
-
   if (typed.type === "hero.equip") {
-    const definition = ensureItem(typed.itemId);
     const hero = heroes.find((entry) => entry.id === typed.heroId);
     if (!hero) throw new InventoryCommandError("HERO_NOT_FOUND", "hero not found");
+    const index = storedItems.findIndex((entry) => entry.instanceId === typed.instanceId);
+    if (index === -1) throw new InventoryCommandError("ITEM_NOT_FOUND", "item instance is unavailable");
+    const instance = storedItems[index];
+    const definition = ensureItem(instance.itemId);
     if ((hero.level ?? 1) < definition.requiredLevel) throw new InventoryCommandError("EQUIP_BLOCKED", "hero level is too low");
-    const index = stackIndex(storedItems, typed.itemId, typed.rarity, typed.modifiers);
-    if (index === -1 || storedItems[index].count < 1) throw new InventoryCommandError("ITEM_NOT_FOUND", "item stack is unavailable");
     const equipment = { ...(hero.equipment ?? {}) };
     if (equipment[definition.slot]) throw new InventoryCommandError("EQUIP_BLOCKED", "equipment slot is occupied");
     if (definition.slot === "offHand" && equipment.mainHand && ITEM_DEFINITIONS[equipment.mainHand.itemId]?.twoHanded) {
       throw new InventoryCommandError("EQUIP_BLOCKED", "off-hand is blocked by the main-hand item");
     }
-    storedItems[index].count -= 1;
-    if (storedItems[index].count === 0) storedItems.splice(index, 1);
-    equipment[definition.slot] = { itemId: typed.itemId, rarity: typed.rarity, modifiers: typed.modifiers };
-    return { state: { ...current, heroes: heroes.map((entry) => entry.id === typed.heroId ? withEquipment(entry, equipment) : entry), storedItems }, events: [{ type: "hero.equipped", heroId: typed.heroId, itemId: typed.itemId, slot: definition.slot }] };
+    storedItems.splice(index, 1);
+    equipment[definition.slot] = instance;
+    return { state: { ...current, heroes: heroes.map((entry) => entry.id === typed.heroId ? withEquipment(entry, equipment) : entry), storedItems }, events: [{ type: "hero.equipped", heroId: typed.heroId, instanceId: instance.instanceId, itemId: instance.itemId, slot: definition.slot }] };
   }
 
   if (typed.type === "hero.unequip") {
@@ -149,11 +122,12 @@ export function applyInventoryCommand(current: Record<string, unknown>, command:
     const equipment = { ...(hero.equipment ?? {}) };
     const equipped = equipment[typed.slot];
     if (!equipped) throw new InventoryCommandError("ITEM_NOT_FOUND", "equipment slot is empty");
-    const index = stackIndex(storedItems, equipped.itemId, equipped.rarity, equipped.modifiers);
-    if (index === -1) storedItems.push({ itemId: equipped.itemId, rarity: equipped.rarity, count: 1, modifiers: equipped.modifiers });
-    else storedItems[index].count += 1;
+    if (storedItems.some((entry) => entry.instanceId === equipped.instanceId)) {
+      throw new InventoryCommandError("INVALID_GAME_STATE", "item instance is duplicated");
+    }
+    storedItems.push(equipped);
     equipment[typed.slot] = undefined;
-    return { state: { ...current, heroes: heroes.map((entry) => entry.id === typed.heroId ? withEquipment(entry, equipment) : entry), storedItems }, events: [{ type: "hero.unequipped", heroId: typed.heroId, itemId: equipped.itemId, slot: typed.slot }] };
+    return { state: { ...current, heroes: heroes.map((entry) => entry.id === typed.heroId ? withEquipment(entry, equipment) : entry), storedItems }, events: [{ type: "hero.unequipped", heroId: typed.heroId, instanceId: equipped.instanceId, itemId: equipped.itemId, slot: typed.slot }] };
   }
 
   throw new InventoryCommandError("INVALID_COMMAND", "unsupported inventory command");

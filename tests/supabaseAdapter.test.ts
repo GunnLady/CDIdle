@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createSupabaseGameApiServices } from "../supabase/functions/game-api/supabase-adapter";
+import { applyTownCommand, initialTownState } from "../supabase/functions/game-api/town-authority";
 
 describe("Supabase game-api adapter", () => {
   it("applies and commits idle before returning bootstrap", async () => {
@@ -55,6 +56,92 @@ describe("Supabase game-api adapter", () => {
     const result = await adapter.commands("u1", { commandId: "33333333-3333-4333-8333-333333333333", idempotencyKey: "k1", expectedRevision: 0, command: { type: "onboarding.start" } });
     expect(result).toMatchObject({ ok: true, replayed: true, revision: 2, state: { canonical: true } });
     expect(applied).toBe(false);
+  });
+
+  it("commits and replays a finalized item instance without duplication", async () => {
+    const commandId = "99999999-9999-4999-8999-999999999999";
+    const payload = {
+      commandId,
+      idempotencyKey: "forge-finalize-replay",
+      clientVersion: "cdi-059",
+      expectedRevision: 0,
+      command: { type: "forge.finalize", previewId: "preview-existing", acceptUpgrade: false },
+    };
+    let revision = 0;
+    let persistedState: Record<string, unknown> = {
+      ...initialTownState(59),
+      buildings: { ...initialTownState(59).buildings, forge: 1 },
+      pendingForge: {
+        previewId: "preview-existing",
+        recipeId: "starter_sword",
+        itemId: "starter_sword",
+        itemType: "weapon",
+        upgradeProc: "none",
+      },
+    };
+    let committedHash: string | undefined;
+    let applyCount = 0;
+    const adapter = createSupabaseGameApiServices({
+      supabaseUrl: "http://db",
+      serviceRoleKey: "server-only",
+      initialState: persistedState,
+      applyCommand: async (state, command) => {
+        applyCount += 1;
+        return applyTownCommand(state, command);
+      },
+      fetcher: async (url, init) => {
+        if (url.includes("/game_commands?")) {
+          return new Response(committedHash ? JSON.stringify([{ request_hash: committedHash }]) : "[]", { status: 200 });
+        }
+        if (url.includes("/rpc/commit_game_command")) {
+          const body = JSON.parse(String(init?.body)) as {
+            p_request_hash: string;
+            p_state: Record<string, unknown>;
+          };
+          committedHash = body.p_request_hash;
+          persistedState = structuredClone(body.p_state);
+          revision += 1;
+          return new Response(JSON.stringify([{
+            schema_version: 1,
+            revision,
+            state: persistedState,
+            last_processed_at: "2026-07-26T00:00:00Z",
+          }]), { status: 200 });
+        }
+        if (url.includes("/games?")) {
+          return new Response(JSON.stringify([{
+            schema_version: 1,
+            revision,
+            state: persistedState,
+            last_processed_at: "2026-07-26T00:00:00Z",
+          }]), { status: 200 });
+        }
+        return new Response("[]", { status: 200 });
+      },
+    });
+
+    const first = await adapter.commands("u1", payload);
+    const replay = await adapter.commands("u1", payload);
+
+    expect(first).toMatchObject({
+      ok: true,
+      replayed: false,
+      revision: 1,
+      state: {
+        pendingForge: null,
+        storedItems: [{
+          instanceId: "item:forge:preview-existing",
+          itemId: "starter_sword",
+          rarity: "common",
+        }],
+        rngState: { draws: 0 },
+      },
+    });
+    expect(replay).toMatchObject({ ok: true, replayed: true, revision: 1 });
+    if (!("state" in first) || !("state" in replay)) throw new Error("expected successful forge commands");
+    expect(replay.state).toEqual(first.state);
+    expect((replay.state.storedItems as Array<{ instanceId: string }>)).toHaveLength(1);
+    expect(applyCount).toBe(1);
   });
 
   it("processes idle on a replay without reapplying the command", async () => {

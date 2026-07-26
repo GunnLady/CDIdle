@@ -25,6 +25,10 @@ describe("game-api Edge handler", () => {
     expect(invalid.status).toBe(400);
     const invalidId = await handler(request("/commands", { method: "POST", body: JSON.stringify({ commandId: "save-1", idempotencyKey: "idem", expectedRevision: 0, clientVersion: "test", command: { type: "building.upgrade", buildingId: "ferme" } }) }));
     expect(invalidId.status).toBe(400);
+    const forbiddenMint = await handler(request("/commands", { method: "POST", body: JSON.stringify({ commandId: "33333333-3333-4333-8333-333333333333", idempotencyKey: "idem", expectedRevision: 0, clientVersion: "test", command: { type: "inventory.add", itemId: "starter_sword", rarity: "legendary", count: 1 } }) }));
+    expect(forbiddenMint.status).toBe(400);
+    const forbiddenRemoval = await handler(request("/commands", { method: "POST", body: JSON.stringify({ commandId: "55555555-5555-4555-8555-555555555555", idempotencyKey: "idem", expectedRevision: 0, clientVersion: "test", command: { type: "inventory.remove", itemId: "starter_sword", rarity: "common", count: 1 } }) }));
+    expect(forbiddenRemoval.status).toBe(400);
     const validId = await handler(request("/commands", { method: "POST", body: JSON.stringify({ commandId: "44444444-4444-4444-8444-444444444444", idempotencyKey: "idem", expectedRevision: 0, clientVersion: "test", command: { type: "building.upgrade", buildingId: "ferme" } }) }));
     expect(validId.status).toBe(200);
   });

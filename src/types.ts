@@ -205,14 +205,15 @@ export interface BattleLogEntry {
   category?: "dungeon" | "colony";
 }
 
-export interface StoredItemStack {
+export interface StoredItemInstance {
+  instanceId: string;
   itemId: ItemInfo["id"];
   rarity: Rarity;
-  count: number;
   modifiers?: Modifier[];
 }
 
 export interface EquippedItemRef {
+  instanceId: string;
   itemId: ItemInfo["id"];
   rarity: Rarity;
   modifiers?: Modifier[];
@@ -233,7 +234,7 @@ export interface GameState {
   autoExplore: boolean;
   highestFloorReached: number;
   soundEnabled: boolean;
-  storedItems: StoredItemStack[];
+  storedItems: StoredItemInstance[];
   forgeMaterials: StoredForgeMaterialStack[];
   itemBlueprints: ItemBlueprint[];
 }

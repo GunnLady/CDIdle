@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { addStack, equipStoredItem, removeStack, unequipStoredItem, type InventoryState } from "../src/domain/inventory";
+import { addItemInstance, equipStoredItem, removeItemInstance, unequipStoredItem, type InventoryState } from "../src/domain/inventory";
 import { getEncounterDetails, getEncounterStatPresentation, rollEncounterForgeMaterial, selectBestHeroForEncounter, applyLootModifiers } from "../src/utils/dungeonHelpers";
 import { SKILLS_LIBRARY } from "../src/data/skills";
 import { makeHero, makeStoredItem } from "./fixtures/game";
@@ -15,12 +15,12 @@ const inventory = (overrides: Partial<InventoryState> = {}): InventoryState => (
 describe("inventory and dungeon helper edge cases", () => {
   it("covers invalid, missing, equip and unequip inventory paths", () => {
     const state = inventory();
-    expect(addStack(state, "", "common", 1)).toMatchObject({ ok: false, error: "INVALID_COUNT" });
-    expect(removeStack(state, "missing", "common", 1)).toMatchObject({ ok: false, error: "ITEM_NOT_FOUND" });
-    expect(equipStoredItem(state, "missing", "starter_sword", "common")).toMatchObject({ ok: false, error: "HERO_NOT_FOUND" });
-    expect(equipStoredItem(state, "hero-fixture", "missing", "common")).toMatchObject({ ok: false, error: "ITEM_NOT_FOUND" });
+    expect(addItemInstance(state, { instanceId: "", itemId: "starter_sword", rarity: "common" })).toMatchObject({ ok: false, error: "INVALID_ITEM" });
+    expect(removeItemInstance(state, "missing")).toMatchObject({ ok: false, error: "ITEM_NOT_FOUND" });
+    expect(equipStoredItem(state, "missing", "item-fixture")).toMatchObject({ ok: false, error: "HERO_NOT_FOUND" });
+    expect(equipStoredItem(state, "hero-fixture", "missing")).toMatchObject({ ok: false, error: "ITEM_NOT_FOUND" });
 
-    const equipped = equipStoredItem(state, "hero-fixture", "starter_sword", "common");
+    const equipped = equipStoredItem(state, "hero-fixture", "item-fixture");
     expect(equipped.ok).toBe(true);
     if (!equipped.ok) return;
     expect(equipped.state.heroes[0].equipment?.mainHand?.itemId).toBe("starter_sword");

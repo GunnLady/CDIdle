@@ -80,7 +80,7 @@ export default function App() {
     complete: boolean;
   } | null>(null);
   const [isDungeonSequenceRunning, setIsDungeonSequenceRunning] = useState(false);
-  const [pendingForge, setPendingForge] = useState<{ previewId: string; itemId: string; upgradeProc?: "none" | "optional" | "forced" } | null>(null);
+  const [pendingForge, setPendingForge] = useState<{ previewId: string; itemId: string; upgradeProc?: "none" | "uncommon" | "rare" } | null>(null);
   const gameRevisionRef = useRef(0);
   const commandQueueRef = useRef<Promise<void>>(Promise.resolve());
   const encounterPlaybackTokenRef = useRef(0);
@@ -266,8 +266,6 @@ export default function App() {
           const townLog = formatCanonicalTownEvent(event);
           if (townLog) addLog(townLog.message, townLog.type, "colony");
           if (event?.type === "dungeon.encounter_started") addLog("⚔️ Une rencontre autoritaire a commencé.", "info");
-          if (event?.type === "forge.preview_created") addLog("🔥 Prévisualisation de forge créée par le serveur.", "info");
-          if (event?.type === "forge.finalized") addLog("🔨 Objet forgé et enregistré par le serveur.", "victory");
         }
         if (resolvedEncounter) await playEncounterTranscript(resolvedEncounter);
         return true;
@@ -988,7 +986,7 @@ export default function App() {
                 isOnline={isOnline}
                 pendingForge={pendingForge}
                 onStartForge={(recipeId) => { void dispatchAuthoritativeCommand({ type: "forge.start", recipeId }); }}
-                onFinalizeForge={(previewId, accepted, chosenModifierStat) => { void dispatchAuthoritativeCommand({ type: "forge.finalize", previewId, accepted, chosenModifierStat }); }}
+                onFinalizeForge={(previewId, acceptUpgrade, chosenModifierStat) => { void dispatchAuthoritativeCommand({ type: "forge.finalize", previewId, acceptUpgrade, chosenModifierStat }); }}
                 onCancelForge={(previewId) => { void dispatchAuthoritativeCommand({ type: "forge.cancel", previewId }); }}
               />
             </div>
@@ -1008,7 +1006,7 @@ export default function App() {
                 }}
                 onRecruitHero={() => { void dispatchAuthoritativeCommand({ type: "hero.recruit_offer" }); }}
                 onUnequipItem={(heroId, slot) => { void dispatchAuthoritativeCommand({ type: "hero.unequip", heroId, slot }); }}
-                onEquipItem={(heroId, itemId, rarity, modifiers) => { void dispatchAuthoritativeCommand({ type: "hero.equip", heroId, itemId, rarity, modifiers }); }}
+                onEquipItem={(heroId, instanceId) => { void dispatchAuthoritativeCommand({ type: "hero.equip", heroId, instanceId }); }}
                 storedItems={dungeon.storedItems}
                 onGoToTab={setActiveTab}
               />
@@ -1082,9 +1080,9 @@ export default function App() {
               <StoragePanel
                 storedItems={dungeon.storedItems}
                 heroes={dungeon.heroes}
-                onEquipItem={(heroId, itemId, rarity, modifiers) => { void dispatchAuthoritativeCommand({ type: "hero.equip", heroId, itemId, rarity, modifiers }); }}
+                onEquipItem={(heroId, instanceId) => { void dispatchAuthoritativeCommand({ type: "hero.equip", heroId, instanceId }); }}
                 isForgeUnlocked={(town.buildings["forge"] || 0) >= 1}
-                onScrapItem={(itemId, rarity, modifiers) => { void dispatchAuthoritativeCommand({ type: "inventory.recycle", itemId, rarity, modifiers }); }}
+                onScrapItem={(instanceId) => { void dispatchAuthoritativeCommand({ type: "inventory.recycle", instanceId }); }}
                 forgeMaterials={dungeon.forgeMaterials}
               />
             </div>

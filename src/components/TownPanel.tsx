@@ -58,7 +58,7 @@ interface TownPanelProps {
   isOnline: boolean;
   pendingForge?: { previewId: string; itemId: string; upgradeProc?: BasicForgeUpgradeProc } | null;
   onStartForge: (recipeId: string) => void;
-  onFinalizeForge: (previewId: string, accepted: boolean, chosenModifierStat?: string) => void;
+  onFinalizeForge: (previewId: string, acceptUpgrade: boolean, chosenModifierStat?: string) => void;
   onCancelForge: (previewId: string) => void;
 }
 
@@ -95,6 +95,8 @@ export default function TownPanel({
     if (!pendingForge) {
       setActiveCraftPreview(null);
       setActiveCraftUpgradeProc("none");
+      setUpgradeAccepted(false);
+      setChosenModifierStat(undefined);
       return;
     }
     const item = ITEM_LIBRARY.find((entry) => entry.id === pendingForge.itemId);
@@ -113,7 +115,7 @@ export default function TownPanel({
 
   const getCompatibleModifiers = (itemType: string): string[] => {
     if (itemType === "weapon") {
-      return ["physicalDamage", "magicDamage", "critChance", "speed"];
+      return ["physicalDamage", "magicDamage", "criticalChance", "speed"];
     } else {
       return [
         "maxHp",
@@ -143,7 +145,7 @@ export default function TownPanel({
     switch (stat) {
       case "physicalDamage": return "⚔️ +1 Dégâts Physiques";
       case "magicDamage": return "🔮 +1 Dégâts Magiques";
-      case "critChance": return "✨ +1% Chances de Critique";
+      case "criticalChance": return "✨ +1% Chances de Critique";
       case "speed": return "👟 +2% Vitesse";
       case "maxHp": return "❤️ +3% PV Max";
       case "maxMana": return "🧪 +3% Mana Max";
@@ -934,7 +936,10 @@ export default function TownPanel({
                                     id="upgrade-toggle"
                                     disabled={!upgradeCostMet}
                                     checked={upgradeAccepted}
-                                    onChange={(e) => setUpgradeAccepted(e.target.checked)}
+                                    onChange={(e) => {
+                                      setUpgradeAccepted(e.target.checked);
+                                      if (e.target.checked && !chosenModifierStat) setChosenModifierStat(compats[0]);
+                                    }}
                                     className="rounded border-[#caa050]/40 text-orange-600 focus:ring-orange-500 bg-gray-900 w-4 h-4 cursor-pointer disabled:opacity-40"
                                   />
                                   <label
@@ -995,6 +1000,7 @@ export default function TownPanel({
                             </button>
                             <button
                               onClick={handleFinalizeCraft}
+                              disabled={upgradeAccepted && !chosenModifierStat}
                               className="py-2.5 rounded-xl border border-[#ebd7a0] bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-[#110905] text-xs font-serif uppercase tracking-widest font-black transition cursor-pointer shadow-[0_0_12px_rgba(245,158,11,0.3)]"
                             >
                               ✔️ Finaliser

@@ -184,10 +184,13 @@ describe("authoritative dungeon golden behavior characterized from 640f89f", () 
 
     expect(tape.draws()).toBe(5);
     expect(result.encounter.rewards.loot).toEqual(expect.arrayContaining([
-      expect.objectContaining({ type: "item", rarity: "rare", count: 1 }),
+      expect.objectContaining({ type: "item", instanceId: "item:dungeon:golden-treasure-item:loot:0", rarity: "rare", count: 1 }),
       expect.objectContaining({ type: "material", count: 1 }),
     ]));
     expect(result.state.storedItems).toHaveLength(1);
+    expect(result.state.storedItems?.[0].instanceId).toBe("item:dungeon:golden-treasure-item:loot:0");
+    expect(result.encounter.transcript.find((event) => event.type === "reward.item")?.message)
+      .not.toContain("item:dungeon:golden-treasure-item:loot:0");
   });
 
   it("restores the active party during a rest encounter", () => {

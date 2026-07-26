@@ -1,12 +1,20 @@
 # Audit détaillé CDI-027
 
+> Reevaluation CDI-059 : le raccord historique de `inventory.add` et
+> `inventory.remove` etait trop large et permettait la creation libre d objets.
+> Ces commandes sont retirees du contrat public. Les mutations internes restent
+> portees par loot, forge, equipement et recyclage. Le catalogue complet est
+> suivi par CDI-060.
+
 ## Contrôles sans écart
 
-- stocks atomiques avec fusion des piles et retrait borné ;
+- instances d equipement atomiques, sans fusion ni identite partagee ;
 - catalogue serveur : identifiant inconnu refusé ;
 - équipement et déséquipement atomiques avec slots, niveau requis et retour au stock ;
 - refus d'un slot occupé ou d'un héros introuvable ;
-- commandes `inventory.add`, `inventory.remove`, `hero.equip` et `hero.unequip` raccordées au dispatcher Edge ;
+- commandes `hero.equip` et `hero.unequip` raccordees au dispatcher Edge par
+  `instanceId` exact ; les anciennes commandes publiques `inventory.add` et
+  `inventory.remove` sont retirees par CDI-059 ;
 - `npm run typecheck` : réussi ;
 - `npm run check:determinism` : réussi.
 - test manuel rapporté par l'utilisateur : `tests/townAuthority.test.ts`, 5/5.

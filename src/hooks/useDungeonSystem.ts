@@ -10,7 +10,7 @@ import type {
   Hero,
   ItemBlueprint,
   StoredForgeMaterialStack,
-  StoredItemStack,
+  StoredItemInstance,
 } from "../types";
 import { DEFAULT_UNLOCKED_ITEM_BLUEPRINTS } from "../utils/gameCalculations";
 import { projectRestingHeroes } from "../domain/heroRecoveryProjection";
@@ -44,7 +44,7 @@ export function useDungeonSystem({
     setProjectionStartedAt(now);
     setProjectionNow(now);
   }, []);
-  const [storedItems, setStoredItems] = useState<StoredItemStack[]>([]);
+  const [storedItems, setStoredItems] = useState<StoredItemInstance[]>([]);
   const [forgeMaterials, setForgeMaterials] = useState<StoredForgeMaterialStack[]>([]);
   const [itemBlueprints, setItemBlueprints] = useState<ItemBlueprint[]>(
     DEFAULT_UNLOCKED_ITEM_BLUEPRINTS,
