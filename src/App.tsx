@@ -73,6 +73,8 @@ export default function App() {
     if (typeof window === "undefined") return "city";
     return parseActiveTabPreference(window.sessionStorage.getItem(ACTIVE_TAB_STORAGE_KEY));
   });
+  const activeTabRef = useRef(activeTab);
+  activeTabRef.current = activeTab;
 
   useEffect(() => {
     window.sessionStorage.setItem(ACTIVE_TAB_STORAGE_KEY, activeTab);
@@ -109,6 +111,7 @@ export default function App() {
   const latestAuthoritativeSnapshotRef = useRef<CrossTabAuthoritySnapshot | null>(null);
   const controlLeaseRef = useRef<AutomationLease | null>(null);
   const controlTabIdRef = useRef(crypto.randomUUID());
+  const clientStateUserRef = useRef<string | null>(null);
   const isAutomationLeaderRef = useRef(false);
   const crossTabNoticeIdRef = useRef(0);
   const encounterHistoryRef = useRef<CanonicalDungeonEncounterRecord[]>([]);
@@ -178,6 +181,7 @@ export default function App() {
   const {
     buildings: townBuildings,
     getRates: getTownRates,
+    resetTownSystem,
     resources: townResources,
     setBuildings: setTownBuildings,
     setCitizenGrowthProgress,
@@ -194,6 +198,7 @@ export default function App() {
     setHeroes,
     setHighestFloorReached: setDungeonHighestFloorReached,
     setItemBlueprints,
+    resetDungeonSystem,
     setStoredItems,
     setUnlockedRaces,
   } = dungeon;
@@ -282,6 +287,33 @@ export default function App() {
     setTownResources,
   ]);
 
+  const clearClientGameState = useCallback(() => {
+    resetTownSystem();
+    resetDungeonSystem();
+    setTownResources({ gold: 0, food: 0, wood: 0, stone: 0, ore: 0 });
+    setCityName("");
+    setCurrentEncounter(null);
+    encounterHistoryRef.current = [];
+    setEncounterHistory([]);
+    setEncounterPlayback(null);
+    setPendingForge(null);
+    setPendingRecruit(null);
+    setOnboardingCandidates([]);
+    setPendingOnboardingCityName("");
+    setBattleLogs([]);
+    setAuthoritativeTimeAnchor(null);
+    latestAuthoritativeSnapshotRef.current = null;
+    encounterPlaybackTokenRef.current += 1;
+    dungeonSequenceRunningRef.current = false;
+    setIsDungeonSequenceRunning(false);
+    gameRevisionRef.current = 0;
+    setGameRevision(0);
+    setCanonicalStateFailureDetails(null);
+    isAutomationLeaderRef.current = false;
+    setIsAutomationLeader(false);
+    setIsControlTransferPending(false);
+  }, [resetDungeonSystem, resetTownSystem, setBattleLogs, setTownResources]);
+
   const publishAuthoritativeSnapshot = useCallback((envelope: {
     revision: number;
     state: unknown;
@@ -303,23 +335,37 @@ export default function App() {
 
   const playEncounterTranscript = useCallback(async (encounter: CanonicalDungeonEncounterRecord) => {
     const token = ++encounterPlaybackTokenRef.current;
+    const wait = (duration: number) => new Promise<void>((resolve) => window.setTimeout(resolve, duration));
+    const completePlayback = () => setEncounterPlayback({
+      encounterId: encounter.encounterId,
+      visibleCount: encounter.transcript.length,
+      complete: true,
+    });
     setEncounterPlayback({ encounterId: encounter.encounterId, visibleCount: 0, complete: false });
-    for (let index = 0; index < encounter.transcript.length; index += 1) {
-      await new Promise<void>((resolve) => window.setTimeout(resolve, 400));
+    if (activeTabRef.current !== "dungeon") {
+      await wait((encounter.transcript.length + 1) * 400);
       if (encounterPlaybackTokenRef.current !== token) return;
+      completePlayback();
+      return;
+    }
+    for (let index = 0; index < encounter.transcript.length; index += 1) {
+      await wait(400);
+      if (encounterPlaybackTokenRef.current !== token) return;
+      if (activeTabRef.current !== "dungeon") {
+        await wait((encounter.transcript.length - index) * 400);
+        if (encounterPlaybackTokenRef.current !== token) return;
+        completePlayback();
+        return;
+      }
       setEncounterPlayback({
         encounterId: encounter.encounterId,
         visibleCount: index + 1,
         complete: false,
       });
     }
-    await new Promise<void>((resolve) => window.setTimeout(resolve, 400));
+    await wait(400);
     if (encounterPlaybackTokenRef.current !== token) return;
-    setEncounterPlayback({
-      encounterId: encounter.encounterId,
-      visibleCount: encounter.transcript.length,
-      complete: true,
-    });
+    completePlayback();
   }, []);
 
   useEffect(() => () => {
@@ -339,7 +385,10 @@ export default function App() {
       showCrossTabNotice("Mode observateur : prenez le contrôle pour agir.");
       return Promise.resolve(false);
     }
-    const operation = commandQueueRef.current.then(async () => {
+    const operation = commandQueueRef.current.then(async (): Promise<{
+      ok: boolean;
+      playback?: Promise<void>;
+    }> => {
       try {
         const commandId = crypto.randomUUID();
         const result = await callGameApi<AuthoritativeCommandSuccess>("/commands", {
@@ -356,13 +405,6 @@ export default function App() {
         const resolvedEncounter = (result?.events ?? [])
           .find((event: any) => event?.type === "dungeon.encounter_resolved")
           ?.encounter as CanonicalDungeonEncounterRecord | undefined;
-        if (resolvedEncounter) {
-          setEncounterPlayback({
-            encounterId: resolvedEncounter.encounterId,
-            visibleCount: 0,
-            complete: false,
-          });
-        }
         await applyAuthoritativeState(result?.state, result?.revision, undefined, result?.serverTime, result?.lastProcessedAt);
         publishAuthoritativeSnapshot(result);
         for (const event of result?.events ?? []) {
@@ -370,8 +412,10 @@ export default function App() {
           if (townLog) addLog(townLog.message, townLog.type, "colony");
           if (event?.type === "dungeon.encounter_started") addLog("⚔️ Une rencontre autoritaire a commencé.", "info");
         }
-        if (resolvedEncounter) await playEncounterTranscript(resolvedEncounter);
-        return true;
+        const playback = resolvedEncounter
+          ? playEncounterTranscript(resolvedEncounter)
+          : undefined;
+        return { ok: true, ...(playback ? { playback } : {}) };
       } catch (error) {
         if (error instanceof GameApiError && error.status === 409) {
           const commandInProgress = error.code === "COMMAND_IN_PROGRESS";
@@ -416,11 +460,14 @@ export default function App() {
           const message = error instanceof GameApiError ? error.message : "Mutation autoritaire indisponible";
           addLog(`❌ ${message}.`, "defeat");
         }
-        return false;
+        return { ok: false };
       }
     });
     commandQueueRef.current = operation.then(() => undefined, () => undefined);
-    return operation;
+    return operation.then(async ({ ok, playback }) => {
+      if (playback) await playback;
+      return ok;
+    });
   }, [addLog, applyAuthoritativeState, canonicalStateFailureDetails, currentUser, isOnline, playEncounterTranscript, publishAuthoritativeSnapshot, showCrossTabNotice]);
 
   useEffect(() => {
@@ -687,9 +734,6 @@ export default function App() {
         setCheatInput("");
       });
       return;
-      addLog(`🧙‍♂️ TRICHE : Le niveau le plus haut exploré du donjon est désormais l'Étage ${amount} ! ✨`, "victory");
-      setCheatInput("");
-      return;
     }
 
     if (letter === "A") {
@@ -698,9 +742,6 @@ export default function App() {
         addLog(`Triche serveur appliquée : +${amount} à toutes les ressources.`, "victory");
         setCheatInput("");
       });
-      return;
-      addLog(`🧙‍♂️ TRICHE : +${amount} dans TOUTES les ressources ! ✨`, "victory");
-      setCheatInput("");
       return;
     }
 
@@ -736,6 +777,11 @@ export default function App() {
     let active = true;
     const applySnapshot = async (user: any) => {
       if (user && bootstrapUserRef.current === String(user.id)) return;
+      const nextUserId = user ? String(user.id) : null;
+      if (clientStateUserRef.current !== nextUserId) {
+        clearClientGameState();
+        clientStateUserRef.current = nextUserId;
+      }
       if (user) bootstrapUserRef.current = String(user.id);
       setCurrentUser(user);
       setIsAuthLoading(false);
@@ -792,20 +838,7 @@ export default function App() {
         }
       } else {
         bootstrapUserRef.current = null;
-        latestAuthoritativeSnapshotRef.current = null;
-        setAuthoritativeTimeAnchor(null);
-        setCanonicalStateFailureDetails(null);
-        encounterPlaybackTokenRef.current += 1;
-        dungeonSequenceRunningRef.current = false;
-        setGameRevision(0);
-        setCityName("");
-        setCurrentEncounter(null);
-        encounterHistoryRef.current = [];
-        setEncounterHistory([]);
-        setEncounterPlayback(null);
-        setIsDungeonSequenceRunning(false);
         setIsInitialGameLoadDone(true);
-        setTownResources({ gold: 0, food: 0, wood: 0, stone: 0, ore: 0 });
         addLog("🔑 Veuillez vous connecter pour commencer la conquête de l'empire !", "info");
       }
     };
@@ -815,6 +848,7 @@ export default function App() {
   }, [
     addLog,
     applyAuthoritativeState,
+    clearClientGameState,
     setAutoExplore,
     setUnlockedRaces,
     reconnectNonce,
@@ -926,6 +960,7 @@ export default function App() {
   const hardResetGame = async () => {
     if (!transportOnline) {
       addLog("📡 Mode hors connexion : la réinitialisation est verrouillée.", "info");
+      showCrossTabNotice("Remise à zéro indisponible hors connexion. L’état actuel est conservé.");
       return;
     }
     if (!isAutomationLeaderRef.current) {
@@ -959,6 +994,8 @@ export default function App() {
         addLog("💣 Remise à zéro totale effectuée ! Créez une nouvelle cité.", "defeat");
       } catch (err) {
         console.error("Failed to reset Supabase savegame state", err);
+        addLog("Échec de la remise à zéro : l’état actuel a été conservé.", "defeat");
+        showCrossTabNotice("Échec de la remise à zéro : l’état actuel a été conservé.");
       } finally {
         setIsSyncing(false);
       }

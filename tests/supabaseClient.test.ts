@@ -41,4 +41,23 @@ describe("Supabase client contract", () => {
       new module.GameApiError("service unavailable", 503, "SERVICE_UNAVAILABLE"),
     )).toBeNull();
   });
+
+  it("aborts a game-api request after the transport timeout", async () => {
+    vi.useFakeTimers();
+    vi.resetModules();
+    const module = await import("../src/lib/supabase");
+    vi.spyOn(module.supabase.auth, "getSession").mockResolvedValue({ data: { session: { access_token: "token" } } } as never);
+    vi.stubGlobal("fetch", vi.fn().mockImplementation((_input, init?: RequestInit) => new Promise((_resolve, reject) => {
+      const signal = init?.signal;
+      signal?.addEventListener("abort", () => reject(signal.reason), { once: true });
+    })));
+
+    const request = module.callGameApi("/reset", { method: "POST" });
+    const rejection = expect(request).rejects.toMatchObject({ name: "TimeoutError", message: "GAME_API_TIMEOUT" });
+    await vi.advanceTimersByTimeAsync(module.GAME_API_REQUEST_TIMEOUT_MS);
+
+    await rejection;
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+  });
 });

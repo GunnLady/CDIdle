@@ -24,6 +24,7 @@ export class GameApiError extends Error {
 }
 
 export type CanonicalStateFailure = { requestId?: string };
+export const GAME_API_REQUEST_TIMEOUT_MS = 10_000;
 
 export function canonicalStateFailure(error: unknown): CanonicalStateFailure | null {
   if (!(error instanceof GameApiError) || error.code !== "INVALID_GAME_STATE") return null;
@@ -56,10 +57,24 @@ export async function callGameApi<T>(path: string, init: RequestInit = {}): Prom
   const { data } = await supabase.auth.getSession();
   const token = data.session?.access_token;
   if (!token) throw new Error("UNAUTHENTICATED");
-  const response = await fetch(`${url ?? "http://127.0.0.1:54321"}/functions/v1/game-api${path}`, {
-    ...init,
-    headers: { "content-type": "application/json", authorization: `Bearer ${token}`, ...(init.headers ?? {}) },
-  });
+  const controller = new AbortController();
+  const abortFromCaller = () => controller.abort(init.signal?.reason);
+  if (init.signal?.aborted) abortFromCaller();
+  else init.signal?.addEventListener("abort", abortFromCaller, { once: true });
+  const timeout = globalThis.setTimeout(() => {
+    controller.abort(new DOMException("GAME_API_TIMEOUT", "TimeoutError"));
+  }, GAME_API_REQUEST_TIMEOUT_MS);
+  let response: Response;
+  try {
+    response = await fetch(`${url ?? "http://127.0.0.1:54321"}/functions/v1/game-api${path}`, {
+      ...init,
+      signal: controller.signal,
+      headers: { "content-type": "application/json", authorization: `Bearer ${token}`, ...(init.headers ?? {}) },
+    });
+  } finally {
+    globalThis.clearTimeout(timeout);
+    init.signal?.removeEventListener("abort", abortFromCaller);
+  }
   const body = await response.json().catch(() => null);
   if (!response.ok) {
     throw new GameApiError(

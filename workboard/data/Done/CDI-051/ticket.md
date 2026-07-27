@@ -1,7 +1,7 @@
 ---
 id: CDI-051
 title: Raccordement UI aux commandes autoritaires
-status: Paused
+status: Done
 area: integration
 priority: P1
 size: L
@@ -90,18 +90,18 @@ et 30 % PM, convergence niveaux 10 a 13 et vocations integrees.
 
 ## Criteres d'acceptation
 
-- [ ] Les actions ville utilisent des commandes typees.
-- [ ] Les actions heros, inventaire et forge utilisent des commandes typees.
+- [x] Les actions ville utilisent des commandes typees.
+- [x] Les actions heros, inventaire et forge utilisent des commandes typees.
 - [x] Les actions donjon utilisent des commandes typees.
-- [ ] Onboarding, cheats, ticks et auto-donjon ne contournent pas l autorite.
-- [ ] L interface applique uniquement l etat canonique retourne.
-- [ ] Le cache local suit la revision canonique apres chaque succes.
-- [ ] Offline, 409, replay et erreurs metier sont couverts.
+- [x] Onboarding, cheats, ticks et auto-donjon ne contournent pas l autorite.
+- [x] L interface applique uniquement l etat canonique retourne.
+- [x] Le cache local suit la revision canonique apres chaque succes.
+- [x] Offline, 409, replay et erreurs metier sont couverts.
 - [x] Un rechargement confirme la persistance des mutations.
-- [ ] La sauvegarde manuelle ne pretend pas synchroniser sans commande serveur.
-- [ ] Un echec de `/reset` ne reinitialise ni l interface ni le cache.
+- [x] La sauvegarde manuelle ne pretend pas synchroniser sans commande serveur.
+- [x] Un echec de `/reset` ne reinitialise ni l interface ni le cache.
 - [x] CDI-053 restaure le profil novice autoritaire complet et sa persistance.
-- [ ] La vocation T1 affiche et persiste les competences autoritaires attendues
+- [x] La vocation T1 affiche et persiste les competences autoritaires attendues
       pour une classe ordinaire, un Mage et un Acolyte.
 
 ## Tests
@@ -168,12 +168,26 @@ Preuve navigateur du nouveau flux obtenue le 2026-07-25 pendant CDI-054 :
 - replay idempotent sans mutation ;
 - vocation Guerrier, competences, statistiques et cooldowns persistants.
 
-Blocage actif :
+Reprise du 2026-07-27 :
 
 - CDI-054 a restaure et valide le comportement fonctionnel et RNG du donjon
   dans une seule implementation autoritaire ;
 - audit : `docs/architecture/authoritative-dungeon-parity-audit.md` ;
-- Le blocage CDI-054 est leve. CDI-051 reste `Paused` jusqu a sa reprise
-  explicite. CDI-061 bloque maintenant cette reprise : l audit temporel a
-  prouve une perte d etat possible entre idle et commandes concurrentes tant
-  que revision et `last_processed_at` ne sont pas commites atomiquement.
+- Les blocages CDI-054 et CDI-061 sont leves. Toutes les dependances de
+  CDI-051 sont `Done`; le ticket reprend en `Doing` pour auditer les criteres
+  restants puis terminer les validations UI autoritaires.
+
+Cloture du 2026-07-27 :
+
+- toutes les mutations UI passent par les commandes autoritaires ;
+- synchronisation multi-onglets validee avec transfert explicite du controle ;
+- file canonique separee de l animation, sans accelerer l auto-donjon ;
+- reset hors ligne refuse sans alteration des heros ni des ressources ;
+- timeout transport couvert par test ;
+- vocations T1 ordinaire, Mage et Acolyte validees et persistees apres `F5` ;
+- tests complets : 299/299 PASS ;
+- test client Supabase cible : 4/4 PASS ;
+- typecheck PASS ;
+- lint : 0 erreur, 49 avertissements preexistants hors perimetre ;
+- workboard : 61 tickets, 0 erreur ;
+- build final PASS, rapporte par l utilisateur.
