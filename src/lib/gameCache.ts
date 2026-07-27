@@ -19,9 +19,14 @@ export async function readGameCache(userId: string): Promise<CachedGameState | n
   const database = await openDatabase();
   return new Promise((resolve, reject) => {
     const request = database.transaction(STORE_NAME, "readonly").objectStore(STORE_NAME).get(userId);
-    request.onsuccess = () => resolve((request.result as CachedGameState | undefined) ?? null);
-    request.onerror = () => reject(request.error ?? new Error("CACHE_READ_FAILED"));
-    database.close();
+    request.onsuccess = () => {
+      database.close();
+      resolve((request.result as CachedGameState | undefined) ?? null);
+    };
+    request.onerror = () => {
+      database.close();
+      reject(request.error ?? new Error("CACHE_READ_FAILED"));
+    };
   });
 }
 
@@ -29,9 +34,37 @@ export async function writeGameCache(userId: string, state: CachedGameState): Pr
   if (typeof indexedDB === "undefined" || !userId) return;
   const database = await openDatabase();
   return new Promise((resolve, reject) => {
-    const request = database.transaction(STORE_NAME, "readwrite").objectStore(STORE_NAME).put(state, userId);
-    request.onsuccess = () => { database.close(); resolve(); };
-    request.onerror = () => { database.close(); reject(request.error ?? new Error("CACHE_WRITE_FAILED")); };
+    const transaction = database.transaction(STORE_NAME, "readwrite");
+    const store = transaction.objectStore(STORE_NAME);
+    const existingRequest = store.get(userId);
+    existingRequest.onsuccess = () => {
+      const existing = existingRequest.result as CachedGameState | undefined;
+      const existingRevision = Number(existing?.revision);
+      const incomingRevision = Number(state.revision);
+      const existingIsCanonical = Number.isInteger(existingRevision) && existingRevision >= 0;
+      const incomingIsCanonical = Number.isInteger(incomingRevision) && incomingRevision >= 0;
+      if (existingIsCanonical && (!incomingIsCanonical || incomingRevision < existingRevision)) return;
+      store.put(state, userId);
+    };
+    transaction.oncomplete = () => { database.close(); resolve(); };
+    transaction.onabort = () => {
+      database.close();
+      reject(transaction.error ?? new Error("CACHE_WRITE_FAILED"));
+    };
+  });
+}
+
+export async function deleteGameCache(userId: string): Promise<void> {
+  if (typeof indexedDB === "undefined" || !userId) return;
+  const database = await openDatabase();
+  return new Promise((resolve, reject) => {
+    const transaction = database.transaction(STORE_NAME, "readwrite");
+    transaction.objectStore(STORE_NAME).delete(userId);
+    transaction.oncomplete = () => { database.close(); resolve(); };
+    transaction.onabort = () => {
+      database.close();
+      reject(transaction.error ?? new Error("CACHE_DELETE_FAILED"));
+    };
   });
 }
 

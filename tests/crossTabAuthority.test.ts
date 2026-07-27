@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   authorityChannelName,
+  createCrossTabAccountDeletedMessage,
   createCrossTabAuthorityMessage,
   openCrossTabAuthorityBridge,
   parseCrossTabAuthorityMessage,
@@ -30,6 +31,11 @@ describe("cross-tab authoritative synchronization", () => {
 
   it("creates and parses an authoritative snapshot notification", () => {
     const message = createCrossTabAuthorityMessage("tab-a", snapshot);
+    expect(parseCrossTabAuthorityMessage(message)).toEqual(message);
+  });
+
+  it("creates and parses a targeted account deletion notification", () => {
+    const message = createCrossTabAccountDeletedMessage("tab-a");
     expect(parseCrossTabAuthorityMessage(message)).toEqual(message);
   });
 
@@ -70,6 +76,23 @@ describe("cross-tab authoritative synchronization", () => {
     });
     channel.onmessage?.({ data: createCrossTabAuthorityMessage("tab-b", snapshot) } as MessageEvent);
     expect(onSnapshot).toHaveBeenCalledWith(snapshot);
+  });
+
+  it("notifies another tab that the authenticated account was deleted", () => {
+    const channel = fakeChannel();
+    const onAccountDeleted = vi.fn();
+    const bridge = openCrossTabAuthorityBridge({
+      userId: "user-42",
+      sourceId: "tab-a",
+      currentRevision: () => 11,
+      onSnapshot: vi.fn(),
+      onAccountDeleted,
+      channelFactory: () => channel,
+    });
+    bridge.publishAccountDeleted();
+    expect(channel.postMessage).toHaveBeenCalledWith(createCrossTabAccountDeletedMessage("tab-a"));
+    channel.onmessage?.({ data: createCrossTabAccountDeletedMessage("tab-b") } as MessageEvent);
+    expect(onAccountDeleted).toHaveBeenCalledOnce();
   });
 
   it("ignores own, stale and post-close notifications", () => {

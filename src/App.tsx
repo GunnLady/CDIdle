@@ -21,7 +21,7 @@ import {
   signOut,
   type CanonicalStateFailure,
 } from "./lib/supabase";
-import { purgeLegacyGameCache, readGameCache, writeGameCache } from "./lib/gameCache";
+import { deleteGameCache, purgeLegacyGameCache, readGameCache, writeGameCache } from "./lib/gameCache";
 import type { AuthoritativeCommandSuccess, AuthoritativeGameEnvelope, GameCommand } from "./domain/commands";
 import type { CanonicalDungeonEncounterRecord } from "../shared/contracts/authoritative";
 import { formatCanonicalIdleReport } from "./domain/idleReport";
@@ -112,6 +112,8 @@ export default function App() {
   const controlLeaseRef = useRef<AutomationLease | null>(null);
   const controlTabIdRef = useRef(crypto.randomUUID());
   const clientStateUserRef = useRef<string | null>(null);
+  const authSnapshotGenerationRef = useRef(0);
+  const deletedCacheUserIdsRef = useRef(new Set<string>());
   const isAutomationLeaderRef = useRef(false);
   const crossTabNoticeIdRef = useRef(0);
   const encounterHistoryRef = useRef<CanonicalDungeonEncounterRecord[]>([]);
@@ -209,8 +211,11 @@ export default function App() {
     cacheUserId?: string,
     serverTime?: unknown,
     lastProcessedAt?: unknown,
-  ) => {
-    if (!state) return;
+    persistCache = true,
+  ): Promise<boolean> => {
+    if (!state) return false;
+    const userId = cacheUserId ?? currentUser?.id;
+    if (userId && deletedCacheUserIdsRef.current.has(String(userId))) return false;
     if (Number.isInteger(revision)
       && typeof state === "object"
       && typeof serverTime === "string"
@@ -260,16 +265,18 @@ export default function App() {
       gameRevisionRef.current = canonicalRevision;
       setGameRevision(canonicalRevision);
     }
-    const userId = cacheUserId ?? currentUser?.id;
-    if (userId) {
+    if (userId && persistCache) {
       try {
         await writeGameCache(String(userId), { ...state, revision: canonicalRevision });
+        return true;
       } catch (error) {
         // The canonical server snapshot is already applied. A local cache
         // failure must not turn a committed mutation into a client error.
         console.warn("Failed to update the read-only game cache", error);
+        return false;
       }
     }
+    return true;
   }, [
     currentUser?.id,
     setActiveDungeonFloor,
@@ -524,6 +531,32 @@ export default function App() {
         });
         commandQueueRef.current = operation.then(() => undefined, () => undefined);
       },
+      onAccountDeleted: () => {
+        const userId = String(currentUser.id);
+        deletedCacheUserIdsRef.current.add(userId);
+        authSnapshotGenerationRef.current += 1;
+        bootstrapUserRef.current = null;
+        clearClientGameState();
+        void Promise.allSettled([
+          deleteGameCache(userId),
+          signOut().then((result) => {
+            if (result.error) throw result.error;
+          }),
+        ]).then(([cacheResult, signOutResult]) => {
+          const cacheFailed = cacheResult.status === "rejected";
+          const signOutFailed = signOutResult.status === "rejected";
+          if (cacheFailed) console.warn("Failed to purge the deleted account cache in another tab", cacheResult.reason);
+          if (cacheFailed && signOutFailed) {
+            showCrossTabNotice("Compte supprimé dans un autre onglet, mais le cache et la session locale n’ont pas pu être nettoyés.");
+          } else if (cacheFailed) {
+            showCrossTabNotice("Compte supprimé dans un autre onglet. Session fermée, cache local incomplètement purgé.");
+          } else if (signOutFailed) {
+            showCrossTabNotice("Compte supprimé dans un autre onglet, mais la session locale n’a pas pu être fermée.");
+          } else {
+            showCrossTabNotice("Compte supprimé dans un autre onglet. Cache purgé et session fermée.");
+          }
+        });
+      },
     });
     authorityChannelRef.current = bridge;
     const latestSnapshot = latestAuthoritativeSnapshotRef.current;
@@ -534,7 +567,7 @@ export default function App() {
       bridge.close();
       if (authorityChannelRef.current === bridge) authorityChannelRef.current = null;
     };
-  }, [applyAuthoritativeState, currentUser, isInitialGameLoadDone, playEncounterTranscript, showCrossTabNotice]);
+  }, [applyAuthoritativeState, clearClientGameState, currentUser, isInitialGameLoadDone, playEncounterTranscript, showCrossTabNotice]);
 
   useEffect(() => {
     if (!currentUser || !isInitialGameLoadDone) {
@@ -777,6 +810,8 @@ export default function App() {
     let active = true;
     const applySnapshot = async (user: any) => {
       if (user && bootstrapUserRef.current === String(user.id)) return;
+      const generation = ++authSnapshotGenerationRef.current;
+      const isStale = () => !active || authSnapshotGenerationRef.current !== generation;
       const nextUserId = user ? String(user.id) : null;
       if (clientStateUserRef.current !== nextUserId) {
         clearClientGameState();
@@ -791,6 +826,7 @@ export default function App() {
         try {
           setIsSyncing(true);
           const parsed = await callGameApi<AuthoritativeGameEnvelope>("/bootstrap", { method: "POST" });
+          if (isStale()) return;
           setApiAvailable(true);
           setCanonicalStateFailureDetails(null);
           if (Number.isInteger(parsed?.revision)) {
@@ -801,6 +837,7 @@ export default function App() {
           if (parsed && parsed.state) {
             const state = parsed.state;
             await applyAuthoritativeState(state, parsed.revision, String(user.id), parsed?.serverTime, parsed?.lastProcessedAt);
+            if (isStale()) return;
             const idleSummary = formatCanonicalIdleReport(parsed.idleReport);
             if (idleSummary) addLog(idleSummary, "info", "colony");
             addLog("☁️ Royaume synchronisé : Sauvegarde Supabase chargée avec succès !", "victory");
@@ -810,6 +847,7 @@ export default function App() {
             addLog("👑 Bienvenue souverain ! Veuillez nommer votre cité pour fonder votre campement.", "info");
           }
         } catch (err) {
+          if (isStale()) return;
           const isRevisionConflict = err instanceof GameApiError && err.status === 409;
           const stateFailure = canonicalStateFailure(err);
           if (stateFailure) {
@@ -827,14 +865,27 @@ export default function App() {
           }
           console.error("Supabase sync error", err);
           const cached = await readGameCache(user.id).catch(() => null);
-          if (cached) await applyAuthoritativeState(cached, Number(cached.revision), String(user.id));
+          if (isStale()) return;
+          if (cached) {
+            await applyAuthoritativeState(
+              cached,
+              Number(cached.revision),
+              String(user.id),
+              undefined,
+              undefined,
+              false,
+            );
+          }
+          if (isStale()) return;
           if (cached?.unlockedRaces) setUnlockedRaces(cached.unlockedRaces as any);
           if (cached?.battleLogs) setBattleLogs(cached.battleLogs as any);
           if (cached?.autoExplore !== undefined) setAutoExplore(Boolean(cached.autoExplore));
           addLog(cached ? "📖 Session hors connexion : cache local en lecture seule chargé." : "❌ Échec de la récupération des données Supabase.", cached ? "info" : "defeat");
         } finally {
-          setIsSyncing(false);
-          setIsInitialGameLoadDone(true);
+          if (!isStale()) {
+            setIsSyncing(false);
+            setIsInitialGameLoadDone(true);
+          }
         }
       } else {
         bootstrapUserRef.current = null;
@@ -844,7 +895,11 @@ export default function App() {
     };
     getAuthSnapshot().then(({ user }) => { if (active) void applySnapshot(user); });
     const { data: subscription } = onAuthStateChange(({ user }) => { if (active) void applySnapshot(user); });
-    return () => { active = false; subscription.subscription.unsubscribe(); };
+    return () => {
+      active = false;
+      authSnapshotGenerationRef.current += 1;
+      subscription.subscription.unsubscribe();
+    };
   }, [
     addLog,
     applyAuthoritativeState,
@@ -968,11 +1023,32 @@ export default function App() {
       return;
     }
     const operation = commandQueueRef.current.then(async () => {
+      let resetCacheUnsafe = false;
       try {
         setIsSyncing(true);
         if (currentUser) {
+          const userId = String(currentUser.id);
           const reset = await callGameApi<AuthoritativeGameEnvelope>("/reset", { method: "POST" });
-          await applyAuthoritativeState(reset?.state, reset?.revision, String(currentUser.id), reset?.serverTime, reset?.lastProcessedAt);
+          let oldCachePurged = false;
+          try {
+            await deleteGameCache(userId);
+            oldCachePurged = true;
+          } catch (error) {
+            console.warn("Failed to purge the pre-reset game cache", error);
+          }
+          const resetCachePersisted = await applyAuthoritativeState(
+            reset?.state,
+            reset?.revision,
+            userId,
+            reset?.serverTime,
+            reset?.lastProcessedAt,
+          );
+          if (!oldCachePurged && !resetCachePersisted) {
+            resetCacheUnsafe = true;
+            showCrossTabNotice("Partie remise à zéro, mais l’ancien cache local n’a pas pu être neutralisé.");
+          } else if (!resetCachePersisted) {
+            showCrossTabNotice("Partie remise à zéro. Le cache hors ligne sera recréé à la prochaine synchronisation.");
+          }
           publishAuthoritativeSnapshot(reset);
         }
         await purgeLegacyGameCache();
@@ -991,7 +1067,9 @@ export default function App() {
           window.scrollTo({ top: 0, left: 0, behavior: "auto" });
         });
 
-        addLog("💣 Remise à zéro totale effectuée ! Créez une nouvelle cité.", "defeat");
+        addLog(resetCacheUnsafe
+          ? "Remise à zéro serveur effectuée ; cache local non sécurisé."
+          : "💣 Remise à zéro totale effectuée ! Créez une nouvelle cité.", "defeat");
       } catch (err) {
         console.error("Failed to reset Supabase savegame state", err);
         addLog("Échec de la remise à zéro : l’état actuel a été conservé.", "defeat");
@@ -1017,7 +1095,19 @@ export default function App() {
       try {
         setIsSyncing(true);
         await callGameApi("/account", { method: "DELETE" });
-        await purgeLegacyGameCache();
+        const deletedUserId = currentUser ? String(currentUser.id) : "";
+        deletedCacheUserIdsRef.current.add(deletedUserId);
+        authSnapshotGenerationRef.current += 1;
+        authorityChannelRef.current?.publishAccountDeleted();
+        const cacheCleanup = await Promise.allSettled([
+          deleteGameCache(deletedUserId),
+          purgeLegacyGameCache(),
+        ]);
+        const cacheCleanupFailed = cacheCleanup.some((result) => result.status === "rejected");
+        if (cacheCleanupFailed) {
+          console.warn("Account deleted but the local game cache cleanup was incomplete");
+          showCrossTabNotice("Compte supprimé, mais le cache local n’a pas pu être entièrement purgé.");
+        }
         town.resetTownSystem();
         dungeon.resetDungeonSystem();
         setBattleLogs([]);
@@ -1026,8 +1116,15 @@ export default function App() {
         setEncounterPlayback(null);
         setCanonicalStateFailureDetails(null);
         setCityName("");
-        await signOut();
-        addLog("Compte et données supprimés définitivement.", "defeat");
+        const signOutResult = await signOut();
+        const signOutFailed = Boolean(signOutResult.error);
+        if (signOutFailed) {
+          console.warn("Account deleted but the local session could not be closed", signOutResult.error);
+          showCrossTabNotice("Compte supprimé, mais la session locale n’a pas pu être fermée.");
+        }
+        addLog(cacheCleanupFailed || signOutFailed
+          ? "Compte supprimé côté serveur ; nettoyage local incomplet."
+          : "Compte et données supprimés définitivement.", "defeat");
       } catch (err) {
         console.error("Failed to delete account", err);
         addLog("Échec de la suppression du compte. Aucune donnée locale n’a été réinitialisée.", "defeat");

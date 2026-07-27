@@ -1,7 +1,7 @@
 ---
 id: CDI-045
 title: Auditer offline, cache et conflits de r�vision
-status: Later
+status: Done
 area: frontend
 priority: P1
 size: M
@@ -29,7 +29,10 @@ CDI-031 impl�mente la premi�re protection r�seau et la r�vision serveur.
 
 ## Perimetre autorise
 
-- Banni�re offline\n- Mutateurs ville/h�ros/inventaire/donjon\n- Cache\n- 409
+- Banni�re offline
+- Mutateurs ville/h�ros/inventaire/donjon
+- Cache
+- 409
 - Ajouter une suppression ciblee du cache IndexedDB par utilisateur.
 - Purger ou remplacer le cache apres reset et suppression definitive.
 - Verifier l isolation de deux utilisateurs et l absence de resurrection d une
@@ -52,15 +55,17 @@ CDI-031 impl�mente la premi�re protection r�seau et la r�vision serveur.
 
 ## Criteres d'acceptation
 
-- [ ] Crit�res offline couverts\n- [ ] Conflit 409 recharge l'�tat canonique
-- [ ] Le reset remplace le cache par l etat canonique initial.
-- [ ] La suppression de compte purge le snapshot IndexedDB de l utilisateur.
-- [ ] Deux utilisateurs ne peuvent ni lire ni restaurer le cache de l autre.
-- [ ] Une panne reseau ne ressuscite pas une partie reinitialisee ou supprimee.
+- [x] Crit�res offline couverts
+- [x] Conflit 409 recharge l'�tat canonique
+- [x] Le reset remplace le cache par l etat canonique initial.
+- [x] La suppression de compte purge le snapshot IndexedDB de l utilisateur.
+- [x] Deux utilisateurs ne peuvent ni lire ni restaurer le cache de l autre.
+- [x] Une panne reseau ne ressuscite pas une partie reinitialisee ou supprimee.
 
 ## Tests
 
-- npm.cmd test -- --run\n- npm.cmd run typecheck
+- `npm.cmd test -- --run`
+- `npm.cmd run typecheck`
 
 ## Validation manuelle
 
@@ -77,3 +82,19 @@ Test DevTools Offline avec session authentifi�e.
 ## Handoff
 
 Fournir r�sultats et �carts r�siduels.
+
+Cloture du 2026-07-27 :
+
+- protections offline et resynchronisation 409 validees pendant CDI-051 ;
+- reset hors ligne refuse sans alteration des heros ni des ressources ;
+- cache IndexedDB strictement isole par utilisateur et hydrate en lecture seule ;
+- ecritures monotones par revision et confirmees a la fin de transaction ;
+- reset protege contre la resurrection d un ancien snapshot ;
+- suppression de compte purgee et propagee aux autres onglets ;
+- bootstraps obsoletes ignores lors d un changement de compte ;
+- tests complets : 304/304 PASS ;
+- typecheck PASS ;
+- lint : 0 erreur, 49 avertissements preexistants hors perimetre ;
+- determinisme et securite des logs PASS ;
+- workboard : 61 tickets, 0 erreur ;
+- build final PASS, rapporte par l utilisateur.
