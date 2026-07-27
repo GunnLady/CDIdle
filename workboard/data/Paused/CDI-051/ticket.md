@@ -7,7 +7,7 @@ priority: P1
 size: L
 risk: high
 source: Audit Eclipse CDI-037 du 2026-07-23
-depends_on: ["CDI-023", "CDI-025", "CDI-026", "CDI-027", "CDI-028", "CDI-029", "CDI-031", "CDI-041", "CDI-052", "CDI-053", "CDI-054", "CDI-057", "CDI-058", "CDI-059"]
+depends_on: ["CDI-023", "CDI-025", "CDI-026", "CDI-027", "CDI-028", "CDI-029", "CDI-031", "CDI-041", "CDI-052", "CDI-053", "CDI-054", "CDI-057", "CDI-058", "CDI-059", "CDI-061"]
 blocks: ["CDI-045", "CDI-046", "CDI-048", "CDI-049"]
 github_issue: null
 related_docs: ["docs/fullstack-authoritative-plan.md", "docs/architecture/api-command-contracts.md", "docs/architecture/game-api-followups.md", "docs/development/cdi-051-authoritative-ui-validation.md", "src/App.tsx", "src/lib/supabase.ts"]
@@ -174,5 +174,6 @@ Blocage actif :
   dans une seule implementation autoritaire ;
 - audit : `docs/architecture/authoritative-dungeon-parity-audit.md` ;
 - Le blocage CDI-054 est leve. CDI-051 reste `Paused` jusqu a sa reprise
-  explicite et jusqu a la cloture de CDI-057 pour terminer ses autres
-  validations UI autoritaires.
+  explicite. CDI-061 bloque maintenant cette reprise : l audit temporel a
+  prouve une perte d etat possible entre idle et commandes concurrentes tant
+  que revision et `last_processed_at` ne sont pas commites atomiquement.

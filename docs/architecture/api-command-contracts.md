@@ -22,7 +22,52 @@
 - `CommandResult` distingue une réponse réussie (`revision`, état canonique, `replayed`) d'une erreur structurée.
 - `validateCommandEnvelope` est pur et ne fait aucun accès réseau.
 
-Le traitement transactionnel, la déduplication persistée et la limite de débit restent du ressort de CDI-021.
+Le traitement transactionnel, la déduplication persistée et la limite de débit
+sont appliqués par le chemin temporel CDI-061.
+
+## Transition temporelle (CDI-061)
+
+- `load_game_transition` lit dans PostgreSQL l'état, la révision,
+  `last_processed_at` et `serverTime`.
+- Une commande calcule idle puis métier depuis ce même snapshot et
+  `commit_game_transition` persiste état, temps, révision, RNG, événements et
+  idempotence dans une transaction unique.
+- `claim_game_transition` réserve d'abord `(userId, commandId)`. Une requête
+  identique déjà active retourne `COMMAND_IN_PROGRESS`; un replay déjà commité
+  recharge l'état sans rappeler l'autorité métier. Une réservation abandonnée
+  peut être reprise après 30 secondes.
+- Le commit compare ensemble la révision et `last_processed_at`. Un perdant
+  concurrent reçoit `REVISION_CONFLICT` et recharge l'état canonique.
+- Une commande métier refusée n'appelle aucun RPC d'écriture.
+- Bootstrap et replay peuvent utiliser `commit_idle_transition`; ce commit
+  incrémente lui aussi la révision.
+- La limite glissante de 60 commandes par minute est sérialisée par joueur
+  dans PostgreSQL et ne dépend pas de la table d'idempotence, limitée aux 50
+  réponses les plus récentes.
+- Une réponse autoritaire réussie expose `serverTime`, `lastProcessedAt`,
+  `revision` et l'état du commit effectif.
+- Le client `cdi-061` publie ce snapshot exact aux autres onglets du même
+  compte via un `BroadcastChannel` isolé par `userId`. Les onglets récepteurs
+  l'appliquent dans leur file de commandes uniquement s'il est plus récent ;
+  ils ne relancent pas `bootstrap` et ne créent donc aucune révision idle
+  supplémentaire pour se synchroniser.
+- À l'ouverture du canal, chaque onglet publie également son dernier snapshot
+  de bootstrap initial. Un bootstrap initial terminé plus tard ne peut donc
+  pas laisser le futur onglet maître sur une révision silencieusement périmée.
+- Les commandes, heartbeats, synchronisations manuelles et resets propagent
+  leur snapshot. Un conflit affiche une réussite de resynchronisation
+  uniquement si le rechargement canonique a réellement abouti.
+- Un verrou navigateur exclusif, isolé par `userId`, désigne un seul onglet
+  maître pour toutes les mutations, les commandes automatiques de donjon et
+  le heartbeat temporel. Les autres onglets sont des observateurs sans
+  contrôles de mutation et affichent les snapshots sans écrire.
+- Un observateur peut demander `Prendre le contrôle`. Le maître termine sa
+  commande courante, libère le verrou, puis le demandeur recharge un snapshot
+  canonique avant de déverrouiller l'interface. La fermeture du maître
+  transfère automatiquement le verrou à un observateur.
+- Les RPC historiques `commit_idle_state` et `commit_game_command` restent
+  présents pour l'historique de migration mais ne sont plus exécutables par
+  `service_role`.
 
 ## Commandes donjon autoritaires (CDI-029)
 
@@ -43,9 +88,9 @@ Les quatre commandes sont idempotentes via l'enveloppe commune et leurs
 
 - `state.rngState` est restauré avant une mutation stochastique.
 - Le nouvel instantané RNG est commité dans `state` par
-  `commit_game_command`, avec la révision et les événements.
+  `commit_game_transition`, avec le temps, la révision et les événements.
 - Replay et conflit sont résolus avant l’appel de l’autorité métier.
-- Un conflit PostgreSQL tardif `P0002/STALE_REVISION` est également traduit en
+- Un conflit PostgreSQL tardif `P0002/STALE_TEMPORAL_STATE` est également traduit en
   `REVISION_CONFLICT`, puis la révision canonique est rechargée.
 - Une commande rejetée ne produit aucun état à committer.
 - La résolution de donjon refuse de fonctionner sans RNG injecté.

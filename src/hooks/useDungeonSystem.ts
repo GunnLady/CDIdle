@@ -14,12 +14,17 @@ import type {
 } from "../types";
 import { DEFAULT_UNLOCKED_ITEM_BLUEPRINTS } from "../utils/gameCalculations";
 import { projectRestingHeroes } from "../domain/heroRecoveryProjection";
+import {
+  projectAuthoritativeElapsedSeconds,
+  type AuthoritativeTimeAnchor,
+} from "../domain/authoritativeTimeProjection";
 
 type DungeonSystemOptions = {
   highestFloorReached: number;
   setHighestFloorReached: Dispatch<SetStateAction<number>>;
   currentUser: unknown;
   isOnline: boolean;
+  timeAnchor: AuthoritativeTimeAnchor | null;
 };
 
 /**
@@ -34,15 +39,12 @@ export function useDungeonSystem({
   setHighestFloorReached,
   currentUser,
   isOnline,
+  timeAnchor,
 }: DungeonSystemOptions) {
   const [heroes, setCanonicalHeroes] = useState<Hero[]>([]);
-  const [projectionStartedAt, setProjectionStartedAt] = useState(() => Date.now());
-  const [projectionNow, setProjectionNow] = useState(() => Date.now());
+  const [projectionNow, setProjectionNow] = useState(() => globalThis.performance?.now() ?? 0);
   const setHeroes = useCallback((next: Hero[]) => {
-    const now = Date.now();
     setCanonicalHeroes(next);
-    setProjectionStartedAt(now);
-    setProjectionNow(now);
   }, []);
   const [storedItems, setStoredItems] = useState<StoredItemInstance[]>([]);
   const [forgeMaterials, setForgeMaterials] = useState<StoredForgeMaterialStack[]>([]);
@@ -56,14 +58,14 @@ export function useDungeonSystem({
 
   useEffect(() => {
     if (!currentUser || !isOnline) return;
-    const interval = window.setInterval(() => setProjectionNow(Date.now()), 1_000);
+    const interval = window.setInterval(() => setProjectionNow(globalThis.performance?.now() ?? 0), 1_000);
     return () => window.clearInterval(interval);
   }, [currentUser, isOnline]);
 
   const displayHeroes = useMemo(() => projectRestingHeroes(
     heroes,
-    isOnline ? (projectionNow - projectionStartedAt) / 1_000 : 0,
-  ), [heroes, isOnline, projectionNow, projectionStartedAt]);
+    isOnline ? projectAuthoritativeElapsedSeconds(timeAnchor, projectionNow) : 0,
+  ), [heroes, isOnline, projectionNow, timeAnchor]);
 
   const resetDungeonSystem = useCallback(() => {
     setHeroes([]);

@@ -94,7 +94,9 @@ export function createGameApiHandler({ allowedOrigins, services }: HandlerOption
         }
         const result = await services.commands(userId, payload);
         const code = (result.error as { code?: string } | undefined)?.code;
-        const status = code === "REVISION_CONFLICT" ? 409 : code === "RATE_LIMITED" ? 429 : code ? 400 : 200;
+        const status = code === "REVISION_CONFLICT" || code === "COMMAND_IN_PROGRESS"
+          ? 409
+          : code === "RATE_LIMITED" ? 429 : code ? 400 : 200;
         return response(result, status, id, origin);
       }
       if (request.method === "POST" && route === "/reset") return response(await services.reset(userId), 200, id, origin);

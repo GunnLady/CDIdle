@@ -22,16 +22,33 @@ import {
   type CanonicalStateFailure,
 } from "./lib/supabase";
 import { purgeLegacyGameCache, readGameCache, writeGameCache } from "./lib/gameCache";
-import type { GameCommand } from "./domain/commands";
+import type { AuthoritativeCommandSuccess, AuthoritativeGameEnvelope, GameCommand } from "./domain/commands";
 import type { CanonicalDungeonEncounterRecord } from "../shared/contracts/authoritative";
 import { formatCanonicalIdleReport } from "./domain/idleReport";
 import { shouldRefreshTownAuthority } from "./domain/townHeartbeat";
 import { formatCanonicalTownEvent } from "./domain/townEventLog";
 import {
+  createAuthoritativeTimeAnchor,
+  type AuthoritativeTimeAnchor,
+} from "./domain/authoritativeTimeProjection";
+import {
   ACTIVE_TAB_STORAGE_KEY,
   parseActiveTabPreference,
   type ActiveTab,
 } from "./domain/activeTabPreference";
+import {
+  openCrossTabAuthorityBridge,
+  type CrossTabAuthorityBridge,
+  type CrossTabAuthoritySnapshot,
+} from "./domain/crossTabAuthority";
+import {
+  canAcquireRequestedControl,
+  controlRequestKey,
+  isControlRequestExpired,
+  requestedControlOwner,
+  startExclusiveAutomationLease,
+  type AutomationLease,
+} from "./domain/automationLeadership";
 
 // Custom Hooks & Utilities
 import { useGameLog } from "./hooks/useGameLog";
@@ -80,21 +97,46 @@ export default function App() {
     complete: boolean;
   } | null>(null);
   const [isDungeonSequenceRunning, setIsDungeonSequenceRunning] = useState(false);
+  const [isAutomationLeader, setIsAutomationLeader] = useState(false);
+  const [isControlTransferPending, setIsControlTransferPending] = useState(false);
+  const [controlLeaseEpoch, setControlLeaseEpoch] = useState(0);
   const [pendingForge, setPendingForge] = useState<{ previewId: string; itemId: string; upgradeProc?: "none" | "uncommon" | "rare" } | null>(null);
+  const [authoritativeTimeAnchor, setAuthoritativeTimeAnchor] = useState<AuthoritativeTimeAnchor | null>(null);
+  const [crossTabNotice, setCrossTabNotice] = useState<{ id: number; message: string } | null>(null);
   const gameRevisionRef = useRef(0);
   const commandQueueRef = useRef<Promise<void>>(Promise.resolve());
+  const authorityChannelRef = useRef<CrossTabAuthorityBridge | null>(null);
+  const latestAuthoritativeSnapshotRef = useRef<CrossTabAuthoritySnapshot | null>(null);
+  const controlLeaseRef = useRef<AutomationLease | null>(null);
+  const controlTabIdRef = useRef(crypto.randomUUID());
+  const isAutomationLeaderRef = useRef(false);
+  const crossTabNoticeIdRef = useRef(0);
+  const encounterHistoryRef = useRef<CanonicalDungeonEncounterRecord[]>([]);
   const encounterPlaybackTokenRef = useRef(0);
   const dungeonSequenceRunningRef = useRef(false);
   const bootstrapUserRef = useRef<string | null>(null);
   const transportOnline = browserOnline && apiAvailable;
   const isOnline = transportOnline && canonicalStateFailureDetails === null;
+  const canMutate = isOnline && isAutomationLeader;
   // Google signup is gated by the server-side alpha_allowlist hook and every
   // game-api request is rechecked against the same allowlist at runtime.
   const cheatsAllowedForUser = cheatsEnabled && currentUser?.app_metadata?.provider === "google";
 
+  const showCrossTabNotice = useCallback((message: string) => {
+    crossTabNoticeIdRef.current += 1;
+    setCrossTabNotice({ id: crossTabNoticeIdRef.current, message });
+  }, []);
+
+  useEffect(() => {
+    if (!crossTabNotice) return;
+    const timeout = window.setTimeout(() => setCrossTabNotice(null), 8_000);
+    return () => window.clearTimeout(timeout);
+  }, [crossTabNotice]);
+
   useEffect(() => {
     const handleOffline = () => setBrowserOnline(false);
     const handleOnline = () => {
+      bootstrapUserRef.current = null;
       setBrowserOnline(true);
       setReconnectNonce((value) => value + 1);
     };
@@ -123,13 +165,14 @@ export default function App() {
 
   const [highestFloorReached, setHighestFloorReached] = useState<number>(1);
 
-  const town = useTownSystem(currentUser, isOnline);
+  const town = useTownSystem(currentUser, isOnline, authoritativeTimeAnchor);
 
   const dungeon = useDungeonSystem({
     highestFloorReached,
     setHighestFloorReached,
     currentUser,
     isOnline,
+    timeAnchor: authoritativeTimeAnchor,
   });
 
   const {
@@ -155,8 +198,33 @@ export default function App() {
     setUnlockedRaces,
   } = dungeon;
 
-  const applyAuthoritativeState = useCallback(async (state: any, revision?: number, cacheUserId?: string) => {
+  const applyAuthoritativeState = useCallback(async (
+    state: any,
+    revision?: number,
+    cacheUserId?: string,
+    serverTime?: unknown,
+    lastProcessedAt?: unknown,
+  ) => {
     if (!state) return;
+    if (Number.isInteger(revision)
+      && typeof state === "object"
+      && typeof serverTime === "string"
+      && typeof lastProcessedAt === "string") {
+      latestAuthoritativeSnapshotRef.current = {
+        revision: Number(revision),
+        state: state as Record<string, unknown>,
+        serverTime,
+        lastProcessedAt,
+      };
+    }
+    if (typeof serverTime === "string" && typeof lastProcessedAt === "string") {
+      const anchor = createAuthoritativeTimeAnchor(
+        serverTime,
+        lastProcessedAt,
+        globalThis.performance?.now() ?? 0,
+      );
+      if (anchor) setAuthoritativeTimeAnchor(anchor);
+    }
     if (state.cityName !== undefined) setCityName(String(state.cityName));
     if (state.resources) setTownResources(state.resources);
     if (state.buildings) setTownBuildings(state.buildings);
@@ -172,7 +240,10 @@ export default function App() {
     if (state.highestFloorReached !== undefined) setDungeonHighestFloorReached(Number(state.highestFloorReached));
     if (state.autoExplore !== undefined) setAutoExplore(Boolean(state.autoExplore));
     if (state.currentEncounter !== undefined) setCurrentEncounter(state.currentEncounter);
-    if (Array.isArray(state.encounterHistory)) setEncounterHistory(state.encounterHistory);
+    if (Array.isArray(state.encounterHistory)) {
+      encounterHistoryRef.current = state.encounterHistory;
+      setEncounterHistory(state.encounterHistory);
+    }
     if (state.pendingForge !== undefined) setPendingForge(state.pendingForge);
     if (state.pendingRecruit !== undefined) setPendingRecruit(state.pendingRecruit ?? null);
     if (state.onboardingCandidates !== undefined) {
@@ -185,7 +256,15 @@ export default function App() {
       setGameRevision(canonicalRevision);
     }
     const userId = cacheUserId ?? currentUser?.id;
-    if (userId) await writeGameCache(String(userId), { ...state, revision: canonicalRevision });
+    if (userId) {
+      try {
+        await writeGameCache(String(userId), { ...state, revision: canonicalRevision });
+      } catch (error) {
+        // The canonical server snapshot is already applied. A local cache
+        // failure must not turn a committed mutation into a client error.
+        console.warn("Failed to update the read-only game cache", error);
+      }
+    }
   }, [
     currentUser?.id,
     setActiveDungeonFloor,
@@ -202,6 +281,25 @@ export default function App() {
     setTownCitizens,
     setTownResources,
   ]);
+
+  const publishAuthoritativeSnapshot = useCallback((envelope: {
+    revision: number;
+    state: unknown;
+    serverTime: string;
+    lastProcessedAt: string;
+  }) => {
+    if (!Number.isInteger(envelope.revision)
+      || !envelope.state
+      || typeof envelope.state !== "object"
+      || typeof envelope.serverTime !== "string"
+      || typeof envelope.lastProcessedAt !== "string") return;
+    authorityChannelRef.current?.publish({
+      revision: envelope.revision,
+      state: envelope.state as Record<string, unknown>,
+      serverTime: envelope.serverTime,
+      lastProcessedAt: envelope.lastProcessedAt,
+    });
+  }, []);
 
   const playEncounterTranscript = useCallback(async (encounter: CanonicalDungeonEncounterRecord) => {
     const token = ++encounterPlaybackTokenRef.current;
@@ -237,15 +335,19 @@ export default function App() {
       addLog("📡 Mode hors connexion : mutation verrouillée.", "info");
       return Promise.resolve(false);
     }
+    if (!isAutomationLeaderRef.current) {
+      showCrossTabNotice("Mode observateur : prenez le contrôle pour agir.");
+      return Promise.resolve(false);
+    }
     const operation = commandQueueRef.current.then(async () => {
       try {
         const commandId = crypto.randomUUID();
-        const result = await callGameApi<any>("/commands", {
+        const result = await callGameApi<AuthoritativeCommandSuccess>("/commands", {
           method: "POST",
           body: JSON.stringify({
             commandId,
             idempotencyKey: commandId,
-            clientVersion: "cdi-051",
+            clientVersion: "cdi-061",
             expectedRevision: gameRevisionRef.current,
             command,
           }),
@@ -261,7 +363,8 @@ export default function App() {
             complete: false,
           });
         }
-        await applyAuthoritativeState(result?.state, result?.revision);
+        await applyAuthoritativeState(result?.state, result?.revision, undefined, result?.serverTime, result?.lastProcessedAt);
+        publishAuthoritativeSnapshot(result);
         for (const event of result?.events ?? []) {
           const townLog = formatCanonicalTownEvent(event);
           if (townLog) addLog(townLog.message, townLog.type, "colony");
@@ -271,11 +374,15 @@ export default function App() {
         return true;
       } catch (error) {
         if (error instanceof GameApiError && error.status === 409) {
+          const commandInProgress = error.code === "COMMAND_IN_PROGRESS";
+          let reloadSucceeded = false;
           try {
-            const canonical = await callGameApi<any>("/bootstrap", { method: "POST" });
-            await applyAuthoritativeState(canonical?.state, canonical?.revision, String(currentUser.id));
+            const canonical = await callGameApi<AuthoritativeGameEnvelope>("/bootstrap", { method: "POST" });
+            await applyAuthoritativeState(canonical?.state, canonical?.revision, String(currentUser.id), canonical?.serverTime, canonical?.lastProcessedAt);
+            publishAuthoritativeSnapshot(canonical);
             setApiAvailable(true);
             setCanonicalStateFailureDetails(null);
+            reloadSucceeded = true;
           } catch (reloadError) {
             const stateFailure = canonicalStateFailure(reloadError);
             if (stateFailure) {
@@ -284,9 +391,20 @@ export default function App() {
             } else if (!(reloadError instanceof GameApiError) || reloadError.status >= 500) {
               setApiAvailable(false);
             }
-            addLog("Échec du rechargement canonique après conflit.", "defeat");
+            addLog(commandInProgress
+              ? "Échec de la synchronisation de la commande déjà en cours."
+              : "Échec du rechargement canonique après conflit.", "defeat");
           }
-          addLog("⚔️ Conflit de révision : rechargement de l’état canonique.", "info");
+          if (reloadSucceeded) {
+            addLog(commandInProgress
+              ? "⏳ Commande identique déjà en cours : synchronisation canonique."
+              : "⚔️ Conflit de révision : rechargement de l’état canonique.", "info");
+            showCrossTabNotice(commandInProgress
+              ? "Une commande identique est déjà traitée dans une autre session. État resynchronisé."
+              : "Action annulée : une autre session avait déjà modifié la partie. État resynchronisé.");
+          } else {
+            showCrossTabNotice("Conflit détecté, mais la resynchronisation a échoué. Réessayez dans quelques secondes.");
+          }
         } else {
           const stateFailure = canonicalStateFailure(error);
           if (stateFailure) {
@@ -303,10 +421,190 @@ export default function App() {
     });
     commandQueueRef.current = operation.then(() => undefined, () => undefined);
     return operation;
-  }, [addLog, applyAuthoritativeState, canonicalStateFailureDetails, currentUser, isOnline, playEncounterTranscript]);
+  }, [addLog, applyAuthoritativeState, canonicalStateFailureDetails, currentUser, isOnline, playEncounterTranscript, publishAuthoritativeSnapshot, showCrossTabNotice]);
+
+  useEffect(() => {
+    if (!currentUser || !isInitialGameLoadDone || typeof BroadcastChannel === "undefined") return;
+    const sourceId = crypto.randomUUID();
+    let active = true;
+    const bridge = openCrossTabAuthorityBridge({
+      userId: String(currentUser.id),
+      sourceId,
+      currentRevision: () => gameRevisionRef.current,
+      onSnapshot: (snapshot: CrossTabAuthoritySnapshot) => {
+        const operation = commandQueueRef.current.then(async () => {
+          if (!active || snapshot.revision <= gameRevisionRef.current) return;
+          try {
+            const incomingHistory = Array.isArray(snapshot.state.encounterHistory)
+              ? snapshot.state.encounterHistory as CanonicalDungeonEncounterRecord[]
+              : [];
+            const incomingEncounter = incomingHistory.at(-1);
+            const previousEncounter = encounterHistoryRef.current.at(-1);
+            const shouldPlayEncounter = Boolean(
+              incomingEncounter && incomingEncounter.encounterId !== previousEncounter?.encounterId,
+            );
+            if (shouldPlayEncounter && incomingEncounter) {
+              setEncounterPlayback({
+                encounterId: incomingEncounter.encounterId,
+                visibleCount: 0,
+                complete: false,
+              });
+            }
+            await applyAuthoritativeState(
+              snapshot.state,
+              snapshot.revision,
+              String(currentUser.id),
+              snapshot.serverTime,
+              snapshot.lastProcessedAt,
+            );
+            if (!active) return;
+            setApiAvailable(true);
+            setCanonicalStateFailureDetails(null);
+            if (shouldPlayEncounter && incomingEncounter) {
+              void playEncounterTranscript(incomingEncounter);
+            }
+          } catch (error) {
+            if (!active) return;
+            const stateFailure = canonicalStateFailure(error);
+            if (stateFailure) {
+              setCanonicalStateFailureDetails(stateFailure);
+              setApiAvailable(true);
+            } else if (!(error instanceof GameApiError) || error.status >= 500) {
+              setApiAvailable(false);
+            }
+            showCrossTabNotice("Échec de la mise à jour depuis un autre onglet.");
+          }
+        });
+        commandQueueRef.current = operation.then(() => undefined, () => undefined);
+      },
+    });
+    authorityChannelRef.current = bridge;
+    const latestSnapshot = latestAuthoritativeSnapshotRef.current;
+    if (latestSnapshot) bridge.publish(latestSnapshot);
+
+    return () => {
+      active = false;
+      bridge.close();
+      if (authorityChannelRef.current === bridge) authorityChannelRef.current = null;
+    };
+  }, [applyAuthoritativeState, currentUser, isInitialGameLoadDone, playEncounterTranscript, showCrossTabNotice]);
+
+  useEffect(() => {
+    if (!currentUser || !isInitialGameLoadDone) {
+      isAutomationLeaderRef.current = false;
+      setIsAutomationLeader(false);
+      return;
+    }
+    if (!navigator.locks) {
+      isAutomationLeaderRef.current = true;
+      setIsAutomationLeader(true);
+      return;
+    }
+    isAutomationLeaderRef.current = false;
+    setIsAutomationLeader(false);
+    let active = true;
+    const userId = String(currentUser.id);
+    const requestKey = controlRequestKey(userId);
+    const tabId = controlTabIdRef.current;
+    const lease = startExclusiveAutomationLease({
+      userId,
+      requestLock: (name, callback) => navigator.locks.request(
+        name,
+        { mode: "exclusive" },
+        callback,
+      ),
+      canAcquire: () => {
+        const requestedTabId = window.localStorage.getItem(requestKey);
+        return canAcquireRequestedControl(requestedTabId, tabId, Date.now());
+      },
+      onLeadershipChange: async (leader) => {
+        if (!leader) {
+          if (active) {
+            isAutomationLeaderRef.current = false;
+            setIsAutomationLeader(false);
+          }
+          return;
+        }
+        const operation = commandQueueRef.current.then(async () => {
+          const canonical = await callGameApi<AuthoritativeGameEnvelope>("/bootstrap", { method: "POST" });
+          if (!active) return;
+          await applyAuthoritativeState(
+            canonical.state,
+            canonical.revision,
+            userId,
+            canonical.serverTime,
+            canonical.lastProcessedAt,
+          );
+          publishAuthoritativeSnapshot(canonical);
+        });
+        commandQueueRef.current = operation.then(() => undefined, () => undefined);
+        await operation;
+        if (!active) return;
+        const currentRequest = window.localStorage.getItem(requestKey);
+        const explicitlyRequested = requestedControlOwner(currentRequest) === tabId;
+        if (explicitlyRequested || isControlRequestExpired(currentRequest, Date.now())) {
+          window.localStorage.removeItem(requestKey);
+        }
+        setApiAvailable(true);
+        setCanonicalStateFailureDetails(null);
+        isAutomationLeaderRef.current = true;
+        setIsControlTransferPending(false);
+        setIsAutomationLeader(true);
+        if (explicitlyRequested) showCrossTabNotice("Cet onglet contrôle maintenant la partie.");
+      },
+    });
+    controlLeaseRef.current = lease;
+    const handleControlRequest = (event: StorageEvent) => {
+      if (event.key !== requestKey) return;
+      if (event.newValue === null) {
+        if (requestedControlOwner(event.oldValue) === tabId) setIsControlTransferPending(false);
+        if (active && !isAutomationLeaderRef.current) setControlLeaseEpoch((value) => value + 1);
+        return;
+      }
+      if (requestedControlOwner(event.newValue) === tabId) return;
+      const requestValue = event.newValue;
+      window.setTimeout(() => {
+        if (window.localStorage.getItem(requestKey) === requestValue) {
+          window.localStorage.removeItem(requestKey);
+        }
+      }, 30_000);
+      isAutomationLeaderRef.current = false;
+      setIsControlTransferPending(false);
+      setIsAutomationLeader(false);
+      void commandQueueRef.current.finally(() => lease.stop());
+    };
+    window.addEventListener("storage", handleControlRequest);
+    void lease.completion.catch(() => {
+      if (!active) return;
+      isAutomationLeaderRef.current = false;
+      setIsControlTransferPending(false);
+      setIsAutomationLeader(false);
+      setApiAvailable(false);
+      showCrossTabNotice("Impossible d’acquérir le contrôle de la partie.");
+    });
+    return () => {
+      active = false;
+      window.removeEventListener("storage", handleControlRequest);
+      lease.stop();
+      if (controlLeaseRef.current === lease) controlLeaseRef.current = null;
+    };
+  }, [applyAuthoritativeState, controlLeaseEpoch, currentUser, isInitialGameLoadDone, publishAuthoritativeSnapshot, showCrossTabNotice]);
+
+  const requestGameControl = useCallback(() => {
+    if (!currentUser || isAutomationLeader || isControlTransferPending || !transportOnline) return;
+    const requestKey = controlRequestKey(String(currentUser.id));
+    window.localStorage.setItem(
+      requestKey,
+      `${controlTabIdRef.current}:${Date.now()}:${crypto.randomUUID()}`,
+    );
+    setIsControlTransferPending(true);
+    controlLeaseRef.current?.stop();
+    setControlLeaseEpoch((value) => value + 1);
+    showCrossTabNotice("Transfert du contrôle en cours…");
+  }, [currentUser, isAutomationLeader, isControlTransferPending, showCrossTabNotice, transportOnline]);
 
   const exploreAndResolveDungeon = useCallback(async () => {
-    if (dungeonSequenceRunningRef.current || !currentUser || !isOnline) return false;
+    if (dungeonSequenceRunningRef.current || !currentUser || !isOnline || !isAutomationLeaderRef.current) return false;
     dungeonSequenceRunningRef.current = true;
     setIsDungeonSequenceRunning(true);
     try {
@@ -331,12 +629,12 @@ export default function App() {
   ]);
 
   useEffect(() => {
-    if (!currentEncounter || !currentUser || !isOnline || isDungeonSequenceRunning) return;
+    if (!isAutomationLeader || !currentEncounter || !currentUser || !isOnline || isDungeonSequenceRunning) return;
     void exploreAndResolveDungeon();
-  }, [currentEncounter, currentUser, exploreAndResolveDungeon, isDungeonSequenceRunning, isOnline]);
+  }, [currentEncounter, currentUser, exploreAndResolveDungeon, isAutomationLeader, isDungeonSequenceRunning, isOnline]);
 
   useEffect(() => {
-    if (!currentUser || !isOnline || !dungeon.autoExplore || currentEncounter || isDungeonSequenceRunning) return;
+    if (!isAutomationLeader || !currentUser || !isOnline || !dungeon.autoExplore || currentEncounter || isDungeonSequenceRunning) return;
     const handle = window.setTimeout(() => {
       void exploreAndResolveDungeon();
     }, 1000);
@@ -346,6 +644,7 @@ export default function App() {
     currentUser,
     dungeon.autoExplore,
     exploreAndResolveDungeon,
+    isAutomationLeader,
     isDungeonSequenceRunning,
     isOnline,
   ]);
@@ -445,7 +744,7 @@ export default function App() {
         setIsInitialGameLoadDone(false);
         try {
           setIsSyncing(true);
-          const parsed = await callGameApi<any>("/bootstrap", { method: "POST" });
+          const parsed = await callGameApi<AuthoritativeGameEnvelope>("/bootstrap", { method: "POST" });
           setApiAvailable(true);
           setCanonicalStateFailureDetails(null);
           if (Number.isInteger(parsed?.revision)) {
@@ -455,7 +754,7 @@ export default function App() {
 
           if (parsed && parsed.state) {
             const state = parsed.state;
-            await applyAuthoritativeState(state, parsed.revision, String(user.id));
+            await applyAuthoritativeState(state, parsed.revision, String(user.id), parsed?.serverTime, parsed?.lastProcessedAt);
             const idleSummary = formatCanonicalIdleReport(parsed.idleReport);
             if (idleSummary) addLog(idleSummary, "info", "colony");
             addLog("☁️ Royaume synchronisé : Sauvegarde Supabase chargée avec succès !", "victory");
@@ -493,12 +792,15 @@ export default function App() {
         }
       } else {
         bootstrapUserRef.current = null;
+        latestAuthoritativeSnapshotRef.current = null;
+        setAuthoritativeTimeAnchor(null);
         setCanonicalStateFailureDetails(null);
         encounterPlaybackTokenRef.current += 1;
         dungeonSequenceRunningRef.current = false;
         setGameRevision(0);
         setCityName("");
         setCurrentEncounter(null);
+        encounterHistoryRef.current = [];
         setEncounterHistory([]);
         setEncounterPlayback(null);
         setIsDungeonSequenceRunning(false);
@@ -523,7 +825,7 @@ export default function App() {
   // Refresh active city progression from the authoritative clock. The
   // command queue prevents this heartbeat from racing user mutations.
   useEffect(() => {
-    if (!currentUser || !browserOnline || !isInitialGameLoadDone || !cityName || canonicalStateFailureDetails) return;
+    if (!isAutomationLeader || !currentUser || !browserOnline || !isInitialGameLoadDone || !cityName || canonicalStateFailureDetails) return;
     const rates = getTownRates();
     if (!shouldRefreshTownAuthority({
       rates,
@@ -535,13 +837,15 @@ export default function App() {
     let active = true;
     let pending = false;
     const refresh = () => {
-      if (pending || document.visibilityState === "hidden") return;
+      if (!isAutomationLeaderRef.current || pending) return;
       pending = true;
       const operation = commandQueueRef.current.then(async () => {
+        if (!isAutomationLeaderRef.current) return;
         try {
-          const parsed = await callGameApi<any>("/bootstrap", { method: "POST" });
+          const parsed = await callGameApi<AuthoritativeGameEnvelope>("/bootstrap", { method: "POST" });
           if (!active) return;
-          await applyAuthoritativeState(parsed?.state, parsed?.revision, String(currentUser.id));
+          await applyAuthoritativeState(parsed?.state, parsed?.revision, String(currentUser.id), parsed?.serverTime, parsed?.lastProcessedAt);
+          publishAuthoritativeSnapshot(parsed);
           const idleSummary = formatCanonicalIdleReport(parsed?.idleReport);
           if (idleSummary) addLog(idleSummary, "info", "colony");
           setApiAvailable(true);
@@ -570,7 +874,9 @@ export default function App() {
     currentUser,
     dungeon.heroes,
     getTownRates,
+    isAutomationLeader,
     isInitialGameLoadDone,
+    publishAuthoritativeSnapshot,
     townBuildings,
     townResources.food,
     townTotalCitizens,
@@ -578,28 +884,37 @@ export default function App() {
 
   const handleManualSaveCloud = useCallback(async () => {
     if (!currentUser || !isOnline) return;
-    try {
-      setIsSyncing(true);
-      const parsed = await callGameApi<any>("/bootstrap", { method: "POST" });
-      await applyAuthoritativeState(parsed?.state, parsed?.revision, String(currentUser.id));
-      const idleSummary = formatCanonicalIdleReport(parsed?.idleReport);
-      if (idleSummary) addLog(idleSummary, "info", "colony");
-      setApiAvailable(true);
-      setCanonicalStateFailureDetails(null);
-      addLog("☁️ État canonique actualisé depuis le serveur.", "victory");
-    } catch (error) {
-      const stateFailure = canonicalStateFailure(error);
-      if (stateFailure) {
-        setCanonicalStateFailureDetails(stateFailure);
-        setApiAvailable(true);
-      } else if (!(error instanceof GameApiError) || error.status >= 500) {
-        setApiAvailable(false);
-      }
-      addLog("Échec de l’actualisation de l’état canonique.", "defeat");
-    } finally {
-      setIsSyncing(false);
+    if (!isAutomationLeaderRef.current) {
+      showCrossTabNotice("Mode observateur : prenez le contrôle pour synchroniser.");
+      return;
     }
-  }, [addLog, applyAuthoritativeState, currentUser, isOnline]);
+    const operation = commandQueueRef.current.then(async () => {
+      try {
+        setIsSyncing(true);
+        const parsed = await callGameApi<AuthoritativeGameEnvelope>("/bootstrap", { method: "POST" });
+        await applyAuthoritativeState(parsed?.state, parsed?.revision, String(currentUser.id), parsed?.serverTime, parsed?.lastProcessedAt);
+        publishAuthoritativeSnapshot(parsed);
+        const idleSummary = formatCanonicalIdleReport(parsed?.idleReport);
+        if (idleSummary) addLog(idleSummary, "info", "colony");
+        setApiAvailable(true);
+        setCanonicalStateFailureDetails(null);
+        addLog("☁️ État canonique actualisé depuis le serveur.", "victory");
+      } catch (error) {
+        const stateFailure = canonicalStateFailure(error);
+        if (stateFailure) {
+          setCanonicalStateFailureDetails(stateFailure);
+          setApiAvailable(true);
+        } else if (!(error instanceof GameApiError) || error.status >= 500) {
+          setApiAvailable(false);
+        }
+        addLog("Échec de l’actualisation de l’état canonique.", "defeat");
+      } finally {
+        setIsSyncing(false);
+      }
+    });
+    commandQueueRef.current = operation.then(() => undefined, () => undefined);
+    await operation;
+  }, [addLog, applyAuthoritativeState, currentUser, isOnline, publishAuthoritativeSnapshot, showCrossTabNotice]);
 
   // Lock offline users to the Account panel
   useEffect(() => {
@@ -613,33 +928,43 @@ export default function App() {
       addLog("📡 Mode hors connexion : la réinitialisation est verrouillée.", "info");
       return;
     }
-    try {
-      setIsSyncing(true);
-      if (currentUser) {
-        const reset = await callGameApi<any>("/reset", { method: "POST" });
-        await applyAuthoritativeState(reset?.state, reset?.revision, String(currentUser.id));
-      }
-      await purgeLegacyGameCache();
-      
-      // Clear transient UI after the canonical reset response was applied.
-      setBattleLogs([]);
-      setCurrentEncounter(null);
-      setEncounterHistory([]);
-      setEncounterPlayback(null);
-      setCanonicalStateFailureDetails(null);
-
-      // Crucially, set cityName to empty string to send user back to the naming page of LoginPage
-      setCityName("");
-      window.requestAnimationFrame(() => {
-        window.scrollTo({ top: 0, left: 0, behavior: "auto" });
-      });
-
-      addLog("💣 Remise à zéro totale effectuée ! Créez une nouvelle cité.", "defeat");
-    } catch (err) {
-      console.error("Failed to reset Supabase savegame state", err);
-    } finally {
-      setIsSyncing(false);
+    if (!isAutomationLeaderRef.current) {
+      showCrossTabNotice("Mode observateur : prenez le contrôle avant de réinitialiser.");
+      return;
     }
+    const operation = commandQueueRef.current.then(async () => {
+      try {
+        setIsSyncing(true);
+        if (currentUser) {
+          const reset = await callGameApi<AuthoritativeGameEnvelope>("/reset", { method: "POST" });
+          await applyAuthoritativeState(reset?.state, reset?.revision, String(currentUser.id), reset?.serverTime, reset?.lastProcessedAt);
+          publishAuthoritativeSnapshot(reset);
+        }
+        await purgeLegacyGameCache();
+
+        // Clear transient UI after the canonical reset response was applied.
+        setBattleLogs([]);
+        setCurrentEncounter(null);
+        encounterHistoryRef.current = [];
+        setEncounterHistory([]);
+        setEncounterPlayback(null);
+        setCanonicalStateFailureDetails(null);
+
+        // Crucially, set cityName to empty string to send user back to the naming page of LoginPage
+        setCityName("");
+        window.requestAnimationFrame(() => {
+          window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+        });
+
+        addLog("💣 Remise à zéro totale effectuée ! Créez une nouvelle cité.", "defeat");
+      } catch (err) {
+        console.error("Failed to reset Supabase savegame state", err);
+      } finally {
+        setIsSyncing(false);
+      }
+    });
+    commandQueueRef.current = operation.then(() => undefined, () => undefined);
+    await operation;
   };
 
   const deleteAccount = async () => {
@@ -647,26 +972,34 @@ export default function App() {
       addLog("📡 Mode hors connexion : la suppression du compte est verrouillée.", "info");
       return;
     }
-    try {
-      setIsSyncing(true);
-      await callGameApi("/account", { method: "DELETE" });
-      await purgeLegacyGameCache();
-      town.resetTownSystem();
-      dungeon.resetDungeonSystem();
-      setBattleLogs([]);
-      setCurrentEncounter(null);
-      setEncounterHistory([]);
-      setEncounterPlayback(null);
-      setCanonicalStateFailureDetails(null);
-      setCityName("");
-      await signOut();
-      addLog("Compte et données supprimés définitivement.", "defeat");
-    } catch (err) {
-      console.error("Failed to delete account", err);
-      addLog("Échec de la suppression du compte. Aucune donnée locale n’a été réinitialisée.", "defeat");
-    } finally {
-      setIsSyncing(false);
+    if (!isAutomationLeaderRef.current) {
+      showCrossTabNotice("Mode observateur : prenez le contrôle avant de supprimer le compte.");
+      return;
     }
+    const operation = commandQueueRef.current.then(async () => {
+      try {
+        setIsSyncing(true);
+        await callGameApi("/account", { method: "DELETE" });
+        await purgeLegacyGameCache();
+        town.resetTownSystem();
+        dungeon.resetDungeonSystem();
+        setBattleLogs([]);
+        setCurrentEncounter(null);
+        setEncounterHistory([]);
+        setEncounterPlayback(null);
+        setCanonicalStateFailureDetails(null);
+        setCityName("");
+        await signOut();
+        addLog("Compte et données supprimés définitivement.", "defeat");
+      } catch (err) {
+        console.error("Failed to delete account", err);
+        addLog("Échec de la suppression du compte. Aucune donnée locale n’a été réinitialisée.", "defeat");
+      } finally {
+        setIsSyncing(false);
+      }
+    });
+    commandQueueRef.current = operation.then(() => undefined, () => undefined);
+    await operation;
   };
 
   // Canonical idle/health progression is applied by game-api. React only
@@ -818,9 +1151,31 @@ export default function App() {
         </div>
       )}
 
+      {isOnline && currentUser && !isAutomationLeader && (
+        <div role="status" className="sticky top-0 z-30 flex flex-wrap items-center justify-center gap-3 border-b border-violet-700/60 bg-violet-950/95 px-4 py-2 text-center text-sm text-violet-100">
+          <span>{isControlTransferPending
+            ? "Transfert du contrôle en cours…"
+            : "Mode observateur — la partie est contrôlée dans un autre onglet."}</span>
+          <button
+            type="button"
+            onClick={requestGameControl}
+            disabled={isControlTransferPending}
+            className="rounded border border-violet-400/70 bg-violet-800 px-3 py-1 text-xs font-bold uppercase tracking-wide text-white transition hover:bg-violet-700 disabled:cursor-wait disabled:opacity-60"
+          >
+            {isControlTransferPending ? "Transfert…" : "Prendre le contrôle"}
+          </button>
+        </div>
+      )}
+
+      {crossTabNotice && currentUser && (
+        <div role="status" aria-live="polite" className="sticky top-0 z-30 border-b border-sky-700/60 bg-sky-950/95 px-4 py-2 text-center text-sm text-sky-100">
+          {crossTabNotice.message}
+        </div>
+      )}
+
       {/* 2. DYNAMIC NAMING POPUP STAGE (BLOCKED IF USER DID NOT CHOOSE A NAME YET) */}
       {currentUser && !canonicalStateFailureDetails && !cityName && isInitialGameLoadDone && (
-        <div className="flex-1 bg-[#150D08]/90 flex items-center justify-center p-4">
+        <div className={`flex-1 bg-[#150D08]/90 flex items-center justify-center p-4 ${canMutate ? "" : "pointer-events-none opacity-80"}`}>
           <LoginPage
             authoritativeNovices={onboardingCandidates}
             pendingCityName={pendingOnboardingCityName}
@@ -845,7 +1200,7 @@ export default function App() {
         
         {/* CHEAT CODES ZONE */}
         {cheatsAllowedForUser && cityName && (
-          <div className="bg-[#1e130b] border border-[#523520] rounded-xl p-3.5 shadow-md flex flex-col md:flex-row gap-3 items-center justify-between animate-fade-in shrink-0">
+          <div className={`bg-[#1e130b] border border-[#523520] rounded-xl p-3.5 shadow-md flex flex-col md:flex-row gap-3 items-center justify-between animate-fade-in shrink-0 ${canMutate ? "" : "pointer-events-none opacity-60"}`}>
             <div className="flex items-center gap-3">
               <span className="text-[#caa050] text-xl drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]">🔑</span>
               <div>
@@ -969,7 +1324,7 @@ export default function App() {
           
           {/* A. CITY TAB VIEW (TOWN INTERFACE) */}
           {activeTab === "city" && (
-            <div className={`w-full ${isOnline ? "" : "pointer-events-none opacity-80"}`} aria-disabled={!isOnline}>
+            <div className={`w-full ${canMutate ? "" : "pointer-events-none opacity-80"}`} aria-disabled={!canMutate}>
               <TownPanel
                 resources={town.resources}
                 buildings={town.buildings}
@@ -994,7 +1349,7 @@ export default function App() {
 
           {/* B. HEROES TAB VIEW (HERO GUILD MANAGEMENT) */}
           {activeTab === "heroes" && (
-            <div className={`w-full ${isOnline ? "" : "pointer-events-none opacity-80"}`} aria-disabled={!isOnline}>
+            <div className={`w-full ${canMutate ? "" : "pointer-events-none opacity-80"}`} aria-disabled={!canMutate}>
               <HeroPanel
                 heroes={dungeon.displayHeroes}
                 resources={town.resources}
@@ -1015,7 +1370,7 @@ export default function App() {
 
           {/* C. DUNGEON TAB VIEW (CENTERED HIGH-PERFORMANCE COMBAT MONITOR) */}
           {activeTab === "dungeon" && (
-            <div className={`w-full ${isOnline ? "" : "pointer-events-none opacity-80"}`} aria-disabled={!isOnline}>
+            <div className={`w-full ${canMutate ? "" : "pointer-events-none opacity-80"}`} aria-disabled={!canMutate}>
               <DungeonPanel
                 heroes={dungeon.heroes}
                 activeDungeonFloor={dungeon.activeDungeonFloor}
@@ -1076,7 +1431,7 @@ export default function App() {
 
           {/* E. STORAGE TAB VIEW (GLOBAL CITY VAULT & EQUIPMENT PREVIEW) */}
           {activeTab === "storage" && (
-            <div className="w-full">
+            <div className={`w-full ${canMutate ? "" : "pointer-events-none opacity-80"}`} aria-disabled={!canMutate}>
               <StoragePanel
                 storedItems={dungeon.storedItems}
                 heroes={dungeon.heroes}
@@ -1100,7 +1455,7 @@ export default function App() {
       </footer>
 
       {/* 5. GORGEOUS CUSTOM RECRUITMENT MODAL */}
-      {pendingRecruit && (() => {
+      {pendingRecruit && isAutomationLeader && (() => {
         const STAT_LABELS: Record<string, string> = {
           str: "Force (STR)",
           wiz: "Sagesse (WIZ)",

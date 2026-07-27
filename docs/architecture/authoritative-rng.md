@@ -46,8 +46,8 @@ le flux.
 1. Le backend restaure le generateur depuis `rngState`.
 2. L autorite metier consomme les tirages necessaires.
 3. Le nouvel instantane RNG est ajoute a l etat produit.
-4. `commit_game_command` persiste dans la meme transaction l etat metier, le
-   RNG, la revision, la commande et les evenements.
+4. `commit_game_transition` persiste dans la meme transaction l etat metier,
+   le RNG, le temps traite, la revision, la commande et les evenements.
 
 Un conflit est detecte avant l autorite metier. Un replay retourne l etat deja
 committe sans rappeler l autorite. Une commande rejetee ne fournit aucun etat

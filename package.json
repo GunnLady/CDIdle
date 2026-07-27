@@ -9,6 +9,7 @@
     "check:bundle": "node scripts/check-bundle-budget.mjs",
     "check:secrets": "node scripts/check-secrets.mjs",
     "smoke:game-api": "node scripts/smoke-game-api.mjs",
+    "test:integration": "node scripts/test-temporal-concurrency.mjs",
     "check:migrations": "node scripts/check-migrations.mjs",
     "check:logs": "node scripts/check-log-safety.mjs",
     "preview": "vite preview",

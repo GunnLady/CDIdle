@@ -35,6 +35,23 @@ describe("server idle authority", () => {
     expect(replay.report).toMatchObject({ elapsedSeconds: 0, appliedSeconds: 0, discardedSeconds: 0 });
   });
 
+  it("preserves sub-second time across rapid authoritative treatments", () => {
+    const origin = Date.parse("2026-07-18T00:00:00.000Z");
+    let state: Record<string, unknown> = structuredClone(base);
+    let lastProcessedAt = new Date(origin).toISOString();
+    let appliedSeconds = 0;
+
+    for (let step = 1; step <= 10; step += 1) {
+      const result = applyIdleAuthority(state, lastProcessedAt, new Date(origin + step * 200));
+      state = result.state;
+      lastProcessedAt = result.lastProcessedAt;
+      appliedSeconds += result.report.appliedSeconds;
+    }
+
+    expect(appliedSeconds).toBe(2);
+    expect(lastProcessedAt).toBe("2026-07-18T00:00:02.000Z");
+  });
+
   it("counts only heroes whose resting gauges actually changed", () => {
     const result = applyIdleAuthority({ ...base, heroes: [
       { status: "resting", currentHp: 2, currentMana: 0, calculatedStats: { maxHp: 20, maxMana: 10 } },

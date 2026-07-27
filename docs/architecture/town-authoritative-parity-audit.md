@@ -127,3 +127,12 @@ immediatement la selection du nom du royaume.
 L'onglet d'interface courant est conserve dans `sessionStorage` afin qu'un
 `F5` restaure la vue Ville, Heros, Donjon, Coffre ou Compte sans ajouter cette
 preference a l'etat de jeu canonique.
+
+## Rectification temporelle CDI-061
+
+Le heartbeat CDI-057 ne fournit plus son propre point de départ temporel avec
+`Date.now()`. Chaque bootstrap ou commande renvoie désormais `serverTime` et
+`lastProcessedAt` depuis PostgreSQL. La Ville projette leur reliquat avec
+`performance.now()`, sans autoriser de mutation locale, puis se recale au
+snapshot suivant. Le commit idle autonome incrémente la révision et compare
+simultanément l'ancienne révision et l'ancien timestamp.

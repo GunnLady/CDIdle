@@ -68,3 +68,16 @@ frontend présente uniquement les changements significatifs courts afin de ne
 pas saturer le journal avec chaque soin partiel.
 - Le ticket peut être proposé au passage `Done`, mais aucun commit/push ne doit
   être lancé sans autorisation explicite.
+
+## Rectification CDI-061 du 2026-07-26
+
+Le raccordement historique `commit_idle_state` n'était pas atomique avec une
+commande et ne modifiait pas la révision. CDI-061 le remplace dans le runtime
+par `load_game_transition`, `commit_idle_transition` et
+`commit_game_transition`. Toute écriture compare désormais ensemble révision
+et timestamp ; idle et commande sont persistés dans une seule transition
+quand ils appartiennent à la même requête. L'horloge vient de PostgreSQL et le
+reliquat inférieur à une seconde est conservé. Les preuves historiques
+ci-dessus restent un constat daté, pas une preuve de cette nouvelle
+transaction ; les preuves PostgreSQL CDI-061 sont dans
+`supabase/tests/database/023_temporal_authority.sql`.

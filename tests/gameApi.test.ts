@@ -37,6 +37,27 @@ describe("game-api Edge handler", () => {
     expect((await handler(request("/account", { method: "DELETE" }))).status).toBe(200);
     expect((await handler(request("/missing", { method: "POST" }))).status).toBe(404);
   });
+  it("returns 409 while an identical command is already in progress", async () => {
+    const inProgressHandler = createGameApiHandler({
+      allowedOrigins: ["https://app.example.test"],
+      services: {
+        ...services,
+        commands: async () => ({ ok: false, error: { code: "COMMAND_IN_PROGRESS", message: "command is already in progress" } }),
+      },
+    });
+    const result = await inProgressHandler(request("/commands", {
+      method: "POST",
+      body: JSON.stringify({
+        commandId: "45454545-4545-4454-8454-454545454545",
+        idempotencyKey: "in-progress",
+        expectedRevision: 0,
+        clientVersion: "test",
+        command: { type: "dungeon.auto_explore", enabled: false },
+      }),
+    }));
+    expect(result.status).toBe(409);
+    await expect(result.json()).resolves.toMatchObject({ error: { code: "COMMAND_IN_PROGRESS" } });
+  });
   it("rejects oversized command payloads before dispatch", async () => {
     const oversized = JSON.stringify({ commandId: "44444444-4444-4444-8444-444444444444", idempotencyKey: "idem", expectedRevision: 0, clientVersion: "test", command: { type: "building.upgrade", buildingId: "ferme" }, padding: "x".repeat(128 * 1024) });
     const result = await handler(request("/commands", { method: "POST", body: oversized }));

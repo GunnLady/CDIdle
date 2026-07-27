@@ -47,6 +47,7 @@ export function applyIdleAuthority(
 
   const elapsedSeconds = Math.floor((timestamp - previous) / 1000);
   const appliedSeconds = Math.min(elapsedSeconds, MAX_IDLE_SECONDS);
+  const processedTimestamp = previous + elapsedSeconds * 1000;
   const next = clone(current);
   const resources = { food: 0, wood: 0, stone: 0, ore: 0, ...((next.resources as Record<string, number> | undefined) ?? {}) };
   const produced = elapsedSeconds === 0 ? zeroRates() : rates(next);
@@ -103,7 +104,7 @@ export function applyIdleAuthority(
   next.heroes = heroes;
   return {
     state: next,
-    lastProcessedAt: new Date(timestamp).toISOString(),
+    lastProcessedAt: new Date(processedTimestamp).toISOString(),
     report: { elapsedSeconds, appliedSeconds, discardedSeconds: elapsedSeconds - appliedSeconds, resourcesProduced, foodConsumed, citizensAdded, heroesRecovered, heroesFullyRecovered },
   };
 }

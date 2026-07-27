@@ -404,11 +404,13 @@ export default function DungeonPanel({
             </button>
             <button
               onClick={onToggleAutoExplore}
+              disabled={!autoExplore && activeHeroes.length === 0}
+              title={!autoExplore && activeHeroes.length === 0 ? "Aucun héros actif disponible" : undefined}
               className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 px-3 rounded text-[11px] font-bold transition cursor-pointer font-serif tracking-widest border ${
                 autoExplore
                   ? "bg-[#8c5a2b] hover:bg-[#ab733c] text-white border-[#d4af37] shadow-md"
                   : "bg-[#1c140f] text-[#a89078] border-[#5c402b]/60 hover:bg-[#2a1c12]"
-              }`}
+              } disabled:cursor-not-allowed disabled:opacity-40`}
             >
               {autoExplore ? (
                 <>
@@ -418,7 +420,7 @@ export default function DungeonPanel({
               ) : (
                 <>
                   <Play className="w-4 h-4 animate-pulse text-red-500" />
-                  <span>MARCHE AUTO : PAUSE</span>
+                  <span>{activeHeroes.length === 0 ? "AUTO INDISPONIBLE" : "DÉMARRER L'AUTO"}</span>
                 </>
               )}
             </button>

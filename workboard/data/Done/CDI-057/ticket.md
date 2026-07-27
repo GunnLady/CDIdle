@@ -8,7 +8,7 @@ size: L
 risk: high
 source: Audit fonctionnel Ville Git et documentation du 2026-07-25
 depends_on: ["CDI-025", "CDI-030"]
-blocks: ["CDI-051"]
+blocks: ["CDI-051", "CDI-061"]
 github_issue: null
 related_docs: ["docs/fullstack-authoritative-plan.md", "docs/architecture/town-authoritative-parity-audit.md", "docs/architecture/town-domain.md", "docs/development/cdi-051-authoritative-ui-validation.md"]
 ---

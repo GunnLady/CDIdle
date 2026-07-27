@@ -1,5 +1,6 @@
 import type { GameState } from "../types";
-import type { CanonicalCommandEnvelope, CanonicalGameCommand } from "../../shared/contracts/authoritative";
+import type { CanonicalIdleReport } from "./idleReport";
+import type { CanonicalGameCommand } from "../../shared/contracts/authoritative";
 
 export type { CanonicalCommandEnvelope, CanonicalGameCommand } from "../../shared/contracts/authoritative";
 
@@ -19,7 +20,8 @@ export type CommandErrorCode =
   | "DUPLICATE_COMMAND"
   | "NOT_FOUND"
   | "INSUFFICIENT_RESOURCES"
-  | "RATE_LIMITED";
+  | "RATE_LIMITED"
+  | "COMMAND_IN_PROGRESS";
 
 export interface CommandError {
   code: CommandErrorCode;
@@ -34,6 +36,22 @@ export interface CommandSuccess<T = GameState> {
   state: T;
   commandId: string;
   replayed: boolean;
+}
+
+export interface AuthoritativeCommandSuccess<T = GameState> extends CommandSuccess<T> {
+  serverTime: string;
+  lastProcessedAt: string;
+  events?: Array<Record<string, unknown>>;
+  idleReport?: CanonicalIdleReport;
+}
+
+export interface AuthoritativeGameEnvelope<T = GameState> {
+  schemaVersion: 1;
+  revision: number;
+  serverTime: string;
+  lastProcessedAt: string;
+  state: T;
+  idleReport?: CanonicalIdleReport;
 }
 
 export interface CommandFailure {
