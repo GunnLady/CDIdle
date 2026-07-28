@@ -1,5 +1,9 @@
 # CDI-042 — Audit global de l’état du plan
 
+> Instantané historique du 2026-07-23. Les statuts, compteurs et blocages
+> ci-dessous décrivent cet audit à cette date ; consulter le Workboard pour
+> l'état actuel. CDI-049 a depuis clôturé le plan autoritaire.
+
 Date de l’audit : 2026-07-23
 
 ## État vérifié

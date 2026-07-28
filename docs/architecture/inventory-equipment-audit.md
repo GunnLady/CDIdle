@@ -1,5 +1,9 @@
 # Audit inventaire et équipement
 
+> Instantané historique antérieur à CDI-027 et CDI-059. Les statuts `Later`
+> ci-dessous sont conservés pour retracer les décisions, pas pour piloter le
+> travail actuel ; consulter le Workboard.
+
 Ce document recense les écarts observés autour de CDI-012 et sert de base de
 travail pour créer les prochains tickets sans dupliquer les sujets existants.
 

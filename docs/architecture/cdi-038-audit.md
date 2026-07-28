@@ -1,5 +1,8 @@
 # Audit détaillé CDI-038
 
+> Instantané historique : cet audit conserve les constats de son exécution.
+> Le Workboard indique seul les statuts et écarts encore ouverts aujourd'hui.
+
 ## Contrôles sans écart
 
 - formule documentée : `55/6` au niveau 10, `45/4` au niveau 11, `30/2` au

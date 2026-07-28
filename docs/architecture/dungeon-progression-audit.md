@@ -1,5 +1,9 @@
 # Audit progression de donjon
 
+> Instantané historique antérieur aux intégrations autoritaires du donjon. Les
+> mentions `À faire` ci-dessous ne constituent pas l'état actuel ; consulter le
+> Workboard et les audits CDI-029/CDI-059.
+
 Cet audit conserve les écarts observés après CDI-014 et indique le ticket qui
 les prend en charge. CDI-014 couvre uniquement le socle de progression :
 étages, salles, record et navigation bornée.

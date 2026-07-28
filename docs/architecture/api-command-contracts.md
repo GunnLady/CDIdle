@@ -154,7 +154,8 @@ aucune statistique de remplacement.
 Les anciennes projections locales `currentMonster`, `currentEncounterType` et
 `combatTimer` ont été retirées de `DungeonPanel` et de `useDungeonSystem`.
 
-CDI-051 reste en pause jusqu'à la matrice automatisée finale, la validation
-Edge réelle et le parcours navigateur après `F5`.
+CDI-051 est `Done`. La matrice automatisée et les parcours navigateur sont
+consolidés dans CDI-046/CDI-048 ; le smoke Edge/Supabase distant est validé
+dans CDI-047.
 
 Audit : `docs/architecture/authoritative-dungeon-parity-audit.md`.

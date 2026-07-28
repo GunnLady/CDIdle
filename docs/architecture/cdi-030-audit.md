@@ -1,5 +1,8 @@
 # Audit pré-push CDI-030 — idle serveur et rapport de retour
 
+> Instantané historique : cet audit conserve les constats de son exécution.
+> Le Workboard indique seul les statuts et écarts encore ouverts aujourd'hui.
+
 Date : 2026-07-21
 
 ## Contrôles sans écart

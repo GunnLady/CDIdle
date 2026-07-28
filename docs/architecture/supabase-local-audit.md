@@ -1,5 +1,8 @@
 # Audit des oublis et écarts Supabase local — CDI-017
 
+> Instantané historique : cet audit conserve les constats de son exécution.
+> Le Workboard indique seul les statuts et écarts encore ouverts aujourd'hui.
+
 Date : 2026-07-18
 
 ## Méthode

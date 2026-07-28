@@ -1,5 +1,8 @@
 # Audit CDI-034 — hardening et budgets
 
+> Instantané historique : cet audit conserve les constats de son exécution.
+> Le Workboard indique seul les statuts et écarts encore ouverts aujourd'hui.
+
 Date : 2026-07-23
 
 ## Périmètre vérifié

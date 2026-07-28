@@ -1,5 +1,9 @@
 # Audit du rebase du snapshot `zero`
 
+> Instantané historique du rebase décrit ci-dessous. Les états de tickets et
+> écarts mentionnés correspondent à ce moment du projet ; consulter le
+> Workboard pour l'état actuel.
+
 ## Périmètre et base de comparaison
 
 - Base autoritaire : `main` à `9a241f3` (tickets CDI-001 à CDI-014 terminés,

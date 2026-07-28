@@ -1,5 +1,8 @@
 # Audit CDI-018 — schéma PostgreSQL et RLS
 
+> Instantané historique : cet audit conserve les constats de son exécution.
+> Le Workboard indique seul les statuts et écarts encore ouverts aujourd'hui.
+
 ## Périmètre vérifié
 
 Audit réalisé contre le plan fullstack autoritaire, le ticket CDI-018 et la

@@ -1,5 +1,8 @@
 # Audit repository de partie et initialisation (CDI-020)
 
+> Instantané historique : cet audit conserve les constats de son exécution.
+> Le Workboard indique seul les statuts et écarts encore ouverts aujourd'hui.
+
 ## Périmètre vérifié
 
 L'audit couvre la création paresseuse, le chargement idempotent, la validation

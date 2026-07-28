@@ -1,5 +1,9 @@
 # Suivis différés de `game-api`
 
+> Instantané historique des suivis ouverts après CDI-022. Les blocages décrits
+> ci-dessous ont depuis été repris par les tickets autoritaires, jusqu'au smoke
+> distant CDI-047. Seul le Workboard indique les suivis encore actifs.
+
 Ces sujets sont volontairement sortis de CDI-022 après validation du contrat
 HTTP. Ils doivent être repris avant une mise en production réelle et bloquent
 explicitement la reprise de CDI-025 tant que les critères ci-dessous ne sont

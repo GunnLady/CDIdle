@@ -1,5 +1,8 @@
 # Audit Edge Function game-api (CDI-022)
 
+> Instantané historique : cet audit conserve les constats de son exécution.
+> Le Workboard indique seul les statuts et écarts encore ouverts aujourd'hui.
+
 ## Périmètre vérifié
 
 Le handler Edge Runtime expose les routes publiques, applique CORS strict,

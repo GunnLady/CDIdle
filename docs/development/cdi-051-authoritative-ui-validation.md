@@ -1,5 +1,8 @@
 # Validation de l’interface autoritaire — CDI-051
 
+> État actuel : CDI-051 est `Done`. Les nombres de tests et états intermédiaires
+> ci-dessous sont conservés comme preuves historiques de son exécution.
+
 ## Objet
 
 Ce document conserve les preuves, écarts et validations manuelles de
@@ -10,7 +13,7 @@ documentation de suivi durable et non un handoff de session.
 
 - L’intégration principale CDI-051 est publiée dans `f47993e`.
 - La régression de création des novices est tracée dans `e0fe83e`.
-- CDI-051 est en `Paused`.
+- CDI-051 était en `Paused` à cette étape de validation.
 - CDI-053 a restauré puis validé la génération autoritaire complète des novices.
 
 ## Corrections réalisées
@@ -64,7 +67,9 @@ L'audit du 2026-07-25 a trouvé un contournement `unassigned`, l'absence des
 prérequis d'étage côté serveur et des districts historiquement incohérents.
 CDI-057 corrige les invariants et les étages, désactive entièrement les
 districts, corrige le libellé du Campement et prune les handlers Ville locaux.
-CDI-051 reste bloqué jusqu'à la validation navigateur de cette correction.
+À cette étape, CDI-051 restait bloqué jusqu'à la validation navigateur de cette
+correction. Cette validation a ensuite été obtenue et consolidée dans les
+tickets CDI-048 et CDI-061.
 
 ## Preuves navigateur obtenues
 

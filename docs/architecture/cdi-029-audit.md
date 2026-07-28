@@ -1,5 +1,8 @@
 # Audit fonctionnel pré-push — CDI-029
 
+> Instantané historique : cet audit conserve les constats de son exécution.
+> Le Workboard indique seul les statuts et écarts encore ouverts aujourd'hui.
+
 Date : 2026-07-20
 
 ## Périmètre vérifié

@@ -1,5 +1,8 @@
 # Audit dispatcher transactionnel (CDI-021)
 
+> Instantané historique : cet audit conserve les constats de son exécution.
+> Le Workboard indique seul les statuts et écarts encore ouverts aujourd'hui.
+
 ## Périmètre vérifié
 
 Le dispatcher valide l'enveloppe de commande, vérifie le type connu, calcule

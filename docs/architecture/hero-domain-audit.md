@@ -1,5 +1,8 @@
 # Audit CDI-011 — incohérences et sujets à traiter
 
+> Instantané historique : cet audit conserve les constats de son exécution.
+> Le Workboard indique seul les statuts et écarts encore ouverts aujourd'hui.
+
 Ce document sert de base de travail pour les tickets héros suivants. Il distingue
 les règles maintenant couvertes par `src/domain/hero.ts` des règles encore
 portées par les hooks React.

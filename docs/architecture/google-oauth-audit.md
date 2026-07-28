@@ -1,5 +1,8 @@
 # Audit Google OAuth et allowlist (CDI-019)
 
+> Instantané historique : cet audit conserve les constats de son exécution.
+> Le Workboard indique seul les statuts et écarts encore ouverts aujourd'hui.
+
 ## Périmètre vérifié
 
 L'audit couvre le contrôle d'inscription Google, l'allowlist active, les

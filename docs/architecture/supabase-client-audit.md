@@ -1,5 +1,8 @@
 # Audit du client Supabase — CDI-023
 
+> Instantané historique : cet audit conserve les constats de son exécution.
+> Le Workboard indique seul les statuts et écarts encore ouverts aujourd'hui.
+
 ## Périmètre vérifié
 
 Le client navigateur utilise désormais `@supabase/supabase-js` pour Google,

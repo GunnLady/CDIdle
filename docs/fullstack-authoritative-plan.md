@@ -1,15 +1,17 @@
 # CDIdle — Plan de transformation fullstack autoritaire
 
-**Statut :** approuvé le 15 juillet 2026
+**Statut :** approuvé le 15 juillet 2026 ; exécution du plan autoritaire
+clôturée le 28 juillet 2026 par CDI-049
 
 **Pilotage :** protocole Eclipse, Workboard `CDI-###`
 
-**État :** Workboard matérialisé ; implémentation du gameplay non commencée
+**État :** autorité serveur livrée et validée localement puis sur Supabase
+distant ; les évolutions autonomes restent suivies dans le Workboard
 
-Ce document est la source canonique du plan approuvé pour transformer le
-prototype CDIdle en alpha privée Friends & Family. Les tickets détaillés du
-Workboard traduisent ce plan en tranches d'exécution ; ils ne doivent pas en
-modifier les décisions sans validation explicite du produit.
+Ce document reste la source canonique des décisions produit du plan approuvé.
+`AGENTS.md` porte les règles opérationnelles courantes et le Workboard Markdown
+porte seul le statut actuel, les dépendances et les preuves des tickets. Les
+états historiques cités dans ce plan ne remplacent jamais ces deux sources.
 
 ## 1. Décisions verrouillées
 
@@ -214,11 +216,11 @@ handoff.
 ### 3.2 Synchronisation GitHub
 
 - Le ticket Markdown est la source de vérité.
-- Chaque ticket est reflété par une Issue `[CDI-###] Titre`.
-- La synchronisation est à sens unique pour le titre, le corps et les labels
-  `area:*`, `priority:*`, `size:*` et `status:*`.
-- L'Issue reste ouverte en `Later`, `ToDo`, `Doing` ou `Paused`, puis se ferme
-  en `Done`.
+- Le miroir GitHub Issues est optionnel et désactivé lorsque
+  `workboard/config.json` définit `githubIssuesSync: false`.
+- Lorsqu'il est explicitement activé, la synchronisation reste à sens unique
+  pour le titre, le corps et les labels `area:*`, `priority:*`, `size:*` et
+  `status:*` ; l'Issue suit alors l'état du ticket Markdown.
 - Les commentaires GitHub sont un journal distant et ne réécrivent pas le ticket.
 - Le jeton GitHub reste exclusivement dans l'environnement du processus local.
 
@@ -230,8 +232,9 @@ handoff.
   désigne explicitement au début de la session.
 - Trois tickets maximum peuvent être parallélisés, uniquement avec dépendances
   satisfaites et surfaces d'écriture distinctes.
-- Un ticket passe en `Done` après intégration dans `staging`, contrôles verts et
-  preuves consignées.
+- Un ticket passe en `Done` après intégration sur `main`, contrôles requis et
+  preuves consignées. Une validation staging reste un gate distinct uniquement
+  lorsque le ticket ou le runbook de livraison l'exige.
 
 ## 4. Catalogue des tickets
 
@@ -398,7 +401,7 @@ Le dépôt final doit exposer au minimum :
 - Les migrations production sont additives.
 - Une sauvegarde manuelle chiffrée et gitignorée précède chaque promotion.
 - Le staging est validé pendant 48 heures avec au moins deux comptes et deux
-  appareils avant CDI-035.
+  appareils avant une promotion en production.
 - Le rollback redéploie l'Edge Function et le build web précédents ; aucune
   migration destructive n'est autorisée dans cette première version.
 

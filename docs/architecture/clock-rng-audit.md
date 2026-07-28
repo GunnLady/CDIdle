@@ -1,5 +1,8 @@
 # Audit horloge/RNG — CDI-037
 
+> Instantané historique : cet audit conserve les constats de son exécution.
+> Le Workboard indique seul les statuts et écarts encore ouverts aujourd'hui.
+
 ## Inventaire au 2026-07-19
 
 | Zone | Accès direct | Classement | Décision |

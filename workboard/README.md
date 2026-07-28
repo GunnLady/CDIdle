@@ -2,8 +2,8 @@
 
 Le Workboard CDIdle est un tableau Kanban local, versionne avec le depot et
 alimente par des tickets Markdown. Il constitue la source de verite pour le
-contenu et les dependances des tickets. Les Issues GitHub en sont un miroir de
-collaboration.
+contenu et les dependances des tickets. Les Issues GitHub peuvent servir de
+miroir de collaboration lorsque cette synchronisation optionnelle est activee.
 
 Le plan approuve qui gouverne ces tickets est conserve dans
 [`docs/fullstack-authoritative-plan.md`](../docs/fullstack-authoritative-plan.md).
@@ -86,20 +86,22 @@ statuts executables et la limite WIP.
 
 ## Promotion Git et CI
 
-Un ticket ne peut passer en `Done` qu'apres :
+Un ticket peut passer en `Done` apres :
 
-1. execution locale de `npm run check` et des tests propres au ticket ;
-2. commit Git dedie contenant uniquement le perimetre du ticket ;
-3. push de la branche vers le depot distant ;
-4. CI GitHub verte sur le commit pousse.
+1. execution des validations proportionnees prevues par le ticket, dont
+   `npm run check` lorsqu'il l'exige ;
+2. validation des tests interactifs requis ;
+3. audit fonctionnel pre-push sans ecart reel non corrige.
 
-Le handoff doit fournir le hash du commit, le lien du push ou de la PR et le
-resultat de la CI. Une erreur CI laisse le ticket en `Doing` ou `Paused`.
+Le commit et le push suivent apres autorisation. L'audit post-push controle
+uniquement le commit publie, l'alignement Git et la CI disponible. Il distingue
+les preuves obtenues directement des preuves rapportees par l'utilisateur.
 
 ## Synchronisation GitHub
 
-La synchronisation est a sens unique, du fichier Markdown vers GitHub. Le mode
-par defaut est une simulation :
+La synchronisation est optionnelle et desactivee lorsque `githubIssuesSync`
+vaut `false` dans `config.json`. Lorsqu'elle est activee, elle est a sens unique,
+du fichier Markdown vers GitHub. Le mode par defaut est une simulation :
 
 ```powershell
 npm run board:sync

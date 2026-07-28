@@ -1,5 +1,8 @@
 # Audit de parite du donjon autoritaire — CDI-054
 
+> Instantané historique : cet audit conserve les constats de son exécution.
+> Le Workboard indique seul les statuts et écarts encore ouverts aujourd'hui.
+
 Date : 24 juillet 2026.
 
 ## Decision

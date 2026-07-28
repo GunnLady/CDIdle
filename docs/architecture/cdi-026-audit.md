@@ -1,5 +1,8 @@
 # Audit détaillé CDI-026
 
+> Instantané historique : cet audit conserve les constats de son exécution.
+> Le Workboard indique seul les statuts et écarts encore ouverts aujourd'hui.
+
 ## Contrôles sans écart
 
 - recrutement atomique avec coût, guilde et capacité ;
