@@ -1,7 +1,7 @@
 ---
 id: CDI-049
 title: Readiness finale et cl�ture du plan
-status: Later
+status: Doing
 area: release
 priority: P1
 size: S

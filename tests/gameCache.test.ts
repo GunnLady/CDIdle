@@ -18,6 +18,7 @@ describe("game cache contract", () => {
   });
 
   afterEach(() => {
+    vi.useRealTimers();
     vi.unstubAllGlobals();
     localStorage.clear();
   });
@@ -57,5 +58,21 @@ describe("game cache contract", () => {
     await expect(writeGameCache("user-a", { revision: 3 })).rejects.toMatchObject({ name: "AbortError" });
     expect(mock.records.has("user-a")).toBe(false);
     expect(mock.close).toHaveBeenCalled();
+  });
+
+  it("times out instead of freezing authoritative initialization when IndexedDB never opens", async () => {
+    vi.useFakeTimers();
+    vi.stubGlobal("indexedDB", {
+      open: () => ({} as IDBOpenDBRequest),
+    } as unknown as IDBFactory);
+
+    const write = writeGameCache("user-a", { revision: 3 });
+    const rejection = expect(write).rejects.toMatchObject({
+      name: "TimeoutError",
+      message: "CACHE_OPEN_TIMEOUT",
+    });
+    await vi.advanceTimersByTimeAsync(gameCacheConstants.CACHE_OPERATION_TIMEOUT_MS);
+
+    await rejection;
   });
 });

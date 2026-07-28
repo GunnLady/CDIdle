@@ -43,6 +43,7 @@ import {
   type CrossTabAuthoritySnapshot,
 } from "./domain/crossTabAuthority";
 import {
+  CONTROL_REQUEST_TTL_MS,
   canAcquireRequestedControl,
   controlRequestKey,
   isControlRequestExpired,
@@ -216,7 +217,7 @@ export default function App() {
   ): Promise<boolean> => {
     if (!state) return false;
     const projectedState = projectCanonicalState(state);
-    const userId = cacheUserId ?? currentUser?.id;
+    const userId = cacheUserId;
     if (userId && deletedCacheUserIdsRef.current.has(String(userId))) return false;
     if (Number.isInteger(revision)
       && typeof state === "object"
@@ -280,7 +281,6 @@ export default function App() {
     }
     return true;
   }, [
-    currentUser?.id,
     setActiveDungeonFloor,
     setActiveDungeonRoom,
     setAutoExplore,
@@ -414,7 +414,13 @@ export default function App() {
         const resolvedEncounter = (result?.events ?? [])
           .find((event: any) => event?.type === "dungeon.encounter_resolved")
           ?.encounter as CanonicalDungeonEncounterRecord | undefined;
-        await applyAuthoritativeState(result?.state, result?.revision, undefined, result?.serverTime, result?.lastProcessedAt);
+        await applyAuthoritativeState(
+          result?.state,
+          result?.revision,
+          String(currentUser.id),
+          result?.serverTime,
+          result?.lastProcessedAt,
+        );
         publishAuthoritativeSnapshot(result);
         for (const event of result?.events ?? []) {
           const townLog = formatCanonicalTownEvent(event);
@@ -588,6 +594,7 @@ export default function App() {
     const userId = String(currentUser.id);
     const requestKey = controlRequestKey(userId);
     const tabId = controlTabIdRef.current;
+    let requestExpiryTimeout: number | undefined;
     const lease = startExclusiveAutomationLease({
       userId,
       requestLock: (name, callback) => navigator.locks.request(
@@ -636,6 +643,19 @@ export default function App() {
       },
     });
     controlLeaseRef.current = lease;
+    const queuedRequest = window.localStorage.getItem(requestKey);
+    if (queuedRequest && requestedControlOwner(queuedRequest) !== tabId) {
+      const requestedAt = Number(queuedRequest.split(":")[1]);
+      const elapsed = Number.isFinite(requestedAt) ? Date.now() - requestedAt : CONTROL_REQUEST_TTL_MS;
+      requestExpiryTimeout = window.setTimeout(() => {
+        if (!active) return;
+        if (window.localStorage.getItem(requestKey) === queuedRequest
+          && isControlRequestExpired(queuedRequest, Date.now())) {
+          window.localStorage.removeItem(requestKey);
+        }
+        if (!isAutomationLeaderRef.current) setControlLeaseEpoch((value) => value + 1);
+      }, Math.max(0, CONTROL_REQUEST_TTL_MS - elapsed) + 1);
+    }
     const handleControlRequest = (event: StorageEvent) => {
       if (event.key !== requestKey) return;
       if (event.newValue === null) {
@@ -666,6 +686,7 @@ export default function App() {
     });
     return () => {
       active = false;
+      if (requestExpiryTimeout !== undefined) window.clearTimeout(requestExpiryTimeout);
       window.removeEventListener("storage", handleControlRequest);
       lease.stop();
       if (controlLeaseRef.current === lease) controlLeaseRef.current = null;
@@ -1287,7 +1308,7 @@ export default function App() {
         </div>
       )}
 
-      {isOnline && currentUser && !isAutomationLeader && (
+      {isOnline && currentUser && isInitialGameLoadDone && !isAutomationLeader && (
         <div role="status" className="sticky top-0 z-30 flex flex-wrap items-center justify-center gap-3 border-b border-violet-700/60 bg-violet-950/95 px-4 py-2 text-center text-sm text-violet-100">
           <span>{isControlTransferPending
             ? "Transfert du contrôle en cours…"
