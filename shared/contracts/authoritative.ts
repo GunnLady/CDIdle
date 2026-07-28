@@ -45,6 +45,13 @@ export interface CanonicalRngState {
 
 export const MAX_CANONICAL_RNG_DRAWS = Number.MAX_SAFE_INTEGER;
 
+export const CANONICAL_GAME_STATE_REQUIRED_FIELDS = [
+  "resources", "buildings", "citizens", "districts", "heroes", "storedItems",
+  "forgeMaterials", "itemBlueprints", "encounterHistory", "rngState",
+  "totalCitizensCount", "activeDungeonFloor", "activeDungeonRoom",
+  "highestFloorReached", "citizenGrowthProgress", "autoExplore", "currentEncounter",
+] as const;
+
 export interface CanonicalGameState {
   resources: Record<string, number>;
   buildings: Record<string, number>;
@@ -64,6 +71,13 @@ export interface CanonicalGameState {
   citizenGrowthProgress: number;
   rngState: CanonicalRngState;
 }
+
+type MissingCanonicalRequiredField = Exclude<
+  keyof CanonicalGameState,
+  (typeof CANONICAL_GAME_STATE_REQUIRED_FIELDS)[number]
+>;
+const canonicalRequiredFieldsAreExhaustive: MissingCanonicalRequiredField extends never ? true : never = true;
+void canonicalRequiredFieldsAreExhaustive;
 
 export type CanonicalGameCommand =
   | { type: "onboarding.offer"; cityName: string }
@@ -359,7 +373,7 @@ export function validateCanonicalGameState(input: unknown): string[] {
   if (!input || typeof input !== "object") return ["state must be an object"];
   const value = input as Record<string, unknown>;
   const errors: string[] = [];
-  for (const field of ["resources", "buildings", "citizens", "districts", "heroes", "storedItems", "forgeMaterials", "itemBlueprints", "encounterHistory", "rngState"]) {
+  for (const field of CANONICAL_GAME_STATE_REQUIRED_FIELDS) {
     if (!(field in value)) errors.push(`${field} is required`);
   }
   if ("heroes" in value) {
@@ -435,13 +449,10 @@ export function validateCanonicalGameState(input: unknown): string[] {
     }
   }
   for (const field of ["totalCitizensCount", "activeDungeonFloor", "activeDungeonRoom", "highestFloorReached", "citizenGrowthProgress"]) {
-    if (!(field in value)) errors.push(`${field} is required`);
-    else if (typeof value[field] !== "number" || !Number.isFinite(value[field])) errors.push(`${field} must be a number`);
+    if (field in value && (typeof value[field] !== "number" || !Number.isFinite(value[field]))) errors.push(`${field} must be a number`);
   }
-  if (!("autoExplore" in value)) errors.push("autoExplore is required");
-  else if (typeof value.autoExplore !== "boolean") errors.push("autoExplore must be a boolean");
-  if (!("currentEncounter" in value)) errors.push("currentEncounter is required");
-  else if (value.currentEncounter !== null && (typeof value.currentEncounter !== "object" || value.currentEncounter === undefined)) errors.push("currentEncounter must be an object or null");
+  if ("autoExplore" in value && typeof value.autoExplore !== "boolean") errors.push("autoExplore must be a boolean");
+  if ("currentEncounter" in value && value.currentEncounter !== null && (typeof value.currentEncounter !== "object" || value.currentEncounter === undefined)) errors.push("currentEncounter must be an object or null");
   const instanceOwners = new Map<string, string>();
   const registerInstance = (instanceId: unknown, owner: string) => {
     if (typeof instanceId !== "string" || !instanceId.trim()) return;

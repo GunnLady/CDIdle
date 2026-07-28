@@ -1,10 +1,66 @@
-const baseUrl = String(process.env.GAME_API_BASE_URL ?? '').replace(/\/$/, '');
-const token = process.env.GAME_API_TOKEN;
+import { createHmac } from 'node:crypto';
+import { execFileSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
 
-if (!baseUrl || !token) {
-  console.error('GAME_API_BASE_URL and GAME_API_TOKEN are required outside the repository');
-  process.exit(2);
+const TEST_USER_ID = '46464646-4646-4646-8646-464646464646';
+
+function parseEnvironment(output) {
+  return Object.fromEntries(output.split(/\r?\n/).flatMap((line) => {
+    const match = /^([A-Z0-9_]+)=(?:"(.*)"|'(.*)'|(.*))$/.exec(line.trim());
+    return match ? [[match[1], match[2] ?? match[3] ?? match[4] ?? '']] : [];
+  }));
 }
+
+function readLocalSupabaseEnvironment() {
+  let output;
+  try {
+    const executable = process.platform === 'win32' ? (process.env.ComSpec ?? 'cmd.exe') : 'npx';
+    const args = process.platform === 'win32'
+      ? ['/d', '/s', '/c', 'npx.cmd supabase status -o env']
+      : ['supabase', 'status', '-o', 'env'];
+    output = execFileSync(executable, args, {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+    });
+  } catch {
+    throw new Error('local Supabase status unavailable; start Supabase before running test:integration');
+  }
+  return parseEnvironment(output);
+}
+
+function base64url(value) {
+  return Buffer.from(value).toString('base64url');
+}
+
+function createLocalTestToken(jwtSecret, expectedIssuer) {
+  const header = base64url(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
+  const payload = base64url(JSON.stringify({
+    sub: TEST_USER_ID,
+    aud: 'authenticated',
+    role: 'authenticated',
+    iss: expectedIssuer,
+    iat: Math.floor(Date.now() / 1000),
+    exp: Math.floor(Date.now() / 1000) + 10 * 60,
+  }));
+  const signature = createHmac('sha256', jwtSecret).update(`${header}.${payload}`).digest('base64url');
+  return `${header}.${payload}.${signature}`;
+}
+
+const localEnvironment = readLocalSupabaseEnvironment();
+const functionEnvironment = parseEnvironment(readFileSync(
+  new URL('../supabase/functions/.env', import.meta.url),
+  'utf8',
+));
+const apiUrl = String(localEnvironment.API_URL ?? '').replace(/\/$/, '');
+const jwtSecret = functionEnvironment.GAME_API_JWT_SECRET ?? localEnvironment.JWT_SECRET;
+if (!apiUrl || !jwtSecret) throw new Error('local Supabase API_URL or JWT_SECRET is unavailable');
+const hostname = new URL(apiUrl).hostname;
+if (hostname !== '127.0.0.1' && hostname !== 'localhost') {
+  throw new Error('test:integration refuses to run against a non-local Supabase project');
+}
+const baseUrl = `${apiUrl}/functions/v1/game-api`;
+const expectedIssuer = functionEnvironment.GAME_API_EXPECTED_ISSUER ?? `${apiUrl}/auth/v1`;
+const token = createLocalTestToken(jwtSecret, expectedIssuer);
 
 async function request(path, body) {
   const response = await fetch(`${baseUrl}${path}`, {
@@ -30,7 +86,7 @@ function envelope(commandId, revision, command) {
 
 const bootstrap = await request('/bootstrap');
 if (bootstrap.status !== 200 || !Number.isInteger(bootstrap.body?.revision)) {
-  throw new Error(`bootstrap failed: HTTP ${bootstrap.status}`);
+  throw new Error(`bootstrap failed: HTTP ${bootstrap.status} ${JSON.stringify(bootstrap.body)}`);
 }
 
 const duplicateId = crypto.randomUUID();

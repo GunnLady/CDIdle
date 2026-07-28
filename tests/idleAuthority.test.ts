@@ -52,6 +52,18 @@ describe("server idle authority", () => {
     expect(lastProcessedAt).toBe("2026-07-18T00:00:02.000Z");
   });
 
+  it("does not truncate a PostgreSQL microsecond cursor during a rapid command", () => {
+    const lastProcessedAt = "2026-07-18T00:00:00.657122+00:00";
+    const result = applyIdleAuthority(
+      base,
+      lastProcessedAt,
+      new Date("2026-07-18T00:00:00.900Z"),
+    );
+
+    expect(result.report.elapsedSeconds).toBe(0);
+    expect(result.lastProcessedAt).toBe(lastProcessedAt);
+  });
+
   it("counts only heroes whose resting gauges actually changed", () => {
     const result = applyIdleAuthority({ ...base, heroes: [
       { status: "resting", currentHp: 2, currentMana: 0, calculatedStats: { maxHp: 20, maxMana: 10 } },

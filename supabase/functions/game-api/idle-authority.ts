@@ -104,7 +104,10 @@ export function applyIdleAuthority(
   next.heroes = heroes;
   return {
     state: next,
-    lastProcessedAt: new Date(processedTimestamp).toISOString(),
+    // PostgreSQL timestamps may contain microseconds that Date cannot represent.
+    // Preserve the original value when no whole second elapsed so a rapid
+    // command never moves the temporal cursor backwards by a fraction of a ms.
+    lastProcessedAt: elapsedSeconds === 0 ? lastProcessedAt : new Date(processedTimestamp).toISOString(),
     report: { elapsedSeconds, appliedSeconds, discardedSeconds: elapsedSeconds - appliedSeconds, resourcesProduced, foodConsumed, citizensAdded, heroesRecovered, heroesFullyRecovered },
   };
 }

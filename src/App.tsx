@@ -25,6 +25,7 @@ import { deleteGameCache, purgeLegacyGameCache, readGameCache, writeGameCache } 
 import type { AuthoritativeCommandSuccess, AuthoritativeGameEnvelope, GameCommand } from "./domain/commands";
 import type { CanonicalDungeonEncounterRecord } from "../shared/contracts/authoritative";
 import { formatCanonicalIdleReport } from "./domain/idleReport";
+import { projectCanonicalState } from "./domain/canonicalStateProjection";
 import { shouldRefreshTownAuthority } from "./domain/townHeartbeat";
 import { formatCanonicalTownEvent } from "./domain/townEventLog";
 import {
@@ -214,6 +215,7 @@ export default function App() {
     persistCache = true,
   ): Promise<boolean> => {
     if (!state) return false;
+    const projectedState = projectCanonicalState(state);
     const userId = cacheUserId ?? currentUser?.id;
     if (userId && deletedCacheUserIdsRef.current.has(String(userId))) return false;
     if (Number.isInteger(revision)
@@ -235,31 +237,31 @@ export default function App() {
       );
       if (anchor) setAuthoritativeTimeAnchor(anchor);
     }
-    if (state.cityName !== undefined) setCityName(String(state.cityName));
-    if (state.resources) setTownResources(state.resources);
-    if (state.buildings) setTownBuildings(state.buildings);
-    if (state.citizens) setTownCitizens({ ...state.citizens });
-    if (state.totalCitizensCount !== undefined) setTotalCitizens(Number(state.totalCitizensCount));
-    if (state.citizenGrowthProgress !== undefined) setCitizenGrowthProgress(Number(state.citizenGrowthProgress));
-    if (state.storedItems) setStoredItems(state.storedItems);
-    if (state.forgeMaterials) setForgeMaterials(state.forgeMaterials);
-    if (state.itemBlueprints) setItemBlueprints(state.itemBlueprints);
-    if (state.heroes) setHeroes(state.heroes);
-    if (state.activeDungeonFloor !== undefined) setActiveDungeonFloor(Number(state.activeDungeonFloor));
-    if (state.activeDungeonRoom !== undefined) setActiveDungeonRoom(Number(state.activeDungeonRoom));
-    if (state.highestFloorReached !== undefined) setDungeonHighestFloorReached(Number(state.highestFloorReached));
-    if (state.autoExplore !== undefined) setAutoExplore(Boolean(state.autoExplore));
-    if (state.currentEncounter !== undefined) setCurrentEncounter(state.currentEncounter);
-    if (Array.isArray(state.encounterHistory)) {
-      encounterHistoryRef.current = state.encounterHistory;
-      setEncounterHistory(state.encounterHistory);
+    if (projectedState.cityName !== undefined) setCityName(String(projectedState.cityName));
+    if (projectedState.resources) setTownResources(projectedState.resources);
+    if (projectedState.buildings) setTownBuildings(projectedState.buildings);
+    if (projectedState.citizens) setTownCitizens({ ...projectedState.citizens });
+    if (projectedState.totalCitizensCount !== undefined) setTotalCitizens(Number(projectedState.totalCitizensCount));
+    if (projectedState.citizenGrowthProgress !== undefined) setCitizenGrowthProgress(Number(projectedState.citizenGrowthProgress));
+    if (projectedState.storedItems) setStoredItems(projectedState.storedItems);
+    if (projectedState.forgeMaterials) setForgeMaterials(projectedState.forgeMaterials);
+    if (projectedState.itemBlueprints) setItemBlueprints(projectedState.itemBlueprints);
+    if (projectedState.heroes) setHeroes(projectedState.heroes);
+    if (projectedState.activeDungeonFloor !== undefined) setActiveDungeonFloor(Number(projectedState.activeDungeonFloor));
+    if (projectedState.activeDungeonRoom !== undefined) setActiveDungeonRoom(Number(projectedState.activeDungeonRoom));
+    if (projectedState.highestFloorReached !== undefined) setDungeonHighestFloorReached(Number(projectedState.highestFloorReached));
+    if (projectedState.autoExplore !== undefined) setAutoExplore(Boolean(projectedState.autoExplore));
+    if (projectedState.currentEncounter !== undefined) setCurrentEncounter(projectedState.currentEncounter);
+    if (Array.isArray(projectedState.encounterHistory)) {
+      encounterHistoryRef.current = projectedState.encounterHistory;
+      setEncounterHistory(projectedState.encounterHistory);
     }
-    if (state.pendingForge !== undefined) setPendingForge(state.pendingForge);
-    if (state.pendingRecruit !== undefined) setPendingRecruit(state.pendingRecruit ?? null);
-    if (state.onboardingCandidates !== undefined) {
-      setOnboardingCandidates(state.onboardingCandidates);
+    if (projectedState.pendingForge !== undefined) setPendingForge(projectedState.pendingForge);
+    if (projectedState.pendingRecruit !== undefined) setPendingRecruit(projectedState.pendingRecruit ?? null);
+    if (projectedState.onboardingCandidates !== undefined) {
+      setOnboardingCandidates(projectedState.onboardingCandidates);
     }
-    if (state.pendingOnboardingCityName !== undefined) setPendingOnboardingCityName(String(state.pendingOnboardingCityName));
+    if (projectedState.pendingOnboardingCityName !== undefined) setPendingOnboardingCityName(String(projectedState.pendingOnboardingCityName));
     const canonicalRevision = Number.isInteger(revision) ? Number(revision) : gameRevisionRef.current;
     if (Number.isInteger(revision)) {
       gameRevisionRef.current = canonicalRevision;

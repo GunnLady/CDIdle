@@ -10,6 +10,7 @@
     "check:secrets": "node scripts/check-secrets.mjs",
     "smoke:game-api": "node scripts/smoke-game-api.mjs",
     "test:integration": "node scripts/test-temporal-concurrency.mjs",
+    "test:e2e": "vitest run tests/authoritativePipeline.e2e.test.tsx",
     "check:migrations": "node scripts/check-migrations.mjs",
     "check:logs": "node scripts/check-log-safety.mjs",
     "preview": "vite preview",
