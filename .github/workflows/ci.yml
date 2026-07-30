@@ -22,7 +22,6 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version: 24.18.0
-          cache: npm
       - name: Install pinned npm
         working-directory: ${{ runner.temp }}
         run: npm install --global npm@12.0.1 --ignore-scripts
@@ -31,6 +30,7 @@ jobs:
       - name: Install
         run: npm ci
       - name: Setup Supabase CLI
+        id: setup-supabase
         uses: supabase/setup-cli@v1
         with:
           version: 2.109.1
@@ -72,5 +72,5 @@ jobs:
       - name: Production audit
         run: npm audit --omit=dev --audit-level=high
       - name: Stop Supabase
-        if: always()
+        if: ${{ always() && steps.setup-supabase.outcome == 'success' }}
         run: supabase stop
