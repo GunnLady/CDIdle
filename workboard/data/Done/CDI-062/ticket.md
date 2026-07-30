@@ -1,7 +1,7 @@
 ---
 id: CDI-062
 title: Publier le frontend alpha sur Cloudflare Pages
-status: Doing
+status: Done
 area: delivery
 priority: P1
 size: M
@@ -118,28 +118,28 @@ sans jamais élargir CORS à un joker.
 
 ## Criteres d'acceptation
 
-- [ ] Une URL HTTPS Cloudflare Pages stable sert le frontend alpha.
-- [ ] Le déploiement frontend utilise `cloudflare/wrangler-action@v4` et ne
+- [x] Une URL HTTPS Cloudflare Pages stable sert le frontend alpha.
+- [x] Le déploiement frontend utilise `cloudflare/wrangler-action@v4` et ne
   déclenche ni migration ni déploiement de `game-api`.
-- [ ] Les variables Vite ciblent le projet Supabase distant attendu et aucun
+- [x] Les variables Vite ciblent le projet Supabase distant attendu et aucun
   secret privilégié n'est présent dans le bundle ou les logs.
-- [ ] Supabase Auth accepte exactement l'URL alpha comme `Site URL` et URL de
+- [x] Supabase Auth accepte exactement l'URL alpha comme `Site URL` et URL de
   redirection, tout en conservant le développement local autorisé.
-- [ ] Google OAuth revient sur l'URL Cloudflare et la session survit à F5.
-- [ ] L origine Cloudflare exacte peut appeler `game-api`, tandis qu une origine
+- [x] Google OAuth revient sur l'URL Cloudflare et la session survit à F5.
+- [x] L origine Cloudflare exacte peut appeler `game-api`, tandis qu une origine
   inconnue reçoit `CORS_FORBIDDEN`.
-- [ ] Les en-têtes anti-sniffing, referrer, permissions, anti-iframe et CSP
+- [x] Les en-têtes anti-sniffing, referrer, permissions, anti-iframe et CSP
   sont présents sans casser OAuth, Supabase ou les assets.
-- [ ] Un bootstrap et une mutation autoritaire réussissent depuis le frontend
+- [x] Un bootstrap et une mutation autoritaire réussissent depuis le frontend
   hébergé, puis la mutation reste visible après F5.
-- [ ] Les parcours offline/reconnexion et transfert de contrôle multi-onglet ne
+- [x] Les parcours offline/reconnexion et transfert de contrôle multi-onglet ne
   présentent aucune régression bloquante sur l'origine hébergée.
-- [ ] Un rollback frontend vers une version antérieure est documenté et prouvé
+- [x] Un rollback frontend vers une version antérieure est documenté et prouvé
   sans modification du backend.
-- [ ] Le runbook distingue clairement alpha hébergée et production publique.
-- [ ] Une stack frontend collectée peut être résolue avec les source maps du
+- [x] Le runbook distingue clairement alpha hébergée et production publique.
+- [x] Une stack frontend collectée peut être résolue avec les source maps du
   même SHA, et aucun fichier `.map` n est servi publiquement.
-- [ ] Les offres gratuites et l'allowlist restent actives.
+- [x] Les offres gratuites et l'allowlist restent actives.
 
 ## Tests
 
@@ -199,6 +199,21 @@ Depuis un navigateur sans backend local :
   de `game-api`.
 
 ## Handoff
+
+Validation du 2026-07-30 :
+
+- frontend stable sur `https://cdidle-alpha.pages.dev`, build courant
+  `f3815a019343b360432faa099604765d7e0f8032` ;
+- Google OAuth, session apres F5, bootstrap, mutation persistante,
+  offline/reconnexion et transfert multi-onglet valides par l'utilisateur ;
+- origine Pages acceptee et origine inconnue refusee avec
+  `403 CORS_FORBIDDEN` ;
+- CSP et en-tetes statiques verifies sur la reponse Cloudflare ;
+- artefact public sans source map ; 7 maps privees, 404 sources embarquees et
+  mappings verifies par Codex pour le SHA courant ;
+- rollback frontend prouve vers `6a73b4070e7967262bf3280dcfa36dc40c7810af`,
+  partie intacte, puis restauration du build courant ;
+- workflows frontend sans migration ni deploiement de `game-api`.
 
 Fournir l'URL Cloudflare, le commit et le workflow de déploiement, la liste des
 configurations externes réalisées sans leurs valeurs, les preuves de build et

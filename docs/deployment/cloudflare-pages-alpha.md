@@ -26,7 +26,7 @@ Le projet est cree une seule fois depuis PowerShell, apres authentification
 Wrangler :
 
 ```powershell
-npm.cmd exec -- wrangler pages project create cdidle-alpha --production-branch main
+npx.cmd --allow-scripts=esbuild,workerd wrangler@4.116.0 pages project create cdidle-alpha --production-branch main
 ```
 
 Le workflow `CDIdle frontend alpha deploy` construit ensuite le commit choisi,
@@ -60,7 +60,8 @@ Un deploiement frontend ulterieur ne refait aucune de ces actions backend.
 - verifier une coupure/reconnexion et le transfert de controle entre deux onglets ;
 - verifier dans les reponses HTML les en-tetes CSP, anti-iframe, anti-sniffing,
   referrer et permissions ;
-- verifier que `https://<projet>.pages.dev/assets/*.map` repond 404 ;
+- verifier qu'une URL `.map` ne sert aucun JSON de source map : Cloudflare peut
+  repondre 404 ou retourner le fallback SPA `200 text/html` ;
 - verifier qu'une origine inconnue reste refusee par `CORS_FORBIDDEN`.
 
 ## Rollback frontend
