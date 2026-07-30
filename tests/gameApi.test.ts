@@ -15,6 +15,16 @@ const request = (path: string, init: RequestInit = {}) => new Request(`https://a
 
 describe("game-api Edge handler", () => {
   beforeEach(() => reportError.mockClear());
+  it("returns an empty 204 response for an allowed CORS preflight", async () => {
+    const result = await handler(new Request("https://api.example.test/game-api/bootstrap", {
+      method: "OPTIONS",
+      headers: { origin: "https://app.example.test" },
+    }));
+    expect(result.status).toBe(204);
+    expect(await result.text()).toBe("");
+    expect(result.headers.get("content-type")).toBeNull();
+    expect(result.headers.get("access-control-allow-origin")).toBe("https://app.example.test");
+  });
   it("handles bootstrap and exposes a request id", async () => {
     const result = await handler(request("/bootstrap", { method: "POST" }));
     expect(result.status).toBe(200);

@@ -44,7 +44,9 @@ function response(body: unknown, status: number, requestIdValue: string, origin?
     headers.set("access-control-allow-methods", "POST, DELETE, OPTIONS");
     headers.set("vary", "Origin");
   }
-  return new Response(JSON.stringify(body), { status, headers });
+  const bodyAllowed = status !== 204 && status !== 205 && status !== 304;
+  if (!bodyAllowed) headers.delete("content-type");
+  return new Response(bodyAllowed ? JSON.stringify(body) : null, { status, headers });
 }
 
 function errorResponse(code: string, message: string, id: string, status: number, origin?: string): Response {
