@@ -427,7 +427,6 @@ export default function DungeonPanel({
 
             <button
               onClick={onRetreatParty}
-              disabled={activeHeroes.length === 0 || isExploring}
               className="flex-1 bg-[#2d1212] hover:bg-[#701a1a] text-[#f2a1a1] border-2 border-red-900/40 py-2.5 px-3 rounded text-[11px] font-bold font-serif tracking-widest transition cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed uppercase"
             >
               Repli au Campement

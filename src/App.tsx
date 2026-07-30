@@ -123,6 +123,8 @@ export default function App() {
   const encounterHistoryRef = useRef<CanonicalDungeonEncounterRecord[]>([]);
   const encounterPlaybackTokenRef = useRef(0);
   const dungeonSequenceRunningRef = useRef(false);
+  const dungeonRetreatRequestedRef = useRef(false);
+  const dungeonSequenceBlockedRef = useRef(false);
   const bootstrapUserRef = useRef<string | null>(null);
   const transportOnline = browserOnline && apiAvailable;
   const isOnline = transportOnline && canonicalStateFailureDetails === null;
@@ -316,6 +318,8 @@ export default function App() {
     latestAuthoritativeSnapshotRef.current = null;
     encounterPlaybackTokenRef.current += 1;
     dungeonSequenceRunningRef.current = false;
+    dungeonRetreatRequestedRef.current = false;
+    dungeonSequenceBlockedRef.current = false;
     setIsDungeonSequenceRunning(false);
     gameRevisionRef.current = 0;
     setGameRevision(0);
@@ -427,6 +431,7 @@ export default function App() {
           const townLog = formatCanonicalTownEvent(event);
           if (townLog) addLog(townLog.message, townLog.type, "colony");
           if (event?.type === "dungeon.encounter_started") addLog("⚔️ Une rencontre autoritaire a commencé.", "info");
+          if (event?.type === "dungeon.retreat") addLog("🏕️ Repli tactique : l’escouade regagne le campement.", "info");
         }
         const playback = resolvedEncounter
           ? playEncounterTranscript(resolvedEncounter)
@@ -708,7 +713,7 @@ export default function App() {
   }, [currentUser, isAutomationLeader, isControlTransferPending, showCrossTabNotice, transportOnline]);
 
   const exploreAndResolveDungeon = useCallback(async () => {
-    if (dungeonSequenceRunningRef.current || !currentUser || !isOnline || !isAutomationLeaderRef.current) return false;
+    if (dungeonSequenceBlockedRef.current || dungeonSequenceRunningRef.current || !currentUser || !isOnline || !isAutomationLeaderRef.current) return false;
     dungeonSequenceRunningRef.current = true;
     setIsDungeonSequenceRunning(true);
     try {
@@ -717,9 +722,15 @@ export default function App() {
           type: "dungeon.explore",
           floor: dungeon.activeDungeonFloor,
         });
-        if (!explored) return false;
+        if (!explored) {
+          dungeonSequenceBlockedRef.current = true;
+          return false;
+        }
+        if (dungeonRetreatRequestedRef.current) return true;
       }
-      return await dispatchAuthoritativeCommand({ type: "dungeon.resolve" });
+      const resolved = await dispatchAuthoritativeCommand({ type: "dungeon.resolve" });
+      if (!resolved) dungeonSequenceBlockedRef.current = true;
+      return resolved;
     } finally {
       dungeonSequenceRunningRef.current = false;
       setIsDungeonSequenceRunning(false);
@@ -733,12 +744,22 @@ export default function App() {
   ]);
 
   useEffect(() => {
-    if (!isAutomationLeader || !currentEncounter || !currentUser || !isOnline || isDungeonSequenceRunning) return;
+    if (dungeonSequenceBlockedRef.current || !isAutomationLeader || !currentEncounter || !currentUser || !isOnline || isDungeonSequenceRunning) return;
     void exploreAndResolveDungeon();
   }, [currentEncounter, currentUser, exploreAndResolveDungeon, isAutomationLeader, isDungeonSequenceRunning, isOnline]);
 
+  const retreatFromDungeon = useCallback(async () => {
+    dungeonSequenceBlockedRef.current = true;
+    dungeonRetreatRequestedRef.current = true;
+    try {
+      return await dispatchAuthoritativeCommand({ type: "dungeon.retreat" });
+    } finally {
+      dungeonRetreatRequestedRef.current = false;
+    }
+  }, [dispatchAuthoritativeCommand]);
+
   useEffect(() => {
-    if (!isAutomationLeader || !currentUser || !isOnline || !dungeon.autoExplore || currentEncounter || isDungeonSequenceRunning) return;
+    if (dungeonSequenceBlockedRef.current || !isAutomationLeader || !currentUser || !isOnline || !dungeon.autoExplore || currentEncounter || isDungeonSequenceRunning) return;
     const handle = window.setTimeout(() => {
       void exploreAndResolveDungeon();
     }, 1000);
@@ -1536,17 +1557,24 @@ export default function App() {
                 autoExplore={dungeon.autoExplore}
                 battleLogs={battleLogs}
                 highestFloorReached={dungeon.highestFloorReached}
-                onToggleAutoExplore={() => { void dispatchAuthoritativeCommand({ type: "dungeon.auto_explore", enabled: !dungeon.autoExplore }); }}
+                onToggleAutoExplore={() => {
+                  const enabled = !dungeon.autoExplore;
+                  dungeonSequenceBlockedRef.current = !enabled;
+                  void dispatchAuthoritativeCommand({ type: "dungeon.auto_explore", enabled });
+                }}
                 activeEncounter={currentEncounter}
                 encounterHistory={encounterHistory}
                 encounterPlayback={encounterPlayback}
                 isExploring={isDungeonSequenceRunning}
-                onExplore={() => { void exploreAndResolveDungeon(); }}
+                onExplore={() => {
+                  dungeonSequenceBlockedRef.current = false;
+                  void exploreAndResolveDungeon();
+                }}
                 onChangeFloor={(direction) => {
                   const floor = Math.max(1, dungeon.activeDungeonFloor + (direction === "next" ? 1 : -1));
                   void dispatchAuthoritativeCommand({ type: "dungeon.select_floor", floor });
                 }}
-                onRetreatParty={() => { void dispatchAuthoritativeCommand({ type: "dungeon.retreat" }); }}
+                onRetreatParty={() => { void retreatFromDungeon(); }}
                 onClearBattleLogs={clearBattleLogs}
                 onResetLevel={() => {
                   void (async () => {

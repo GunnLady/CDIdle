@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import DungeonPanel from "../src/components/DungeonPanel";
 import type { CanonicalDungeonEncounterRecord } from "../shared/contracts/authoritative";
@@ -59,5 +59,32 @@ describe("DungeonPanel authoritative encounter history", () => {
     expect(screen.getAllByText("Tour 1 — Ragnor inflige 6 dégâts.")).toHaveLength(2);
     expect(screen.getByText("Victoire en 1 tour(s) · +7 or")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Explorer la salle" })).toBeDisabled();
+  });
+
+  it("keeps retreat available throughout the dungeon flow", () => {
+    const view = render(<DungeonPanel {...props} isExploring={false} />);
+    const panel = within(view.container);
+
+    expect(panel.getByRole("button", { name: "Repli au Campement" })).toBeEnabled();
+
+    view.rerender(
+      <DungeonPanel
+        {...props}
+        activeEncounter={{ encounterId: "encounter-active", floor: 2, room: 8 }}
+        isExploring={false}
+      />,
+    );
+
+    expect(panel.getByRole("button", { name: "Repli au Campement" })).toBeEnabled();
+
+    view.rerender(
+      <DungeonPanel
+        {...props}
+        activeEncounter={{ encounterId: "encounter-active", floor: 2, room: 8 }}
+        isExploring
+      />,
+    );
+
+    expect(panel.getByRole("button", { name: "Repli au Campement" })).toBeEnabled();
   });
 });

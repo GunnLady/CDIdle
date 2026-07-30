@@ -1,7 +1,9 @@
 # Rapports d erreurs de l alpha
 
-CDI-065 conserve uniquement les erreurs techniques inattendues. Les erreurs
-metier attendues et les conflits `409` ne sont pas envoyes.
+CDI-065 conserve uniquement les erreurs techniques inattendues. Les reponses
+4xx inattendues sont collectees, mais les erreurs d authentification `401`,
+les refus CORS `403`, les conflits `409` et les limites `429` ne sont pas
+envoyes.
 
 ## Donnees autorisees
 
@@ -10,7 +12,7 @@ metier attendues et les conflits `409` ne sont pas envoyes.
 - categorie technique ;
 - message et stack nettoyes et bornes ;
 - `requestId` eventuel ;
-- code d erreur et statut HTTP pour les reponses 5xx ;
+- code d erreur et statut HTTP pour les reponses 4xx inattendues et 5xx ;
 - surface UI ou route API.
 
 Le rapport ne stocke ni utilisateur, email, JWT, payload de commande, etat de
@@ -29,14 +31,14 @@ select
   category,
   error_code,
   http_status,
-  request_id,
   surface,
   count(*) as occurrences,
+  min(request_id) as exemple_request_id,
   min(occurred_at) as first_seen,
   max(occurred_at) as last_seen
 from public.alpha_error_reports
 where occurred_at >= now() - interval '7 days'
-group by build_version, category, error_code, http_status, request_id, surface
+group by build_version, category, error_code, http_status, surface
 order by last_seen desc;
 ```
 

@@ -29,6 +29,15 @@ describe("alpha error reporting", () => {
       surface: "app",
       gameState: {},
     })).toBeNull();
+    expect(validateErrorReportPayload({
+      version: "local-dev",
+      category: "api_4xx",
+      message: "invalid dungeon command",
+      requestId: "request-400",
+      errorCode: "NO_ACTIVE_HERO",
+      httpStatus: 400,
+      surface: "game-api/commands",
+    })).toMatchObject({ category: "api_4xx", httpStatus: 400, errorCode: "NO_ACTIVE_HERO" });
   });
 
   it("deduplicates equivalent failures and swallows transport outages", async () => {
@@ -43,6 +52,16 @@ describe("alpha error reporting", () => {
     expect(transport).toHaveBeenCalledWith(expect.objectContaining({
       message: "render failed for [email-redacted]",
     }));
+  });
+
+  it("deduplicates repeated API failures even when request ids differ", async () => {
+    const transport = vi.fn(async () => undefined);
+    configureErrorReporting(transport);
+
+    await reportUnexpectedError({ category: "api_4xx", error: new Error("invalid dungeon command"), requestId: "request-1", errorCode: "NO_ACTIVE_HERO", httpStatus: 400, surface: "game-api/commands" });
+    await reportUnexpectedError({ category: "api_4xx", error: new Error("invalid dungeon command"), requestId: "request-2", errorCode: "NO_ACTIVE_HERO", httpStatus: 400, surface: "game-api/commands" });
+
+    expect(transport).toHaveBeenCalledOnce();
   });
 
   it("captures global errors and unhandled rejections", async () => {

@@ -76,7 +76,9 @@ sont appliqués par le chemin temporel CDI-061.
 - `dungeon.resolve()` résout l'encounter actif côté serveur, persiste le
   transcript complet, applique le loot et avance la progression en cas de
   victoire.
-- `dungeon.retreat()` clôt un encounter actif sans loot ni progression.
+- `dungeon.retreat()` rappelle immédiatement l'escouade au campement, arrête
+  l'exploration automatique et clôt l'encounter actif éventuel sans loot ni
+  progression.
 - `dungeon.auto_explore({ enabled })` modifie le mode d'exploration uniquement
   par commande authentifiée ; aucune mutation de donjon n'est exécutée hors
   ligne.

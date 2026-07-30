@@ -1,6 +1,6 @@
 create extension if not exists pgtap;
 
-select plan(18);
+select plan(20);
 
 insert into auth.users (
   instance_id, id, aud, role, email, encrypted_password, email_confirmed_at,
@@ -17,9 +17,10 @@ where user_id = '65656565-6565-4565-8565-656565656565';
 
 delete from public.alpha_error_reports
 where request_id = 'request-065'
+   or request_id = 'request-400'
    or (build_version = 'local-dev'
        and category = 'javascript'
-       and message ~ '^failure ([2-9]|10)$'
+       and message ~ '^failure ([1-9]|10)$'
        and surface = 'window');
 
 select ok((select relrowsecurity from pg_class where oid = 'public.alpha_error_reports'::regclass), 'RLS rapports active');
@@ -43,10 +44,21 @@ select ok((select occurred_at between clock_timestamp() - interval '5 seconds' a
 select is((select error_code from public.alpha_error_reports where request_id = 'request-065'), 'SERVICE_UNAVAILABLE', 'le code API est conserve');
 select is((select http_status from public.alpha_error_reports where request_id = 'request-065'), 503::smallint, 'le statut HTTP est conserve');
 
+select ok(public.submit_alpha_error_report(
+  '65656565-6565-4565-8565-656565656565', 'git-0123456789abcdef', 'api_4xx',
+  'at least one active hero is required', null, 'request-400',
+  'NO_ACTIVE_HERO', 400, 'game-api/commands'
+) > 0, 'un rapport 4xx inattendu est accepte');
+
+select is((select error_code from public.alpha_error_reports where request_id = 'request-400'), 'NO_ACTIVE_HERO', 'le code 4xx est conserve');
+
 select throws_ok(
   $$select public.submit_alpha_error_report('65656565-6565-4565-8565-656565656565', 'bad-version', 'react', 'failure', null, null, null, null, 'app')$$,
   '22023', 'INVALID_ERROR_REPORT', 'une version invalide est refusee'
 );
+
+delete from public.alpha_error_report_rate_events
+where user_id = '65656565-6565-4565-8565-656565656565';
 
 select throws_ok(
   $$select public.submit_alpha_error_report('65656565-6565-4565-8565-656565656565', 'local-dev', 'react', repeat('x', 501), null, null, null, null, 'app')$$,
@@ -57,7 +69,7 @@ select lives_ok(
   $$select public.submit_alpha_error_report(
     '65656565-6565-4565-8565-656565656565', 'local-dev', 'javascript',
     'failure ' || value, null, null, null, null, 'window'
-  ) from generate_series(2, 10) as value$$,
+  ) from generate_series(1, 10) as value$$,
   'les dix premiers rapports de la fenetre sont acceptes'
 );
 
@@ -68,9 +80,10 @@ select throws_ok(
 
 delete from public.alpha_error_reports
 where request_id = 'request-065'
+   or request_id = 'request-400'
    or (build_version = 'local-dev'
        and category = 'javascript'
-       and message ~ '^failure ([2-9]|10)$'
+       and message ~ '^failure ([1-9]|10)$'
        and surface = 'window');
 
 delete from auth.users where id = '65656565-6565-4565-8565-656565656565';

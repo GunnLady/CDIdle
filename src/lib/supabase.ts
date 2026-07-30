@@ -116,9 +116,12 @@ export async function callGameApi<T>(path: string, init: RequestInit = {}): Prom
       body?.error?.code,
       body
     );
-    if (response.status >= 500) {
+    const reportable4xx = response.status >= 400
+      && response.status < 500
+      && ![401, 403, 409, 429].includes(response.status);
+    if (reportable4xx || response.status >= 500) {
       void reportUnexpectedError({
-        category: "api_5xx",
+        category: reportable4xx ? "api_4xx" : "api_5xx",
         error,
         requestId: responseRequestId(body, response),
         ...(error.code ? { errorCode: error.code } : {}),

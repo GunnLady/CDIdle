@@ -3,6 +3,7 @@ export const ERROR_REPORT_CATEGORIES = [
   "javascript",
   "unhandledrejection",
   "timeout",
+  "api_4xx",
   "api_5xx",
 ] as const;
 
@@ -54,7 +55,9 @@ export function validateErrorReportPayload(value: unknown): ErrorReportPayload |
   if (record.stack !== undefined && typeof record.stack !== "string") return null;
   if (record.requestId !== undefined && typeof record.requestId !== "string") return null;
   if (record.errorCode !== undefined && (typeof record.errorCode !== "string" || !ERROR_CODE_PATTERN.test(record.errorCode))) return null;
-  if (record.category === "api_5xx") {
+  if (record.category === "api_4xx") {
+    if (!Number.isInteger(record.httpStatus) || Number(record.httpStatus) < 400 || Number(record.httpStatus) > 499) return null;
+  } else if (record.category === "api_5xx") {
     if (!Number.isInteger(record.httpStatus) || Number(record.httpStatus) < 500 || Number(record.httpStatus) > 599) return null;
   } else if (record.errorCode !== undefined || record.httpStatus !== undefined) return null;
 

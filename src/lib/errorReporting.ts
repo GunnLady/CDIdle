@@ -54,7 +54,9 @@ export async function reportUnexpectedError(input: ErrorReportInput): Promise<vo
     ...(input.httpStatus ? { httpStatus: input.httpStatus } : {}),
     surface: input.surface,
   };
-  const fingerprint = [payload.message, payload.stack ?? "", payload.requestId ?? ""].join("|");
+  const fingerprint = payload.category === "api_4xx" || payload.category === "api_5xx"
+    ? [payload.category, payload.message, payload.errorCode ?? "", payload.httpStatus ?? "", payload.surface].join("|")
+    : [payload.message, payload.stack ?? ""].join("|");
   const now = Date.now();
   pruneRecentReports(now);
   if (recentReports.has(fingerprint)) return;

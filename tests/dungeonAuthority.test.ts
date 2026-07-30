@@ -84,12 +84,17 @@ describe("authoritative dungeon commands", () => {
     expect(retreated.state.currentEncounter).toBeNull();
     expect(retreated.state.activeDungeonRoom).toBe(1);
     expect(retreated.state.resources?.gold).toBe(0);
+    expect(retreated.state.autoExplore).toBe(false);
+    expect(retreated.state.heroes?.[0]).toMatchObject({ isActive: false, status: "resting" });
     expect(retreated.events[0]).toMatchObject({ type: "dungeon.retreat", encounterId: "encounter-cmd-retreat" });
   });
 
-  it("rejects resolution and retreat without an active encounter", () => {
+  it("returns the party to camp even without an active encounter", () => {
     expect(() => applyDungeonCommand(state(), { type: "dungeon.resolve" })).toThrowError("there is no active encounter");
-    expect(() => applyDungeonCommand(state(), { type: "dungeon.retreat" })).toThrowError("there is no active encounter");
+    const retreated = applyDungeonCommand(state(), { type: "dungeon.retreat" });
+    expect(retreated.state).toMatchObject({ currentEncounter: null, autoExplore: false });
+    expect(retreated.state.heroes?.[0]).toMatchObject({ isActive: false, status: "resting" });
+    expect(retreated.events[0]).toMatchObject({ type: "dungeon.retreat", encounterId: null });
   });
 
   it("rejects encounter resolution without the canonical RNG", () => {

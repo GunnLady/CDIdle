@@ -132,14 +132,15 @@ export function applyDungeonCommand(
   }
 
   if (typed.type === "dungeon.retreat") {
-    if (!state.currentEncounter) {
-      throw new DungeonCommandError("NO_ACTIVE_ENCOUNTER", "there is no active encounter");
-    }
+    const encounterId = state.currentEncounter?.encounterId ?? null;
+    const heroes = (state.heroes ?? []).map((hero) => hero.isActive
+      ? { ...hero, isActive: false, status: "resting" as const }
+      : hero);
     return {
-      state: { ...state, currentEncounter: null, autoExplore: false },
+      state: { ...state, heroes, currentEncounter: null, autoExplore: false },
       events: [{
         type: "dungeon.retreat",
-        encounterId: state.currentEncounter.encounterId,
+        encounterId,
         floor,
         room,
       }],

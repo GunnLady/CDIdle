@@ -42,12 +42,13 @@ describe("game-api error reporting integration", () => {
     expect(transport).not.toHaveBeenCalled();
   });
 
-  it("reports 5xx with requestId but ignores expected 409 conflicts", async () => {
+  it("reports unexpected 4xx and 5xx with requestId but ignores expected 409 conflicts", async () => {
     const transport = vi.fn(async () => undefined);
     configureErrorReporting(transport);
     vi.spyOn(supabase.auth, "getSession").mockResolvedValue({ data: { session: { access_token: "token" } } } as never);
     const fetcher = vi.fn()
       .mockResolvedValueOnce(new Response(JSON.stringify({ error: { code: "SERVICE_UNAVAILABLE", message: "service unavailable", requestId: "request-500" } }), { status: 503 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ error: { code: "NO_ACTIVE_HERO", message: "at least one active hero is required", requestId: "request-400" } }), { status: 400 }))
       .mockResolvedValueOnce(new Response(JSON.stringify({ error: { code: "REVISION_CONFLICT", message: "revision conflict", requestId: "request-409" } }), { status: 409 }));
     vi.stubGlobal("fetch", fetcher);
 
@@ -57,6 +58,15 @@ describe("game-api error reporting integration", () => {
       requestId: "request-500",
       errorCode: "SERVICE_UNAVAILABLE",
       httpStatus: 503,
+    })));
+    transport.mockClear();
+
+    await expect(callGameApi("/commands", { method: "POST" })).rejects.toMatchObject({ status: 400 });
+    await vi.waitFor(() => expect(transport).toHaveBeenCalledWith(expect.objectContaining({
+      category: "api_4xx",
+      requestId: "request-400",
+      errorCode: "NO_ACTIVE_HERO",
+      httpStatus: 400,
     })));
     transport.mockClear();
 
