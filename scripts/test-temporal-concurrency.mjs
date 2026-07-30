@@ -14,10 +14,10 @@ function parseEnvironment(output) {
 function readLocalSupabaseEnvironment() {
   let output;
   try {
-    const executable = process.platform === 'win32' ? (process.env.ComSpec ?? 'cmd.exe') : 'npx';
+    const executable = process.platform === 'win32' ? (process.env.ComSpec ?? 'cmd.exe') : 'npm';
     const args = process.platform === 'win32'
-      ? ['/d', '/s', '/c', 'npx.cmd supabase status -o env']
-      : ['supabase', 'status', '-o', 'env'];
+      ? ['/d', '/s', '/c', 'npm.cmd exec --offline -- supabase status -o env']
+      : ['exec', '--offline', '--', 'supabase', 'status', '-o', 'env'];
     output = execFileSync(executable, args, {
       encoding: 'utf8',
       stdio: ['ignore', 'pipe', 'ignore'],

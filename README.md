@@ -6,17 +6,21 @@ les commandes serveur Edge et le Workboard de suivi.
 
 ## Prérequis
 
-- Node.js LTS et npm ;
+- Node.js `24.18.0` LTS et npm `12.0.1` ;
 - Docker Desktop uniquement pour Supabase local ;
 - PowerShell sous Windows.
 
 ## Installation et développement
 
 ```powershell
-npm install
+npm.cmd ci
 Copy-Item .env.example .env.local
-npm run dev
+npm.cmd run dev
 ```
+
+Si la version locale de npm differe de `12.0.1`, suivre la
+[procedure de migration npm 12](docs/development/npm-12-migration.md) avant
+l'installation.
 
 Ouvrir l'URL Vite affichée, par défaut `http://127.0.0.1:3000`.
 Ne jamais placer de clé service-role ou de secret serveur dans `.env.local` ou
@@ -25,9 +29,9 @@ dans Git.
 ## Workboard
 
 ```powershell
-npm run board:start
-npm run board:stop
-npm run board:validate
+npm.cmd run board:start
+npm.cmd run board:stop
+npm.cmd run board:validate
 ```
 
 Le Workboard est la source de vérité des tickets. Documentation :
@@ -36,12 +40,12 @@ Le Workboard est la source de vérité des tickets. Documentation :
 ## Contrôles locaux
 
 ```powershell
-npm run typecheck
-npm run lint
-npm run check:determinism
-npm run build
-npm test -- --run
-npm run check
+npm.cmd run typecheck
+npm.cmd run lint
+npm.cmd run check:determinism
+npm.cmd run build
+npm.cmd test -- --run
+npm.cmd run check
 ```
 
 Pour les tests nécessitant Docker, Supabase ou plusieurs essais interactifs,

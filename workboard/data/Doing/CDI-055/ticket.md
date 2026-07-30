@@ -1,7 +1,7 @@
 ---
 id: CDI-055
 title: Migration controlee vers npm 12 sous Node LTS
-status: Later
+status: Doing
 area: tooling
 priority: P2
 size: M
@@ -69,21 +69,23 @@ fonctionnels.
 
 ## Criteres d'acceptation
 
-- [ ] Node utilise une version LTS compatible avec npm 12.
-- [ ] `packageManager` epingle exactement la version npm retenue.
-- [ ] Local, CI, deploy et rollback utilisent cette meme version.
-- [ ] Les breaking changes npm 12 sont inventories dans une matrice.
-- [ ] `.npmrc`, scripts et workflows ne contiennent aucune option devenue
+- [x] Node utilise une version LTS compatible avec npm 12.
+- [x] `packageManager` epingle exactement la version npm retenue.
+- [x] Local, CI, deploy et rollback utilisent cette meme version.
+- [x] Les breaking changes npm 12 sont inventories dans une matrice.
+- [x] `.npmrc`, scripts et workflows ne contiennent aucune option devenue
       invalide.
-- [ ] Les dependances Git, URL et tarballs sont inventoriees.
-- [ ] La politique `allow-git` et `allow-remote` est explicite.
-- [ ] Les scripts de esbuild, Supabase CLI, Lightning CSS et Tailwind/Oxide
+- [x] Les dependances Git, URL et tarballs sont inventoriees.
+- [x] La politique `allow-git` et `allow-remote` est explicite.
+- [x] Les scripts de esbuild, Supabase CLI, Lightning CSS et Tailwind/Oxide
       sont testes et autorises uniquement si necessaire.
-- [ ] `npx` execute bien les binaires locaux epingles attendus.
-- [ ] Deux `npm ci` consecutifs ne modifient pas le lockfile.
-- [ ] L installation propre passe sous Windows et Ubuntu.
-- [ ] Audit, tests, tests DB, build et budget bundle passent.
-- [ ] Le rollback vers npm 11 est documente et teste.
+- [x] Les binaires locaux sont executes par `npm run` ou
+      `npm exec --offline`, sans telechargement implicite par `npx`.
+- [x] Deux `npm ci` consecutifs ne modifient pas le lockfile.
+- [x] L installation propre passe sous Windows.
+- [ ] L installation propre passe sous Ubuntu dans la CI publiee.
+- [x] Audit, tests, tests DB, build et budget bundle passent.
+- [x] Le rollback vers npm 11 est documente et teste.
 
 ## Tests
 
@@ -122,3 +124,21 @@ meme graphe de dependances et tous les controles.
 Fournir la matrice des impacts npm 12, les versions exactes Node/npm, le diff
 du lockfile, les decisions de scripts, les preuves Windows/CI et la procedure
 de rollback.
+
+## Validation du 2026-07-30
+
+- Preuve Codex : npm `12.0.1` a regenere un lockfile stable; le second passage
+  conserve exactement son empreinte SHA-256.
+- Preuve Codex : le lockfile contient 0 source Git, 0 URL directe et 0 source
+  fichier; `allow-git=none`, `allow-remote=none` et
+  `strict-allow-scripts=true` sont effectivement lus par npm 12.
+- Preuve utilisateur : installation Windows propre, second `npm.cmd ci`, liste
+  de scripts en attente vide et `esbuild@0.25.12` fonctionnel.
+- Preuve utilisateur : `npm.cmd run check` passe avec 327 tests Vitest, les
+  seuils de couverture, 94 tests DB, le build et le budget bundle.
+- Preuve utilisateur : `npm.cmd run test:integration` passe avec le binaire
+  Supabase local execute via `npm exec --offline`.
+- Preuve utilisateur : `npm.cmd audit --omit=dev --audit-level=high` rapporte
+  0 vulnerabilite.
+- Preuve utilisateur : rollback global `12.0.1 -> 11.16.0 -> 12.0.1` reussi.
+- Preuve encore requise : execution Ubuntu de la CI sur le commit publie.

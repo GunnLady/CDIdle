@@ -2,6 +2,27 @@
   "name": "react-example",
   "private": true,
   "version": "0.0.0",
+  "packageManager": "npm@12.0.1",
+  "engines": {
+    "node": "^24.15.0",
+    "npm": "12.0.1"
+  },
+  "devEngines": {
+    "runtime": {
+      "name": "node",
+      "version": "^24.15.0",
+      "onFail": "error"
+    },
+    "packageManager": {
+      "name": "npm",
+      "version": "12.0.1",
+      "onFail": "error"
+    }
+  },
+  "allowScripts": {
+    "esbuild@0.25.12": true,
+    "fsevents": false
+  },
   "type": "module",
   "scripts": {
     "dev": "vite --port=3000 --host=0.0.0.0",
@@ -24,7 +45,7 @@
     "check:determinism": "node scripts/check-determinism.mjs",
     "supabase:verify": "node supabase/verify-local.mjs",
     "supabase:revoke-allowlist": "node supabase/scripts/revoke-allowlist.mjs",
-    "test:db": "npx supabase test db",
+    "test:db": "supabase test db",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src tests",
     "test": "vitest",
