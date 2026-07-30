@@ -18,6 +18,9 @@ jobs:
     environment: ${{ inputs.environment }}
     steps:
       - uses: actions/checkout@v5
+      - name: Resolve build identity
+        shell: bash
+        run: echo "VITE_BUILD_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
       - uses: actions/setup-node@v6
         with:
           node-version: 24

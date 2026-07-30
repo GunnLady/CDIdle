@@ -78,7 +78,7 @@ function envelope(commandId, revision, command) {
   return {
     commandId,
     idempotencyKey: commandId,
-    clientVersion: 'cdi-061',
+    clientVersion: 'integration-local',
     expectedRevision: revision,
     command,
   };

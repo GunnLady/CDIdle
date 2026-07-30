@@ -1,7 +1,7 @@
 ---
 id: CDI-064
 title: Versionner les builds alpha
-status: ToDo
+status: Done
 area: delivery
 priority: P1
 size: S
@@ -64,13 +64,13 @@ backend CDI-066.
 
 ## Criteres d'acceptation
 
-- [ ] `clientVersion: "cdi-061"` n existe plus dans le code de production.
-- [ ] Le développement local expose une version déterministe identifiable.
-- [ ] La CI injecte le commit du build dans l artefact Cloudflare.
-- [ ] L interface affiche une version courte correspondant au build.
-- [ ] Les commandes et retries conservent la version correcte.
-- [ ] Le rollback permet d identifier sans ambiguïté la version restaurée.
-- [ ] Aucun secret ou chemin local n apparaît dans les métadonnées exposées.
+- [x] `clientVersion: "cdi-061"` n existe plus dans le code de production.
+- [x] Le développement local expose une version déterministe identifiable.
+- [x] La CI injecte le commit du build dans l artefact Cloudflare.
+- [x] L interface affiche une version courte correspondant au build.
+- [x] Les commandes et retries conservent la version correcte.
+- [x] Le rollback permet d identifier sans ambiguïté la version restaurée.
+- [x] Aucun secret ou chemin local n apparaît dans les métadonnées exposées.
 
 ## Tests
 
@@ -108,3 +108,19 @@ valeur au commit Cloudflare puis confirmer la version restaurée par rollback.
 Fournir la convention de version, les variables de build, les fichiers modifiés,
 les preuves local/CI, un exemple de commande versionnée et la correspondance
 commit/déploiement/rollback.
+
+## Validation du 2026-07-30
+
+- Convention : `local-dev` sans injection, `git-<SHA complet>` dans les
+  commandes et `git-<12 caractères>` dans le footer.
+- Les workflows CI, déploiement et rollback calculent `VITE_BUILD_SHA` depuis
+  le commit réellement checkouté.
+- Preuve Codex : 327 tests passent; typage, lint ciblé, secrets, logs,
+  migrations, déterminisme, bundle et board passent.
+- Preuve utilisateur : builds Vite avec et sans SHA réussis.
+- Preuve Codex : le bundle injecté contient le SHA contrôlé, le préfixe `git-`
+  et aucune occurrence de `cdi-061`.
+- Preuve utilisateur : footer court, infobulle complète et payload `/commands`
+  avec le SHA complet validés dans le navigateur.
+- L exécution CI distante sera vérifiée après push. Le rollback Cloudflare réel
+  reste une validation de publication couverte par CDI-062.

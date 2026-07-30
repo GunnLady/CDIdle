@@ -17,6 +17,12 @@ Secrets attendus hors dépôt :
 - `GAME_API_BASE_URL`
 - `GAME_API_TOKEN` (compte synthétique staging uniquement)
 
+`VITE_BUILD_SHA` n est pas un secret. Les workflows le calculent depuis le
+commit réellement checkouté. Le client envoie `git-<SHA complet>` dans chaque
+commande et affiche `git-<12 caractères>` dans le footer avec la valeur complète
+dans son infobulle. En développement sans injection, la valeur est
+`local-dev`.
+
 ## Promotion staging
 
 1. Exécuter la CI complète sur le commit `main`.
@@ -37,6 +43,10 @@ trafic.
 Le rollback redéploie l’artefact web et l’Edge Function précédents. Les
 migrations ne sont jamais annulées destructivement : une migration additive de
 compensation est requise.
+
+Le workflow de rollback calcule `VITE_BUILD_SHA` après le checkout de
+`git_ref`. La version affichée après rollback doit donc correspondre au commit
+restauré, et non au commit depuis lequel le workflow a été déclenché.
 
 ## Sauvegarde et journaux
 

@@ -23,6 +23,8 @@ import {
 } from "./lib/supabase";
 import { deleteGameCache, purgeLegacyGameCache, readGameCache, writeGameCache } from "./lib/gameCache";
 import type { AuthoritativeCommandSuccess, AuthoritativeGameEnvelope, GameCommand } from "./domain/commands";
+import { createCommandEnvelope } from "./domain/commandEnvelope";
+import { BUILD_VERSION, DISPLAY_BUILD_VERSION } from "./lib/buildVersion";
 import type { CanonicalDungeonEncounterRecord } from "../shared/contracts/authoritative";
 import { formatCanonicalIdleReport } from "./domain/idleReport";
 import { projectCanonicalState } from "./domain/canonicalStateProjection";
@@ -400,15 +402,14 @@ export default function App() {
     }> => {
       try {
         const commandId = crypto.randomUUID();
+        const envelope = createCommandEnvelope(
+          commandId,
+          gameRevisionRef.current,
+          command,
+        );
         const result = await callGameApi<AuthoritativeCommandSuccess>("/commands", {
           method: "POST",
-          body: JSON.stringify({
-            commandId,
-            idempotencyKey: commandId,
-            clientVersion: "cdi-061",
-            expectedRevision: gameRevisionRef.current,
-            command,
-          }),
+          body: JSON.stringify(envelope),
         });
         setCanonicalStateFailureDetails(null);
         const resolvedEncounter = (result?.events ?? [])
@@ -1608,6 +1609,12 @@ export default function App() {
         <p>© 2026 Colonie & Donjon Idle. Tous droits réservés. Bâti sur les sables fins d'Antigravity.</p>
         <p className="text-[10px] text-indigo-400 mt-1">
           Taux globaux : {town.totalCitizens} Citoyens • {dungeon.heroes.length} Champions • Étage record : {dungeon.highestFloorReached}
+        </p>
+        <p
+          className="text-[10px] text-slate-500 mt-1 select-text"
+          title={`Version complète : ${BUILD_VERSION}`}
+        >
+          Build {DISPLAY_BUILD_VERSION}
         </p>
       </footer>
 
