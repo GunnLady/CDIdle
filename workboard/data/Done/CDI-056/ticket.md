@@ -1,7 +1,7 @@
 ---
 id: CDI-056
 title: Mettre a niveau Supabase JS vers 2.110.8
-status: Later
+status: Done
 area: frontend/integration
 priority: P1
 size: L
@@ -68,23 +68,23 @@ fonctionnels et porte ses propres tests de regression.
 
 ## Criteres d'acceptation
 
-- [ ] `@supabase/supabase-js@2.110.8` est epingle et installe.
-- [ ] Les changements applicables depuis 2.53.0 sont inventories.
-- [ ] Google OAuth et son callback fonctionnent.
-- [ ] La session est restauree apres F5 sans faux mode hors ligne.
-- [ ] Deconnexion, reset, suppression et recreation de compte fonctionnent.
-- [ ] L allowlist locale conserve son comportement.
-- [ ] Aucune instance `GoTrueClient` concurrente non justifiee ne subsiste.
-- [ ] Les appels game-api conservent JWT, codes et requestId.
-- [ ] Les appels Functions conservent leurs erreurs structurees.
-- [ ] AbortSignal et erreurs fetch transitoires sont correctement classes.
-- [ ] Offline, cache en lecture seule et reconnexion restent fonctionnels.
-- [ ] Les conflits de revision et l etat canonique invalide restent distincts.
-- [ ] Les impacts Storage et Realtime sont inventories, meme s ils ne sont
+- [x] `@supabase/supabase-js@2.110.8` est epingle et installe.
+- [x] Les changements applicables depuis 2.53.0 sont inventories.
+- [x] Google OAuth et son callback fonctionnent.
+- [x] La session est restauree apres F5 sans faux mode hors ligne.
+- [x] Deconnexion, reset, suppression et recreation de compte fonctionnent.
+- [x] L allowlist locale conserve son comportement.
+- [x] Aucune instance `GoTrueClient` concurrente non justifiee ne subsiste.
+- [x] Les appels game-api conservent JWT, codes et requestId.
+- [x] Les appels Functions conservent leurs erreurs structurees.
+- [x] AbortSignal et erreurs fetch transitoires sont correctement classes.
+- [x] Offline, cache en lecture seule et reconnexion restent fonctionnels.
+- [x] Les conflits de revision et l etat canonique invalide restent distincts.
+- [x] Les impacts Storage et Realtime sont inventories, meme s ils ne sont
       pas utilises directement.
-- [ ] TypeScript, tests, audit, build et budget bundle passent.
-- [ ] Les tests navigateur authentifies couvrent les regressions probables.
-- [ ] Le rollback vers 2.53.0 est documente.
+- [x] TypeScript, tests, audit, build et budget bundle passent.
+- [x] Les tests navigateur authentifies couvrent les regressions probables.
+- [x] Le rollback vers 2.53.0 est documente.
 
 ## Tests
 
@@ -127,5 +127,15 @@ Avec Supabase local et Google OAuth :
 
 ## Handoff
 
-Fournir la matrice 2.53.0 vers 2.110.8, le diff des dependances, les preuves
-Auth/API/offline, la mesure bundle, les tests navigateur et le rollback.
+- SDK et sous-clients Supabase epingles en `2.110.8`; un seul `createClient`.
+- Matrice, impacts transitifs et rollback documentes dans
+  `docs/development/supabase-js-2.110-migration.md`.
+- Preuves Codex : 37 fichiers/315 tests, E2E 3/3, typecheck, lint cible,
+  determinisme, secrets, logs, audit npm hors ligne, Workboard et diff verts.
+- Preuves utilisateur : TI concurrence, 94 tests DB, build, budget bundle,
+  OAuth/F5, mutation, multi-onglet, offline, reconnexion, reset et suppression/
+  recreation du compte valides.
+- Bundle utilisateur : 238713 B gzip JS, plus gros chunk 164013 B.
+- L'installation npm reseau a rapporte 0 vulnerabilite; l'audit autonome
+  Codex est reste hors ligne afin de ne pas transmettre les metadonnees du
+  projet sans autorisation supplementaire.
