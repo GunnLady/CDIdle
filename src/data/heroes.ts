@@ -177,15 +177,3 @@ export const FEMALE_FIRST_NAMES = [
   "Bronda", "Drusilla", "Elysia", "Fiona", "Hesper", "Lumina", "Nesta", "Rowan", "Talia", 
   "Vesper", "Ysolde", "Beatrix", "Aurelia", "Geneviève", "Morgane", "Sybille"
 ];
-
-export const HERO_FIRST_NAMES = [
-  ...MALE_FIRST_NAMES,
-  ...FEMALE_FIRST_NAMES
-];
-
-export const HERO_LAST_NAMES = [
-  "Haut-Roc", "Brise-Fer", "Feuille-d'Argent", "Sombre-Garde", "Lumière-Bénie", "Sabre-Foufou",
-  "Peau-de-Loup", "Oeil-de-Faucon", "Coeur-Valeureux", "Chante-Pierre", "Garde-Montagne", "Siffle-Vent",
-  "Grand-Pas", "Fort-Bras", "Ombre-Pas", "Tranche-Tête", "Main-D'Or", "Rune-Forge", "Cherche-Etoile",
-  "Chasse-Aube", "Barbe-Rousse", "Nuit-Eternelle", "Glace-Eternelle", "Grogne-Fer", "Double-Lame"
-];

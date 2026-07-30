@@ -9,6 +9,10 @@ async function token(claims: Record<string, unknown>, secret = "secret") {
   const signature = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(`${header}.${body}`));
   return `${header}.${body}.${base64url(String.fromCharCode(...new Uint8Array(signature)))}`;
 }
+function asymmetricToken(claims: Record<string, unknown>) {
+  const header = base64url(JSON.stringify({ alg: "ES256", typ: "JWT" }));
+  return `${header}.${base64url(JSON.stringify(claims))}.signature`;
+}
 
 const claims = { sub: "user-1", exp: 2000, iss: "http://supabase.test/auth/v1", aud: "authenticated" };
 function authenticator(responses: unknown[], now = 1000) {
@@ -20,6 +24,34 @@ describe("Supabase game-api authenticator", () => {
   it("accepts a valid, active allowlisted user", async () => {
     const auth = authenticator([{ id: "user-1", email: "Player@Example.test", app_metadata: { provider: "google" } }, [{ email: "player@example.test" }]]);
     expect(await auth(new Request("https://api.test", { headers: { authorization: `Bearer ${await token(claims)}` } }))).toBe("user-1");
+  });
+  it("accepts an ES256 token through Supabase Auth without a legacy JWT secret", async () => {
+    let index = 0;
+    const responses = [
+      {},
+      { id: "user-1", email: "player@example.test", app_metadata: { provider: "google" } },
+      [{ email: "player@example.test" }],
+    ];
+    const auth = createSupabaseAuthenticator({
+      supabaseUrl: "http://supabase.test",
+      serviceRoleKey: "service-only",
+      now: () => 1000,
+      fetcher: async () => new Response(JSON.stringify(responses[index++]), { status: 200 }),
+    });
+    expect(await auth(new Request("https://api.test", {
+      headers: { authorization: `Bearer ${asymmetricToken(claims)}` },
+    }))).toBe("user-1");
+  });
+  it("rejects HS256 when the legacy JWT secret is absent", async () => {
+    const auth = createSupabaseAuthenticator({
+      supabaseUrl: "http://supabase.test",
+      serviceRoleKey: "service-only",
+      now: () => 1000,
+      fetcher: async () => new Response(null, { status: 500 }),
+    });
+    expect(await auth(new Request("https://api.test", {
+      headers: { authorization: `Bearer ${await token(claims)}` },
+    }))).toBeNull();
   });
   it.each(["email", "", null])("rejects an allowlisted user authenticated with provider %s", async (provider) => {
     const auth = authenticator([{ id: "user-1", email: "player@example.test", app_metadata: provider === null ? null : { provider } }]);

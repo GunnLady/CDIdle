@@ -2,7 +2,6 @@ export interface Clock {
   now(): number;
 }
 
-export const systemClock: Clock = { now: () => Date.now() };
 
 export function fixedClock(timestamp: number): Clock {
   if (!Number.isFinite(timestamp)) throw new Error("timestamp must be finite");

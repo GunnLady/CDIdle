@@ -39,10 +39,11 @@ des migrations et de l'Edge Function et utilisent l'ancienne action
 Cette livraison reste une alpha contrôlée : l'URL est publique, mais l'accès au
 jeu demeure limité par l'allowlist Supabase.
 
-L origine Edge autorisée par défaut reste limitée à Vite local. La publication
-Cloudflare doit donc disposer d une origine explicitement autorisée sans
-élargir CORS à un joker. CDI-066 possède l alignement backend correspondant et
-constitue le gate final avant cette mise en ligne.
+L origine Edge autorisée par défaut reste limitée à Vite local. CDI-066 valide
+ce socle et prépare le passage de relais. Une fois l URL Pages réellement
+créée, CDI-062 ajoute cette origine exacte à `GAME_API_ALLOWED_ORIGINS`,
+redéploie explicitement `game-api` puis réalise les smokes positif et négatif,
+sans jamais élargir CORS à un joker.
 
 ## Perimetre autorise
 
@@ -57,8 +58,9 @@ constitue le gate final avant cette mise en ligne.
   de migration ni redéployer `game-api`.
 - Configurer l'URL alpha exacte dans la `Site URL` et les `Redirect URLs` de
   Supabase Auth.
-- Valider depuis Cloudflare l origine exacte configurée et contrôlée par
-  CDI-066, ainsi que le refus de toute origine inconnue.
+- Ajouter l origine Cloudflare nouvellement créée à la liste locale exacte
+  validée par CDI-066, redéployer explicitement `game-api`, puis valider depuis
+  Cloudflare cette origine et le refus de toute origine inconnue.
 - Ajouter les en-têtes statiques Cloudflare rentables : anti-sniffing,
   `Referrer-Policy`, `Permissions-Policy`, protection anti-iframe et CSP
   minimale compatible avec Supabase et les polices effectivement utilisées.

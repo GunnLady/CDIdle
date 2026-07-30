@@ -166,7 +166,7 @@ export function serveGameApi(options: HandlerOptions): unknown {
 export function serveSupabaseGameApi(options: SupabaseGameApiOptions): unknown {
   const deno = (globalThis as typeof globalThis & { Deno?: { env?: { get(name: string): string | undefined }; serve(handler: (request: Request) => Promise<Response>): unknown } }).Deno;
   const env = options.env ?? { SUPABASE_URL: deno?.env?.get("SUPABASE_URL") ?? deno?.env?.get("GAME_API_SUPABASE_URL"), SUPABASE_SERVICE_ROLE_KEY: deno?.env?.get("SUPABASE_SERVICE_ROLE_KEY") ?? deno?.env?.get("GAME_API_SERVICE_ROLE_KEY"), SUPABASE_JWT_SECRET: deno?.env?.get("SUPABASE_JWT_SECRET") ?? deno?.env?.get("GAME_API_JWT_SECRET"), SUPABASE_EXPECTED_ISSUER: deno?.env?.get("SUPABASE_EXPECTED_ISSUER") ?? deno?.env?.get("GAME_API_EXPECTED_ISSUER") };
-  if (!env.SUPABASE_URL || !env.SUPABASE_SERVICE_ROLE_KEY || !env.SUPABASE_JWT_SECRET) throw new Error("SUPABASE_RUNTIME_CONFIGURATION_REQUIRED");
+  if (!env.SUPABASE_URL || !env.SUPABASE_SERVICE_ROLE_KEY) throw new Error("SUPABASE_RUNTIME_CONFIGURATION_REQUIRED");
   const services = createSupabaseGameApiServices({
     supabaseUrl: env.SUPABASE_URL,
     serviceRoleKey: env.SUPABASE_SERVICE_ROLE_KEY,

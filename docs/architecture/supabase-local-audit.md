@@ -34,13 +34,13 @@ vérifier la présence de l'entrée de seed.
 
 ### CDI017-AUDIT-003 — Preuve d'import du code partagé
 
-Le point d'import `shared/contracts/game-state.ts` réexporte désormais le
-`GameState` canonique de `CDI-007`. `supabase/shared-import-proof.ts` et son test
-Vitest prouvent que la surface Supabase peut importer ce contrat sans en créer
-une copie.
+Le point d import historique a été retiré lors du nettoyage CDI-066.
+`supabase/shared-import-proof.ts` et son test Vitest importent désormais
+directement `shared/contracts/authoritative.ts`, seule source du contrat, sans
+réexport intermédiaire.
 
-Action réalisée : conserver la définition canonique dans `src/types.ts` et
-ajouter uniquement un point d'import partagé et sa preuve compilée/testée.
+État actuel : conserver le contrat canonique partagé et sa preuve
+compilée/testée, sans façade de compatibilité inutilisée.
 
 ## Sujets volontairement rattachés aux tickets suivants
 

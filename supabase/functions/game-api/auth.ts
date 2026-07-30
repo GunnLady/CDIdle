@@ -15,7 +15,7 @@ type AuthUser = {
 export type SupabaseAuthOptions = {
   supabaseUrl: string;
   serviceRoleKey: string;
-  jwtSecret: string;
+  jwtSecret?: string;
   expectedIssuer?: string;
   expectedAudience?: string;
   fetcher?: typeof fetch;
@@ -34,7 +34,7 @@ function decodeJson<T>(value: string): T {
   return JSON.parse(new TextDecoder().decode(decodePart(value))) as T;
 }
 
-async function verifyJwt(token: string, secret: string, serviceRoleKey: string, options: Required<Pick<SupabaseAuthOptions, "expectedIssuer" | "expectedAudience">>, now: () => number, fetcher: typeof fetch, supabaseUrl: string): Promise<string | null> {
+async function verifyJwt(token: string, secret: string | undefined, serviceRoleKey: string, options: Required<Pick<SupabaseAuthOptions, "expectedIssuer" | "expectedAudience">>, now: () => number, fetcher: typeof fetch, supabaseUrl: string): Promise<string | null> {
   const parts = token.split(".");
   if (parts.length !== 3) return null;
   try {
@@ -45,6 +45,7 @@ async function verifyJwt(token: string, secret: string, serviceRoleKey: string, 
     if (claims.iss !== options.expectedIssuer || claims.aud !== options.expectedAudience) return null;
     let valid = false;
     if (header.alg === "HS256") {
+      if (!secret) return null;
       const key = await crypto.subtle.importKey("raw", encoder.encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["verify"]);
       valid = await crypto.subtle.verify("HMAC", key, decodePart(parts[2]), encoder.encode(`${parts[0]}.${parts[1]}`));
     } else if (header.alg === "ES256") {

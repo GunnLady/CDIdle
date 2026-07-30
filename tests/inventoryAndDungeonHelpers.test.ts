@@ -1,33 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { addItemInstance, equipStoredItem, removeItemInstance, unequipStoredItem, type InventoryState } from "../src/domain/inventory";
 import { getEncounterDetails, getEncounterStatPresentation, rollEncounterForgeMaterial, selectBestHeroForEncounter, applyLootModifiers } from "../src/utils/dungeonHelpers";
 import { SKILLS_LIBRARY } from "../src/data/skills";
-import { makeHero, makeStoredItem } from "./fixtures/game";
+import { makeHero } from "./fixtures/game";
 
 const rng = (value: number) => ({ next: () => value, nextInt: () => 0 });
 
-const inventory = (overrides: Partial<InventoryState> = {}): InventoryState => ({
-  heroes: [makeHero()],
-  storedItems: [makeStoredItem({ itemId: "starter_sword" })],
-  ...overrides,
-});
-
 describe("inventory and dungeon helper edge cases", () => {
-  it("covers invalid, missing, equip and unequip inventory paths", () => {
-    const state = inventory();
-    expect(addItemInstance(state, { instanceId: "", itemId: "starter_sword", rarity: "common" })).toMatchObject({ ok: false, error: "INVALID_ITEM" });
-    expect(removeItemInstance(state, "missing")).toMatchObject({ ok: false, error: "ITEM_NOT_FOUND" });
-    expect(equipStoredItem(state, "missing", "item-fixture")).toMatchObject({ ok: false, error: "HERO_NOT_FOUND" });
-    expect(equipStoredItem(state, "hero-fixture", "missing")).toMatchObject({ ok: false, error: "ITEM_NOT_FOUND" });
-
-    const equipped = equipStoredItem(state, "hero-fixture", "item-fixture");
-    expect(equipped.ok).toBe(true);
-    if (!equipped.ok) return;
-    expect(equipped.state.heroes[0].equipment?.mainHand?.itemId).toBe("starter_sword");
-    expect(unequipStoredItem(equipped.state, "hero-fixture", "mainHand")).toMatchObject({ ok: true });
-    expect(unequipStoredItem(state, "missing", "mainHand")).toMatchObject({ ok: false, error: "HERO_NOT_FOUND" });
-  });
-
   it("covers dungeon reward tiers and stat selection", () => {
     expect(rollEncounterForgeMaterial(1, rng(0.1)).rarity).toBe("uncommon");
     expect(rollEncounterForgeMaterial(25, rng(0.1)).rarity).toBe("rare");

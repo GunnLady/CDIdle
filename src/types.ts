@@ -59,20 +59,7 @@ export type ClassType =
   | "Artificier"
   | "Pugiliste";
 
-export interface EvolutionRequirements {
-  minLevelToEvolve: number;
-  requiredGoldToEvolve?: number;
-  requiredItems?: { itemId: string; count: number }[];
-  previousClassId?: ClassType;
-}
 
-export interface ClassSkill {
-  name: string;
-  description: string;
-  levelUnlocked: number;
-  specialSkillDesc?: string;
-  cooldownTurns?: number;
-}
 
 export interface HeroStats {
   str: number;
@@ -258,9 +245,6 @@ export interface WeaponInfo {
   modifiers?: Modifier[];
 }
 
-export interface WeaponData {
-  weaponTypes: WeaponInfo[];
-}
 
 export type OffHandCategory =
   "shield" | "magic_focus" | "holy_focus" | "nature_focus";
@@ -273,9 +257,6 @@ export interface OffHandInfo {
   modifiers?: Modifier[];
 }
 
-export interface OffHandData {
-  offHandTypes: OffHandInfo[];
-}
 
 export type ArmorCategory =
   | "cloth_armor"
@@ -292,9 +273,6 @@ export interface ArmorInfo {
   modifiers: Modifier[];
 }
 
-export interface ArmorData {
-  armorTypes: ArmorInfo[];
-}
 
 export type AccessoryCategory =
   | "ring"
@@ -312,9 +290,6 @@ export interface AccessoryInfo {
   modifiers?: Modifier[];
 }
 
-export interface AccessoryData {
-  accessoryTypes: AccessoryInfo[];
-}
 
 export type ItemType =
   | "weapon"
@@ -342,9 +317,6 @@ export interface StoredForgeMaterialStack {
   count: number;
 }
 
-export interface ForgeState {
-  unlocked: boolean;
-}
 
 export interface ItemBlueprint {
   itemId: string;
@@ -395,9 +367,6 @@ export type ItemInfo =
   | ArmorItemInfo
   | AccessoryItemInfo;
 
-export interface ItemData {
-  items: ItemInfo[];
-}
 
 export interface HeroEquipment {
   mainHand?: EquippedItemRef | null;
@@ -481,9 +450,4 @@ export interface SkillInfo {
   target?: SkillTarget;
   manaCost?: number;
   cooldownRounds?: number;
-}
-
-export interface ClassSkillInfo {
-  activeSkills: SkillInfo[];
-  passiveSkills: SkillInfo[];
 }

@@ -63,9 +63,6 @@ export function canonicalRngStateIssue(value: unknown): string | null {
   return null;
 }
 
-export function isCanonicalRngState(value: unknown): value is CanonicalRngState {
-  return canonicalRngStateIssue(value) === null;
-}
 
 export function migrateCanonicalRngState(
   value: unknown,

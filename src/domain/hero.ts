@@ -202,7 +202,3 @@ export function addHeroExperience(
 ): Hero {
   return addHeroExperienceDetailed(hero, xpEarned, rng, buildings).hero;
 }
-
-export function chooseAutomaticClass(hero: Hero, buildings: Record<string, number>): ClassType | null {
-  return evaluateAutomaticClassChange(hero, buildings).newClass;
-}

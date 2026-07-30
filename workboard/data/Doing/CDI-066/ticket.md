@@ -1,16 +1,16 @@
 ---
 id: CDI-066
 title: Verifier et aligner Supabase pour l alpha
-status: Later
+status: Doing
 area: backend
 priority: P1
-size: M
+size: L
 risk: high
 source: Audit de preparation alpha du 2026-07-30
 depends_on: ["CDI-063", "CDI-064", "CDI-065"]
 blocks: ["CDI-062"]
 github_issue: null
-related_docs: ["supabase", "workboard/data/Done/CDI-047/ticket.md", "docs/deployment/cdi-035-runbook.md", "supabase/functions/game-api/index.ts", ".github/workflows/deploy.yml"]
+related_docs: ["supabase", "workboard/data/Done/CDI-047/ticket.md", "docs/deployment/cdi-035-runbook.md", "docs/deployment/cdi-066-supabase-alpha-audit.md", "supabase/functions/game-api/index.ts", ".github/workflows/deploy.yml"]
 ---
 
 # CDI-066 — Verifier et aligner Supabase pour l alpha
@@ -45,12 +45,15 @@ une vérification explicite est nécessaire avant d ouvrir le frontend hébergé
   runtime requis.
 - Vérifier JWT, issuer, usage serveur de `service_role` et cheats désactivés.
 - Configurer exactement l origine Cloudflare alpha dans
-  `GAME_API_ALLOWED_ORIGINS` tout en conservant les origines locales décidées.
+  `GAME_API_ALLOWED_ORIGINS` dès que CDI-062 a créé cette origine ; CDI-066
+  valide auparavant la liste locale exacte et prépare ce passage de relais.
 - Vérifier Google uniquement et l allowlist après CDI-063.
 - Vérifier l identité de version après CDI-064.
 - Déployer puis vérifier la migration et la route de rapports d erreur après
   CDI-065.
 - Rejouer les smokes backend essentiels avec des comptes et données contrôlés.
+- Supprimer les anciens chemins client, adaptateurs, tests et dépendances dont
+  l absence du graphe de production et le remplacement serveur sont prouvés.
 - Corriger un écart réel uniquement par migration additive, secret runtime ou
   redéploiement explicite depuis le commit validé.
 
@@ -62,6 +65,8 @@ une vérification explicite est nécessaire avant d ouvrir le frontend hébergé
 - Auditer les quotas, coûts ou offres commerciales.
 - Créer un second projet Supabase de production.
 - Modifier le gameplay, le catalogue d objets ou le périmètre CDI-060.
+- Supprimer les tables de données ou contrats explicitement conservés pour un
+  ticket futur, notamment les tables de loot de boss de CDI-060.
 - Effectuer une migration destructive ou une correction distante non présentée.
 
 ## Contrat d'implementation
@@ -79,6 +84,9 @@ une vérification explicite est nécessaire avant d ouvrir le frontend hébergé
 - Les tests destructifs utilisent uniquement un compte alpha dédié et leur
   portée est annoncée avant exécution.
 - Le commit du backend déployé et la version client attendue sont consignés.
+- Un module n est supprimé comme mort que si son remplacement est identifié,
+  qu il est absent des deux entrées de production et que les documents actifs
+  ne le désignent plus comme source normative.
 
 ## Dependances
 
@@ -96,8 +104,9 @@ une vérification explicite est nécessaire avant d ouvrir le frontend hébergé
 - [ ] Google est le seul fournisseur alpha et l allowlist est active.
 - [ ] Cheats distants désactivés, `service_role` absent du client et JWT/issuer
   cohérents.
-- [ ] L origine Cloudflare exacte est acceptée et une origine inconnue reçoit
-  `CORS_FORBIDDEN`.
+- [ ] Avant CDI-062, les seules origines locales décidées sont acceptées et une
+  origine inconnue reçoit `CORS_FORBIDDEN` ; l ajout et le smoke de l origine
+  Cloudflare exacte sont explicitement transmis à CDI-062.
 - [ ] Sans JWT, `bootstrap` reçoit 401 ; avec le compte dédié, il reçoit 200.
 - [ ] Une mutation contrôlée persiste après un nouveau bootstrap.
 - [ ] Idempotence, conflit concurrent et limite de commandes restent actifs.
@@ -105,6 +114,9 @@ une vérification explicite est nécessaire avant d ouvrir le frontend hébergé
   autres testeurs.
 - [ ] Un rapport d erreur versionné est accepté, nettoyé et analysable, tandis
   qu un rapport interdit ou trop volumineux est refusé.
+- [ ] Les chemins client remplacés par l autorité serveur, leurs tests devenus
+  trompeurs, leurs dépendances et assets orphelins sont retirés sans supprimer
+  les données réservées à CDI-060.
 - [ ] Aucun écart backend réel ne reste non corrigé ou non tracé avant CDI-062.
 
 ## Tests
@@ -116,7 +128,8 @@ une vérification explicite est nécessaire avant d ouvrir le frontend hébergé
 - Mutation contrôlée suivie d un bootstrap.
 - `npm.cmd run test:integration`
 - Tests contrôlés idempotence, concurrence et rate limit.
-- Smoke CORS positif/négatif.
+- Smoke CORS local positif et origine inconnue négative ; smoke Cloudflare
+  différé à CDI-062 après création de l URL.
 - Smoke du rapport d erreur CDI-065.
 - `npm.cmd run test:db`
 - `npm.cmd run check:secrets`

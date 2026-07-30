@@ -2,11 +2,11 @@ import { existsSync, readFileSync } from "node:fs";
 import { dirname, extname, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { acceptsSharedGameState } from "../supabase/shared-import-proof";
-import { GAME_STATE_SCHEMA_VERSION } from "../shared/contracts/game-state";
+import { CANONICAL_GAME_STATE_REQUIRED_FIELDS } from "../shared/contracts/authoritative";
 
 describe("Supabase shared contract boundary", () => {
   it("imports the canonical GameState contract", () => {
-    expect(GAME_STATE_SCHEMA_VERSION).toBe(1);
+    expect(CANONICAL_GAME_STATE_REQUIRED_FIELDS).toContain("rngState");
     expect(acceptsSharedGameState).toBeTypeOf("function");
   });
 

@@ -555,18 +555,6 @@ export const SKILLS_BY_ID: Record<string, SkillInfo> = Object.fromEntries(
   SKILLS_LIBRARY.map((skill) => [skill.id, skill])
 );
 
-export const SKILLS_BY_CLASS = {
-  Novice: NOVICE_SKILLS,
-  Warrior: WARRIOR_SKILLS,
-  Rogue: ROGUE_SKILLS,
-  Archer: ARCHER_SKILLS,
-  Mage: MAGE_SKILLS,
-  Acolyte: ACOLYTE_SKILLS,
-  Aede: AEDE_SKILLS,
-  Druid: DRUID_SKILLS,
-  Artificer: ARTIFICER_SKILLS,
-  Pugilist: PUGILIST_SKILLS
-};
 
 export function getSkillById(skillId: string): SkillInfo | undefined {
   return SKILLS_BY_ID[skillId];

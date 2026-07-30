@@ -1,8 +1,6 @@
 import { CANONICAL_RESISTANCE_FIELDS } from "../domain/hero-stats.ts";
 
-export type CanonicalRarity = "common" | "uncommon" | "rare" | "epic" | "legendary";
 
-export type CanonicalModifier = { stat: string; type?: "flat" | "percent"; value: number };
 
 export interface CanonicalDungeonTranscriptEvent {
   sequence: number;

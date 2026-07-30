@@ -6,8 +6,9 @@
 > des sept objets novice, leur rarete et leurs modificateurs recalculent les
 > sous-statistiques Novice et Tier 1. Le catalogue complet reste dans CDI-060.
 
-`src/domain/inventory.ts` expose des mutations immuables sur les héros et le
-stock :
+`supabase/functions/game-api/inventory-authority.ts` expose les mutations
+autoritaires sur les héros et le stock. L ancienne copie cliente, absente du
+graphe de production, a été supprimée par CDI-066 :
 
 - `addItemInstance` ajoute une identite unique sans muter l etat source ;
 - `removeItemInstance` retire uniquement l identite demandee ;

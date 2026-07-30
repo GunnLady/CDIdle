@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { createGameApiHandler, serveGameApi, type ApiServices } from "../supabase/functions/game-api/index";
+import { createGameApiHandler, serveGameApi, serveSupabaseGameApi, type ApiServices } from "../supabase/functions/game-api/index";
 
 const reportError = vi.fn(async () => undefined);
 const services: ApiServices = {
@@ -162,5 +162,27 @@ describe("game-api Edge handler", () => {
     serveGameApi({ allowedOrigins: ["https://app.example.test"], services });
     expect(served).toBe(true);
     (globalThis as typeof globalThis & { Deno?: unknown }).Deno = previous;
+  });
+
+  it("starts the hosted ES256 runtime without a legacy JWT secret", () => {
+    const runtime = globalThis as typeof globalThis & { Deno?: unknown };
+    const previous = runtime.Deno;
+    let served = false;
+    runtime.Deno = { serve: () => { served = true; } };
+
+    try {
+      expect(() => serveSupabaseGameApi({
+        allowedOrigins: ["https://app.example.test"],
+        initialState: {},
+        applyCommand: async (state) => ({ state }),
+        env: {
+          SUPABASE_URL: "https://project.supabase.co",
+          SUPABASE_SERVICE_ROLE_KEY: "service-role-only",
+        },
+      })).not.toThrow();
+      expect(served).toBe(true);
+    } finally {
+      runtime.Deno = previous;
+    }
   });
 });

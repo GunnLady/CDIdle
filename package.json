@@ -52,19 +52,14 @@
     "test:watch": "vitest --watch",
     "test:coverage": "vitest --coverage --run",
     "check:coverage": "node scripts/check-coverage-thresholds.mjs",
-    "clean": "rm -rf dist server.js",
     "check": "npm run board:validate && npm run check:secrets && npm run check:logs && npm run check:migrations && npm run typecheck && npm run lint && npm test -- --run && npm run test:coverage && npm run check:coverage && npm run test:db && npm run build && npm run check:bundle"
   },
   "dependencies": {
     "@supabase/supabase-js": "2.110.8",
-    "@tailwindcss/vite": "^4.1.14",
-    "@vitejs/plugin-react": "^5.0.4",
     "lucide-react": "^0.546.0",
     "motion": "^12.23.24",
     "react": "^19.0.1",
-    "react-dom": "^19.0.1",
-    "vite": "^6.2.3",
-    "zod": "^4.4.3"
+    "react-dom": "^19.0.1"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
@@ -73,7 +68,7 @@
     "@testing-library/user-event": "^14.6.1",
     "@types/node": "^22.14.0",
     "@vitest/coverage-v8": "^4.1.10",
-    "autoprefixer": "^10.4.21",
+    "@tailwindcss/vite": "^4.1.14",
     "eslint": "^10.7.0",
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.3",

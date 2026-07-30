@@ -1,6 +1,6 @@
-import type { GameState } from "../shared/contracts/game-state";
+import type { CanonicalGameState } from "../shared/contracts/authoritative";
 
 /** Compile-time proof that the Supabase surface can import the shared contract. */
-export function acceptsSharedGameState(state: GameState): GameState {
+export function acceptsSharedGameState(state: CanonicalGameState): CanonicalGameState {
   return state;
 }

@@ -9,9 +9,10 @@
 > Les objets ameliores persistent aussi leurs effets novice mis a l echelle ;
 > le bonus choisi et ces effets alimentent les sous-statistiques Novice et T1.
 
-`src/domain/forge.ts` formalise les coûts et refus atomiques de la forge. La
-forge verrouillée, un plan verrouillé ou des matériaux insuffisants ne modifient
-jamais le stock source.
+`supabase/functions/game-api/forge-authority.ts` formalise les coûts et refus
+atomiques de la forge. La forge verrouillée, un plan verrouillé ou des
+matériaux insuffisants ne modifient jamais le stock source. L ancienne copie
+cliente a été supprimée par CDI-066.
 
 `forge.finalize` cree `item:forge:<previewId>` sans tirage RNG supplementaire.
 Le loot de donjon derive aussi son `instanceId` de l encounter persiste. Le

@@ -18,8 +18,9 @@ Date : 2026-07-23
   de repli et rechargement dans `tests/appErrorBoundary.test.tsx`.
 - Code splitting des panneaux et des dépendances via `React.lazy` et
   `vite.config.ts`. Le build ne produit plus de warning de chunk.
-- Benchmark combat reproductible dans `tests/combat.benchmark.test.ts` :
-  1000 rounds sous 500 ms.
+- Le benchmark historique du combat client (1000 rounds sous 500 ms) a été
+  retiré avec ce moteur non exécuté lors du nettoyage CDI-066. Il ne constitue
+  plus une preuve du moteur autoritaire serveur.
 
 ## Preuves
 

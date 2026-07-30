@@ -36,21 +36,15 @@ ne sont pas présentés comme résolus par ce ticket.
 
 ## Dette d’architecture — module canonique de progression
 
-Source normative : `src/domain/dungeonProgression.ts`. Elle définit les règles
+Source normative actuelle :
+`supabase/functions/game-api/dungeon-authority.ts`. Elle définit les règles
 officielles des 50 salles par étage, du passage salle 50 → étage suivant/salle
 1, du record monotone et de la navigation bornée.
 
-État actuel : `supabase/functions/game-api/dungeon-authority.ts` applique une
-copie locale de ces règles pour l’autorité serveur. Les tests couvrent le même
-comportement, mais deux implémentations peuvent diverger lors d’une évolution.
+Mise à jour CDI-066 : la copie cliente non exécutée a été supprimée. Il ne
+reste qu une implémentation de production, couverte par les tests serveur.
 
-Suivi : dette à traiter lors de la prochaine tranche de raccordement partagé
-du domaine serveur, à rattacher à un ticket dédié avant clôture.
-
-Critères de clôture : une seule implémentation importée/partagée entre client
-et serveur, tests de non-régression sur 49→50 et 50→étage suivant, record
-monotone et refus des états/étages invalides, puis audit architectural mis à
-jour.
+Cette dette de double implémentation est close.
 
 ## Preuves locales
 

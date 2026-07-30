@@ -61,12 +61,3 @@ export function validateAuthoritativeHeroes(input: unknown, path = "heroes"): st
   if (!Array.isArray(input)) return [`${path} must be an array`];
   return input.flatMap((hero, index) => validateAuthoritativeHero(hero, `${path}[${index}]`));
 }
-
-export function validateAuthoritativeHeroesSkills(
-  heroes: Hero[],
-  path = "heroes",
-): string[] {
-  return heroes.flatMap((hero, index) =>
-    validateAuthoritativeHeroSkills(hero, `${path}[${index}]`)
-  );
-}

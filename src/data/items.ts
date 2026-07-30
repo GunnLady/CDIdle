@@ -104,11 +104,6 @@ export function getItemById(itemId: string): ItemInfo | undefined {
   return ITEMS_BY_ID[itemId];
 }
 
-export function getItemsByIds(itemIds: string[]): ItemInfo[] {
-  return itemIds
-    .map((itemId) => ITEMS_BY_ID[itemId])
-    .filter((item): item is ItemInfo => Boolean(item));
-}
 
 export function validateUniqueItemIds(items: ItemInfo[]): string[] {
   const seen = new Set<string>();

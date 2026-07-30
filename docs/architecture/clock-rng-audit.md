@@ -7,9 +7,8 @@
 
 | Zone | Accès direct | Classement | Décision |
 | --- | --- | --- | --- |
-| `src/domain/random.ts` | `Date.now` dans `systemClock` | frontière autorisée | conserver comme implémentation système |
-| `src/domain/hero.ts`, `src/domain/combat.ts` | aucun accès global | sans écart | `Rng` injecté |
-| `src/repositories/gameRepository.ts` | `new Date` par défaut du constructeur | frontière/adaptateur | horloge injectable déjà disponible |
+| `src/domain/random.ts` | `Math.random` dans `systemRng` | frontière UI autorisée | conserver comme implémentation système |
+| `src/domain/hero.ts` | aucun accès global | sans écart | `Rng` injecté |
 | `src/utils/gameCalculations.ts` | anciennement plusieurs `Math.random` gameplay | migré | fonctions de génération/dégâts/proc acceptent `Rng`, avec adaptateur système par défaut |
 | `src/utils/dungeonHelpers.ts` | anciennement `Math.random` loot | migré | tirages d’encounter/matériaux acceptent `Rng` |
 | `src/hooks/useDungeonSystem.ts` | tirages combat/loot et `Math.random` | prévu dans la migration gameplay | ne pas considérer comme preuve serveur |
@@ -32,3 +31,7 @@ maintenant contrôlés. Les hooks UI gardent des tirages locaux et devront être
 raccordés à l’autorité serveur dans CDI-051. La graine et l’avancement
 persistés sont livrés par CDI-050. CDI-054 doit réutiliser ce flux pour le
 moteur de parité et conserver l’ordre historique des rolls.
+
+Mise à jour CDI-066 : l ancien combat client et l ancien repository, tous deux
+absents du graphe de production et remplacés par l autorité Supabase, ont été
+supprimés avec leurs tests spécifiques.
