@@ -8,7 +8,7 @@ size: S
 risk: medium
 source: audit global
 depends_on: ["CDI-045", "CDI-046", "CDI-048", "CDI-050", "CDI-051", "CDI-054"]
-blocks: []
+blocks: ["CDI-062"]
 github_issue: null
 related_docs: ["workboard", "workboard/data/Done/CDI-047/ticket.md"]
 ---

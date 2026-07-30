@@ -8,7 +8,7 @@ size: M
 risk: high
 source: audit global
 depends_on: []
-blocks: []
+blocks: ["CDI-062"]
 github_issue: null
 related_docs: ["supabase", "src/App.tsx", "src/lib/gameCache.ts"]
 ---

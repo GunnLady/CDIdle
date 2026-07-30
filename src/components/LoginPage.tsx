@@ -1,20 +1,13 @@
 import React, { useState, useEffect } from "react";
-import { signInWithEmail, signUpWithEmail, signInWithGoogle, getAuthSnapshot } from "../lib/supabase";
+import { signInWithGoogle, getAuthSnapshot } from "../lib/supabase";
 import { 
-  Shield, 
-  Lock, 
-  Mail, 
   Sparkles, 
   Castle, 
   ChevronRight, 
-  Activity,
   Sword,
   ShieldAlert,
-  User,
   Check,
-  Edit2,
-  RefreshCw,
-  Skull
+  Edit2
 } from "lucide-react";
 import { Hero } from "../types";
 
@@ -33,10 +26,6 @@ export default function LoginPage({
   onLoginSuccess,
   addLog,
 }: LoginPageProps) {
-  const [authMode, setAuthMode] = useState<"login" | "signup">("login");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -49,8 +38,6 @@ export default function LoginPage({
   const [showNoviceChoiceStep, setShowNoviceChoiceStep] = useState(false);
   const [candidateNovices, setCandidateNovices] = useState<Hero[]>([]);
   const [selectedNoviceIds, setSelectedNoviceIds] = useState<string[]>([]);
-  const [editingHeroId, setEditingHeroId] = useState<string | null>(null);
-  const [editingName, setEditingName] = useState("");
 
   // If a user logs in via Google or is authenticated with no city named, show naming step
   useEffect(() => {
@@ -80,58 +67,6 @@ export default function LoginPage({
       if (err.code !== "provider-canceled") {
         setError("Impossible de s'authentifier via Google : " + err.message);
       }
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleAuth = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-    setLoading(true);
-
-    if (password.length < 6) {
-      setError("Le mot de passe doit faire au moins 6 caractères pour protéger votre royaume.");
-      setLoading(false);
-      return;
-    }
-
-    if (authMode === "signup" && password !== confirmPassword) {
-      setError("Les deux mots de passe ne correspondent pas.");
-      setLoading(false);
-      return;
-    }
-
-    try {
-      if (authMode === "login") {
-        const credential = await signInWithEmail(email, password);
-        // Success: check if save game exists and has cityName inside App.tsx
-        // App.tsx handles the Supabase auth subscription and loads the city state.
-        addLog("☁️ Connexion établie avec succès ! Royaume synchronisé.", "victory");
-      } else {
-        const credential = await signUpWithEmail(email, password);
-        setUserCredential(credential.data.user);
-        // Force show naming step for newly signed up users
-        setShowNamingStep(true);
-        addLog("☁️ Dynastie cloud créée avec succès ! Nommez votre cité.", "victory");
-      }
-    } catch (err: any) {
-      console.error("Authentication error:", err);
-      let frenchMessage = "Une erreur est survenue lors de l'authentification.";
-      if (err.code === "invalid_email") {
-        frenchMessage = "Adresse e-mail invalide.";
-      } else if (
-        err.code === "invalid_credentials"
-      ) {
-        frenchMessage = "Identifiants incorrects (adresse e-mail ou mot de passe erroné).";
-      } else if (err.code === "user_already_exists") {
-        frenchMessage = "Cette adresse e-mail est déjà associée à un autre souverain.";
-      } else if (err.code === "weak_password") {
-        frenchMessage = "Le mot de passe est trop faible (6 caractères minimum).";
-      } else if (err.code === "network_error") {
-        frenchMessage = "Impossible de contacter le royaume. Vérifiez votre connexion internet.";
-      }
-      setError(frenchMessage);
     } finally {
       setLoading(false);
     }
@@ -460,14 +395,9 @@ export default function LoginPage({
                     const prefixes = ["Val", "Fort", "Mont", "Castel", "Haut", "Roche", "Garde", "Havre", "Port", "Bois", "Pont", "Grand", "Rive", "Fend"];
                     const suffixes = ["Ombré", "Braise", "Dragon", "Vigie", "Sable", "Clair", "Gris", "Noir", "Argent", "Doré", "Brune", "Lune", "Soleil", "Tempête", "Roc", "Azur", "Vent", "Etoile"];
                     
-                    let newName = "";
-                    if (Math.random() > 0.4) {
-                      const prefix = prefixes[Math.floor(Math.random() * prefixes.length)];
-                      const suffix = suffixes[Math.floor(Math.random() * suffixes.length)];
-                      newName = `${prefix}-${suffix}`;
-                    } else {
-                      newName = presetNames[Math.floor(Math.random() * presetNames.length)];
-                    }
+                    const newName = Math.random() > 0.4
+                      ? `${prefixes[Math.floor(Math.random() * prefixes.length)]}-${suffixes[Math.floor(Math.random() * suffixes.length)]}`
+                      : presetNames[Math.floor(Math.random() * presetNames.length)];
                     setTempCityName(newName);
                     setError(null);
                   }}
@@ -527,7 +457,7 @@ export default function LoginPage({
             IddleCityDonjon
           </h1>
           <span className="text-[9px] uppercase tracking-widest text-[#a89078] font-bold font-mono mt-1 block">
-            {authMode === "login" ? "Jeu Incrémental & Exploration de Donjon" : "Création d'un Nouveau Compte Souverain"}
+            Alpha privée — accès Google autorisé
           </span>
         </div>
 
@@ -537,84 +467,6 @@ export default function LoginPage({
             <span>{error}</span>
           </div>
         )}
-
-        <form onSubmit={handleAuth} className="space-y-4">
-          <div>
-            <label className="text-[10px] text-[#a89078] font-bold font-serif uppercase tracking-wider block mb-1">
-              Adresse E-mail
-            </label>
-            <div className="relative">
-              <input
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="souverain@iddlecity.fr"
-                className="bg-[#0f0a06] border border-[#5c402b] text-[#dfdbc7] rounded-xl px-3 py-2.5 pl-10 text-xs focus:outline-none focus:border-[#d4af37] w-full placeholder-slate-700 font-sans transition-colors"
-              />
-              <Mail className="w-3.5 h-3.5 text-[#5c402b] absolute left-3 top-1/2 -translate-y-1/2" />
-            </div>
-          </div>
-
-          <div>
-            <label className="text-[10px] text-[#a89078] font-bold font-serif uppercase tracking-wider block mb-1">
-              Mot de passe
-            </label>
-            <div className="relative">
-              <input
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                className="bg-[#0f0a06] border border-[#5c402b] text-[#dfdbc7] rounded-xl px-3 py-2.5 pl-10 text-xs focus:outline-none focus:border-[#d4af37] w-full placeholder-slate-700 font-sans transition-colors"
-                minLength={6}
-              />
-              <Lock className="w-3.5 h-3.5 text-[#5c402b] absolute left-3 top-1/2 -translate-y-1/2" />
-            </div>
-          </div>
-
-          {authMode === "signup" && (
-            <div>
-              <label className="text-[10px] text-[#a89078] font-bold font-serif uppercase tracking-wider block mb-1">
-                Confirmer le mot de passe
-              </label>
-              <div className="relative">
-                <input
-                  type="password"
-                  required
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="bg-[#0f0a06] border border-[#5c402b] text-[#dfdbc7] rounded-xl px-3 py-2.5 pl-10 text-xs focus:outline-none focus:border-[#d4af37] w-full placeholder-slate-700 font-sans transition-colors"
-                  minLength={6}
-                />
-                <Lock className="w-3.5 h-3.5 text-[#5c402b] absolute left-3 top-1/2 -translate-y-1/2" />
-              </div>
-            </div>
-          )}
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-gradient-to-r from-[#8c5a2b] to-[#b3844a] text-[#fbf7f0] hover:from-[#cba374] hover:to-[#ae8650] shadow-[0_3px_10px_rgba(140,90,43,0.2)] border border-[#d4af37] py-2.5 px-4 rounded-xl font-serif font-bold text-center text-xs transition-all duration-200 cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2"
-          >
-            {loading ? (
-              <span className="animate-pulse">Incantation en cours...</span>
-            ) : (
-              <>
-                <span>⚔️ {authMode === "login" ? "Entrer dans la Cité" : "Créer mon Compte Souverain"}</span>
-                <ChevronRight className="w-3.5 h-3.5 text-[#fdf9f2]" />
-              </>
-            )}
-          </button>
-        </form>
-
-        <div className="relative flex py-3 items-center">
-          <div className="flex-grow border-t border-[#5c402b]/20"></div>
-          <span className="flex-shrink mx-4 text-[9px] text-[#a89078] uppercase tracking-widest font-mono">OU</span>
-          <div className="flex-grow border-t border-[#5c402b]/20"></div>
-        </div>
 
         <button
           type="button"
@@ -643,37 +495,9 @@ export default function LoginPage({
           <span>S'identifier avec Google</span>
         </button>
 
-        <div className="mt-5 pt-4 border-t border-[#5c402b]/25 text-center text-[11px] font-sans">
-          {authMode === "login" ? (
-            <p className="text-[#a89078]">
-              Nouveau prélat souverain ?{" "}
-              <button
-                onClick={() => {
-                  setAuthMode("signup");
-                  setConfirmPassword("");
-                  setError(null);
-                }}
-                className="text-[#d4af37] duration-150 transition-colors hover:text-[#cba374] font-bold cursor-pointer underline ml-1"
-              >
-                Créez une dynastie !
-              </button>
-            </p>
-          ) : (
-            <p className="text-[#a89078]">
-              Déjà seigneur d'un domaine ?{" "}
-              <button
-                onClick={() => {
-                  setAuthMode("login");
-                  setConfirmPassword("");
-                  setError(null);
-                }}
-                className="text-[#d4af37] duration-150 transition-colors hover:text-[#cba374] font-bold cursor-pointer underline ml-1"
-              >
-                Connectez-vous ici
-              </button>
-            </p>
-          )}
-        </div>
+        <p className="mt-5 pt-4 border-t border-[#5c402b]/25 text-center text-[11px] text-[#a89078] font-sans">
+          L'accès à l'alpha est réservé aux comptes Google autorisés.
+        </p>
       </div>
     </div>
   );

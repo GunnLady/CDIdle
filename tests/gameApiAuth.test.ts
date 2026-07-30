@@ -18,8 +18,12 @@ function authenticator(responses: unknown[], now = 1000) {
 
 describe("Supabase game-api authenticator", () => {
   it("accepts a valid, active allowlisted user", async () => {
-    const auth = authenticator([{ id: "user-1", email: "Player@Example.test" }, [{ email: "player@example.test" }]]);
+    const auth = authenticator([{ id: "user-1", email: "Player@Example.test", app_metadata: { provider: "google" } }, [{ email: "player@example.test" }]]);
     expect(await auth(new Request("https://api.test", { headers: { authorization: `Bearer ${await token(claims)}` } }))).toBe("user-1");
+  });
+  it.each(["email", "", null])("rejects an allowlisted user authenticated with provider %s", async (provider) => {
+    const auth = authenticator([{ id: "user-1", email: "player@example.test", app_metadata: provider === null ? null : { provider } }]);
+    expect(await auth(new Request("https://api.test", { headers: { authorization: `Bearer ${await token(claims)}` } }))).toBeNull();
   });
   it.each(["missing", "expired", "wrong issuer", "wrong audience", "bad signature"]) ("rejects %s tokens", async (kind) => {
     const altered = { ...claims, ...(kind === "expired" ? { exp: 999 } : {}), ...(kind === "wrong issuer" ? { iss: "other" } : {}), ...(kind === "wrong audience" ? { aud: "other" } : {}) };
@@ -27,7 +31,7 @@ describe("Supabase game-api authenticator", () => {
     const auth = authenticator([]);
     expect(await auth(new Request("https://api.test", { headers: bearer ? { authorization: bearer } : {} }))).toBeNull();
   });
-  it.each([[{ id: "user-1", email: "player@example.test", deleted_at: "2026-01-01" }, [{ email: "player@example.test" }]], [{ id: "user-1", email: "player@example.test" }, []]])("rejects deleted or non-allowlisted users", async (user, entries) => {
+  it.each([[{ id: "user-1", email: "player@example.test", deleted_at: "2026-01-01", app_metadata: { provider: "google" } }, [{ email: "player@example.test" }]], [{ id: "user-1", email: "player@example.test", app_metadata: { provider: "google" } }, []]])("rejects deleted or non-allowlisted users", async (user, entries) => {
     const auth = authenticator([user, entries]);
     expect(await auth(new Request("https://api.test", { headers: { authorization: `Bearer ${await token(claims)}` } }))).toBeNull();
   });

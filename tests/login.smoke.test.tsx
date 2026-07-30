@@ -4,8 +4,6 @@ import LoginPage from "../src/components/LoginPage";
 
 const authMocks = vi.hoisted(() => ({
   getAuthSnapshot: vi.fn(),
-  signInWithEmail: vi.fn(),
-  signUpWithEmail: vi.fn(),
   signInWithGoogle: vi.fn(),
 }));
 
@@ -30,6 +28,8 @@ describe("LoginPage smoke", () => {
       />,
     );
     expect(screen.getAllByRole("button").length).toBeGreaterThan(0);
+    expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
+    expect(screen.queryByText(/mot de passe/i)).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: /Google/i }));
 
     await waitFor(() => expect(authMocks.signInWithGoogle).toHaveBeenCalledOnce());

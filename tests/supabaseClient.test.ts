@@ -41,18 +41,15 @@ describe("Supabase client contract", () => {
     });
   });
 
-  it("delegates email authentication and sign-out without changing SDK results", async () => {
+  it("propagates Google OAuth errors and delegates sign-out", async () => {
     const module = supabaseModule;
-    const passwordSignIn = vi.spyOn(module.supabase.auth, "signInWithPassword").mockResolvedValue({ data: { user: null, session: null }, error: null });
-    const signUp = vi.spyOn(module.supabase.auth, "signUp").mockResolvedValue({ data: { user: null, session: null }, error: null });
+    const oauthError = new Error("oauth unavailable");
+    vi.spyOn(module.supabase.auth, "signInWithOAuth").mockResolvedValue({ data: { provider: "google", url: null }, error: oauthError } as never);
     const signOut = vi.spyOn(module.supabase.auth, "signOut").mockResolvedValue({ error: null });
 
-    await module.signInWithEmail("user@example.test", "password");
-    await module.signUpWithEmail("user@example.test", "password");
+    await expect(module.signInWithGoogle()).rejects.toBe(oauthError);
     await expect(module.signOut()).resolves.toEqual({ error: null });
 
-    expect(passwordSignIn).toHaveBeenCalledWith({ email: "user@example.test", password: "password" });
-    expect(signUp).toHaveBeenCalledWith({ email: "user@example.test", password: "password" });
     expect(signOut).toHaveBeenCalledOnce();
   });
 

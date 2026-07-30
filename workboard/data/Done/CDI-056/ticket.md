@@ -8,7 +8,7 @@ size: L
 risk: high
 source: Audit versions Supabase du 2026-07-25
 depends_on: []
-blocks: []
+blocks: ["CDI-062"]
 github_issue: null
 related_docs: ["package.json", "package-lock.json", "src/lib/supabase.ts", "src/App.tsx", "docs/architecture/api-command-contracts.md", "docs/development/supabase-js-2.110-migration.md"]
 ---

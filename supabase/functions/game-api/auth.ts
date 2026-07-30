@@ -5,7 +5,12 @@ type JwtClaims = {
   aud?: unknown;
 };
 
-type AuthUser = { id: string; email?: string | null; deleted_at?: string | null };
+type AuthUser = {
+  id: string;
+  email?: string | null;
+  deleted_at?: string | null;
+  app_metadata?: { provider?: unknown } | null;
+};
 
 export type SupabaseAuthOptions = {
   supabaseUrl: string;
@@ -27,13 +32,6 @@ function decodePart(value: string): Uint8Array {
 
 function decodeJson<T>(value: string): T {
   return JSON.parse(new TextDecoder().decode(decodePart(value))) as T;
-}
-
-function constantTimeEqual(left: Uint8Array, right: Uint8Array): boolean {
-  if (left.length !== right.length) return false;
-  let difference = 0;
-  for (let index = 0; index < left.length; index += 1) difference |= left[index] ^ right[index];
-  return difference === 0;
 }
 
 async function verifyJwt(token: string, secret: string, serviceRoleKey: string, options: Required<Pick<SupabaseAuthOptions, "expectedIssuer" | "expectedAudience">>, now: () => number, fetcher: typeof fetch, supabaseUrl: string): Promise<string | null> {
@@ -74,7 +72,10 @@ export function createSupabaseAuthenticator(options: SupabaseAuthOptions): (requ
       });
       if (!userResponse.ok) return null;
       const user = await userResponse.json() as AuthUser;
-      if (user.id !== userId || user.deleted_at || !user.email) return null;
+      const provider = typeof user.app_metadata?.provider === "string"
+        ? user.app_metadata.provider.toLowerCase().trim()
+        : "";
+      if (user.id !== userId || user.deleted_at || !user.email || provider !== "google") return null;
       const allowlistUrl = `${options.supabaseUrl.replace(/\/$/, "")}/rest/v1/alpha_allowlist?select=email&email=eq.${encodeURIComponent(user.email.toLowerCase().trim())}&active=eq.true&limit=1`;
       const allowlistResponse = await fetcher(allowlistUrl, {
         headers: { apikey: options.serviceRoleKey, authorization: `Bearer ${options.serviceRoleKey}` },

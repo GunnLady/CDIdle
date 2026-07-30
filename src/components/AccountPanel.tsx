@@ -1,18 +1,14 @@
-import React, { useState } from "react";
-import { signInWithEmail, signUpWithEmail, signInWithGoogle, signOut } from "../lib/supabase";
+import { useState } from "react";
+import { signInWithGoogle, signOut } from "../lib/supabase";
 import {
   Cloud,
-  CloudRain,
   Database,
-  Lock,
-  Mail,
   RefreshCw,
   Trash2,
   LogOut,
   User,
   ShieldAlert,
-  Sparkles,
-  Info
+  Sparkles
 } from "lucide-react";
 import { Resources } from "../types";
 import { formatResourceValue } from "./IconDetails";
@@ -46,11 +42,6 @@ export default function AccountPanel({
   onDeleteAccount,
   addLog
 }: AccountPanelProps) {
-  // Auth Form states (only used if offline/logged out)
-  const [authMode, setAuthMode] = useState<"login" | "signup">("login");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -69,51 +60,6 @@ export default function AccountPanel({
       if (err.code !== "provider-canceled") {
         setError("Impossible de s'authentifier via Google : " + err.message);
       }
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleAuthSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-    setLoading(true);
-
-    if (password.length < 6) {
-      setError("Le mot de passe doit faire au moins 6 caractères pour protéger votre royaume.");
-      setLoading(false);
-      return;
-    }
-
-    if (authMode === "signup" && password !== confirmPassword) {
-      setError("Les deux mots de passe ne correspondent pas.");
-      setLoading(false);
-      return;
-    }
-
-    try {
-      if (authMode === "login") {
-        await signInWithEmail(email, password);
-        addLog("☁️ Connexion établie avec succès ! Royaume synchronisé.", "victory");
-      } else {
-        await signUpWithEmail(email, password);
-        addLog("☁️ Dynastie cloud créée avec succès !", "victory");
-      }
-    } catch (err: any) {
-      console.error("Authentication error:", err);
-      let frenchMessage = "Une erreur est survenue lors de l'authentification.";
-      if (err.code === "invalid_email") {
-        frenchMessage = "Adresse e-mail invalide.";
-      } else if (
-        err.code === "invalid_credentials"
-      ) {
-        frenchMessage = "Identifiants incorrects (adresse e-mail ou mot de passe erroné).";
-      } else if (err.code === "user_already_exists") {
-        frenchMessage = "Cette adresse e-mail est déjà occupée par un autre souverain.";
-      } else if (err.code === "weak_password") {
-        frenchMessage = "Le mot de passe est trop faible (6 caractères minimum).";
-      }
-      setError(frenchMessage);
     } finally {
       setLoading(false);
     }
@@ -153,7 +99,7 @@ export default function AccountPanel({
             Dynastie Cloud & Sync
           </h3>
           <p className="text-xs text-[#a89078] mt-1 font-sans">
-            Connectez votre compte pour sauvegarder vos progrès sur le Cloud et y accéder n'importe où !
+            L'alpha privée est accessible avec un compte Google autorisé.
           </p>
         </div>
 
@@ -162,83 +108,6 @@ export default function AccountPanel({
             ⚠️ {error}
           </div>
         )}
-
-        {/* AUTH FORM */}
-        <form onSubmit={handleAuthSubmit} className="space-y-4">
-          <div>
-            <label className="text-[10px] uppercase tracking-widest text-[#8c5a2b] font-bold block mb-1 font-mono">
-              Adresse E-mail
-            </label>
-            <div className="relative">
-              <Mail className="absolute left-3 top-2.5 w-4 h-4 text-[#5a483a]" />
-              <input
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="souverain@royaume.fr"
-                className="bg-[#0f0a06] border-2 border-[#45301f] text-[#fbf7f0] rounded-xl pl-10 pr-3.5 py-2 text-xs focus:outline-none focus:border-[#d4af37] w-full font-serif"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="text-[10px] uppercase tracking-widest text-[#8c5a2b] font-bold block mb-1 font-mono">
-              Mot de passe (6+ car.)
-            </label>
-            <div className="relative">
-              <Lock className="absolute left-3 top-2.5 w-4 h-4 text-[#5a483a]" />
-              <input
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                className="bg-[#0f0a06] border-2 border-[#45301f] text-[#fbf7f0] rounded-xl pl-10 pr-3.5 py-2 text-xs focus:outline-none focus:border-[#d4af37] w-full font-serif"
-              />
-            </div>
-          </div>
-
-          {authMode === "signup" && (
-            <div>
-              <label className="text-[10px] uppercase tracking-widest text-[#8c5a2b] font-bold block mb-1 font-mono">
-                Confirmer le mot de passe
-              </label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-2.5 w-4 h-4 text-[#5a483a]" />
-                <input
-                  type="password"
-                  required
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="bg-[#0f0a06] border-2 border-[#45301f] text-[#fbf7f0] rounded-xl pl-10 pr-3.5 py-2 text-xs focus:outline-none focus:border-[#d4af37] w-full font-serif"
-                />
-              </div>
-            </div>
-          )}
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full py-2.5 bg-gradient-to-b from-[#caa050] to-[#ab813a] hover:from-[#d9b363] hover:to-[#be9348] text-[#110905] font-serif font-black text-xs uppercase tracking-widest rounded-xl border border-[#ebd7a0]/40 shadow-lg cursor-pointer transition flex items-center justify-center gap-2"
-          >
-            {loading ? (
-              <RefreshCw className="w-4 h-4 animate-spin" />
-            ) : authMode === "login" ? (
-              "S'authentifier"
-            ) : (
-              "Créer un royaume"
-            )}
-          </button>
-        </form>
-
-        {/* GOOGLE AUTH POPUP DIVIDER */}
-        <div className="relative flex py-4 items-center">
-          <div className="flex-grow border-t border-[#45301f]/60"></div>
-          <span className="flex-shrink mx-3 text-[10px] uppercase tracking-widest text-[#5a483a] font-mono">Ou</span>
-          <div className="flex-grow border-t border-[#45301f]/60"></div>
-        </div>
 
         {/* GOOGLE PROVIDER POPUP */}
         <button
@@ -250,20 +119,6 @@ export default function AccountPanel({
           <span>🌐 Authentifier via Google</span>
         </button>
 
-        {/* TOGGLE AUTH MODE LINK */}
-        <div className="text-center mt-5">
-          <button
-            onClick={() => {
-              setAuthMode(authMode === "login" ? "signup" : "login");
-              setError(null);
-            }}
-            className="text-[11px] text-[#ae8650] hover:underline font-serif"
-          >
-            {authMode === "login"
-              ? "Pas encore souverain ? Fondez une dynastie"
-              : "Déjà souverain d'empire ? Connectez-vous"}
-          </button>
-        </div>
       </div>
     );
   }
