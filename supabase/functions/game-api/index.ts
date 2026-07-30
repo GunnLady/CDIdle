@@ -5,6 +5,7 @@ import { applyTownCommand, initialTownState, migrateTownState } from "./town-aut
 import { applyIdleAuthority } from "./idle-authority.ts";
 import { canonicalRngSeedFromUserId, initialCanonicalRngState } from "./authoritative-rng.ts";
 import { validateCanonicalCommandEnvelope } from "../../../shared/contracts/authoritative.ts";
+import { validateErrorReportPayload, type ErrorReportPayload } from "../../../shared/contracts/error-report.ts";
 export { applyIdleAuthority, IdleCommandError, MAX_IDLE_SECONDS, type IdleReport } from "./idle-authority.ts";
 export { createSupabaseAuthenticator, type SupabaseAuthOptions } from "./auth.ts";
 export { createSupabaseGameApiServices, SupabaseAdapterError, type SupabaseAdapterOptions } from "./supabase-adapter.ts";
@@ -12,6 +13,7 @@ export type ApiServices = {
   authenticate(request: Request): Promise<string | null>;
   bootstrap(userId: string): Promise<ApiEnvelope>;
   commands(userId: string, payload: Record<string, unknown>): Promise<ApiEnvelope>;
+  reportError(userId: string, payload: ErrorReportPayload): Promise<void>;
   reset(userId: string): Promise<ApiEnvelope>;
   deleteAccount(userId: string): Promise<void>;
 };
@@ -20,6 +22,7 @@ export type SupabaseGameApiOptions = { allowedOrigins: string[]; initialState: R
 type HandlerOptions = { allowedOrigins: string[]; services: ApiServices };
 const jsonHeaders = { "content-type": "application/json; charset=utf-8" };
 export const MAX_REQUEST_BYTES = 128 * 1024;
+export const MAX_ERROR_REPORT_BYTES = 8 * 1024;
 
 class PayloadTooLargeError extends Error {
   constructor() {
@@ -48,14 +51,14 @@ function errorResponse(code: string, message: string, id: string, status: number
   return response({ error: { code, message, requestId: id } }, status, id, origin);
 }
 
-async function readJson(request: Request): Promise<Record<string, unknown> | null> {
+async function readJson(request: Request, maxBytes = MAX_REQUEST_BYTES): Promise<Record<string, unknown> | null> {
   const contentLength = request.headers.get("content-length");
-  if (contentLength && Number.isFinite(Number(contentLength)) && Number(contentLength) > MAX_REQUEST_BYTES) {
+  if (contentLength && Number.isFinite(Number(contentLength)) && Number(contentLength) > maxBytes) {
     throw new PayloadTooLargeError();
   }
   try {
     const body = await request.arrayBuffer();
-    if (body.byteLength > MAX_REQUEST_BYTES) throw new PayloadTooLargeError();
+    if (body.byteLength > maxBytes) throw new PayloadTooLargeError();
     const value = JSON.parse(new TextDecoder().decode(body));
     return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : null;
   } catch (error) {
@@ -99,6 +102,12 @@ export function createGameApiHandler({ allowedOrigins, services }: HandlerOption
           : code === "RATE_LIMITED" ? 429 : code ? 400 : 200;
         return response(result, status, id, origin);
       }
+      if (request.method === "POST" && route === "/errors") {
+        const payload = validateErrorReportPayload(await readJson(request, MAX_ERROR_REPORT_BYTES));
+        if (!payload) return errorResponse("VALIDATION_FAILED", "error report payload is invalid", id, 400, origin);
+        await services.reportError(userId, payload);
+        return response({ ok: true }, 202, id, origin);
+      }
       if (request.method === "POST" && route === "/reset") return response(await services.reset(userId), 200, id, origin);
       if (request.method === "DELETE" && route === "/account") { await services.deleteAccount(userId); return response({ ok: true }, 200, id, origin); }
       return errorResponse("NOT_FOUND", "route not found", id, 404, origin);
@@ -108,6 +117,8 @@ export function createGameApiHandler({ allowedOrigins, services }: HandlerOption
       const invalidGameState = typed.code === "INVALID_GAME_STATE";
       const status = typed.status === 409 || typed.code === "REVISION_CONFLICT"
         ? 409
+        : typed.status === 429 || typed.code === "RATE_LIMITED"
+          ? 429
         : typed.status === 404
           ? 404
           : invalidGameState
@@ -117,6 +128,8 @@ export function createGameApiHandler({ allowedOrigins, services }: HandlerOption
         ? "INVALID_GAME_STATE"
         : status === 409
           ? "REVISION_CONFLICT"
+          : status === 429
+            ? "RATE_LIMITED"
           : status === 404
             ? "NOT_FOUND"
             : "SERVICE_UNAVAILABLE";
@@ -133,6 +146,8 @@ export function createGameApiHandler({ allowedOrigins, services }: HandlerOption
         ? "canonical game state is invalid"
         : status === 409
           ? "revision conflict"
+          : status === 429
+            ? "rate limit exceeded"
           : status === 404
             ? "resource not found"
             : "service unavailable";

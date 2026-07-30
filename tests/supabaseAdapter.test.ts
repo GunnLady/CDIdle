@@ -581,4 +581,41 @@ describe("Supabase game-api adapter", () => {
     expect((bootstrap.state as Record<string, unknown>).rngState)
       .toEqual((mutation.state as Record<string, unknown>).rngState);
   });
+
+  it("submits a bounded error report through the dedicated RPC", async () => {
+    let capturedBody: Record<string, unknown> | undefined;
+    const adapter = createSupabaseGameApiServices({
+      supabaseUrl: "http://db",
+      serviceRoleKey: "server-only",
+      initialState: {},
+      applyCommand: async (state) => ({ state }),
+      fetcher: async (url, init) => {
+        expect(url.toString()).toContain("/rest/v1/rpc/submit_alpha_error_report");
+        capturedBody = JSON.parse(String(init?.body)) as Record<string, unknown>;
+        return new Response(JSON.stringify(42), { status: 200 });
+      },
+    });
+
+    await adapter.reportError("user-065", {
+      version: "git-0123456789abcdef",
+      category: "api_5xx",
+      message: "service unavailable",
+      requestId: "request-065",
+      errorCode: "SERVICE_UNAVAILABLE",
+      httpStatus: 503,
+      surface: "game-api/bootstrap",
+    });
+
+    expect(capturedBody).toEqual({
+      p_user_id: "user-065",
+      p_build_version: "git-0123456789abcdef",
+      p_category: "api_5xx",
+      p_message: "service unavailable",
+      p_stack: null,
+      p_request_id: "request-065",
+      p_error_code: "SERVICE_UNAVAILABLE",
+      p_http_status: 503,
+      p_surface: "game-api/bootstrap",
+    });
+  });
 });

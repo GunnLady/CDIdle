@@ -1,3 +1,5 @@
+import type { ErrorReportPayload } from "../../../shared/contracts/error-report.ts";
+
 export type SupabaseAdapterOptions = {
   supabaseUrl: string;
   serviceRoleKey: string;
@@ -243,5 +245,21 @@ export function createSupabaseGameApiServices(options: SupabaseAdapterOptions) {
       body: JSON.stringify({ should_soft_delete: false }),
     });
   }
-  return { bootstrap, commands, reset, deleteAccount };
+  async function reportError(userId: string, payload: ErrorReportPayload): Promise<void> {
+    await request("/rest/v1/rpc/submit_alpha_error_report", {
+      method: "POST",
+      body: JSON.stringify({
+        p_user_id: userId,
+        p_build_version: payload.version,
+        p_category: payload.category,
+        p_message: payload.message,
+        p_stack: payload.stack ?? null,
+        p_request_id: payload.requestId ?? null,
+        p_error_code: payload.errorCode ?? null,
+        p_http_status: payload.httpStatus ?? null,
+        p_surface: payload.surface,
+      }),
+    });
+  }
+  return { bootstrap, commands, reportError, reset, deleteAccount };
 }

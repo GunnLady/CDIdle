@@ -1,10 +1,12 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createGameApiHandler, serveGameApi, type ApiServices } from "../supabase/functions/game-api/index";
 
+const reportError = vi.fn(async () => undefined);
 const services: ApiServices = {
   authenticate: async (request) => request.headers.get("authorization") === "Bearer valid" ? "user-1" : null,
   bootstrap: async (userId) => ({ userId, revision: 0 }),
   commands: async (_userId, payload) => ({ revision: Number(payload.expectedRevision) + 1 }),
+  reportError,
   reset: async (userId) => ({ userId, revision: 0 }),
   deleteAccount: async () => undefined,
 };
@@ -12,6 +14,7 @@ const handler = createGameApiHandler({ allowedOrigins: ["https://app.example.tes
 const request = (path: string, init: RequestInit = {}) => new Request(`https://api.example.test/game-api${path}`, { ...init, headers: { authorization: "Bearer valid", origin: "https://app.example.test", ...init.headers } });
 
 describe("game-api Edge handler", () => {
+  beforeEach(() => reportError.mockClear());
   it("handles bootstrap and exposes a request id", async () => {
     const result = await handler(request("/bootstrap", { method: "POST" }));
     expect(result.status).toBe(200);
@@ -36,6 +39,62 @@ describe("game-api Edge handler", () => {
     expect((await handler(request("/reset", { method: "POST" }))).status).toBe(200);
     expect((await handler(request("/account", { method: "DELETE" }))).status).toBe(200);
     expect((await handler(request("/missing", { method: "POST" }))).status).toBe(404);
+  });
+  it("accepts only bounded, cleaned error reports", async () => {
+    const result = await handler(request("/errors", {
+      method: "POST",
+      body: JSON.stringify({
+        version: "git-0123456789abcdef",
+        category: "api_5xx",
+        message: "Failure for alpha@example.test Bearer secret-token",
+        stack: "stack alpha@example.test",
+        requestId: "request-1",
+        errorCode: "SERVICE_UNAVAILABLE",
+        httpStatus: 503,
+        surface: "game-api/bootstrap",
+      }),
+    }));
+    expect(result.status).toBe(202);
+    expect(reportError).toHaveBeenCalledWith("user-1", expect.objectContaining({
+      message: "Failure for [email-redacted] Bearer [redacted]",
+      stack: "stack [email-redacted]",
+      requestId: "request-1",
+      errorCode: "SERVICE_UNAVAILABLE",
+      httpStatus: 503,
+    }));
+
+    const forbidden = await handler(request("/errors", {
+      method: "POST",
+      body: JSON.stringify({
+        version: "local-dev",
+        category: "react",
+        message: "failure",
+        surface: "app",
+        email: "forbidden@example.test",
+      }),
+    }));
+    expect(forbidden.status).toBe(400);
+
+    const oversized = await handler(request("/errors", {
+      method: "POST",
+      body: JSON.stringify({ message: "x".repeat(9 * 1024) }),
+    }));
+    expect(oversized.status).toBe(413);
+  });
+  it("returns 429 when error report collection is rate limited", async () => {
+    const limitedHandler = createGameApiHandler({
+      allowedOrigins: ["https://app.example.test"],
+      services: {
+        ...services,
+        reportError: async () => { throw Object.assign(new Error("RATE_LIMITED"), { code: "RATE_LIMITED", status: 429 }); },
+      },
+    });
+    const result = await limitedHandler(request("/errors", {
+      method: "POST",
+      body: JSON.stringify({ version: "local-dev", category: "react", message: "failure", surface: "app" }),
+    }));
+    expect(result.status).toBe(429);
+    await expect(result.json()).resolves.toMatchObject({ error: { code: "RATE_LIMITED" } });
   });
   it("returns 409 while an identical command is already in progress", async () => {
     const inProgressHandler = createGameApiHandler({

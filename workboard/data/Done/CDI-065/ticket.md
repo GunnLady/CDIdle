@@ -1,16 +1,16 @@
 ---
 id: CDI-065
 title: Collecter et analyser les erreurs alpha
-status: Later
+status: Done
 area: observability
 priority: P1
 size: M
 risk: high
 source: Audit de preparation alpha du 2026-07-30
 depends_on: ["CDI-064"]
-blocks: ["CDI-066"]
+blocks: ["CDI-066", "CDI-067"]
 github_issue: null
-related_docs: ["src/components/AppErrorBoundary.tsx", "src/lib/supabase.ts", "supabase/functions/game-api/index.ts", "docs/deployment/cdi-035-runbook.md"]
+related_docs: ["src/components/AppErrorBoundary.tsx", "src/lib/errorReporting.ts", "src/lib/supabase.ts", "shared/contracts/error-report.ts", "supabase/functions/game-api/index.ts", "supabase/migrations/20260730010000_alpha_error_reports.sql", "docs/deployment/alpha-error-reports.md"]
 ---
 
 # CDI-065 — Collecter et analyser les erreurs alpha
@@ -77,16 +77,16 @@ permet une collecte limitée sans ajouter de service tiers.
 
 ## Criteres d'acceptation
 
-- [ ] Une erreur React contrôlée crée un rapport unique et analysable.
-- [ ] Une erreur globale et une promesse rejetée sont capturées sans doublon.
-- [ ] Un timeout et une réponse 5xx conservent leur catégorie et `requestId`
+- [x] Une erreur React contrôlée crée un rapport unique et analysable.
+- [x] Une erreur globale et une promesse rejetée sont capturées sans doublon.
+- [x] Un timeout et une réponse 5xx conservent leur catégorie et `requestId`
   lorsqu il existe.
-- [ ] Les erreurs métier attendues et les 409 ne sont pas reportés.
-- [ ] Les champs interdits sont supprimés ou provoquent un refus explicite.
-- [ ] Taille, fréquence et accès SQL sont bornés et testés.
-- [ ] Une panne du collecteur ne masque pas l erreur initiale et ne bloque pas
+- [x] Les erreurs métier attendues et les 409 ne sont pas reportés.
+- [x] Les champs interdits sont supprimés ou provoquent un refus explicite.
+- [x] Taille, fréquence et accès SQL sont bornés et testés.
+- [x] Une panne du collecteur ne masque pas l erreur initiale et ne bloque pas
   l application.
-- [ ] La requête d analyse permet de regrouper les erreurs par version.
+- [x] La requête d analyse permet de regrouper les erreurs par version.
 
 ## Tests
 
@@ -130,3 +130,20 @@ Fournir le schéma des rapports, la migration, les protections RLS/rate limit,
 les surfaces capturées, les champs exclus, la requête SQL d analyse, les preuves
 de déduplication et de panne du collecteur ainsi que les résultats des audits de
 secrets et de logs.
+
+## Validation du 2026-07-30
+
+- Preuve Codex : 41 fichiers et 336 tests Vitest passent avec les captures
+  React, JavaScript, promesses, timeouts, 5xx, déduplication et panne du
+  transport.
+- Preuve utilisateur : les 7 fichiers pgTAP et 112 tests DB passent après un
+  reset complet avec la migration finale.
+- Preuve utilisateur : une erreur navigateur produit `POST /errors` en 202 et
+  persiste version, catégorie, message, surface et date PostgreSQL.
+- Preuve utilisateur : les fixtures pgTAP restantes valent 0 et les trois
+  rapports manuels restent présents avant le reset final.
+- Preuve Codex : TypeScript, ESLint, audits secrets/logs/migrations et
+  validation du board passent.
+- Preuve utilisateur : le build Vite final passe.
+- Décision : les source maps restent privées et leur conservation ou
+  reconstruction est exigée par CDI-062 ; aucune map ne doit être publiée.

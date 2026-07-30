@@ -60,6 +60,7 @@ describe("authoritative React to persistence pipeline", () => {
       authenticate: async (request) => request.headers.get("authorization") === "Bearer e2e-token" ? USER_ID : null,
       bootstrap: async (userId) => structuredClone(rows.get(userId)),
       commands: async () => ({ ok: true }),
+      reportError: async () => undefined,
       reset: async (userId) => {
         const previous = rows.get(userId);
         const reset: GameEnvelope = {

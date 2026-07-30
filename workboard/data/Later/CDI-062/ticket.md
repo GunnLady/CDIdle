@@ -64,6 +64,8 @@ constitue le gate final avant cette mise en ligne.
   minimale compatible avec Supabase et les polices effectivement utilisées.
 - Documenter les secrets GitHub/Cloudflare requis, la promotion, le smoke et le
   rollback sans consigner leur valeur.
+- Produire des source maps liées au SHA comme artefact privé de diagnostic ou
+  garantir leur reconstruction reproductible, sans les publier sur Cloudflare.
 - Valider le frontend hébergé avec le compte Google allowlisté.
 
 ## Hors perimetre
@@ -101,6 +103,8 @@ constitue le gate final avant cette mise en ligne.
   ni les assets nécessaires, et doivent refuser l intégration en iframe.
 - Les erreurs de publication et de smoke doivent être visibles sans exposer de
   secret ni de donnée personnelle.
+- Les fichiers source map ne doivent pas faire partie du répertoire réellement
+  envoyé à Cloudflare et restent accessibles uniquement comme artefact privé.
 
 ## Dependances
 
@@ -131,6 +135,8 @@ constitue le gate final avant cette mise en ligne.
 - [ ] Un rollback frontend vers une version antérieure est documenté et prouvé
   sans modification du backend.
 - [ ] Le runbook distingue clairement alpha hébergée et production publique.
+- [ ] Une stack frontend collectée peut être résolue avec les source maps du
+  même SHA, et aucun fichier `.map` n est servi publiquement.
 - [ ] Les offres gratuites et l'allowlist restent actives.
 
 ## Tests
@@ -140,6 +146,8 @@ constitue le gate final avant cette mise en ligne.
 - `npm.cmd run check:bundle`
 - `npm.cmd run check:secrets`
 - Inspection du bundle `dist/` pour secrets et URLs inattendues.
+- Vérification que les source maps du SHA sont privées ou reproductibles et
+  absentes du contenu publié sur Cloudflare.
 - Contrôle du workflow afin de prouver qu'un déploiement frontend seul ne lance
   ni `supabase db push` ni `supabase functions deploy`.
 - Smoke HTTP de l'URL Cloudflare et contrôle des assets après publication.
@@ -181,6 +189,8 @@ Depuis un navigateur sans backend local :
 - Un mauvais découplage du workflow peut appliquer des migrations ou redéployer
   le backend lors d'un simple changement frontend.
 - Une variable Vite privilégiée serait intégrée publiquement au bundle.
+- Une source map publiée exposerait inutilement le code source de l alpha ; une
+  source map absente ou d un autre SHA rendrait les stacks minifiées peu utiles.
 - L'URL `pages.dev` rend l'interface publiquement accessible même si l'allowlist
   protège l'accès au jeu.
 - Un rollback couplé au backend pourrait réintroduire une version incompatible

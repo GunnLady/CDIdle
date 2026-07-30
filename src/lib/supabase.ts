@@ -1,4 +1,6 @@
 import { createClient, type Session, type SupabaseClient, type User } from "@supabase/supabase-js";
+import type { ErrorReportPayload } from "../../shared/contracts/error-report";
+import { reportUnexpectedError } from "./errorReporting";
 
 const url = import.meta.env.VITE_SUPABASE_URL as string | undefined;
 const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
@@ -25,6 +27,17 @@ export class GameApiError extends Error {
 
 export type CanonicalStateFailure = { requestId?: string };
 export const GAME_API_REQUEST_TIMEOUT_MS = 10_000;
+export const ERROR_REPORT_TIMEOUT_MS = 3_000;
+
+function gameApiUrl(path: string): string {
+  return `${url ?? "http://127.0.0.1:54321"}/functions/v1/game-api${path}`;
+}
+
+function responseRequestId(body: unknown, response: Response): string | undefined {
+  const nested = body as { error?: { requestId?: unknown } } | null;
+  const value = nested?.error?.requestId ?? response.headers.get("x-request-id");
+  return typeof value === "string" && value ? value : undefined;
+}
 
 export function canonicalStateFailure(error: unknown): CanonicalStateFailure | null {
   if (!(error instanceof GameApiError) || error.code !== "INVALID_GAME_STATE") return null;
@@ -48,6 +61,24 @@ export function onAuthStateChange(callback: (snapshot: AuthSnapshot) => void) {
   return supabase.auth.onAuthStateChange((_event, session) => callback({ session, user: session?.user ?? null }));
 }
 
+export async function submitErrorReport(payload: ErrorReportPayload): Promise<void> {
+  const { data } = await supabase.auth.getSession();
+  const token = data.session?.access_token;
+  if (!token) return;
+  const controller = new AbortController();
+  const timeout = globalThis.setTimeout(() => controller.abort(), ERROR_REPORT_TIMEOUT_MS);
+  try {
+    await fetch(gameApiUrl("/errors"), {
+      method: "POST",
+      signal: controller.signal,
+      headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
+      body: JSON.stringify(payload),
+    });
+  } finally {
+    globalThis.clearTimeout(timeout);
+  }
+}
+
 export async function callGameApi<T>(path: string, init: RequestInit = {}): Promise<T> {
   const { data } = await supabase.auth.getSession();
   const token = data.session?.access_token;
@@ -61,23 +92,41 @@ export async function callGameApi<T>(path: string, init: RequestInit = {}): Prom
   }, GAME_API_REQUEST_TIMEOUT_MS);
   let response: Response;
   try {
-    response = await fetch(`${url ?? "http://127.0.0.1:54321"}/functions/v1/game-api${path}`, {
+    response = await fetch(gameApiUrl(path), {
       ...init,
       signal: controller.signal,
       headers: { "content-type": "application/json", authorization: `Bearer ${token}`, ...(init.headers ?? {}) },
     });
+  } catch (error) {
+    if (controller.signal.aborted
+        && controller.signal.reason instanceof DOMException
+        && controller.signal.reason.message === "GAME_API_TIMEOUT") {
+      void reportUnexpectedError({ category: "timeout", error: controller.signal.reason, surface: `game-api${path}` });
+    }
+    throw error;
   } finally {
     globalThis.clearTimeout(timeout);
     init.signal?.removeEventListener("abort", abortFromCaller);
   }
   const body = await response.json().catch(() => null);
   if (!response.ok) {
-    throw new GameApiError(
+    const error = new GameApiError(
       body?.error?.message ?? `GAME_API_${response.status}`,
       response.status,
       body?.error?.code,
       body
     );
+    if (response.status >= 500) {
+      void reportUnexpectedError({
+        category: "api_5xx",
+        error,
+        requestId: responseRequestId(body, response),
+        ...(error.code ? { errorCode: error.code } : {}),
+        httpStatus: response.status,
+        surface: `game-api${path}`,
+      });
+    }
+    throw error;
   }
   return body as T;
 }

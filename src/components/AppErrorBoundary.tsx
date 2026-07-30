@@ -1,23 +1,39 @@
-import { Component, type ReactNode } from "react";
+import { Component, type ErrorInfo, type ReactNode } from "react";
+import { reportUnexpectedError } from "../lib/errorReporting";
 
-type Props = { children: ReactNode };
+type Props = {
+  children: ReactNode;
+  onError?: typeof reportUnexpectedError;
+};
 type State = { hasError: boolean };
 
 export default class AppErrorBoundary extends Component<Props, State> {
   public state: State = { hasError: false };
   private readonly children: ReactNode;
+  private readonly onError: typeof reportUnexpectedError;
 
   public constructor(props: Props) {
     super(props);
     this.children = props.children;
+    this.onError = props.onError ?? reportUnexpectedError;
   }
 
   public static getDerivedStateFromError(): State {
     return { hasError: true };
   }
 
-  public componentDidCatch(error: unknown): void {
+  public componentDidCatch(error: unknown, info: ErrorInfo): void {
     console.error("Application render error", error);
+    const stack = [
+      error instanceof Error ? error.stack : undefined,
+      info.componentStack ? `React component stack:${info.componentStack}` : undefined,
+    ].filter(Boolean).join("\n");
+    void this.onError({
+      category: "react",
+      error,
+      ...(stack ? { stack } : {}),
+      surface: "app",
+    });
   }
 
   public render(): ReactNode {
