@@ -18,10 +18,10 @@ export const DUNGEON_ENCOUNTER_WEIGHTS: Record<DungeonEncounterType, number> = {
 
 export function rollEncounterForgeMaterial(floor: number, rng: Rng = systemRng): { materialId: string; rarity: Rarity; count: number; name: string } {
   const rand = rng.next();
-  let materialId = "metal_scrap";
-  let rarity: Rarity = "common";
-  let count = 1;
-  let name = "Débris métalliques";
+  let materialId: string;
+  let rarity: Rarity;
+  let count: number;
+  let name: string;
 
   if (floor >= 75) {
     if (rand < 0.20) {

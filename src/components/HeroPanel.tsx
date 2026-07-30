@@ -7,24 +7,14 @@ import React, { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import {
   UserPlus,
-  ShieldAlert,
-  Sword,
-  Shield,
-  Heart,
-  Plus,
   X,
-  ShoppingBag,
-  ArrowUp,
-  Sparkles,
-  Info,
-  ChevronDown,
-  Zap
+  Sparkles
 } from "lucide-react";
-import { Hero, ClassType, RaceType, Resources, HeroEquipment, StoredItemInstance, Rarity, ItemInfo, ElementalDamageType, Modifier } from "../types";
+import { Hero, Resources, HeroEquipment, StoredItemInstance, Rarity, ItemInfo, Modifier } from "../types";
 import { CLASS_INFO_LIST, RACE_INFO_LIST } from "../data/gameData";
 import { getSkillById } from "../data/skills";
 import { getItemById } from "../data/items";
-import { getHeroStats, getHeroAttributes, getAvailableTier1Classes, resolveEquippedItem, isMainHandTwoHanded, resolveWeaponDamageTypes, applyItemRarityScaling } from "../utils/gameCalculations";
+import { getHeroAttributes, resolveEquippedItem, isMainHandTwoHanded, resolveWeaponDamageTypes, applyItemRarityScaling } from "../utils/gameCalculations";
 import HeroPortrait from "./HeroPortrait";
 
 function getTargetLabel(target?: string): string {
@@ -112,7 +102,6 @@ interface HeroPanelProps {
 
 export default function HeroPanel({
   heroes,
-  resources,
   buildings,
   onDismissHero,
   onToggleHeroActive,
@@ -122,7 +111,6 @@ export default function HeroPanel({
   storedItems,
   onGoToTab
 }: HeroPanelProps) {
-  const [selectedHeroId, setSelectedHeroId] = useState<string | null>(null);
   const [heroActiveTabs, setHeroActiveTabs] = useState<Record<string, "overview" | "skills" | "equipment">>({});
   const [activeEquipSelector, setActiveEquipSelector] = useState<{ heroId: string; slotKey: keyof HeroEquipment } | null>(null);
 

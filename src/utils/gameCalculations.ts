@@ -3,7 +3,6 @@ import {
   CitizenAllocation,
   Hero,
   HeroStats,
-  Resources,
   CalculatedStats,
   ClassType,
   SkillInfo,
@@ -29,7 +28,6 @@ import {
   CLASS_INFO_LIST,
   MALE_FIRST_NAMES,
   FEMALE_FIRST_NAMES,
-  HERO_LAST_NAMES,
   SKILLS_LIBRARY,
   getSkillsByIds,
   NOVICE_BASIC_ITEM_LIST,
@@ -46,13 +44,13 @@ export const getHeroAttributes = (
 ): HeroStats => {
   const baseS = hero.baseStats || { str: 5, agi: 5, end: 5, int: 5, wiz: 5, dex: 5, luk: 5 };
 
-  let str = baseS.str;
-  let agi = baseS.agi;
-  let end = baseS.end;
-  let int = baseS.int;
-  let wiz = baseS.wiz;
-  let dex = baseS.dex;
-  let luk = baseS.luk;
+  const str = baseS.str;
+  const agi = baseS.agi;
+  const end = baseS.end;
+  const int = baseS.int;
+  const wiz = baseS.wiz;
+  const dex = baseS.dex;
+  const luk = baseS.luk;
 
   return { str, agi, end, int, wiz, dex, luk };
 };
@@ -1267,7 +1265,7 @@ export function finalizeBasicForgeCraft(
   message: string;
 } {
   const updatedStoredItems = storedItems.map(item => ({ ...item }));
-  let updatedMaterials = forgeMaterials.map(m => ({ ...m }));
+  const updatedMaterials = forgeMaterials.map(m => ({ ...m }));
   let finalRarity: Rarity = "common";
 
   // If upgrade accepted, consume cost and change rarity

@@ -4,8 +4,8 @@
  */
 
 import React, { useState, useMemo } from "react";
-import { Search, Sparkles, AlertCircle, Eye } from "lucide-react";
-import { StoredItemInstance, StoredForgeMaterialStack, Rarity, ItemInfo, Hero, Modifier } from "../types";
+import { Search } from "lucide-react";
+import { StoredItemInstance, StoredForgeMaterialStack, Rarity, ItemInfo, Hero } from "../types";
 import { getItemById } from "../data/items";
 import { applyItemRarityScaling, FORGE_MATERIALS } from "../utils/gameCalculations";
 
