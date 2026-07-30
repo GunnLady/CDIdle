@@ -1,7 +1,7 @@
 ---
 id: CDI-060
 title: Catalogue autoritaire et butin de boss
-status: Later
+status: ToDo
 area: domain
 priority: P1
 size: L
