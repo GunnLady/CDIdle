@@ -6,14 +6,9 @@ Date de l audit : 2026-07-30.
 
 - Projet Supabase alpha : `tohujvjxcfarciotsnbp` (`CDIdle`).
 - Branche de dépôt : `main`.
-- Dernier backend distant vérifié avant correction locale : commit publié
-  `f2fc4de31d7ec9a8eaae85164ca1897882b90a49`.
-- Edge Function observée : `game-api`, active, version distante 2, vérification
-  JWT de gateway activée.
-
-Le redéploiement du correctif ES256 doit être effectué depuis le prochain
-commit validé ; le commit ci-dessus ne constitue donc pas la preuve finale de
-CDI-066.
+- Backend distant final vérifié : commit publié `3a81716`.
+- Edge Function observée : `game-api`, active, vérification JWT de gateway
+  activée.
 
 ## Matrice distante vérifiée
 
@@ -46,6 +41,9 @@ prouver le smoke positif et le refus d une origine inconnue.
   sans consommateur ont été retirés. Les tables de loot de boss réservées à
   CDI-060 sont conservées.
 - TypeScript contrôle désormais `noUnusedLocals` et `noUnusedParameters`.
+- Le préflight CORS répond désormais avec un vrai `204` sans corps, compatible
+  avec Deno ; le crash `EDGE_FUNCTION_ERROR` observé a été corrigé et couvert
+  par un test de non-régression.
 
 ## Reproduire la configuration Auth alpha
 
@@ -74,10 +72,15 @@ Cette procédure ne nécessite ni copie ni stockage d'un secret dans le dépôt.
 - pgTAP : 7 fichiers, 112 tests réussis, preuve utilisateur.
 - Intégration temporelle : duplicate, snapshot race et limite concurrente
   60/min validés, preuve utilisateur.
+- Smokes alpha distants : sans JWT `401`, authentifié `200`, mutation persistée
+  après rechargement, heartbeat autoritaire actif, rapport d erreur `202`, rate
+  limit `429`, origine inconnue `403 CORS_FORBIDDEN` et replay idempotent.
+- Identité client distante : `git-3a81716...` observée dans les commandes.
+- Reset du royaume, suppression du compte alpha, déconnexion, recréation Google
+  allowlistée et nouveau bootstrap `200` validés par l utilisateur.
 
-## Preuves restant à produire
+## Passage de relais
 
-- Commit publié puis redéploiement explicite de `game-api` depuis ce commit.
-- Smoke distant sans JWT, authentifié, mutation persistée, idempotence,
-  concurrence, limite, rapport d erreur et contrôles destructifs uniquement
-  sur un compte alpha dédié.
+CDI-066 est validé. CDI-062 reste responsable de créer l origine Cloudflare,
+de l ajouter exactement à `GAME_API_ALLOWED_ORIGINS`, de redéployer `game-api`
+et de prouver ses smokes CORS positif et négatif.

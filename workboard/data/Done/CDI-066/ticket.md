@@ -1,7 +1,7 @@
 ---
 id: CDI-066
 title: Verifier et aligner Supabase pour l alpha
-status: Doing
+status: Done
 area: backend
 priority: P1
 size: L
@@ -96,28 +96,28 @@ une vérification explicite est nécessaire avant d ouvrir le frontend hébergé
 
 ## Criteres d'acceptation
 
-- [ ] Le projet Supabase alpha est identifié sans ambiguïté.
-- [ ] Toutes les migrations locales attendues sont appliquées à distance et
+- [x] Le projet Supabase alpha est identifié sans ambiguïté.
+- [x] Toutes les migrations locales attendues sont appliquées à distance et
   aucune dérive de schéma, RLS, fonctions ou privilèges ne reste inexpliquée.
-- [ ] `game-api` correspond au commit validé et démarre avec ses paramètres
+- [x] `game-api` correspond au commit validé et démarre avec ses paramètres
   runtime attendus.
-- [ ] Google est le seul fournisseur alpha et l allowlist est active.
-- [ ] Cheats distants désactivés, `service_role` absent du client et JWT/issuer
+- [x] Google est le seul fournisseur alpha et l allowlist est active.
+- [x] Cheats distants désactivés, `service_role` absent du client et JWT/issuer
   cohérents.
-- [ ] Avant CDI-062, les seules origines locales décidées sont acceptées et une
+- [x] Avant CDI-062, les seules origines locales décidées sont acceptées et une
   origine inconnue reçoit `CORS_FORBIDDEN` ; l ajout et le smoke de l origine
   Cloudflare exacte sont explicitement transmis à CDI-062.
-- [ ] Sans JWT, `bootstrap` reçoit 401 ; avec le compte dédié, il reçoit 200.
-- [ ] Une mutation contrôlée persiste après un nouveau bootstrap.
-- [ ] Idempotence, conflit concurrent et limite de commandes restent actifs.
-- [ ] Reset et suppression fonctionnent sur un compte dédié sans toucher les
+- [x] Sans JWT, `bootstrap` reçoit 401 ; avec le compte dédié, il reçoit 200.
+- [x] Une mutation contrôlée persiste après un nouveau bootstrap.
+- [x] Idempotence, conflit concurrent et limite de commandes restent actifs.
+- [x] Reset et suppression fonctionnent sur un compte dédié sans toucher les
   autres testeurs.
-- [ ] Un rapport d erreur versionné est accepté, nettoyé et analysable, tandis
+- [x] Un rapport d erreur versionné est accepté, nettoyé et analysable, tandis
   qu un rapport interdit ou trop volumineux est refusé.
-- [ ] Les chemins client remplacés par l autorité serveur, leurs tests devenus
+- [x] Les chemins client remplacés par l autorité serveur, leurs tests devenus
   trompeurs, leurs dépendances et assets orphelins sont retirés sans supprimer
   les données réservées à CDI-060.
-- [ ] Aucun écart backend réel ne reste non corrigé ou non tracé avant CDI-062.
+- [x] Aucun écart backend réel ne reste non corrigé ou non tracé avant CDI-062.
 
 ## Tests
 
@@ -167,3 +167,8 @@ Fournir la référence du projet alpha, le commit backend et la version client,
 la matrice migrations/schéma/RLS/secrets par nom, les écarts trouvés et leurs
 corrections, les statuts des smokes, les `requestId` non sensibles utiles et la
 preuve que les comptes hors test sont restés inchangés.
+
+Clôture : backend alpha aligné et déployé depuis `3a81716`. Smokes distants
+authentification, persistance, idempotence, CORS, erreurs, reset et suppression
+validés. Le préflight Deno `204` sans corps est couvert. L ajout de l origine
+Cloudflare exacte et son redéploiement restent transmis à CDI-062.
