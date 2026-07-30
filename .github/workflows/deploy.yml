@@ -1,4 +1,4 @@
-name: CDIdle deploy
+name: CDIdle backend deploy
 
 on:
   workflow_dispatch:
@@ -18,9 +18,6 @@ jobs:
     environment: ${{ inputs.environment }}
     steps:
       - uses: actions/checkout@v5
-      - name: Resolve build identity
-        shell: bash
-        run: echo "VITE_BUILD_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
       - uses: actions/setup-node@v6
         with:
           node-version: 24.18.0
@@ -55,19 +52,6 @@ jobs:
         run: supabase db push
       - name: Deploy game-api
         run: supabase functions deploy game-api
-      - name: Build web artifact
-        env:
-          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
-          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
-        run: npm run build
-      - name: Deploy Cloudflare Pages
-        uses: cloudflare/pages-action@v1
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          projectName: ${{ secrets.CLOUDFLARE_PROJECT_NAME }}
-          directory: dist
-          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
       - name: Authenticated game-api smoke
         env:
           GAME_API_BASE_URL: ${{ secrets.GAME_API_BASE_URL }}

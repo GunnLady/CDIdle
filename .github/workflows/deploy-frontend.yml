@@ -1,0 +1,59 @@
+name: CDIdle frontend alpha deploy
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  deployments: write
+
+concurrency:
+  group: cdidle-frontend-alpha
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: cdidle-alpha
+    env:
+      VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+      VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
+    steps:
+      - uses: actions/checkout@v5
+      - name: Resolve build identity
+        shell: bash
+        run: echo "VITE_BUILD_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24.18.0
+          package-manager-cache: false
+      - name: Install pinned npm
+        working-directory: ${{ runner.temp }}
+        run: npm install --global npm@12.0.1 --ignore-scripts
+      - name: Verify npm
+        run: test "$(npm --version)" = "12.0.1"
+      - run: npm ci
+      - run: npm run check:secrets
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm test -- --run
+      - name: Build alpha with private source maps
+        run: npm run build:alpha
+      - run: npm run check:bundle
+      - name: Prepare public artifact and private source maps
+        run: node scripts/prepare-cloudflare-artifact.mjs dist "$RUNNER_TEMP/cdidle-source-maps"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cdidle-alpha-source-maps-${{ env.VITE_BUILD_SHA }}
+          path: ${{ runner.temp }}/cdidle-source-maps
+          if-no-files-found: error
+          retention-days: 30
+      - name: Deploy Cloudflare Pages alpha
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy dist --project-name=${{ vars.CLOUDFLARE_PROJECT_NAME }} --branch=main
+          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
+          packageManager: npm
+          wranglerVersion: "4.116.0"

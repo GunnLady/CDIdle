@@ -1,7 +1,7 @@
 ---
 id: CDI-062
 title: Publier le frontend alpha sur Cloudflare Pages
-status: Later
+status: Doing
 area: delivery
 priority: P1
 size: M
@@ -10,7 +10,7 @@ source: Demande utilisateur du 2026-07-30
 depends_on: ["CDI-035", "CDI-047", "CDI-049", "CDI-056", "CDI-066"]
 blocks: []
 github_issue: null
-related_docs: ["docs/architecture/adr/0002-environments-and-zero-billing.md", "docs/deployment/cdi-035-runbook.md", ".github/workflows/deploy.yml", ".github/workflows/rollback.yml"]
+related_docs: ["docs/architecture/adr/0002-environments-and-zero-billing.md", "docs/deployment/cdi-035-runbook.md", "docs/deployment/cloudflare-pages-alpha.md", ".github/workflows/deploy-frontend.yml", ".github/workflows/rollback-frontend.yml", "public/_headers", "vite.config.ts"]
 ---
 
 # CDI-062 — Publier le frontend alpha sur Cloudflare Pages

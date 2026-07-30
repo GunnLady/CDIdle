@@ -59,9 +59,10 @@ npm.cmd run build -- --sourcemap hidden
 ```
 
 Les fichiers `dist/**/*.map` sont des artefacts prives de diagnostic : ils ne
-doivent jamais etre publies avec le frontend. CDI-062 devra soit les conserver
-comme artefact CI prive, soit documenter cette reconstruction reproductible
-avant la mise en ligne Cloudflare.
+doivent jamais etre publies avec le frontend. Le workflow Cloudflare les
+extrait avant publication et les conserve 30 jours comme artefact GitHub prive
+nomme avec le SHA complet. La reconstruction ci-dessus reste le recours apres
+expiration de cet artefact.
 
 ## Purge
 
