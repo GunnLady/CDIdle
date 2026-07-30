@@ -1,7 +1,7 @@
 ---
 id: CDI-055
 title: Migration controlee vers npm 12 sous Node LTS
-status: Doing
+status: Done
 area: tooling
 priority: P2
 size: M
@@ -83,7 +83,7 @@ fonctionnels.
       `npm exec --offline`, sans telechargement implicite par `npx`.
 - [x] Deux `npm ci` consecutifs ne modifient pas le lockfile.
 - [x] L installation propre passe sous Windows.
-- [ ] L installation propre passe sous Ubuntu dans la CI publiee.
+- [x] L installation propre passe sous Ubuntu dans la CI publiee.
 - [x] Audit, tests, tests DB, build et budget bundle passent.
 - [x] Le rollback vers npm 11 est documente et teste.
 
@@ -141,4 +141,5 @@ de rollback.
 - Preuve utilisateur : `npm.cmd audit --omit=dev --audit-level=high` rapporte
   0 vulnerabilite.
 - Preuve utilisateur : rollback global `12.0.1 -> 11.16.0 -> 12.0.1` reussi.
-- Preuve encore requise : execution Ubuntu de la CI sur le commit publie.
+- Preuve Codex : la CI Ubuntu publiee passe sur le commit `f6b7c19` :
+  https://github.com/GunnLady/CDIdle/actions/runs/30558124535
