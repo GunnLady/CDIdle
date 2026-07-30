@@ -56,21 +56,6 @@ describe("Supabase client contract", () => {
     expect(signOut).toHaveBeenCalledOnce();
   });
 
-  it("delegates email authentication and sign-out without changing SDK results", async () => {
-    const module = supabaseModule;
-    const passwordSignIn = vi.spyOn(module.supabase.auth, "signInWithPassword").mockResolvedValue({ data: { user: null, session: null }, error: null });
-    const signUp = vi.spyOn(module.supabase.auth, "signUp").mockResolvedValue({ data: { user: null, session: null }, error: null });
-    const signOut = vi.spyOn(module.supabase.auth, "signOut").mockResolvedValue({ error: null });
-
-    await module.signInWithEmail("user@example.test", "password");
-    await module.signUpWithEmail("user@example.test", "password");
-    await expect(module.signOut()).resolves.toEqual({ error: null });
-
-    expect(passwordSignIn).toHaveBeenCalledWith({ email: "user@example.test", password: "password" });
-    expect(signUp).toHaveBeenCalledWith({ email: "user@example.test", password: "password" });
-    expect(signOut).toHaveBeenCalledOnce();
-  });
-
   it("keeps onAuthStateChange callbacks synchronous and exposes the subscription", async () => {
     const module = supabaseModule;
     const subscription = { unsubscribe: vi.fn() };

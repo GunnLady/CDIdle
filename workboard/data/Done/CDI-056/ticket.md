@@ -130,7 +130,7 @@ Avec Supabase local et Google OAuth :
 - SDK et sous-clients Supabase epingles en `2.110.8`; un seul `createClient`.
 - Matrice, impacts transitifs et rollback documentes dans
   `docs/development/supabase-js-2.110-migration.md`.
-- Preuves Codex : 37 fichiers/315 tests, E2E 3/3, typecheck, lint cible,
+- Preuves Codex : 37 fichiers/314 tests, E2E 3/3, typecheck, lint cible,
   determinisme, secrets, logs, audit npm hors ligne, Workboard et diff verts.
 - Preuves utilisateur : TI concurrence, 94 tests DB, build, budget bundle,
   OAuth/F5, mutation, multi-onglet, offline, reconnexion, reset et suppression/
