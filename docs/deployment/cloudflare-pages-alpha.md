@@ -30,7 +30,7 @@ npm.cmd exec -- wrangler pages project create cdidle-alpha --production-branch m
 ```
 
 Le workflow `CDIdle frontend alpha deploy` construit ensuite le commit choisi,
-controle le bundle et publie `dist/` avec `cloudflare/wrangler-action@v3`.
+controle le bundle et publie `dist/` avec `cloudflare/wrangler-action@v4`.
 Les source maps sont extraites avant publication et conservees 30 jours dans
 un artefact GitHub prive nomme avec le SHA complet. Wrangler est pince en
 `4.116.0` et npm autorise uniquement les scripts d'installation exacts de son

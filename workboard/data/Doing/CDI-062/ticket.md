@@ -52,8 +52,8 @@ sans jamais élargir CORS à un joker.
   `*.pages.dev`.
 - Injecter au build uniquement `VITE_SUPABASE_URL` et la clé Supabase publique
   attendue par le frontend.
-- Remplacer `cloudflare/pages-action@v1` par
-  `cloudflare/wrangler-action@v3` dans le chemin de publication web.
+- Remplacer `cloudflare/pages-action@v1` par la version Node 24
+  `cloudflare/wrangler-action@v4` dans le chemin de publication web.
 - Rendre le déploiement et le rollback du frontend exécutables sans appliquer
   de migration ni redéployer `game-api`.
 - Configurer l'URL alpha exacte dans la `Site URL` et les `Redirect URLs` de
@@ -119,7 +119,7 @@ sans jamais élargir CORS à un joker.
 ## Criteres d'acceptation
 
 - [ ] Une URL HTTPS Cloudflare Pages stable sert le frontend alpha.
-- [ ] Le déploiement frontend utilise `cloudflare/wrangler-action@v3` et ne
+- [ ] Le déploiement frontend utilise `cloudflare/wrangler-action@v4` et ne
   déclenche ni migration ni déploiement de `game-api`.
 - [ ] Les variables Vite ciblent le projet Supabase distant attendu et aucun
   secret privilégié n'est présent dans le bundle ou les logs.

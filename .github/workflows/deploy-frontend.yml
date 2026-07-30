@@ -42,14 +42,14 @@ jobs:
       - run: npm run check:bundle
       - name: Prepare public artifact and private source maps
         run: node scripts/prepare-cloudflare-artifact.mjs dist "$RUNNER_TEMP/cdidle-source-maps"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: cdidle-alpha-source-maps-${{ env.VITE_BUILD_SHA }}
           path: ${{ runner.temp }}/cdidle-source-maps
           if-no-files-found: error
           retention-days: 30
       - name: Deploy Cloudflare Pages alpha
-        uses: cloudflare/wrangler-action@v3
+        uses: cloudflare/wrangler-action@v4
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
