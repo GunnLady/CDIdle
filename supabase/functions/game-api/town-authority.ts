@@ -237,7 +237,9 @@ export function applyTownCommand(current: Record<string, unknown>, command: Reco
   if (typed.type === "building.upgrade") {
     const id = typed.buildingId;
     if (!BUILDINGS_LIST.some((building) => building.id === id)) throw new TownCommandError("INVALID_COMMAND", "unknown or unsupported building");
-    const level = town.buildings[id] ?? 0;
+    const levels = typed.levels ?? 1;
+    if (!Number.isInteger(levels) || levels < 1 || levels > 5) throw new TownCommandError("INVALID_COMMAND", "invalid building upgrade count");
+    let level = town.buildings[id] ?? 0;
     if (level >= getBuildingMaxLevel(id)) throw new TownCommandError("MAX_LEVEL", "building reached its maximum level");
     const requirement = BUILDING_UNLOCKS[id];
     for (const [required, requiredLevel] of Object.entries(requirement?.requiredBuildings ?? {})) {
@@ -246,9 +248,18 @@ export function applyTownCommand(current: Record<string, unknown>, command: Reco
     if (requirement?.requiredFloor && (town.highestFloorReached ?? 1) < requirement.requiredFloor) {
       throw new TownCommandError("FLOOR_REQUIRED", "dungeon floor prerequisite is missing");
     }
-    const cost = getBuildingUpgradeCost(id, level);
-    if (!affordable(town.resources, cost)) throw new TownCommandError("INSUFFICIENT_RESOURCES", "insufficient resources");
-    return { state: { ...town, resources: subtract(town.resources, cost), buildings: { ...town.buildings, [id]: level + 1 } }, events: [{ type: "building.upgraded", buildingId: id, level: level + 1 }] };
+    let resources = { ...town.resources };
+    for (let index = 0; index < levels; index += 1) {
+      if (level >= getBuildingMaxLevel(id)) throw new TownCommandError("MAX_LEVEL", "building reached its maximum level");
+      const cost = getBuildingUpgradeCost(id, level);
+      if (!affordable(resources, cost)) throw new TownCommandError("INSUFFICIENT_RESOURCES", "insufficient resources");
+      resources = subtract(resources, cost);
+      level += 1;
+    }
+    return {
+      state: { ...town, resources, buildings: { ...town.buildings, [id]: level } },
+      events: [{ type: "building.upgraded", buildingId: id, level, ...(levels > 1 ? { levels } : {}) }],
+    };
   }
   if (typed.type === "citizens.allocate") {
     const amount = typed.amount;

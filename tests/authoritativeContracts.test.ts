@@ -32,6 +32,17 @@ describe("authoritative shared contracts", () => {
     expect(validateCanonicalCommandEnvelope({ ...validEnvelope, command: { type: "inventory.remove", itemId: "starter_sword", rarity: "common", count: 1 } })).toContain("unsupported command type");
   });
 
+  it("bounds condensed building upgrades", () => {
+    expect(validateCanonicalCommandEnvelope({
+      ...validEnvelope,
+      command: { type: "building.upgrade", buildingId: "ferme", levels: 5 },
+    })).toEqual([]);
+    expect(validateCanonicalCommandEnvelope({
+      ...validEnvelope,
+      command: { type: "building.upgrade", buildingId: "ferme", levels: 6 },
+    })).toContain("command.levels must be an integer between 1 and 5");
+  });
+
   it("strictly validates forge and inventory payloads", () => {
     expect(validateCanonicalCommandEnvelope({ ...validEnvelope, command: { type: "inventory.recycle", itemId: "starter_sword", rarity: "mythic" } })).toEqual(expect.arrayContaining(["command contains unsupported fields", "command.instanceId is required"]));
     expect(validateCanonicalCommandEnvelope({ ...validEnvelope, command: { type: "inventory.recycle", instanceId: "item-1" } })).toEqual([]);

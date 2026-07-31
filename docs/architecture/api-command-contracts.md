@@ -57,6 +57,37 @@ sont appliqués par le chemin temporel CDI-061.
 - Les commandes, heartbeats, synchronisations manuelles et resets propagent
   leur snapshot. Un conflit affiche une réussite de resynchronisation
   uniquement si le rechargement canonique a réellement abouti.
+- Le frontend sérialise toutes les opérations canoniques dans une file unique.
+  Une commande utilisateur non démarrée passe avant les synchronisations
+  d'arrière-plan encore en attente, sans interrompre une opération déjà
+  envoyée. Le heartbeat périodique n'est pas ajouté lorsque cette file est
+  occupée ; il retentera au prochain intervalle.
+- Les mutations déterministes fréquentes sont projetées immédiatement dans
+  l'onglet maître, sans bandeau de succès ni d'attente. Elles sont limitées à
+  cinq clics par seconde et par famille, puis condensées : les deltas sont
+  sommés, tandis que sélections et interrupteurs conservent la dernière valeur.
+  Une famille garde au plus une requête en vol et un lot suivant. La
+  déconnexion, le reset et la suppression du compte restent verrouillés tant
+  qu'une mutation est en attente.
+- Une projection optimiste n'est ni persistée dans le cache, ni diffusée aux
+  onglets observateurs. Le succès intègre silencieusement l'état serveur. Un
+  refus ou une panne restaure le dernier état confirmé et informe l'utilisateur.
+  Un conflit recharge l'état canonique, retente une fois la mutation courante,
+  puis rejoue visuellement les lots suivants encore valides.
+- `building.upgrade.levels` condense jusqu'à cinq améliorations dans une seule
+  transition atomique. Tous les coûts, plafonds et prérequis sont validés avant
+  commit ; un échec annule le lot entier.
+- Combat, butin, recrutement et qualité de forge restent entièrement
+  autoritaires : le frontend ne projette jamais de résultat aléatoire.
+- Une sélection d'étage stoppe immédiatement l'auto-exploration visuelle. Si
+  une rencontre ou son transcript est en cours, la sélection finale attend la
+  fin de cette séquence avant son envoi, évitant `ENCOUNTER_ACTIVE`.
+- Le bootstrap initial, la reconnexion, le transfert de contrôle, les snapshots
+  inter-onglets et les commandes partagent ce même ordonnanceur. Les mesures
+  frontend distinguent `queueWaitMs`, `networkMs` et `operationMs` afin de ne
+  pas confondre attente locale, latence Supabase et application du snapshot.
+  Ces métriques sont écrites dans la console uniquement avec Vite en mode
+  développement ; les builds alpha et production n'émettent pas ces logs.
 - Un verrou navigateur exclusif, isolé par `userId`, désigne un seul onglet
   maître pour toutes les mutations, les commandes automatiques de donjon et
   le heartbeat temporel. Les autres onglets sont des observateurs sans

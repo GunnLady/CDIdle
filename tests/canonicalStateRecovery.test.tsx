@@ -100,4 +100,30 @@ describe("canonical save recovery UI", () => {
     }));
     await waitFor(() => expect(onDeleteAccount).toHaveBeenCalledOnce());
   });
+
+  it("locks account mutations and sign-out while a canonical command is pending", () => {
+    const { container } = render(
+      <AccountPanel
+        currentUser={{ id: "user-1", email: "user@example.test" }}
+        isAuthLoading={false}
+        isSyncing={false}
+        isCommandPending
+        resources={resources}
+        buildings={{}}
+        totalCitizensCount={0}
+        heroesCount={0}
+        highestFloorReached={1}
+        onSaveCloud={vi.fn().mockResolvedValue(undefined)}
+        onHardReset={vi.fn().mockResolvedValue(undefined)}
+        onDeleteAccount={vi.fn().mockResolvedValue(undefined)}
+        addLog={vi.fn()}
+      />,
+    );
+
+    const panel = within(container);
+    expect(panel.getByRole("button", { name: /Fermer la session/i })).toBeDisabled();
+    expect(panel.getByRole("button", { name: /Actualisation serveur/i })).toBeDisabled();
+    expect(panel.getByRole("button", { name: /Réinitialiser totalement/i })).toBeDisabled();
+    expect(panel.getByRole("button", { name: /Supprimer définitivement/i })).toBeDisabled();
+  });
 });

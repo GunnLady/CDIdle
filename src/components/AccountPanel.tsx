@@ -17,6 +17,7 @@ interface AccountPanelProps {
   currentUser: any;
   isAuthLoading: boolean;
   isSyncing: boolean;
+  isCommandPending?: boolean;
   resources: Resources;
   buildings: { [key: string]: number };
   totalCitizensCount: number;
@@ -32,6 +33,7 @@ export default function AccountPanel({
   currentUser,
   isAuthLoading,
   isSyncing,
+  isCommandPending = false,
   resources,
   buildings,
   totalCitizensCount,
@@ -48,6 +50,7 @@ export default function AccountPanel({
   // Danger reset confirmations
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const interactionLocked = isSyncing || isCommandPending;
 
   const handleGoogleAuth = async () => {
     setError(null);
@@ -66,6 +69,7 @@ export default function AccountPanel({
   };
 
   const handleSignOut = async () => {
+    if (interactionLocked) return;
     try {
       await signOut();
       addLog("🔒 Session cloud fermée. Sauvegarde locale active.", "info");
@@ -146,7 +150,8 @@ export default function AccountPanel({
 
         <button
           onClick={handleSignOut}
-          className="text-[10px] font-serif font-bold text-red-400 hover:bg-red-950/20 border border-red-900/30 hover:border-red-800 px-3.5 py-1.5 rounded-lg transition flex items-center gap-1.5 cursor-pointer"
+          disabled={interactionLocked}
+          className="text-[10px] font-serif font-bold text-red-400 hover:bg-red-950/20 border border-red-900/30 hover:border-red-800 px-3.5 py-1.5 rounded-lg transition flex items-center gap-1.5 cursor-pointer disabled:cursor-wait disabled:opacity-40"
           title="Fermer la session"
         >
           <LogOut className="w-3.5 h-3.5" />
@@ -203,10 +208,10 @@ export default function AccountPanel({
         <div className="flex flex-col sm:flex-row gap-3">
           <button
             onClick={onSaveCloud}
-            disabled={isSyncing}
+            disabled={interactionLocked}
             className="flex-1 py-3 bg-gradient-to-b from-[#caa050] to-[#ab813a] hover:from-[#d9b363] hover:to-[#be9348] text-[#110905] font-serif font-black text-xs uppercase tracking-widest rounded-xl border border-[#ebd7a0]/40 shadow-lg cursor-pointer transition flex items-center justify-center gap-2"
           >
-            {isSyncing ? (
+            {interactionLocked ? (
               <>
                 <RefreshCw className="w-4 h-4 animate-spin" />
                 <span>Actualisation serveur...</span>
@@ -226,7 +231,8 @@ export default function AccountPanel({
         {!showResetConfirm ? (
           <button
             onClick={() => setShowResetConfirm(true)}
-            className="w-full py-2 bg-red-950/25 hover:bg-red-950/40 border border-red-900/40 hover:border-red-800 text-red-400 text-xs font-serif font-bold rounded-xl transition flex items-center justify-center gap-2 cursor-pointer"
+            disabled={interactionLocked}
+            className="w-full py-2 bg-red-950/25 hover:bg-red-950/40 border border-red-900/40 hover:border-red-800 text-red-400 text-xs font-serif font-bold rounded-xl transition flex items-center justify-center gap-2 cursor-pointer disabled:cursor-wait disabled:opacity-40"
           >
             <Trash2 className="w-4 h-4" />
             <span>Réinitialiser totalement le Royaume (Reset)</span>
@@ -246,7 +252,8 @@ export default function AccountPanel({
                   await onHardReset();
                   setShowResetConfirm(false);
                 }}
-                className="flex-1 py-2 bg-red-700 hover:bg-red-600 active:bg-red-800 text-white font-serif font-black text-xs uppercase tracking-wider rounded-lg transition cursor-pointer"
+                disabled={interactionLocked}
+                className="flex-1 py-2 bg-red-700 hover:bg-red-600 active:bg-red-800 text-white font-serif font-black text-xs uppercase tracking-wider rounded-lg transition cursor-pointer disabled:cursor-wait disabled:opacity-40"
               >
                 Oui, TOUT supprimer !
               </button>
@@ -266,7 +273,8 @@ export default function AccountPanel({
         {!showDeleteConfirm ? (
           <button
             onClick={() => setShowDeleteConfirm(true)}
-            className="w-full py-2 bg-red-950/40 hover:bg-red-950/60 border border-red-700/50 hover:border-red-600 text-red-300 text-xs font-serif font-bold rounded-xl transition flex items-center justify-center gap-2 cursor-pointer"
+            disabled={interactionLocked}
+            className="w-full py-2 bg-red-950/40 hover:bg-red-950/60 border border-red-700/50 hover:border-red-600 text-red-300 text-xs font-serif font-bold rounded-xl transition flex items-center justify-center gap-2 cursor-pointer disabled:cursor-wait disabled:opacity-40"
           >
             <Trash2 className="w-4 h-4" />
             <span>Supprimer définitivement le compte</span>
@@ -286,7 +294,7 @@ export default function AccountPanel({
                   await onDeleteAccount();
                   setShowDeleteConfirm(false);
                 }}
-                disabled={isSyncing}
+                disabled={interactionLocked}
                 className="flex-1 py-2 bg-red-800 hover:bg-red-700 active:bg-red-900 disabled:opacity-50 text-white font-serif font-black text-xs uppercase tracking-wider rounded-lg transition cursor-pointer"
               >
                 Supprimer le compte

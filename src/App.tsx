@@ -22,12 +22,26 @@ import {
   type CanonicalStateFailure,
 } from "./lib/supabase";
 import { deleteGameCache, purgeLegacyGameCache, readGameCache, writeGameCache } from "./lib/gameCache";
+import {
+  CanonicalOperationQueue,
+  runInteractiveCanonicalOperation,
+  type CanonicalOperationContext,
+} from "./lib/canonicalOperationQueue";
+import {
+  OptimisticCommandBuffer,
+  keepLatestCommand,
+  mergeBuildingLevels,
+  mergeSummedAmount,
+  shouldRetryOptimisticConflict,
+  type OptimisticMerge,
+} from "./lib/optimisticCommandBuffer";
 import type { AuthoritativeCommandSuccess, AuthoritativeGameEnvelope, GameCommand } from "./domain/commands";
 import { createCommandEnvelope } from "./domain/commandEnvelope";
 import { BUILD_VERSION, DISPLAY_BUILD_VERSION } from "./lib/buildVersion";
 import type { CanonicalDungeonEncounterRecord } from "../shared/contracts/authoritative";
 import { formatCanonicalIdleReport } from "./domain/idleReport";
 import { projectCanonicalState } from "./domain/canonicalStateProjection";
+import { projectOptimisticCommands } from "./domain/optimisticStateProjection";
 import { shouldRefreshTownAuthority } from "./domain/townHeartbeat";
 import { formatCanonicalTownEvent } from "./domain/townEventLog";
 import {
@@ -90,6 +104,7 @@ export default function App() {
   const [isInitialGameLoadDone, setIsInitialGameLoadDone] = useState<boolean>(false);
   const [cityName, setCityName] = useState<string>("");
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
+  const [pendingUserCommandCount, setPendingUserCommandCount] = useState(0);
   const [browserOnline, setBrowserOnline] = useState<boolean>(() => typeof navigator === "undefined" || navigator.onLine);
   const [apiAvailable, setApiAvailable] = useState<boolean>(() => typeof navigator === "undefined" || navigator.onLine);
   const [canonicalStateFailureDetails, setCanonicalStateFailureDetails] = useState<CanonicalStateFailure | null>(null);
@@ -110,7 +125,16 @@ export default function App() {
   const [authoritativeTimeAnchor, setAuthoritativeTimeAnchor] = useState<AuthoritativeTimeAnchor | null>(null);
   const [crossTabNotice, setCrossTabNotice] = useState<{ id: number; message: string } | null>(null);
   const gameRevisionRef = useRef(0);
-  const commandQueueRef = useRef<Promise<void>>(Promise.resolve());
+  const canonicalQueueRef = useRef<CanonicalOperationQueue | null>(null);
+  if (!canonicalQueueRef.current) {
+    canonicalQueueRef.current = new CanonicalOperationQueue({
+      onMetrics: (metrics) => {
+        if (import.meta.env.DEV) console.debug("Canonical operation timing", metrics);
+      },
+    });
+  }
+  const canonicalQueue = canonicalQueueRef.current;
+  const pendingUserCommandCountRef = useRef(0);
   const authorityChannelRef = useRef<CrossTabAuthorityBridge | null>(null);
   const latestAuthoritativeSnapshotRef = useRef<CrossTabAuthoritySnapshot | null>(null);
   const controlLeaseRef = useRef<AutomationLease | null>(null);
@@ -125,6 +149,7 @@ export default function App() {
   const dungeonSequenceRunningRef = useRef(false);
   const dungeonRetreatRequestedRef = useRef(false);
   const dungeonSequenceBlockedRef = useRef(false);
+  const optimisticBufferRef = useRef<OptimisticCommandBuffer | null>(null);
   const bootstrapUserRef = useRef<string | null>(null);
   const transportOnline = browserOnline && apiAvailable;
   const isOnline = transportOnline && canonicalStateFailureDetails === null;
@@ -137,6 +162,21 @@ export default function App() {
     crossTabNoticeIdRef.current += 1;
     setCrossTabNotice({ id: crossTabNoticeIdRef.current, message });
   }, []);
+
+  const enqueueInteractiveOperation = useCallback(<T,>(
+    run: (context: CanonicalOperationContext) => Promise<T>,
+    syncing = false,
+  ): Promise<T> | null => {
+    if (pendingUserCommandCountRef.current > 0) {
+      showCrossTabNotice("Action déjà en cours…");
+      return null;
+    }
+    return runInteractiveCanonicalOperation(canonicalQueue, run, (pending) => {
+      pendingUserCommandCountRef.current = pending ? 1 : 0;
+      setPendingUserCommandCount(pendingUserCommandCountRef.current + (optimisticBufferRef.current?.pendingCount ?? 0));
+      if (syncing) setIsSyncing(pending);
+    });
+  }, [canonicalQueue, showCrossTabNotice]);
 
   useEffect(() => {
     if (!crossTabNotice) return;
@@ -211,37 +251,8 @@ export default function App() {
     setUnlockedRaces,
   } = dungeon;
 
-  const applyAuthoritativeState = useCallback(async (
-    state: any,
-    revision?: number,
-    cacheUserId?: string,
-    serverTime?: unknown,
-    lastProcessedAt?: unknown,
-    persistCache = true,
-  ): Promise<boolean> => {
-    if (!state) return false;
+  const applyProjectedReactState = useCallback((state: Record<string, any>) => {
     const projectedState = projectCanonicalState(state);
-    const userId = cacheUserId;
-    if (userId && deletedCacheUserIdsRef.current.has(String(userId))) return false;
-    if (Number.isInteger(revision)
-      && typeof state === "object"
-      && typeof serverTime === "string"
-      && typeof lastProcessedAt === "string") {
-      latestAuthoritativeSnapshotRef.current = {
-        revision: Number(revision),
-        state: state as Record<string, unknown>,
-        serverTime,
-        lastProcessedAt,
-      };
-    }
-    if (typeof serverTime === "string" && typeof lastProcessedAt === "string") {
-      const anchor = createAuthoritativeTimeAnchor(
-        serverTime,
-        lastProcessedAt,
-        globalThis.performance?.now() ?? 0,
-      );
-      if (anchor) setAuthoritativeTimeAnchor(anchor);
-    }
     if (projectedState.cityName !== undefined) setCityName(String(projectedState.cityName));
     if (projectedState.resources) setTownResources(projectedState.resources);
     if (projectedState.buildings) setTownBuildings(projectedState.buildings);
@@ -263,10 +274,48 @@ export default function App() {
     }
     if (projectedState.pendingForge !== undefined) setPendingForge(projectedState.pendingForge);
     if (projectedState.pendingRecruit !== undefined) setPendingRecruit(projectedState.pendingRecruit ?? null);
-    if (projectedState.onboardingCandidates !== undefined) {
-      setOnboardingCandidates(projectedState.onboardingCandidates);
-    }
+    if (projectedState.onboardingCandidates !== undefined) setOnboardingCandidates(projectedState.onboardingCandidates);
     if (projectedState.pendingOnboardingCityName !== undefined) setPendingOnboardingCityName(String(projectedState.pendingOnboardingCityName));
+  }, [
+    setActiveDungeonFloor, setActiveDungeonRoom, setAutoExplore, setCitizenGrowthProgress,
+    setDungeonHighestFloorReached, setForgeMaterials, setHeroes, setItemBlueprints,
+    setStoredItems, setTotalCitizens, setTownBuildings, setTownCitizens, setTownResources,
+  ]);
+
+  const applyAuthoritativeState = useCallback(async (
+    state: any,
+    revision?: number,
+    cacheUserId?: string,
+    serverTime?: unknown,
+    lastProcessedAt?: unknown,
+    persistCache = true,
+  ): Promise<boolean> => {
+    if (!state) return false;
+    const userId = cacheUserId;
+    if (userId && deletedCacheUserIdsRef.current.has(String(userId))) return false;
+    if (Number.isInteger(revision)
+      && typeof state === "object"
+      && typeof serverTime === "string"
+      && typeof lastProcessedAt === "string") {
+      latestAuthoritativeSnapshotRef.current = {
+        revision: Number(revision),
+        state: state as Record<string, unknown>,
+        serverTime,
+        lastProcessedAt,
+      };
+    }
+    if (typeof serverTime === "string" && typeof lastProcessedAt === "string") {
+      const anchor = createAuthoritativeTimeAnchor(
+        serverTime,
+        lastProcessedAt,
+        globalThis.performance?.now() ?? 0,
+      );
+      if (anchor) setAuthoritativeTimeAnchor(anchor);
+    }
+    applyProjectedReactState(projectOptimisticCommands(
+      state,
+      optimisticBufferRef.current?.commands ?? [],
+    ));
     const canonicalRevision = Number.isInteger(revision) ? Number(revision) : gameRevisionRef.current;
     if (Number.isInteger(revision)) {
       gameRevisionRef.current = canonicalRevision;
@@ -285,22 +334,12 @@ export default function App() {
     }
     return true;
   }, [
-    setActiveDungeonFloor,
-    setActiveDungeonRoom,
-    setAutoExplore,
-    setCitizenGrowthProgress,
-    setDungeonHighestFloorReached,
-    setForgeMaterials,
-    setHeroes,
-    setItemBlueprints,
-    setStoredItems,
-    setTotalCitizens,
-    setTownBuildings,
-    setTownCitizens,
-    setTownResources,
+    applyProjectedReactState,
   ]);
 
   const clearClientGameState = useCallback(() => {
+    optimisticBufferRef.current?.dispose();
+    optimisticBufferRef.current = null;
     resetTownSystem();
     resetDungeonSystem();
     setTownResources({ gold: 0, food: 0, wood: 0, stone: 0, ore: 0 });
@@ -321,6 +360,8 @@ export default function App() {
     dungeonRetreatRequestedRef.current = false;
     dungeonSequenceBlockedRef.current = false;
     setIsDungeonSequenceRunning(false);
+    pendingUserCommandCountRef.current = 0;
+    setPendingUserCommandCount(0);
     gameRevisionRef.current = 0;
     setGameRevision(0);
     setCanonicalStateFailureDetails(null);
@@ -387,7 +428,17 @@ export default function App() {
     encounterPlaybackTokenRef.current += 1;
   }, []);
 
-  const dispatchAuthoritativeCommand = useCallback((command: GameCommand): Promise<boolean> => {
+  const dispatchAuthoritativeCommand = useCallback((
+    command: GameCommand,
+    options: {
+      interactive?: boolean;
+      silentConflict?: boolean;
+      silentSuccess?: boolean;
+      beforeApplyAuthoritativeState?: () => void;
+      onConflictResolved?: () => void;
+    } = {},
+  ): Promise<boolean> => {
+    const interactive = options.interactive ?? true;
     if (canonicalStateFailureDetails) {
       addLog("Sauvegarde canonique incompatible : mutation verrouillée.", "defeat");
       return Promise.resolve(false);
@@ -400,7 +451,7 @@ export default function App() {
       showCrossTabNotice("Mode observateur : prenez le contrôle pour agir.");
       return Promise.resolve(false);
     }
-    const operation = commandQueueRef.current.then(async (): Promise<{
+    const runCommand = async ({ measureNetwork }: CanonicalOperationContext): Promise<{
       ok: boolean;
       playback?: Promise<void>;
     }> => {
@@ -411,14 +462,15 @@ export default function App() {
           gameRevisionRef.current,
           command,
         );
-        const result = await callGameApi<AuthoritativeCommandSuccess>("/commands", {
+        const result = await measureNetwork(() => callGameApi<AuthoritativeCommandSuccess>("/commands", {
           method: "POST",
           body: JSON.stringify(envelope),
-        });
+        }));
         setCanonicalStateFailureDetails(null);
         const resolvedEncounter = (result?.events ?? [])
           .find((event: any) => event?.type === "dungeon.encounter_resolved")
           ?.encounter as CanonicalDungeonEncounterRecord | undefined;
+        options.beforeApplyAuthoritativeState?.();
         await applyAuthoritativeState(
           result?.state,
           result?.revision,
@@ -429,7 +481,7 @@ export default function App() {
         publishAuthoritativeSnapshot(result);
         for (const event of result?.events ?? []) {
           const townLog = formatCanonicalTownEvent(event);
-          if (townLog) addLog(townLog.message, townLog.type, "colony");
+          if (townLog && !options.silentSuccess) addLog(townLog.message, townLog.type, "colony");
           if (event?.type === "dungeon.encounter_started") addLog("⚔️ Une rencontre autoritaire a commencé.", "info");
           if (event?.type === "dungeon.retreat") addLog("🏕️ Repli tactique : l’escouade regagne le campement.", "info");
         }
@@ -442,7 +494,7 @@ export default function App() {
           const commandInProgress = error.code === "COMMAND_IN_PROGRESS";
           let reloadSucceeded = false;
           try {
-            const canonical = await callGameApi<AuthoritativeGameEnvelope>("/bootstrap", { method: "POST" });
+            const canonical = await measureNetwork(() => callGameApi<AuthoritativeGameEnvelope>("/bootstrap", { method: "POST" }));
             await applyAuthoritativeState(canonical?.state, canonical?.revision, String(currentUser.id), canonical?.serverTime, canonical?.lastProcessedAt);
             publishAuthoritativeSnapshot(canonical);
             setApiAvailable(true);
@@ -460,15 +512,18 @@ export default function App() {
               ? "Échec de la synchronisation de la commande déjà en cours."
               : "Échec du rechargement canonique après conflit.", "defeat");
           }
-          if (reloadSucceeded) {
+          if (reloadSucceeded && !options.silentConflict) {
             addLog(commandInProgress
               ? "⏳ Commande identique déjà en cours : synchronisation canonique."
               : "⚔️ Conflit de révision : rechargement de l’état canonique.", "info");
             showCrossTabNotice(commandInProgress
               ? "Une commande identique est déjà traitée dans une autre session. État resynchronisé."
               : "Action annulée : une autre session avait déjà modifié la partie. État resynchronisé.");
-          } else {
+          } else if (!reloadSucceeded) {
             showCrossTabNotice("Conflit détecté, mais la resynchronisation a échoué. Réessayez dans quelques secondes.");
+          }
+          if (reloadSucceeded && shouldRetryOptimisticConflict(error.code)) {
+            options.onConflictResolved?.();
           }
         } else {
           const stateFailure = canonicalStateFailure(error);
@@ -480,16 +535,71 @@ export default function App() {
           }
           const message = error instanceof GameApiError ? error.message : "Mutation autoritaire indisponible";
           addLog(`❌ ${message}.`, "defeat");
+          showCrossTabNotice(
+            error instanceof GameApiError && error.status < 500
+              ? `Action refusée : ${message}. L’état précédent a été restauré.`
+              : "Service indisponible : l’action a été annulée et le dernier état confirmé a été restauré.",
+          );
         }
         return { ok: false };
       }
-    });
-    commandQueueRef.current = operation.then(() => undefined, () => undefined);
+    };
+    const operation = interactive
+      ? enqueueInteractiveOperation(runCommand)
+      : canonicalQueue.enqueueUser(runCommand);
+    if (!operation) return Promise.resolve(false);
     return operation.then(async ({ ok, playback }) => {
       if (playback) await playback;
       return ok;
     });
-  }, [addLog, applyAuthoritativeState, canonicalStateFailureDetails, currentUser, isOnline, playEncounterTranscript, publishAuthoritativeSnapshot, showCrossTabNotice]);
+  }, [addLog, applyAuthoritativeState, canonicalQueue, canonicalStateFailureDetails, currentUser, enqueueInteractiveOperation, isOnline, playEncounterTranscript, publishAuthoritativeSnapshot, showCrossTabNotice]);
+
+  const renderOptimisticCommands = useCallback((commands: GameCommand[]) => {
+    const base = latestAuthoritativeSnapshotRef.current?.state;
+    if (!base) return;
+    applyProjectedReactState(projectOptimisticCommands(base, commands));
+    setPendingUserCommandCount(pendingUserCommandCountRef.current + commands.length);
+  }, [applyProjectedReactState]);
+
+  const enqueueOptimisticCommand = useCallback((key: string, command: GameCommand, merge: OptimisticMerge) => {
+    if (!currentUser || !isOnline || !isAutomationLeaderRef.current || canonicalStateFailureDetails) return false;
+    if (!optimisticBufferRef.current) {
+      optimisticBufferRef.current = new OptimisticCommandBuffer({
+        onChange: renderOptimisticCommands,
+        send: async (bufferedCommand, acknowledge) => {
+          if (bufferedCommand.type === "dungeon.select_floor") {
+            while (dungeonSequenceRunningRef.current) {
+              await new Promise<void>((resolve) => window.setTimeout(resolve, 25));
+            }
+          }
+          let conflictResolved = false;
+          const options = {
+            interactive: false,
+            silentConflict: true,
+            silentSuccess: true,
+            beforeApplyAuthoritativeState: acknowledge,
+            onConflictResolved: () => { conflictResolved = true; },
+          };
+          const firstAttempt = await dispatchAuthoritativeCommand(bufferedCommand, options);
+          if (firstAttempt || !conflictResolved) return firstAttempt;
+          return dispatchAuthoritativeCommand(bufferedCommand, {
+            ...options,
+            onConflictResolved: undefined,
+          });
+        },
+      });
+    }
+    return optimisticBufferRef.current.enqueue(key, command, merge);
+  }, [canonicalStateFailureDetails, currentUser, dispatchAuthoritativeCommand, isOnline, renderOptimisticCommands]);
+
+  useEffect(() => {
+    if (currentUser && isOnline) return;
+    optimisticBufferRef.current?.dispose();
+    optimisticBufferRef.current = null;
+    const canonical = latestAuthoritativeSnapshotRef.current?.state;
+    if (canonical) applyProjectedReactState(canonical);
+    setPendingUserCommandCount(pendingUserCommandCountRef.current);
+  }, [applyProjectedReactState, currentUser, isOnline]);
 
   useEffect(() => {
     if (!currentUser || !isInitialGameLoadDone || typeof BroadcastChannel === "undefined") return;
@@ -500,7 +610,7 @@ export default function App() {
       sourceId,
       currentRevision: () => gameRevisionRef.current,
       onSnapshot: (snapshot: CrossTabAuthoritySnapshot) => {
-        const operation = commandQueueRef.current.then(async () => {
+        void canonicalQueue.enqueueBackground(async () => {
           if (!active || snapshot.revision <= gameRevisionRef.current) return;
           try {
             const incomingHistory = Array.isArray(snapshot.state.encounterHistory)
@@ -543,7 +653,6 @@ export default function App() {
             showCrossTabNotice("Échec de la mise à jour depuis un autre onglet.");
           }
         });
-        commandQueueRef.current = operation.then(() => undefined, () => undefined);
       },
       onAccountDeleted: () => {
         const userId = String(currentUser.id);
@@ -581,7 +690,7 @@ export default function App() {
       bridge.close();
       if (authorityChannelRef.current === bridge) authorityChannelRef.current = null;
     };
-  }, [applyAuthoritativeState, clearClientGameState, currentUser, isInitialGameLoadDone, playEncounterTranscript, showCrossTabNotice]);
+  }, [applyAuthoritativeState, canonicalQueue, clearClientGameState, currentUser, isInitialGameLoadDone, playEncounterTranscript, showCrossTabNotice]);
 
   useEffect(() => {
     if (!currentUser || !isInitialGameLoadDone) {
@@ -620,8 +729,8 @@ export default function App() {
           }
           return;
         }
-        const operation = commandQueueRef.current.then(async () => {
-          const canonical = await callGameApi<AuthoritativeGameEnvelope>("/bootstrap", { method: "POST" });
+        const operation = canonicalQueue.enqueueBackground(async ({ measureNetwork }) => {
+          const canonical = await measureNetwork(() => callGameApi<AuthoritativeGameEnvelope>("/bootstrap", { method: "POST" }));
           if (!active) return;
           await applyAuthoritativeState(
             canonical.state,
@@ -632,7 +741,6 @@ export default function App() {
           );
           publishAuthoritativeSnapshot(canonical);
         });
-        commandQueueRef.current = operation.then(() => undefined, () => undefined);
         await operation;
         if (!active) return;
         const currentRequest = window.localStorage.getItem(requestKey);
@@ -679,7 +787,7 @@ export default function App() {
       isAutomationLeaderRef.current = false;
       setIsControlTransferPending(false);
       setIsAutomationLeader(false);
-      void commandQueueRef.current.finally(() => lease.stop());
+      void canonicalQueue.whenIdle().finally(() => lease.stop());
     };
     window.addEventListener("storage", handleControlRequest);
     void lease.completion.catch(() => {
@@ -697,7 +805,7 @@ export default function App() {
       lease.stop();
       if (controlLeaseRef.current === lease) controlLeaseRef.current = null;
     };
-  }, [applyAuthoritativeState, controlLeaseEpoch, currentUser, isInitialGameLoadDone, publishAuthoritativeSnapshot, showCrossTabNotice]);
+  }, [applyAuthoritativeState, canonicalQueue, controlLeaseEpoch, currentUser, isInitialGameLoadDone, publishAuthoritativeSnapshot, showCrossTabNotice]);
 
   const requestGameControl = useCallback(() => {
     if (!currentUser || isAutomationLeader || isControlTransferPending || !transportOnline) return;
@@ -712,7 +820,7 @@ export default function App() {
     showCrossTabNotice("Transfert du contrôle en cours…");
   }, [currentUser, isAutomationLeader, isControlTransferPending, showCrossTabNotice, transportOnline]);
 
-  const exploreAndResolveDungeon = useCallback(async () => {
+  const exploreAndResolveDungeon = useCallback(async (interactive = true) => {
     if (dungeonSequenceBlockedRef.current || dungeonSequenceRunningRef.current || !currentUser || !isOnline || !isAutomationLeaderRef.current) return false;
     dungeonSequenceRunningRef.current = true;
     setIsDungeonSequenceRunning(true);
@@ -721,14 +829,14 @@ export default function App() {
         const explored = await dispatchAuthoritativeCommand({
           type: "dungeon.explore",
           floor: dungeon.activeDungeonFloor,
-        });
+        }, { interactive });
         if (!explored) {
           dungeonSequenceBlockedRef.current = true;
           return false;
         }
         if (dungeonRetreatRequestedRef.current) return true;
       }
-      const resolved = await dispatchAuthoritativeCommand({ type: "dungeon.resolve" });
+      const resolved = await dispatchAuthoritativeCommand({ type: "dungeon.resolve" }, { interactive });
       if (!resolved) dungeonSequenceBlockedRef.current = true;
       return resolved;
     } finally {
@@ -745,7 +853,7 @@ export default function App() {
 
   useEffect(() => {
     if (dungeonSequenceBlockedRef.current || !isAutomationLeader || !currentEncounter || !currentUser || !isOnline || isDungeonSequenceRunning) return;
-    void exploreAndResolveDungeon();
+    void exploreAndResolveDungeon(false);
   }, [currentEncounter, currentUser, exploreAndResolveDungeon, isAutomationLeader, isDungeonSequenceRunning, isOnline]);
 
   const retreatFromDungeon = useCallback(async () => {
@@ -761,7 +869,7 @@ export default function App() {
   useEffect(() => {
     if (dungeonSequenceBlockedRef.current || !isAutomationLeader || !currentUser || !isOnline || !dungeon.autoExplore || currentEncounter || isDungeonSequenceRunning) return;
     const handle = window.setTimeout(() => {
-      void exploreAndResolveDungeon();
+      void exploreAndResolveDungeon(false);
     }, 1000);
     return () => window.clearTimeout(handle);
   }, [
@@ -870,7 +978,8 @@ export default function App() {
         setIsInitialGameLoadDone(false);
         try {
           setIsSyncing(true);
-          const parsed = await callGameApi<AuthoritativeGameEnvelope>("/bootstrap", { method: "POST" });
+          const parsed = await canonicalQueue.enqueueBackground(({ measureNetwork }) =>
+            measureNetwork(() => callGameApi<AuthoritativeGameEnvelope>("/bootstrap", { method: "POST" })));
           if (isStale()) return;
           setApiAvailable(true);
           setCanonicalStateFailureDetails(null);
@@ -948,6 +1057,7 @@ export default function App() {
   }, [
     addLog,
     applyAuthoritativeState,
+    canonicalQueue,
     clearClientGameState,
     setAutoExplore,
     setUnlockedRaces,
@@ -972,11 +1082,10 @@ export default function App() {
     let pending = false;
     const refresh = () => {
       if (!isAutomationLeaderRef.current || pending) return;
-      pending = true;
-      const operation = commandQueueRef.current.then(async () => {
+      const operation = canonicalQueue.tryEnqueueBackground(async ({ measureNetwork }) => {
         if (!isAutomationLeaderRef.current) return;
         try {
-          const parsed = await callGameApi<AuthoritativeGameEnvelope>("/bootstrap", { method: "POST" });
+          const parsed = await measureNetwork(() => callGameApi<AuthoritativeGameEnvelope>("/bootstrap", { method: "POST" }));
           if (!active) return;
           await applyAuthoritativeState(parsed?.state, parsed?.revision, String(currentUser.id), parsed?.serverTime, parsed?.lastProcessedAt);
           publishAuthoritativeSnapshot(parsed);
@@ -991,7 +1100,8 @@ export default function App() {
           else setApiAvailable(false);
         }
       });
-      commandQueueRef.current = operation.then(() => undefined, () => undefined);
+      if (!operation) return;
+      pending = true;
       void operation.finally(() => { pending = false; });
     };
     const interval = window.setInterval(refresh, 30_000);
@@ -1003,6 +1113,7 @@ export default function App() {
     addLog,
     applyAuthoritativeState,
     browserOnline,
+    canonicalQueue,
     canonicalStateFailureDetails,
     cityName,
     currentUser,
@@ -1022,10 +1133,9 @@ export default function App() {
       showCrossTabNotice("Mode observateur : prenez le contrôle pour synchroniser.");
       return;
     }
-    const operation = commandQueueRef.current.then(async () => {
+    const operation = enqueueInteractiveOperation(async ({ measureNetwork }) => {
       try {
-        setIsSyncing(true);
-        const parsed = await callGameApi<AuthoritativeGameEnvelope>("/bootstrap", { method: "POST" });
+        const parsed = await measureNetwork(() => callGameApi<AuthoritativeGameEnvelope>("/bootstrap", { method: "POST" }));
         await applyAuthoritativeState(parsed?.state, parsed?.revision, String(currentUser.id), parsed?.serverTime, parsed?.lastProcessedAt);
         publishAuthoritativeSnapshot(parsed);
         const idleSummary = formatCanonicalIdleReport(parsed?.idleReport);
@@ -1042,13 +1152,11 @@ export default function App() {
           setApiAvailable(false);
         }
         addLog("Échec de l’actualisation de l’état canonique.", "defeat");
-      } finally {
-        setIsSyncing(false);
       }
-    });
-    commandQueueRef.current = operation.then(() => undefined, () => undefined);
+    }, true);
+    if (!operation) return;
     await operation;
-  }, [addLog, applyAuthoritativeState, currentUser, isOnline, publishAuthoritativeSnapshot, showCrossTabNotice]);
+  }, [addLog, applyAuthoritativeState, currentUser, enqueueInteractiveOperation, isOnline, publishAuthoritativeSnapshot, showCrossTabNotice]);
 
   // Lock offline users to the Account panel
   useEffect(() => {
@@ -1067,13 +1175,12 @@ export default function App() {
       showCrossTabNotice("Mode observateur : prenez le contrôle avant de réinitialiser.");
       return;
     }
-    const operation = commandQueueRef.current.then(async () => {
+    const operation = enqueueInteractiveOperation(async ({ measureNetwork }) => {
       let resetCacheUnsafe = false;
       try {
-        setIsSyncing(true);
         if (currentUser) {
           const userId = String(currentUser.id);
-          const reset = await callGameApi<AuthoritativeGameEnvelope>("/reset", { method: "POST" });
+          const reset = await measureNetwork(() => callGameApi<AuthoritativeGameEnvelope>("/reset", { method: "POST" }));
           let oldCachePurged = false;
           try {
             await deleteGameCache(userId);
@@ -1119,11 +1226,9 @@ export default function App() {
         console.error("Failed to reset Supabase savegame state", err);
         addLog("Échec de la remise à zéro : l’état actuel a été conservé.", "defeat");
         showCrossTabNotice("Échec de la remise à zéro : l’état actuel a été conservé.");
-      } finally {
-        setIsSyncing(false);
       }
-    });
-    commandQueueRef.current = operation.then(() => undefined, () => undefined);
+    }, true);
+    if (!operation) return;
     await operation;
   };
 
@@ -1136,10 +1241,9 @@ export default function App() {
       showCrossTabNotice("Mode observateur : prenez le contrôle avant de supprimer le compte.");
       return;
     }
-    const operation = commandQueueRef.current.then(async () => {
+    const operation = enqueueInteractiveOperation(async ({ measureNetwork }) => {
       try {
-        setIsSyncing(true);
-        await callGameApi("/account", { method: "DELETE" });
+        await measureNetwork(() => callGameApi("/account", { method: "DELETE" }));
         const deletedUserId = currentUser ? String(currentUser.id) : "";
         deletedCacheUserIdsRef.current.add(deletedUserId);
         authSnapshotGenerationRef.current += 1;
@@ -1173,11 +1277,9 @@ export default function App() {
       } catch (err) {
         console.error("Failed to delete account", err);
         addLog("Échec de la suppression du compte. Aucune donnée locale n’a été réinitialisée.", "defeat");
-      } finally {
-        setIsSyncing(false);
       }
-    });
-    commandQueueRef.current = operation.then(() => undefined, () => undefined);
+    }, true);
+    if (!operation) return;
     await operation;
   };
 
@@ -1509,8 +1611,12 @@ export default function App() {
                 buildings={town.buildings}
                 citizens={town.citizens}
                 totalCitizensCount={town.displayTotalCitizens}
-                onUpgradeBuilding={(buildingId) => { void dispatchAuthoritativeCommand({ type: "building.upgrade", buildingId }); }}
-                onAllocateCitizen={(role, amount) => { void dispatchAuthoritativeCommand({ type: "citizens.allocate", role, amount }); }}
+                onUpgradeBuilding={(buildingId) => {
+                  enqueueOptimisticCommand(`building:${buildingId}`, { type: "building.upgrade", buildingId }, mergeBuildingLevels);
+                }}
+                onAllocateCitizen={(role, amount) => {
+                  enqueueOptimisticCommand(`citizens:${role}`, { type: "citizens.allocate", role, amount }, mergeSummedAmount);
+                }}
                 citizenGrowthProgress={town.displayCitizenGrowthProgress}
                 highestFloorReached={dungeon.highestFloorReached}
                 heroes={dungeon.heroes}
@@ -1536,11 +1642,15 @@ export default function App() {
                 onDismissHero={(heroId) => { void dispatchAuthoritativeCommand({ type: "hero.dismiss", heroId }); }}
                 onToggleHeroActive={(heroId) => {
                   const hero = dungeon.heroes.find((entry) => entry.id === heroId);
-                  if (hero) void dispatchAuthoritativeCommand({ type: "hero.activity", heroId, active: !hero.isActive });
+                  if (hero) enqueueOptimisticCommand(`hero-activity:${heroId}`, { type: "hero.activity", heroId, active: !hero.isActive }, keepLatestCommand);
                 }}
                 onRecruitHero={() => { void dispatchAuthoritativeCommand({ type: "hero.recruit_offer" }); }}
-                onUnequipItem={(heroId, slot) => { void dispatchAuthoritativeCommand({ type: "hero.unequip", heroId, slot }); }}
-                onEquipItem={(heroId, instanceId) => { void dispatchAuthoritativeCommand({ type: "hero.equip", heroId, instanceId }); }}
+                onUnequipItem={(heroId, slot) => {
+                  enqueueOptimisticCommand(`equipment:${heroId}:${slot}`, { type: "hero.unequip", heroId, slot }, keepLatestCommand);
+                }}
+                onEquipItem={(heroId, instanceId) => {
+                  enqueueOptimisticCommand(`equipment:${heroId}`, { type: "hero.equip", heroId, instanceId }, keepLatestCommand);
+                }}
                 storedItems={dungeon.storedItems}
                 onGoToTab={setActiveTab}
               />
@@ -1560,7 +1670,7 @@ export default function App() {
                 onToggleAutoExplore={() => {
                   const enabled = !dungeon.autoExplore;
                   dungeonSequenceBlockedRef.current = !enabled;
-                  void dispatchAuthoritativeCommand({ type: "dungeon.auto_explore", enabled });
+                  enqueueOptimisticCommand("dungeon:auto", { type: "dungeon.auto_explore", enabled }, keepLatestCommand);
                 }}
                 activeEncounter={currentEncounter}
                 encounterHistory={encounterHistory}
@@ -1571,13 +1681,29 @@ export default function App() {
                   void exploreAndResolveDungeon();
                 }}
                 onChangeFloor={(direction) => {
-                  const floor = Math.max(1, dungeon.activeDungeonFloor + (direction === "next" ? 1 : -1));
-                  void dispatchAuthoritativeCommand({ type: "dungeon.select_floor", floor });
+                  const floor = Math.min(
+                    dungeon.highestFloorReached,
+                    Math.max(1, dungeon.activeDungeonFloor + (direction === "next" ? 1 : -1)),
+                  );
+                  if (currentEncounter && !dungeonSequenceRunningRef.current) {
+                    dungeonSequenceBlockedRef.current = false;
+                    void exploreAndResolveDungeon(false);
+                  }
+                  dungeonSequenceBlockedRef.current = true;
+                  enqueueOptimisticCommand("dungeon:floor", { type: "dungeon.select_floor", floor }, keepLatestCommand);
                 }}
                 onRetreatParty={() => { void retreatFromDungeon(); }}
                 onClearBattleLogs={clearBattleLogs}
                 onResetLevel={() => {
                   void (async () => {
+                    if (currentEncounter && !dungeonSequenceRunningRef.current) {
+                      dungeonSequenceBlockedRef.current = false;
+                      void exploreAndResolveDungeon(false);
+                    }
+                    dungeonSequenceBlockedRef.current = true;
+                    while (dungeonSequenceRunningRef.current) {
+                      await new Promise<void>((resolve) => window.setTimeout(resolve, 25));
+                    }
                     const reset = await dispatchAuthoritativeCommand({
                       type: "dungeon.select_floor",
                       floor: dungeon.activeDungeonFloor,
@@ -1602,6 +1728,7 @@ export default function App() {
                 currentUser={currentUser}
                 isAuthLoading={isAuthLoading}
                 isSyncing={isSyncing}
+                isCommandPending={pendingUserCommandCount > 0}
                 resources={town.resources}
                 buildings={town.buildings}
                 totalCitizensCount={town.totalCitizens}
@@ -1621,7 +1748,9 @@ export default function App() {
               <StoragePanel
                 storedItems={dungeon.storedItems}
                 heroes={dungeon.heroes}
-                onEquipItem={(heroId, instanceId) => { void dispatchAuthoritativeCommand({ type: "hero.equip", heroId, instanceId }); }}
+                onEquipItem={(heroId, instanceId) => {
+                  enqueueOptimisticCommand(`equipment:${heroId}`, { type: "hero.equip", heroId, instanceId }, keepLatestCommand);
+                }}
                 isForgeUnlocked={(town.buildings["forge"] || 0) >= 1}
                 onScrapItem={(instanceId) => { void dispatchAuthoritativeCommand({ type: "inventory.recycle", instanceId }); }}
                 forgeMaterials={dungeon.forgeMaterials}

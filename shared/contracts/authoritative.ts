@@ -80,7 +80,7 @@ void canonicalRequiredFieldsAreExhaustive;
 export type CanonicalGameCommand =
   | { type: "onboarding.offer"; cityName: string }
   | { type: "onboarding.start"; cityName: string; starterHeroes: Array<{ id: string; name: string }> }
-  | { type: "building.upgrade"; buildingId: string }
+  | { type: "building.upgrade"; buildingId: string; levels?: number }
   | { type: "citizens.allocate"; role: "farmers" | "woodcutters" | "quarrymen" | "miners"; amount: number }
   | { type: "district.unlock"; districtId: string }
   | { type: "hero.recruit" }
@@ -156,6 +156,13 @@ function validateCanonicalCommandPayload(command: Record<string, unknown>): stri
     if (typeof command[field] !== "string" || !String(command[field]).trim()) errors.push(`command.${field} is required`);
   };
   switch (command.type) {
+    case "building.upgrade":
+      if (!hasOnlyKeys(command, ["type", "buildingId", "levels"])) errors.push("command contains unsupported fields");
+      requireString("buildingId");
+      if (command.levels !== undefined && (!Number.isInteger(command.levels) || Number(command.levels) < 1 || Number(command.levels) > 5)) {
+        errors.push("command.levels must be an integer between 1 and 5");
+      }
+      break;
     case "hero.equip":
       if (!hasOnlyKeys(command, ["type", "heroId", "instanceId"])) errors.push("command contains unsupported fields");
       requireString("heroId"); requireString("instanceId");

@@ -207,6 +207,22 @@ describe("authoritative town commands", () => {
     expect(result.events).toEqual([{ type: "building.upgraded", buildingId: "ferme", level: 1 }]);
   });
 
+  it("condenses several building upgrades into one atomic command", () => {
+    const current = initialTownState();
+    current.resources.gold = 1_000;
+    current.resources.food = 1_000;
+    const result = applyTownCommand(current, { type: "building.upgrade", buildingId: "ferme", levels: 3 });
+    expect(result.state).toMatchObject({ buildings: { ferme: 3 } });
+    expect(result.events).toEqual([{ type: "building.upgraded", buildingId: "ferme", level: 3, levels: 3 }]);
+
+    const poor = initialTownState();
+    poor.resources.gold = 10;
+    poor.resources.food = 10;
+    expect(() => applyTownCommand(poor, { type: "building.upgrade", buildingId: "ferme", levels: 2 })).toThrow("insufficient resources");
+    expect(poor.buildings.ferme).toBe(0);
+    expect(poor.resources).toMatchObject({ gold: 10, food: 10 });
+  });
+
   it("gates authoritative cheats behind the runtime flag", () => {
     expect(() => applyTownCommand(initialTownState(), { type: "cheat.grant_resources", amounts: { gold: 10 } })).toThrow("cheats are disabled");
     const result = applyTownCommand(initialTownState(), { type: "cheat.grant_resources", amounts: { gold: 10 } }, { allowCheats: true });
