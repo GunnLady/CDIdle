@@ -8,7 +8,7 @@ size: M
 risk: medium
 source: Retour utilisateur sur la latence generale du bootstrap du 2026-07-31
 depends_on: []
-blocks: []
+blocks: ["CDI-081"]
 github_issue: null
 related_docs: ["docs/architecture/api-command-contracts.md", "src/App.tsx", "src/lib/canonicalOperationQueue.ts", "supabase/functions/game-api/index.ts"]
 ---

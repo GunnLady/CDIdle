@@ -8,7 +8,7 @@ size: L
 risk: high
 source: Audit fonctionnel forge, craft, scrap et objets du 2026-07-26
 depends_on: []
-blocks: []
+blocks: ["CDI-079"]
 github_issue: null
 related_docs: ["docs/architecture/zero-rebase-audit.md", "docs/architecture/inventory-domain.md", "docs/architecture/forge-domain.md", "src/data/items.ts", "src/data/bossLootTables.ts", "src/domain/authoritativeDungeon.ts", "supabase/functions/game-api/inventory-authority.ts"]
 ---
@@ -48,7 +48,8 @@ forge novice. Sa phase de definition doit etre validee avant implementation.
 
 ## Perimetre autorise
 
-- Etablir une source canonique unique partagee par les autorites et l UI.
+- Etablir dans la couche neutre `shared` une source canonique unique partagee
+  par les autorites et l UI.
 - Inventorier et statuer sur les 131 objets existants.
 - Definir identite, slot, niveau, classe, mains, rarete, modificateurs,
   statistiques, types de degats et provenance de chaque objet.
@@ -86,6 +87,8 @@ forge novice. Sa phase de definition doit etre validee avant implementation.
   decision d architecture approuvees.
 - Aucun identifiant ou modificateur n est defini deux fois entre client et
   serveur.
+- La source unique du catalogue respecte la direction
+  `frontend -> shared <- backend` attendue par CDI-079.
 - Toute mutation d equipement recalcule les statistiques canoniques de toutes
   les classes concernees.
 - Les raretes et modificateurs affiches sont exactement ceux utilises par le
