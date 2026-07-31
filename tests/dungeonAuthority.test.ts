@@ -113,4 +113,43 @@ describe("authoritative dungeon commands", () => {
     expect(disabled.state.autoExplore).toBe(false);
     expect(() => applyDungeonCommand({ ...state(), heroes: [] }, { type: "dungeon.auto_explore", enabled: true })).toThrowError("at least one active hero is required");
   });
+
+  it("keeps automatic exploration paused for a prayer without blocking other active heroes", () => {
+    const source: DungeonState = {
+      ...state(),
+      autoExplore: false,
+      heroes: [
+        makeHero({ id: "hero-prayer", level: 10, isActive: false, status: "resting" }),
+        makeHero({ id: "hero-ready", isActive: true, status: "idle" }),
+      ],
+      pendingClassTransitions: [{
+        heroId: "hero-prayer",
+        fromClass: "Novice",
+        fromTier: 0,
+        toTier: 1,
+        originLevel: 10,
+        wasActive: true,
+        previousStatus: "idle",
+        reason: "prayer",
+        candidates: [
+          { classType: "Guerrier", affinity: 0.91 },
+          { classType: "Pugiliste", affinity: 0.905 },
+        ],
+      }],
+    };
+
+    expect(() => applyDungeonCommand(source, {
+      type: "dungeon.auto_explore",
+      enabled: true,
+    })).toThrowError("choose a vocation");
+    const started = applyDungeonCommand(source, {
+      type: "dungeon.explore",
+      floor: 1,
+      commandId: "other-hero-explores",
+    });
+    expect(started.state.currentEncounter).toMatchObject({
+      encounterId: "encounter-other-hero-explores",
+      status: "active",
+    });
+  });
 });

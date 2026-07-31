@@ -4,7 +4,7 @@
  */
 
 import React, { lazy, Suspense, useState, useEffect, useCallback, useRef } from "react";
-import { Hero } from "./types";
+import type { Hero, PendingClassTransition } from "./types";
 const TownPanel = lazy(() => import("./components/TownPanel"));
 const DungeonPanel = lazy(() => import("./components/DungeonPanel"));
 const HeroPanel = lazy(() => import("./components/HeroPanel"));
@@ -12,6 +12,7 @@ const AccountPanel = lazy(() => import("./components/AccountPanel"));
 import LoginPage from "./components/LoginPage";
 import CanonicalStateAlert from "./components/CanonicalStateAlert";
 const StoragePanel = lazy(() => import("./components/StoragePanel"));
+const VocationPrayerPrompt = lazy(() => import("./components/VocationPrayerPrompt"));
 import {
   callGameApi,
   canonicalStateFailure,
@@ -122,6 +123,7 @@ export default function App() {
   const [isControlTransferPending, setIsControlTransferPending] = useState(false);
   const [controlLeaseEpoch, setControlLeaseEpoch] = useState(0);
   const [pendingForge, setPendingForge] = useState<{ previewId: string; itemId: string; upgradeProc?: "none" | "uncommon" | "rare" } | null>(null);
+  const [pendingClassTransitions, setPendingClassTransitions] = useState<PendingClassTransition[]>([]);
   const [authoritativeTimeAnchor, setAuthoritativeTimeAnchor] = useState<AuthoritativeTimeAnchor | null>(null);
   const [crossTabNotice, setCrossTabNotice] = useState<{ id: number; message: string } | null>(null);
   const gameRevisionRef = useRef(0);
@@ -146,6 +148,7 @@ export default function App() {
   const crossTabNoticeIdRef = useRef(0);
   const encounterHistoryRef = useRef<CanonicalDungeonEncounterRecord[]>([]);
   const encounterPlaybackTokenRef = useRef(0);
+
   const dungeonSequenceRunningRef = useRef(false);
   const dungeonRetreatRequestedRef = useRef(false);
   const dungeonSequenceBlockedRef = useRef(false);
@@ -276,6 +279,9 @@ export default function App() {
     if (projectedState.pendingRecruit !== undefined) setPendingRecruit(projectedState.pendingRecruit ?? null);
     if (projectedState.onboardingCandidates !== undefined) setOnboardingCandidates(projectedState.onboardingCandidates);
     if (projectedState.pendingOnboardingCityName !== undefined) setPendingOnboardingCityName(String(projectedState.pendingOnboardingCityName));
+    if (projectedState.pendingClassTransitions !== undefined) {
+      setPendingClassTransitions(projectedState.pendingClassTransitions as PendingClassTransition[]);
+    }
   }, [
     setActiveDungeonFloor, setActiveDungeonRoom, setAutoExplore, setCitizenGrowthProgress,
     setDungeonHighestFloorReached, setForgeMaterials, setHeroes, setItemBlueprints,
@@ -345,6 +351,7 @@ export default function App() {
     setTownResources({ gold: 0, food: 0, wood: 0, stone: 0, ore: 0 });
     setCityName("");
     setCurrentEncounter(null);
+    setPendingClassTransitions([]);
     encounterHistoryRef.current = [];
     setEncounterHistory([]);
     setEncounterPlayback(null);
@@ -1208,6 +1215,7 @@ export default function App() {
         // Clear transient UI after the canonical reset response was applied.
         setBattleLogs([]);
         setCurrentEncounter(null);
+        setPendingClassTransitions([]);
         encounterHistoryRef.current = [];
         setEncounterHistory([]);
         setEncounterPlayback(null);
@@ -1776,6 +1784,28 @@ export default function App() {
       </footer>
 
       {/* 5. GORGEOUS CUSTOM RECRUITMENT MODAL */}
+      {pendingClassTransitions.length > 0 && (() => {
+        const pending = pendingClassTransitions[0];
+        const hero = dungeon.heroes.find((entry) => entry.id === pending.heroId);
+        return (
+          <Suspense fallback={null}>
+            <VocationPrayerPrompt
+              pending={pending}
+              hero={hero}
+              disabled={pendingUserCommandCount > 0}
+              readOnly={!isAutomationLeader}
+              onChoose={(classType) => {
+                void dispatchAuthoritativeCommand({
+                  type: "hero.choose_vocation",
+                  heroId: pending.heroId,
+                  classType,
+                });
+              }}
+            />
+          </Suspense>
+        );
+      })()}
+
       {pendingRecruit && isAutomationLeader && (() => {
         const STAT_LABELS: Record<string, string> = {
           str: "Force (STR)",

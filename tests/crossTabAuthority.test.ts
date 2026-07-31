@@ -11,7 +11,20 @@ import {
 
 const snapshot: CrossTabAuthoritySnapshot = {
   revision: 12,
-  state: { gold: 42 },
+  state: {
+    gold: 42,
+    pendingClassTransitions: [{
+      heroId: "hero-prayer",
+      fromClass: "Novice",
+      fromTier: 0,
+      toTier: 1,
+      originLevel: 10,
+      wasActive: true,
+      previousStatus: "idle",
+      reason: "prayer",
+      candidates: [{ classType: "Mage", affinity: 0.9 }],
+    }],
+  },
   serverTime: "2026-07-27T18:00:00.000Z",
   lastProcessedAt: "2026-07-27T17:59:59.000Z",
 };
@@ -76,6 +89,7 @@ describe("cross-tab authoritative synchronization", () => {
     });
     channel.onmessage?.({ data: createCrossTabAuthorityMessage("tab-b", snapshot) } as MessageEvent);
     expect(onSnapshot).toHaveBeenCalledWith(snapshot);
+    expect(onSnapshot.mock.calls[0][0].state.pendingClassTransitions).toEqual(snapshot.state.pendingClassTransitions);
   });
 
   it("notifies another tab that the authenticated account was deleted", () => {

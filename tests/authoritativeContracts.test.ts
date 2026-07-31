@@ -219,7 +219,7 @@ describe("authoritative shared contracts", () => {
       storedItems: [], forgeMaterials: [], itemBlueprints: [], encounterHistory: [],
       totalCitizensCount: 3, activeDungeonFloor: 1, activeDungeonRoom: 1,
       highestFloorReached: 1, citizenGrowthProgress: 0, autoExplore: false,
-      currentEncounter: null,
+      currentEncounter: null, pendingClassTransitions: [],
       rngState: {
         algorithm: "xorshift32",
         version: 1,
@@ -229,5 +229,58 @@ describe("authoritative shared contracts", () => {
       },
     });
     expect(errors).toEqual([]);
+  });
+
+  it("validates canonical vocation choices and pending transitions", () => {
+    expect(validateCanonicalCommandEnvelope({
+      ...validEnvelope,
+      command: { type: "hero.choose_vocation", heroId: "hero-1", classType: "Mage" },
+    })).toEqual([]);
+    expect(validateCanonicalCommandEnvelope({
+      ...validEnvelope,
+      command: { type: "hero.choose_vocation", heroId: "hero-1", classType: "Novice" },
+    })).toContain("command.classType must be a known non-Novice class");
+
+    const errors = validateCanonicalGameState({
+      resources: {}, buildings: {}, citizens: {}, districts: {}, heroes: [],
+      storedItems: [], forgeMaterials: [], itemBlueprints: [], encounterHistory: [],
+      totalCitizensCount: 3, activeDungeonFloor: 1, activeDungeonRoom: 1,
+      highestFloorReached: 1, citizenGrowthProgress: 0, autoExplore: false,
+      currentEncounter: null,
+      pendingClassTransitions: [{
+        heroId: "hero-1",
+        fromClass: "Novice",
+        fromTier: 0,
+        toTier: 1,
+        originLevel: 10,
+        wasActive: true,
+        previousStatus: "idle",
+        reason: "Prière",
+        candidates: [{ classType: "Mage", affinity: 0.9 }],
+      }],
+      rngState: { algorithm: "xorshift32", version: 1, seed: 42, state: 42, draws: 0 },
+    });
+    expect(errors).toEqual([]);
+
+    const invalidTier = validateCanonicalGameState({
+      resources: {}, buildings: {}, citizens: {}, districts: {}, heroes: [],
+      storedItems: [], forgeMaterials: [], itemBlueprints: [], encounterHistory: [],
+      totalCitizensCount: 3, activeDungeonFloor: 1, activeDungeonRoom: 1,
+      highestFloorReached: 1, citizenGrowthProgress: 0, autoExplore: false,
+      currentEncounter: null,
+      pendingClassTransitions: [{
+        heroId: "hero-2",
+        fromClass: "Guerrier",
+        fromTier: 0,
+        toTier: 1,
+        originLevel: 20,
+        wasActive: false,
+        previousStatus: "resting",
+        reason: "future transition",
+        candidates: [{ classType: "Mage", affinity: 0.8 }],
+      }],
+      rngState: { algorithm: "xorshift32", version: 1, seed: 42, state: 42, draws: 0 },
+    });
+    expect(invalidTier).toContain("pendingClassTransitions[0].fromTier must match fromClass");
   });
 });

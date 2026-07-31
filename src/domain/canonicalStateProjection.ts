@@ -21,6 +21,7 @@ export const CANONICAL_REACT_STATE_FIELDS = [
   "pendingRecruit",
   "onboardingCandidates",
   "pendingOnboardingCityName",
+  "pendingClassTransitions",
 ] as const;
 
 // These canonical fields are deliberately persisted in the read-only cache but

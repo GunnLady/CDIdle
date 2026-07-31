@@ -4,6 +4,7 @@ import {
   type CanonicalStatModifier,
 } from "../../../shared/domain/hero-stats.ts";
 import { getSkillById } from "../../../src/data/gameData.ts";
+import { getTier1ClassItemDefinition } from "../../../src/data/tier1ClassEquipment.ts";
 
 export type AuthoritativeNoviceStats = CanonicalHeroBaseStats;
 
@@ -44,7 +45,12 @@ export function resolveAuthoritativeNoviceItemModifiers(
   if (persisted?.length) {
     return persisted.map((modifier) => ({ ...modifier, type: modifier.type ?? "flat" }));
   }
-  return (ITEM_BASE_MODIFIERS[itemId] ?? []).map((modifier) => {
+  const tier1Modifiers = getTier1ClassItemDefinition(itemId)?.item.modifiers?.map((modifier) => ({
+    stat: modifier.stat,
+    type: modifier.type ?? "flat",
+    value: modifier.value,
+  })) ?? [];
+  return (ITEM_BASE_MODIFIERS[itemId] ?? tier1Modifiers).map((modifier) => {
     const multiplier = modifier.type === "flat"
       ? FLAT_RARITY_MULTIPLIERS[rarity]
       : PERCENT_RARITY_MULTIPLIERS[rarity];

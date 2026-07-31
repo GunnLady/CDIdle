@@ -4,6 +4,7 @@ import type {
   DungeonEncounterType,
   Hero,
   Monster,
+  PendingClassTransition,
   Rarity,
   Resources,
   StoredForgeMaterialStack,
@@ -28,9 +29,10 @@ import {
 } from "../utils/dungeonHelpers.ts";
 import type { Rng } from "./random.ts";
 import {
-  addHeroExperienceDetailed,
-  type HeroExperienceResult,
-} from "./hero.ts";
+  applyHeroProgression,
+  type HeroProgressionResult,
+} from "./heroProgression.ts";
+import { describeTier1EquipmentReward } from "./tier1ClassEquipmentReward.ts";
 import { validateAuthoritativeHero } from "./authoritativeHeroValidation.ts";
 
 export type AuthoritativeDungeonTranscriptEvent = {
@@ -74,6 +76,7 @@ export type AuthoritativeDungeonState = Record<string, unknown> & {
   storedItems?: StoredItemInstance[];
   forgeMaterials?: StoredForgeMaterialStack[];
   autoExplore?: boolean;
+  pendingClassTransitions?: PendingClassTransition[];
 };
 
 export type AuthoritativeDungeonResolution = {
@@ -100,8 +103,9 @@ function awardExperience(
   xp: number,
   rng: Rng,
   buildings: Record<string, number>,
-): HeroExperienceResult {
-  return addHeroExperienceDetailed(hero, xp, rng, buildings);
+  storedItems: StoredItemInstance[],
+): HeroProgressionResult {
+  return applyHeroProgression({ hero, xpEarned: xp, rng, buildings, storedItems });
 }
 
 function logExperienceAward(
@@ -113,7 +117,7 @@ function logExperienceAward(
   ) => void,
   original: Hero,
   xp: number,
-  award: HeroExperienceResult,
+  award: HeroProgressionResult,
 ) {
   log("reward.xp", `${original.name} gagne +${xp} XP.`, "info", {
     heroId: original.id,
@@ -168,18 +172,42 @@ function logExperienceAward(
     );
   }
   if (award.classChange) {
+    const equipmentReward = award.classChange.equipmentReward;
+    const equipmentNames = equipmentReward
+      ? describeTier1EquipmentReward(equipmentReward)
+      : null;
     log(
       "hero.class_changed",
-      `${original.name} révèle sa vocation et devient ${award.classChange.to}.`,
+      `${original.name} révèle sa vocation et devient ${award.classChange.toClass}.`
+        + (equipmentNames
+          ? ` Équipement reçu : ${equipmentNames.weaponName} et ${equipmentNames.accessoryName}.`
+          : ""),
       "victory",
       {
         heroId: original.id,
         heroName: original.name,
-        previousClass: award.classChange.from,
-        classType: award.classChange.to,
+        previousClass: award.classChange.fromClass,
+        classType: award.classChange.toClass,
+        previousTier: award.classChange.fromTier,
+        classTier: award.classChange.toTier,
         reason: award.classChange.reason,
         activeSkills: award.hero.activeSkills,
         passiveSkills: award.hero.passiveSkills,
+        equipmentReward,
+      },
+    );
+  } else if (award.pendingTransition) {
+    log(
+      "hero.vocation_prayer",
+      `${original.name} adresse une prière aux dieux pour révéler sa vocation.`,
+      "victory",
+      {
+        heroId: original.id,
+        heroName: original.name,
+        fromClass: award.pendingTransition.fromClass,
+        fromTier: award.pendingTransition.fromTier,
+        toTier: award.pendingTransition.toTier,
+        candidates: award.pendingTransition.candidates,
       },
     );
   } else if (award.classStayed) {
@@ -195,6 +223,16 @@ function logExperienceAward(
       },
     );
   }
+}
+
+function appendPendingTransition(
+  pending: PendingClassTransition[],
+  award: HeroProgressionResult,
+): void {
+  if (!award.pendingTransition) return;
+  const index = pending.findIndex((entry) => entry.heroId === award.pendingTransition?.heroId);
+  if (index >= 0) pending[index] = award.pendingTransition;
+  else pending.push(award.pendingTransition);
 }
 
 function appendMaterial(
@@ -311,6 +349,8 @@ function resolveFight(
     ...(source.resources ?? {}),
   };
   let forgeMaterials = clone(source.forgeMaterials ?? []);
+  let storedItems = clone(source.storedItems ?? []);
+  const pendingClassTransitions = clone(source.pendingClassTransitions ?? []);
   const transcript: AuthoritativeDungeonTranscriptEvent[] = [];
   const loot: Array<Record<string, unknown>> = [];
   let sequence = 0;
@@ -703,7 +743,9 @@ function resolveFight(
       if (!hero.isActive || hero.currentHp <= 0) return hero;
       const share = eligibleCount > 0 ? monster.xpYield / eligibleCount : 0;
       const xp = Math.round(share * (hero.race === "Humain" ? 1.15 : 1));
-      const award = awardExperience(hero, xp, rng, source.buildings ?? {});
+      const award = awardExperience(hero, xp, rng, source.buildings ?? {}, storedItems);
+      storedItems = award.storedItems;
+      appendPendingTransition(pendingClassTransitions, award);
       logExperienceAward(log, hero, xp, award);
       return award.hero;
     });
@@ -734,8 +776,12 @@ function resolveFight(
       ...progress,
       heroes,
       resources,
+      storedItems,
       forgeMaterials,
-      autoExplore: victory ? source.autoExplore ?? false : false,
+      pendingClassTransitions,
+      autoExplore: victory && pendingClassTransitions.length === 0
+        ? source.autoExplore ?? false
+        : false,
     },
     encounter: {
       encounterId,
@@ -774,8 +820,9 @@ function resolveNonFight(
     ore: 0,
     ...(source.resources ?? {}),
   };
-  const storedItems = clone(source.storedItems ?? []);
+  let storedItems = clone(source.storedItems ?? []);
   let forgeMaterials = clone(source.forgeMaterials ?? []);
+  const pendingClassTransitions = clone(source.pendingClassTransitions ?? []);
   const transcript: AuthoritativeDungeonTranscriptEvent[] = [];
   const loot: Array<Record<string, unknown>> = [];
   let sequence = 0;
@@ -834,7 +881,9 @@ function resolveNonFight(
     heroes = heroes.map((hero) => {
       if (!hero.isActive || hero.currentHp <= 0) return hero;
       const xp = Math.max(1, Math.round((totalXp / eligible) * (hero.race === "Humain" ? 1.15 : 1)));
-      const award = awardExperience(hero, xp, rng, source.buildings ?? {});
+      const award = awardExperience(hero, xp, rng, source.buildings ?? {}, storedItems);
+      storedItems = award.storedItems;
+      appendPendingTransition(pendingClassTransitions, award);
       logExperienceAward(log, hero, xp, award);
       return award.hero;
     });
@@ -876,7 +925,9 @@ function resolveNonFight(
     heroes = heroes.map((hero) => {
       if (!hero.isActive || hero.currentHp <= 0) return hero;
       const xp = Math.max(1, Math.round((totalXp / eligible) * (hero.race === "Humain" ? 1.15 : 1)));
-      const award = awardExperience(hero, xp, rng, source.buildings ?? {});
+      const award = awardExperience(hero, xp, rng, source.buildings ?? {}, storedItems);
+      storedItems = award.storedItems;
+      appendPendingTransition(pendingClassTransitions, award);
       logExperienceAward(log, hero, xp, award);
       return award.hero;
     });
@@ -998,7 +1049,9 @@ function resolveNonFight(
       const xp = Math.round(20 * (1 + (floor - 1) * 0.15));
       heroes = heroes.map((hero) => {
         if (hero.id !== selected.bestHero.id) return hero;
-        const award = awardExperience(hero, xp, rng, source.buildings ?? {});
+        const award = awardExperience(hero, xp, rng, source.buildings ?? {}, storedItems);
+        storedItems = award.storedItems;
+        appendPendingTransition(pendingClassTransitions, award);
         logExperienceAward(log, hero, xp, award);
         return award.hero;
       });
@@ -1073,6 +1126,8 @@ function resolveNonFight(
       resources,
       storedItems,
       forgeMaterials,
+      pendingClassTransitions,
+      autoExplore: pendingClassTransitions.length > 0 ? false : source.autoExplore ?? false,
     },
     encounter: {
       encounterId,

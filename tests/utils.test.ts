@@ -10,8 +10,6 @@ import {
   unequipItem,
   generateNoviceStats,
   generateSingleNoviceHero,
-  getNoviceClassDecisionPolicy,
-  evaluateAutomaticClassChange,
   refreshHeroDerivedStats,
 } from "../src/utils/gameCalculations";
 import {
@@ -27,7 +25,10 @@ import { CLASS_INFO_LIST } from "../src/data/heroes";
 import { makeCitizens, makeHero, makeStoredItem } from "./fixtures/game";
 import { isCommandSuccess, validateCommandEnvelope, type CommandEnvelope } from "../src/domain/commands";
 import { fixedClock, seededRng } from "../src/domain/random";
-import { addHeroExperience, assignTier1Skills, canActivateHero, dismissHero, growHeroStats, recruitHero, recruitmentCost, recruitmentEligibility, setHeroActivity } from "../src/domain/hero";
+import { addHeroExperience, canActivateHero, dismissHero, growHeroStats, recruitHero, recruitmentCost, recruitmentEligibility, setHeroActivity } from "../src/domain/hero";
+import { assignTier1Skills } from "../src/domain/tier1ClassTransition";
+import { applyHeroProgression } from "../src/domain/heroProgression";
+import { applyClassTransition, resolveClassTransition } from "../src/domain/classTransition";
 
 const hero = (id: string, strength: number, agility: number): Hero => ({
   id,
@@ -141,13 +142,6 @@ describe("clock and RNG contracts", () => {
 });
 
 describe("hero domain", () => {
-  it("applies the novice convergence policy", () => {
-    expect(getNoviceClassDecisionPolicy(10)).toEqual({ minScore: 55, gapThreshold: 6 });
-    expect(getNoviceClassDecisionPolicy(11)).toEqual({ minScore: 45, gapThreshold: 4 });
-    expect(getNoviceClassDecisionPolicy(12)).toEqual({ minScore: 30, gapThreshold: 2 });
-    expect(getNoviceClassDecisionPolicy(13)).toEqual({ minScore: 0, gapThreshold: 0 });
-  });
-
   it("calculates recruitment costs predictably", () => {
     expect(recruitmentCost(0)).toBe(100);
     expect(recruitmentCost(3)).toBe(550);
@@ -272,24 +266,74 @@ describe("hero domain", () => {
   it("does not evolve a Novice without an eligible profession building", () => {
     const xpNeeded = calculateXpNeeded(10, "Novice");
     const hero = makeHero({ id: "hero-novice", level: 9, xp: 0, xpNeeded });
-    const leveled = addHeroExperience(hero, xpNeeded, seededRng(7), {});
-    expect(leveled.level).toBe(10);
-    expect(leveled.classType).toBe("Novice");
+    const progression = applyHeroProgression({
+      hero,
+      xpEarned: xpNeeded,
+      rng: seededRng(7),
+      buildings: {},
+      storedItems: [],
+    });
+    expect(progression.hero.level).toBe(10);
+    expect(progression.hero.classType).toBe("Novice");
+    expect(progression.classStayed).toBeDefined();
   });
 
-  it("applies the documented Novice convergence through the real evaluator", () => {
-    const profile = (level: number, score: number) => makeHero({
-      level,
-      baseStats: { str: score, agi: 1, end: score, int: 1, wiz: 1, dex: 1, luk: 1 },
+  it("keeps class transitions out of the experience-only layer", () => {
+    const xpNeeded = calculateXpNeeded(10, "Novice");
+    const hero = makeHero({
+      level: 9,
+      xp: 0,
+      xpNeeded,
+      baseStats: { str: 80, agi: 1, end: 80, int: 1, wiz: 1, dex: 1, luk: 1 },
     });
-    const candidates = Array.from({ length: 40 }, (_, index) => index + 1);
-    const decision = (level: number, score: number) =>
-      evaluateAutomaticClassChange(profile(level, score), { caserne: 1 }).newClass;
+    const leveled = addHeroExperience(hero, xpNeeded, seededRng(7));
+    expect(leveled).toMatchObject({ level: 10, classType: "Novice" });
+  });
 
-    expect(candidates.some((score) => decision(10, score) === null && decision(11, score) !== null)).toBe(true);
-    expect(candidates.some((score) => decision(11, score) === null && decision(12, score) !== null)).toBe(true);
-    expect(decision(13, 1)).not.toBeNull();
-    expect(evaluateAutomaticClassChange(profile(13, 40), {}).newClass).toBeNull();
+  it("applies a delayed vocation and its rewards through the progression facade", () => {
+    const hero = makeHero({
+      id: "hero-delayed-transition",
+      level: 10,
+      xp: 0,
+      xpNeeded: calculateXpNeeded(11, "Novice"),
+      baseStats: { str: 80, agi: 1, end: 80, int: 1, wiz: 1, dex: 1, luk: 1 },
+    });
+    const progression = applyHeroProgression({
+      hero,
+      xpEarned: hero.xpNeeded,
+      rng: seededRng(7),
+      buildings: { caserne: 1 },
+      storedItems: [],
+    });
+
+    expect(progression.hero).toMatchObject({ level: 11, classType: "Guerrier" });
+    expect(progression.classChange).toMatchObject({ fromTier: 0, toTier: 1, toClass: "Guerrier" });
+    expect(progression.hero.equipment).toMatchObject({
+      mainHand: { instanceId: "item:hero-delayed-transition:tier1:weapon" },
+      accessory: { instanceId: "item:hero-delayed-transition:tier1:accessory" },
+    });
+  });
+
+  it("describes class transitions independently from their tier policy", () => {
+    const hero = makeHero({
+      level: 10,
+      classType: "Novice",
+      baseStats: { str: 80, agi: 1, end: 80, int: 1, wiz: 1, dex: 1, luk: 1 },
+    });
+    const resolution = resolveClassTransition(hero, { caserne: 1 });
+    expect(resolution.transition).toMatchObject({
+      fromClass: "Novice",
+      toClass: "Guerrier",
+      fromTier: 0,
+      toTier: 1,
+    });
+    expect(() => applyClassTransition(hero, {
+      fromClass: "Guerrier",
+      toClass: "Guerrier",
+      fromTier: 0,
+      toTier: 1,
+      reason: "invalid test",
+    }, seededRng(1), [])).toThrow("INVALID_CLASS_TRANSITION");
   });
 
   it("assigns Tier 1 skills while preserving only the Novice passive", () => {

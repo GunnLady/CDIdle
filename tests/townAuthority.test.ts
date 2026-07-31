@@ -3,7 +3,7 @@ import { applyTownCommand, initialTownState, migrateTownState } from "../supabas
 import { generateAuthoritativeNoviceEquipment } from "../supabase/functions/game-api/inventory-authority";
 import { generateAuthoritativeNovice } from "../supabase/functions/game-api/novice-authority";
 import { calculateAuthoritativeHeroStats } from "../supabase/functions/game-api/novice-stats-authority";
-import { getHeroStats, refreshHeroDerivedStats } from "../src/utils/gameCalculations";
+import { calculateXpNeeded, getHeroStats, refreshHeroDerivedStats } from "../src/utils/gameCalculations";
 import { CLASS_INFO_LIST } from "../src/data/heroes";
 import type { Hero } from "../src/types";
 import { makeHero } from "./fixtures/game";
@@ -266,6 +266,167 @@ describe("authoritative town commands", () => {
     expect((dismissed.state.storedItems as Array<{ instanceId: string }>).map((item) => item.instanceId)).toEqual(expectedInstanceIds);
   });
 
+  it("reconciles an existing level-10 Novice without consuming RNG and applies its chosen vocation", () => {
+    const base = initialTownState();
+    const novice = refreshHeroDerivedStats(makeHero({
+      id: "hero-existing-vocation",
+      level: 10,
+      xp: 0,
+      xpNeeded: calculateXpNeeded(11, "Novice"),
+      baseStats: { str: 50, agi: 1, end: 50, int: 1, wiz: 1, dex: 1, luk: 1 },
+      isActive: true,
+      status: "idle",
+      activeSkills: ["heavy_blow"],
+      passiveSkills: ["survival_instinct"],
+    }));
+    const migrated = migrateTownState({
+      ...base,
+      heroes: [novice],
+      buildings: { ...base.buildings, caserne: 1 },
+    });
+
+    expect(migrated.rngState).toEqual(base.rngState);
+    expect(migrated.autoExplore).toBe(false);
+    expect(migrated.heroes?.[0]).toMatchObject({ isActive: false, status: "resting" });
+    expect(migrated.pendingClassTransitions).toHaveLength(1);
+    expect(migrated.pendingClassTransitions[0]).toMatchObject({
+      heroId: novice.id,
+      candidates: [{ classType: "Guerrier" }],
+      wasActive: true,
+    });
+    const reloaded = migrateTownState(structuredClone(migrated) as unknown as Record<string, unknown>);
+    expect(reloaded.pendingClassTransitions).toEqual(migrated.pendingClassTransitions);
+    expect(reloaded.rngState).toEqual(migrated.rngState);
+
+    const chosen = applyTownCommand(migrated as unknown as Record<string, unknown>, {
+      type: "hero.choose_vocation",
+      heroId: novice.id,
+      classType: "Guerrier",
+    });
+    const authoritativeReplay = applyTownCommand(reloaded as unknown as Record<string, unknown>, {
+      type: "hero.choose_vocation",
+      heroId: novice.id,
+      classType: "Guerrier",
+    });
+    const evolved = (chosen.state.heroes as Array<Record<string, any>>)[0];
+    expect(evolved).toMatchObject({ classType: "Guerrier", isActive: true, status: "idle" });
+    expect(evolved.equipment.mainHand.instanceId).toBe(`item:${novice.id}:tier1:weapon`);
+    expect(evolved.equipment.accessory.instanceId).toBe(`item:${novice.id}:tier1:accessory`);
+    expect(chosen.state.pendingClassTransitions).toEqual([]);
+    expect((chosen.state.rngState as { draws: number }).draws).toBe(base.rngState.draws + 1);
+    expect(authoritativeReplay).toEqual(chosen);
+    const instanceIds = (Object.values(evolved.equipment) as Array<{ instanceId?: string } | null>)
+      .flatMap((item) => item?.instanceId ? [item.instanceId] : []);
+    expect(new Set(instanceIds).size).toBe(instanceIds.length);
+  });
+
+  it("drops a stale pending vocation when the persisted hero already changed class", () => {
+    const base = initialTownState();
+    const warrior = refreshHeroDerivedStats(makeHero({
+      id: "hero-already-evolved",
+      level: 10,
+      classType: "Guerrier",
+      xpNeeded: calculateXpNeeded(11, "Guerrier"),
+    }));
+    const migrated = migrateTownState({
+      ...base,
+      heroes: [warrior],
+      pendingClassTransitions: [{
+        heroId: warrior.id,
+        fromClass: "Novice",
+        fromTier: 0,
+        toTier: 1,
+        originLevel: 10,
+        wasActive: true,
+        previousStatus: "idle",
+        reason: "stale",
+        candidates: [{ classType: "Guerrier", affinity: 0.9 }],
+      }],
+    });
+
+    expect(migrated.pendingClassTransitions).toEqual([]);
+    expect(migrated.heroes?.[0]).toMatchObject({ classType: "Guerrier" });
+    expect(migrated.rngState).toEqual(base.rngState);
+  });
+
+  it("rejects an unoffered vocation and resolves several pending heroes independently", () => {
+    const base = initialTownState();
+    const warrior = refreshHeroDerivedStats(makeHero({
+      id: "hero-prayer-warrior",
+      level: 10,
+      xpNeeded: calculateXpNeeded(11, "Novice"),
+      baseStats: { str: 50, agi: 1, end: 50, int: 1, wiz: 1, dex: 1, luk: 1 },
+      activeSkills: ["heavy_blow"],
+      passiveSkills: ["survival_instinct"],
+    }));
+    const mage = refreshHeroDerivedStats(makeHero({
+      id: "hero-prayer-mage",
+      level: 10,
+      xpNeeded: calculateXpNeeded(11, "Novice"),
+      baseStats: { str: 1, agi: 1, end: 1, int: 50, wiz: 1, dex: 50, luk: 1 },
+      activeSkills: ["heavy_blow"],
+      passiveSkills: ["survival_instinct"],
+    }));
+    const migrated = migrateTownState({
+      ...base,
+      heroes: [warrior, mage],
+      buildings: { ...base.buildings, caserne: 1, academie: 1 },
+    });
+    expect(migrated.pendingClassTransitions).toHaveLength(2);
+    expect(() => applyTownCommand(migrated as unknown as Record<string, unknown>, {
+      type: "hero.choose_vocation",
+      heroId: warrior.id,
+      classType: "Acolyte",
+    })).toThrow("chosen vocation was not offered");
+
+    const chosen = applyTownCommand(migrated as unknown as Record<string, unknown>, {
+      type: "hero.choose_vocation",
+      heroId: warrior.id,
+      classType: "Guerrier",
+    });
+    expect(chosen.state.pendingClassTransitions).toHaveLength(1);
+    expect((chosen.state.pendingClassTransitions as Array<{ heroId: string }>)[0].heroId).toBe(mage.id);
+  });
+
+  it("reserves an active party slot while a hero is waiting for a vocation", () => {
+    const base = initialTownState();
+    const pendingHero = refreshHeroDerivedStats(makeHero({
+      id: "hero-reserved",
+      level: 10,
+      xpNeeded: calculateXpNeeded(11, "Novice"),
+      baseStats: { str: 50, agi: 1, end: 50, int: 1, wiz: 1, dex: 1, luk: 1 },
+      isActive: true,
+      status: "idle",
+    }));
+    const migrated = migrateTownState({
+      ...base,
+      heroes: [
+        pendingHero,
+        makeHero({ id: "active-1", isActive: true }),
+        makeHero({ id: "active-2", isActive: true }),
+        makeHero({ id: "active-3", isActive: true }),
+        makeHero({ id: "waiting", isActive: false, status: "resting" }),
+      ],
+      buildings: { ...base.buildings, caserne: 1 },
+    });
+
+    expect(() => applyTownCommand(migrated as unknown as Record<string, unknown>, {
+      type: "hero.activity",
+      heroId: "waiting",
+      active: true,
+    })).toThrow("active hero limit reached");
+
+    const chosen = applyTownCommand(migrated as unknown as Record<string, unknown>, {
+      type: "hero.choose_vocation",
+      heroId: pendingHero.id,
+      classType: "Guerrier",
+    });
+    expect((chosen.state.heroes as Array<Record<string, unknown>>)
+      .filter((hero) => hero.isActive)).toHaveLength(4);
+    expect((chosen.state.heroes as Array<Record<string, unknown>>)
+      .find((hero) => hero.id === pendingHero.id)).toMatchObject({ isActive: true });
+  });
+
   it("persists a recruit offer before confirmation", () => {
     const current = initialTownState();
     current.buildings.guilde = 1;
@@ -308,6 +469,51 @@ describe("authoritative town commands", () => {
     const unequipped = applyTownCommand(equipped.state, { type: "hero.unequip", heroId: "hero-1", slot: "mainHand" });
     expect(unequipped.state).toMatchObject({ storedItems: [{ instanceId: "item-two" }, { instanceId: "item-one" }], heroes: [{ equipment: {} }] });
     expect(() => applyTownCommand({ ...current, storedItems: [{ instanceId: "item-unknown", itemId: "unknown-item", rarity: "common" }] }, { type: "hero.equip", heroId: "hero-1", instanceId: "item-unknown" })).toThrow("unknown item");
+  });
+
+  it("enforces Tier 1 class restrictions on the server", () => {
+    const mage = makeHero({ id: "hero-mage", level: 10, classType: "Mage", equipment: {} });
+    const current = {
+      ...initialTownState(),
+      heroes: [mage],
+      storedItems: [{ instanceId: "warrior-sword", itemId: "basic_sword", rarity: "common" }],
+    };
+
+    expect(() => applyTownCommand(current, {
+      type: "hero.equip",
+      heroId: mage.id,
+      instanceId: "warrior-sword",
+    })).toThrow("hero class cannot equip this item");
+  });
+
+  it("returns the off-hand to storage when equipping an approved two-handed Tier 1 weapon", () => {
+    const warrior = makeHero({
+      id: "hero-warrior",
+      level: 10,
+      classType: "Guerrier",
+      equipment: {
+        offHand: { instanceId: "shield", itemId: "wooden_shield", rarity: "common" },
+      },
+    });
+    const equipped = applyTownCommand({
+      ...initialTownState(),
+      heroes: [warrior],
+      storedItems: [{ instanceId: "spear", itemId: "basic_spear", rarity: "common" }],
+    }, {
+      type: "hero.equip",
+      heroId: warrior.id,
+      instanceId: "spear",
+    });
+
+    expect(equipped.state).toMatchObject({
+      storedItems: [{ instanceId: "shield", itemId: "wooden_shield" }],
+      heroes: [{
+        equipment: {
+          mainHand: { instanceId: "spear", itemId: "basic_spear" },
+        },
+      }],
+    });
+    expect(((equipped.state.heroes as Array<Record<string, any>>)[0].equipment).offHand).toBeUndefined();
   });
 
   it("recalculates authoritative novice stats after equipment mutations", () => {
@@ -448,6 +654,15 @@ describe("authoritative town commands", () => {
       { materialId: "refined_metal", rarity: "uncommon", count: 4 },
       { materialId: "enchanted_fragment", rarity: "rare", count: 2 },
     ]);
+    const tier1RewardRecycle = applyTownCommand({
+      ...recycled.state,
+      storedItems: [{ instanceId: "item:hero-aede:tier1:weapon", itemId: "basic_lute", rarity: "common" }],
+      forgeMaterials: [],
+    }, { type: "inventory.recycle", instanceId: "item:hero-aede:tier1:weapon" });
+    expect(tier1RewardRecycle.state).toMatchObject({
+      storedItems: [],
+      forgeMaterials: [{ materialId: "metal_scrap", rarity: "common", count: 2 }],
+    });
     const secondPreview = applyTownCommand({ ...current, forgeMaterials: [
       { materialId: "metal_scrap", rarity: "common", count: 6 },
       { materialId: "refined_metal", rarity: "uncommon", count: 1 },

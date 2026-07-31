@@ -1,4 +1,10 @@
 import { CANONICAL_RESISTANCE_FIELDS } from "../domain/hero-stats.ts";
+import {
+  CANONICAL_HERO_CLASSES,
+  CANONICAL_HERO_CLASS_TIERS,
+} from "../domain/hero-classes.ts";
+
+export { CANONICAL_HERO_CLASSES, CANONICAL_HERO_CLASS_TIERS };
 
 
 
@@ -48,6 +54,7 @@ export const CANONICAL_GAME_STATE_REQUIRED_FIELDS = [
   "forgeMaterials", "itemBlueprints", "encounterHistory", "rngState",
   "totalCitizensCount", "activeDungeonFloor", "activeDungeonRoom",
   "highestFloorReached", "citizenGrowthProgress", "autoExplore", "currentEncounter",
+  "pendingClassTransitions",
 ] as const;
 
 export interface CanonicalGameState {
@@ -67,6 +74,7 @@ export interface CanonicalGameState {
   encounterHistory: CanonicalDungeonEncounterRecord[];
   autoExplore: boolean;
   citizenGrowthProgress: number;
+  pendingClassTransitions: Array<Record<string, unknown>>;
   rngState: CanonicalRngState;
 }
 
@@ -89,6 +97,7 @@ export type CanonicalGameCommand =
   | { type: "hero.recruit_cancel" }
   | { type: "hero.dismiss"; heroId: string }
   | { type: "hero.activity"; heroId: string; active: boolean }
+  | { type: "hero.choose_vocation"; heroId: string; classType: string }
   | { type: "hero.equip"; heroId: string; instanceId: string }
   | { type: "hero.unequip"; heroId: string; slot: "mainHand" | "offHand" | "armor" | "accessory" }
   | { type: "inventory.recycle"; instanceId: string }
@@ -113,7 +122,7 @@ export interface CanonicalCommandEnvelope {
 
 export const CANONICAL_COMMAND_TYPES = [
   "onboarding.offer", "onboarding.start", "building.upgrade", "citizens.allocate", "district.unlock",
-  "hero.recruit", "hero.recruit_offer", "hero.recruit_confirm", "hero.recruit_cancel", "hero.dismiss", "hero.activity", "hero.equip", "hero.unequip",
+  "hero.recruit", "hero.recruit_offer", "hero.recruit_confirm", "hero.recruit_cancel", "hero.dismiss", "hero.activity", "hero.choose_vocation", "hero.equip", "hero.unequip",
   "inventory.recycle", "forge.start", "forge.finalize", "forge.cancel",
   "cheat.grant_resources", "cheat.set_highest_floor",
   "dungeon.explore", "dungeon.select_floor", "dungeon.resolve", "dungeon.auto_explore", "dungeon.retreat",
@@ -124,7 +133,7 @@ const CANONICAL_EQUIPMENT_SLOTS = ["mainHand", "offHand", "armor", "accessory"] 
 const CANONICAL_MODIFIER_STATS = new Set([
   "str", "agi", "end", "int", "wiz", "dex", "luk",
   "maxHp", "maxMana", "physicalDamage", "magicDamage", "criticalChance",
-  "dodgeChance", "speed", "physicalDefense", "magicDefense", "luck", "physicalResistance",
+  "dodgeChance", "speed", "physicalDefense", "magicDefense", "physicalResistance",
   ...CANONICAL_RESISTANCE_FIELDS.map((field) => `${field}Resistance`),
 ]);
 
@@ -166,6 +175,13 @@ function validateCanonicalCommandPayload(command: Record<string, unknown>): stri
     case "hero.equip":
       if (!hasOnlyKeys(command, ["type", "heroId", "instanceId"])) errors.push("command contains unsupported fields");
       requireString("heroId"); requireString("instanceId");
+      break;
+    case "hero.choose_vocation":
+      if (!hasOnlyKeys(command, ["type", "heroId", "classType"])) errors.push("command contains unsupported fields");
+      requireString("heroId");
+      if (!CANONICAL_HERO_CLASSES.includes(command.classType as typeof CANONICAL_HERO_CLASSES[number]) || command.classType === "Novice") {
+        errors.push("command.classType must be a known non-Novice class");
+      }
       break;
     case "hero.unequip":
       if (!hasOnlyKeys(command, ["type", "heroId", "slot"])) errors.push("command contains unsupported fields");
@@ -216,11 +232,6 @@ const HERO_STATUSES = ["idle", "exploring", "resting"] as const;
 export const CANONICAL_HERO_RACES = [
   "Humain", "Elfe", "Nain", "Orc", "Gobelin", "Homme-Lézard", "Tieffelin", "Homme-Bête",
 ] as const;
-export const CANONICAL_HERO_CLASSES = [
-  "Novice", "Guerrier", "Voleur", "Archer", "Mage", "Acolyte", "Aède", "Druide",
-  "Artificier", "Pugiliste",
-] as const;
-
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   Boolean(value) && typeof value === "object" && !Array.isArray(value);
 
@@ -421,6 +432,58 @@ export function validateCanonicalGameState(input: unknown): string[] {
       if (typeof entry.itemId !== "string" || !entry.itemId.trim()) errors.push(`itemBlueprints[${index}].itemId is required`);
       if (typeof entry.unlocked !== "boolean") errors.push(`itemBlueprints[${index}].unlocked must be a boolean`);
     });
+  }
+  if ("pendingClassTransitions" in value) {
+    if (!Array.isArray(value.pendingClassTransitions)) {
+      errors.push("pendingClassTransitions must be an array");
+    } else {
+      const heroIds = new Set<string>();
+      value.pendingClassTransitions.forEach((entry, index) => {
+        const path = `pendingClassTransitions[${index}]`;
+        if (!isRecord(entry)) {
+          errors.push(`${path} must be an object`);
+          return;
+        }
+        if (!hasOnlyKeys(entry, ["heroId", "fromClass", "fromTier", "toTier", "originLevel", "wasActive", "previousStatus", "reason", "candidates"])) {
+          errors.push(`${path} contains unsupported fields`);
+        }
+        if (typeof entry.heroId !== "string" || !entry.heroId.trim()) errors.push(`${path}.heroId is required`);
+        else if (heroIds.has(entry.heroId)) errors.push(`${path}.heroId must be unique`);
+        else heroIds.add(entry.heroId);
+        const knownFromClass = CANONICAL_HERO_CLASSES.includes(entry.fromClass as typeof CANONICAL_HERO_CLASSES[number]);
+        if (!knownFromClass) errors.push(`${path}.fromClass must be a known canonical class`);
+        const expectedFromTier = knownFromClass
+          ? CANONICAL_HERO_CLASS_TIERS[entry.fromClass as typeof CANONICAL_HERO_CLASSES[number]]
+          : null;
+        if (!Number.isInteger(entry.fromTier) || entry.fromTier !== expectedFromTier) errors.push(`${path}.fromTier must match fromClass`);
+        if (!Number.isInteger(entry.toTier) || entry.toTier !== Number(entry.fromTier) + 1) errors.push(`${path}.toTier must follow fromTier`);
+        if (!Number.isInteger(entry.originLevel) || Number(entry.originLevel) < 1) errors.push(`${path}.originLevel must be a positive integer`);
+        if (typeof entry.wasActive !== "boolean") errors.push(`${path}.wasActive must be a boolean`);
+        if (!HERO_STATUSES.includes(entry.previousStatus as typeof HERO_STATUSES[number])) errors.push(`${path}.previousStatus is invalid`);
+        if (typeof entry.reason !== "string" || !entry.reason.trim()) errors.push(`${path}.reason is required`);
+        if (!Array.isArray(entry.candidates) || entry.candidates.length === 0) {
+          errors.push(`${path}.candidates must be a non-empty array`);
+        } else {
+          const candidateClasses = new Set<string>();
+          entry.candidates.forEach((candidate, candidateIndex) => {
+            const candidatePath = `${path}.candidates[${candidateIndex}]`;
+            if (!isRecord(candidate)) {
+              errors.push(`${candidatePath} must be an object`);
+              return;
+            }
+            if (!hasOnlyKeys(candidate, ["classType", "affinity"])) errors.push(`${candidatePath} contains unsupported fields`);
+            if (!CANONICAL_HERO_CLASSES.includes(candidate.classType as typeof CANONICAL_HERO_CLASSES[number])) {
+              errors.push(`${candidatePath}.classType must be a known canonical class`);
+            } else if (CANONICAL_HERO_CLASS_TIERS[candidate.classType as typeof CANONICAL_HERO_CLASSES[number]] !== entry.toTier) {
+              errors.push(`${candidatePath}.classType must match toTier`);
+            } else if (candidateClasses.has(String(candidate.classType))) {
+              errors.push(`${candidatePath}.classType must be unique`);
+            } else candidateClasses.add(String(candidate.classType));
+            if (!isFiniteNumber(candidate.affinity)) errors.push(`${candidatePath}.affinity must be a finite number`);
+          });
+        }
+      });
+    }
   }
   if ("pendingForge" in value && value.pendingForge !== null && value.pendingForge !== undefined) {
     if (!isRecord(value.pendingForge)) errors.push("pendingForge must be an object or null");

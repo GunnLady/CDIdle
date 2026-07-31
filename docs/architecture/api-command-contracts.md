@@ -100,6 +100,23 @@ sont appliqués par le chemin temporel CDI-061.
   présents pour l'historique de migration mais ne sont plus exécutables par
   `service_role`.
 
+## Choix canonique de vocation (CDI-072)
+
+- `hero.choose_vocation({ heroId, classType })` n'accepte qu'une classe
+  présente dans la `pendingClassTransition` persistée pour ce héros.
+- Le choix lui-même ne consomme aucun tirage. Compétences et équipement sont
+  ensuite tirés avec le RNG canonique dans la même transition atomique.
+- La réponse supprime l'attente, persiste classe, compétences, équipement,
+  coffre et restauration, puis expose l'événement `hero.vocation_chosen`.
+- Une prière stoppe l'auto-donjon. Le héros concerné reste inactif jusqu'au
+  choix, sans empêcher les autres héros actifs d'explorer manuellement.
+- Bootstrap, replay et multi-onglets lisent les candidats persistés : ils ne
+  recalculent ni la liste ni l'affinité.
+- Le contrat commun valide la classe source avec son tier déclaré, impose un
+  tier cible immédiatement supérieur et vérifie que chaque candidat appartient
+  à ce tier. La politique disponible reste actuellement `0->1`, mais la forme
+  canonique n'est pas limitée à cette transition.
+
 ## Commandes donjon autoritaires (CDI-029)
 
 - `dungeon.explore({ floor })` crée un encounter serveur actif pour la salle

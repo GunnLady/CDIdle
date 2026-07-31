@@ -3,6 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import type { CanonicalHeroClass } from "../shared/domain/hero-classes.ts";
+
 export interface Resources {
   gold: number;
   food: number;
@@ -45,19 +47,9 @@ export interface RaceInfo {
   description: string;
 }
 
-export type ClassTier = 0 | 1 | 2; // Tier 0 — Novice, Tier 1 — Base Class, Tier 2 — Specialized Class
+export type ClassTier = 0 | 1 | 2 | 3 | 4;
 
-export type ClassType =
-  | "Novice"
-  | "Guerrier"
-  | "Voleur"
-  | "Archer"
-  | "Mage"
-  | "Acolyte"
-  | "Aède"
-  | "Druide"
-  | "Artificier"
-  | "Pugiliste";
+export type ClassType = CanonicalHeroClass;
 
 
 
@@ -127,6 +119,23 @@ export interface Hero {
   calculatedStats: CalculatedStats;
   equipment?: HeroEquipment;
   cooldowns?: Record<string, number>;
+}
+
+export interface PendingClassTransitionCandidate {
+  classType: ClassType;
+  affinity: number;
+}
+
+export interface PendingClassTransition {
+  heroId: string;
+  fromClass: ClassType;
+  fromTier: number;
+  toTier: number;
+  originLevel: number;
+  wasActive: boolean;
+  previousStatus: Hero["status"];
+  reason: string;
+  candidates: PendingClassTransitionCandidate[];
 }
 
 export type MonsterSkillEffect =
@@ -224,6 +233,7 @@ export interface GameState {
   storedItems: StoredItemInstance[];
   forgeMaterials: StoredForgeMaterialStack[];
   itemBlueprints: ItemBlueprint[];
+  pendingClassTransitions: PendingClassTransition[];
 }
 
 export type WeaponHandedness =

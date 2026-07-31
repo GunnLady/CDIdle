@@ -1,6 +1,6 @@
 import type { ClassType, Hero, HeroStats, Resources } from "../types.ts";
-import { CLASS_INFO_LIST, getSkillById } from "../data/gameData.ts";
-import { calculateXpNeeded, evaluateAutomaticClassChange, refreshHeroDerivedStats } from "../utils/gameCalculations.ts";
+import { CLASS_INFO_LIST } from "../data/gameData.ts";
+import { calculateXpNeeded, refreshHeroDerivedStats } from "../utils/gameCalculations.ts";
 import type { Rng } from "./random.ts";
 
 export const recruitmentCost = (heroCount: number): number => 100 + Math.max(0, heroCount) * 150;
@@ -66,85 +66,16 @@ export function growHeroStats(baseStats: HeroStats, classType: ClassType, rng: R
   return next;
 }
 
-export type HeroExperienceResult = {
+export type HeroLevelProgressionResult = {
   hero: Hero;
   levels: number[];
-  classChange?: { from: ClassType; to: ClassType; reason: string };
-  classStayed?: { classType: ClassType; reason: string };
 };
 
-function requiredTier1Class(classType: ClassType) {
-  const classInfo = CLASS_INFO_LIST.find((entry) => entry.type === classType && entry.tier === 1);
-  if (!classInfo) throw new Error(`INVALID_TIER1_CLASS:${classType}`);
-  return classInfo;
-}
-
-function requiredSkillPool(
-  skillIds: string[],
-  expectedType: "active" | "passive",
-  classType: ClassType,
-): string[] {
-  const invalid = skillIds.filter((skillId) => getSkillById(skillId)?.type !== expectedType);
-  if (invalid.length > 0) {
-    throw new Error(`INVALID_CLASS_SKILL_CATALOG:${classType}:${invalid.join(",")}`);
-  }
-  if (skillIds.length === 0) {
-    throw new Error(`EMPTY_CLASS_SKILL_CATALOG:${classType}:${expectedType}`);
-  }
-  return [...skillIds];
-}
-
-function drawDistinctSkills(skillIds: string[], count: number, rng: Rng): string[] {
-  if (skillIds.length < count) throw new Error("INSUFFICIENT_DISTINCT_CLASS_SKILLS");
-  const available = [...skillIds];
-  const selected: string[] = [];
-  for (let index = 0; index < count; index += 1) {
-    const selectedIndex = rng.nextInt(available.length);
-    selected.push(available[selectedIndex]);
-    available.splice(selectedIndex, 1);
-  }
-  return selected;
-}
-
-export function assignTier1Skills(hero: Hero, classType: ClassType, rng: Rng): Pick<Hero, "activeSkills" | "passiveSkills"> {
-  const classInfo = requiredTier1Class(classType);
-  const activePool = requiredSkillPool(classInfo.activeSkills, "active", classType);
-  const passivePool = requiredSkillPool(classInfo.passiveSkills, "passive", classType);
-  const noviceClass = CLASS_INFO_LIST.find((entry) => entry.type === "Novice");
-  const retainedNovicePassives = hero.passiveSkills.filter((skillId) => {
-    return noviceClass?.passiveSkills.includes(skillId) === true;
-  });
-
-  if (classType === "Mage") {
-    return {
-      activeSkills: drawDistinctSkills(activePool, 2, rng),
-      passiveSkills: [...retainedNovicePassives, ...drawDistinctSkills(passivePool, 1, rng)],
-    };
-  }
-
-  if (classType === "Acolyte") {
-    const guaranteedHeal = getSkillById("minor_heal");
-    if (!guaranteedHeal || guaranteedHeal.type !== "active") {
-      throw new Error("INVALID_ACOLYTE_GUARANTEED_SKILL:minor_heal");
-    }
-    return {
-      activeSkills: ["minor_heal", ...drawDistinctSkills(activePool, 1, rng)],
-      passiveSkills: [...retainedNovicePassives, ...drawDistinctSkills(passivePool, 1, rng)],
-    };
-  }
-
-  return {
-    activeSkills: drawDistinctSkills(activePool, 1, rng),
-    passiveSkills: [...retainedNovicePassives, ...drawDistinctSkills(passivePool, 1, rng)],
-  };
-}
-
-export function addHeroExperienceDetailed(
+export function applyHeroExperienceLevels(
   hero: Hero,
   xpEarned: number,
   rng: Rng,
-  buildings: Record<string, number> = {},
-): HeroExperienceResult {
+): HeroLevelProgressionResult {
   if (!Number.isFinite(xpEarned) || xpEarned < 0) return { hero, levels: [] };
   let next = { ...hero, baseStats: { ...hero.baseStats }, xp: hero.xp + xpEarned };
   const levels: number[] = [];
@@ -166,31 +97,6 @@ export function addHeroExperienceDetailed(
     next.calculatedStats.maxMana,
     hero.currentMana + Math.floor(next.calculatedStats.maxMana * 0.3),
   );
-  if (next.classType === "Novice" && next.level >= 10) {
-    const evolution = evaluateAutomaticClassChange(next, buildings);
-    if (evolution.newClass) {
-      const from = next.classType;
-      const skills = assignTier1Skills(next, evolution.newClass, rng);
-      next = refreshHeroDerivedStats({
-        ...next,
-        classType: evolution.newClass,
-        ...skills,
-        cooldowns: {},
-      });
-      next.currentHp = next.calculatedStats.maxHp;
-      next.currentMana = next.calculatedStats.maxMana;
-      return {
-        hero: next,
-        levels,
-        classChange: { from, to: evolution.newClass, reason: evolution.reason },
-      };
-    }
-    return {
-      hero: next,
-      levels,
-      classStayed: { classType: next.classType, reason: evolution.reason },
-    };
-  }
   return { hero: next, levels };
 }
 
@@ -198,7 +104,6 @@ export function addHeroExperience(
   hero: Hero,
   xpEarned: number,
   rng: Rng,
-  buildings: Record<string, number> = {},
 ): Hero {
-  return addHeroExperienceDetailed(hero, xpEarned, rng, buildings).hero;
+  return applyHeroExperienceLevels(hero, xpEarned, rng).hero;
 }

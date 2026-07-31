@@ -31,6 +31,16 @@ import {
   getBuildingMaxLevel,
   getBuildingUpgradeCost,
 } from "../../../src/data/buildings.ts";
+import type {
+  ClassType,
+  Hero,
+  PendingClassTransition,
+  StoredItemInstance,
+} from "../../../src/types.ts";
+import {
+  applyClassTransition,
+  createExistingHeroPendingTransition,
+} from "../../../src/domain/classTransition.ts";
 
 export type TownResources = { gold: number; food: number; wood: number; stone: number; ore: number };
 export type TownState = {
@@ -54,6 +64,7 @@ export type TownState = {
   onboardingCandidates?: Array<Record<string, unknown>>;
   pendingRecruit?: Record<string, unknown> | null;
   pendingOnboardingCityName?: string;
+  pendingClassTransitions: PendingClassTransition[];
   rngState: CanonicalRngState;
 };
 
@@ -65,7 +76,7 @@ export const initialTownState = (rngSeed?: number): TownState => ({
   citizens: { farmers: 0, woodcutters: 0, quarrymen: 0, miners: 0, unassigned: 3 },
   totalCitizensCount: 3, districts: {}, heroes: [], storedItems: [], forgeMaterials: [], itemBlueprints: DEFAULT_NOVICE_ITEM_BLUEPRINTS.map((entry) => ({ ...entry })), citizenGrowthProgress: 0
   , activeDungeonFloor: 1, activeDungeonRoom: 1, highestFloorReached: 1, currentEncounter: null, encounterHistory: [], autoExplore: false,
-  onboardingCandidates: [], pendingOnboardingCityName: ""
+  onboardingCandidates: [], pendingOnboardingCityName: "", pendingClassTransitions: []
   , rngState: initialCanonicalRngState(rngSeed)
 });
 
@@ -100,6 +111,57 @@ export function applyTownCommand(current: Record<string, unknown>, command: Reco
     return withRng(transition);
   }
   const heroes = town.heroes ?? [];
+  if (typed.type === "hero.choose_vocation") {
+    const pending = town.pendingClassTransitions.find((entry) => entry.heroId === typed.heroId);
+    if (!pending) throw new TownCommandError("VOCATION_NOT_PENDING", "hero has no pending vocation");
+    if (!pending.candidates.some((candidate) => candidate.classType === typed.classType)) {
+      throw new TownCommandError("INVALID_VOCATION", "chosen vocation was not offered");
+    }
+    const heroIndex = heroes.findIndex((entry) => entry.id === typed.heroId);
+    if (heroIndex < 0) throw new TownCommandError("HERO_NOT_FOUND", "hero not found");
+    const hero = heroes[heroIndex] as unknown as Hero;
+    if (hero.classType !== pending.fromClass || hero.level < pending.originLevel) {
+      throw new TownCommandError("INVALID_VOCATION_STATE", "hero no longer matches the pending vocation");
+    }
+    const activeOthers = heroes.filter((entry) => entry.id !== hero.id && entry.isActive).length;
+    const restoreActive = pending.wasActive && activeOthers < 4 && hero.currentHp > 0;
+    const transition = {
+      fromClass: pending.fromClass,
+      toClass: typed.classType as ClassType,
+      fromTier: pending.fromTier,
+      toTier: pending.toTier,
+      reason: pending.reason,
+    };
+    const applied = applyClassTransition(
+      {
+        ...hero,
+        isActive: restoreActive,
+        status: restoreActive ? pending.previousStatus : "resting",
+      },
+      transition,
+      forkCanonicalRng(rng),
+      (town.storedItems ?? []) as unknown as StoredItemInstance[],
+    );
+    const nextHeroes = [...heroes];
+    nextHeroes[heroIndex] = applied.hero as unknown as Record<string, unknown>;
+    return withRng({
+      state: {
+        ...town,
+        heroes: nextHeroes,
+        storedItems: applied.storedItems,
+        pendingClassTransitions: town.pendingClassTransitions.filter((entry) => entry.heroId !== typed.heroId),
+      },
+      events: [{
+        type: "hero.vocation_chosen",
+        heroId: typed.heroId,
+        previousClass: pending.fromClass,
+        classType: typed.classType,
+        previousTier: pending.fromTier,
+        classTier: pending.toTier,
+        equipmentReward: applied.equipmentReward,
+      }],
+    });
+  }
   if (typed.type === "hero.recruit_offer") {
     if ((town as TownState & { pendingRecruit?: unknown }).pendingRecruit) throw new TownCommandError("RECRUIT_PENDING", "a recruit offer is already pending");
     const guildLevel = town.buildings.guilde ?? 0;
@@ -219,7 +281,12 @@ export function applyTownCommand(current: Record<string, unknown>, command: Reco
       .filter((item): item is Record<string, unknown> => Boolean(item));
     const storedItems = [...(town.storedItems ?? []), ...returnedItems];
     return {
-      state: { ...town, heroes: heroes.filter((hero) => hero.id !== typed.heroId), storedItems },
+      state: {
+        ...town,
+        heroes: heroes.filter((hero) => hero.id !== typed.heroId),
+        storedItems,
+        pendingClassTransitions: town.pendingClassTransitions.filter((entry) => entry.heroId !== typed.heroId),
+      },
       events: [{
         type: "hero.dismissed",
         heroId: typed.heroId,
@@ -230,8 +297,15 @@ export function applyTownCommand(current: Record<string, unknown>, command: Reco
   if (typed.type === "hero.activity") {
     const hero = heroes.find((entry) => entry.id === typed.heroId);
     if (!hero) throw new TownCommandError("HERO_NOT_FOUND", "hero not found");
+    if (typed.active && town.pendingClassTransitions.some((entry) => entry.heroId === typed.heroId)) {
+      throw new TownCommandError("VOCATION_REQUIRED", "hero must choose a vocation before returning to the dungeon");
+    }
     if (typed.active && Number(hero.currentHp ?? 0) <= 0) throw new TownCommandError("INVALID_HEALTH", "hero has no health");
-    if (typed.active && heroes.filter((entry) => entry.isActive).length >= 4) throw new TownCommandError("ACTIVE_LIMIT", "active hero limit reached");
+    const reservedActiveIds = new Set(town.pendingClassTransitions
+      .filter((entry) => entry.wasActive)
+      .map((entry) => entry.heroId));
+    const occupiedSlots = heroes.filter((entry) => entry.isActive || reservedActiveIds.has(String(entry.id))).length;
+    if (typed.active && occupiedSlots >= 4) throw new TownCommandError("ACTIVE_LIMIT", "active hero limit reached");
     return { state: { ...town, heroes: heroes.map((entry) => entry.id === typed.heroId ? { ...entry, isActive: typed.active, status: typed.active ? "idle" : "resting" } : entry) }, events: [{ type: "hero.activity_changed", heroId: typed.heroId, active: typed.active }] };
   }
   if (typed.type === "building.upgrade") {
@@ -256,8 +330,13 @@ export function applyTownCommand(current: Record<string, unknown>, command: Reco
       resources = subtract(resources, cost);
       level += 1;
     }
+    const reconciled = reconcileExistingVocations({
+      ...town,
+      resources,
+      buildings: { ...town.buildings, [id]: level },
+    });
     return {
-      state: { ...town, resources, buildings: { ...town.buildings, [id]: level } },
+      state: reconciled,
       events: [{ type: "building.upgraded", buildingId: id, level, ...(levels > 1 ? { levels } : {}) }],
     };
   }
@@ -287,15 +366,16 @@ export function migrateTownState(current: Record<string, unknown>, legacySeed?: 
       : value !== null && typeof value === "object" && !Array.isArray(value)
         ? { ...fallback, ...(value as Record<string, unknown>) }
         : value;
-  const migrated = {
+  const migratedHeroes = Array.isArray(current.heroes)
+    ? current.heroes.map(migrateAuthoritativeHeroProgression)
+    : current.heroes ?? defaults.heroes;
+  const migrated = reconcileExistingVocations({
     ...defaults,
     ...current,
     resources: mergeMap(defaults.resources, current.resources),
     buildings: mergeMap(defaults.buildings, current.buildings),
     citizens: mergeMap(defaults.citizens, current.citizens),
-    heroes: Array.isArray(current.heroes)
-      ? current.heroes.map(migrateAuthoritativeHeroProgression)
-      : current.heroes ?? defaults.heroes,
+    heroes: migratedHeroes,
     onboardingCandidates: Array.isArray(current.onboardingCandidates)
       ? current.onboardingCandidates.map(migrateAuthoritativeHeroProgression)
       : current.onboardingCandidates,
@@ -305,8 +385,11 @@ export function migrateTownState(current: Record<string, unknown>, legacySeed?: 
     itemBlueprints: Array.isArray(current.itemBlueprints) && current.itemBlueprints.length > 0
       ? current.itemBlueprints
       : DEFAULT_NOVICE_ITEM_BLUEPRINTS.map((entry) => ({ ...entry })),
+    pendingClassTransitions: Array.isArray(current.pendingClassTransitions)
+      ? current.pendingClassTransitions as PendingClassTransition[]
+      : [],
     rngState: migrateCanonicalRngState(current.rngState, legacySeed),
-  } as TownState;
+  } as TownState);
   const errors = [
     ...validateCanonicalGameState(migrated),
     ...validateAuthoritativeTownState(migrated as unknown as Record<string, unknown>),
@@ -325,6 +408,37 @@ export function migrateTownState(current: Record<string, unknown>, legacySeed?: 
     );
   }
   return migrated;
+}
+
+function reconcileExistingVocations(state: TownState): TownState {
+  const heroes = (state.heroes ?? []) as unknown as Hero[];
+  const heroesById = new Map(heroes.map((hero) => [hero.id, hero]));
+  const pending = state.pendingClassTransitions
+    .filter((entry) => {
+      const hero = heroesById.get(entry.heroId);
+      return hero?.classType === entry.fromClass
+        && hero.classType === "Novice"
+        && hero.level >= 10
+        && entry.fromTier === 0
+        && entry.toTier === 1;
+    });
+  const pendingIds = new Set(pending.map((entry) => entry.heroId));
+  for (const hero of heroes) {
+    if (pendingIds.has(hero.id) || hero.classType !== "Novice" || hero.level < 10) continue;
+    const created = createExistingHeroPendingTransition(hero, state.buildings);
+    if (!created) continue;
+    pending.push(created);
+    pendingIds.add(hero.id);
+  }
+  if (pending.length === 0) return { ...state, pendingClassTransitions: [] };
+  return {
+    ...state,
+    autoExplore: false,
+    pendingClassTransitions: pending,
+    heroes: heroes.map((hero) => pendingIds.has(hero.id)
+      ? { ...hero, isActive: false, status: "resting" }
+      : hero) as unknown as Array<Record<string, unknown>>,
+  };
 }
 
 export { TownCommandError };

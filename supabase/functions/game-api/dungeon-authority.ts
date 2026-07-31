@@ -3,7 +3,7 @@ import {
   type AuthoritativeDungeonEncounter,
   type AuthoritativeDungeonState,
 } from "../../../src/domain/authoritativeDungeon.ts";
-import type { Hero } from "../../../src/types.ts";
+import type { Hero, PendingClassTransition } from "../../../src/types.ts";
 
 export type DungeonHero = Hero;
 
@@ -16,6 +16,7 @@ export type DungeonState = Record<string, unknown> & {
   currentEncounter?: Record<string, unknown> | null;
   encounterHistory?: ResolvedDungeonEncounter[];
   autoExplore?: boolean;
+  pendingClassTransitions?: PendingClassTransition[];
 };
 
 export type DungeonCommand =
@@ -104,6 +105,9 @@ export function applyDungeonCommand(
   const { floor, room, highest } = progress(state);
 
   if (typed.type === "dungeon.auto_explore") {
+    if (typed.enabled && (state.pendingClassTransitions?.length ?? 0) > 0) {
+      throw new DungeonCommandError("VOCATION_REQUIRED", "a hero must choose a vocation before automatic exploration resumes");
+    }
     if (typed.enabled && activeHeroes(state.heroes ?? []).length === 0) {
       throw new DungeonCommandError("NO_ACTIVE_HERO", "at least one active hero is required");
     }

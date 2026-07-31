@@ -1,4 +1,5 @@
 import { RaceInfo, ClassInfo } from "../types.ts";
+import { CANONICAL_HERO_CLASS_TIERS } from "../../shared/domain/hero-classes.ts";
 
 export const RACE_INFO_LIST: RaceInfo[] = [
   {
@@ -42,7 +43,7 @@ export const CLASS_INFO_LIST: ClassInfo[] = [
   {
     type: "Novice",
     name: "Novice",
-    tier: 0,
+    tier: CANONICAL_HERO_CLASS_TIERS.Novice,
     description: "Une classe de départ faible et non spécialisée. Le novice ne possède aucune statistique principale et peut évoluer vers une classe de Tier 1 selon son potentiel, son équipement et sa progression.",
     mainStats: [],
     activeSkills: ["heavy_blow", "guard_stance"],
@@ -52,7 +53,7 @@ export const CLASS_INFO_LIST: ClassInfo[] = [
   {
     type: "Guerrier",
     name: "Guerrier",
-    tier: 1,
+    tier: CANONICAL_HERO_CLASS_TIERS.Guerrier,
     description: "Une classe physique équilibrée, spécialisée dans le combat direct, les armes simples et la survie en mêlée.",
     mainStats: ["str", "end"],
     jobChangeBuildingId: "caserne",
@@ -64,7 +65,7 @@ export const CLASS_INFO_LIST: ClassInfo[] = [
   {
     type: "Voleur",
     name: "Voleur",
-    tier: 1,
+    tier: CANONICAL_HERO_CLASS_TIERS.Voleur,
     description: "Une classe rapide et opportuniste, spécialisée dans l’esquive, les coups critiques, la discrétion et les attaques précises.",
     mainStats: ["agi", "dex"],
     jobChangeBuildingId: "lair",
@@ -76,7 +77,7 @@ export const CLASS_INFO_LIST: ClassInfo[] = [
   {
     type: "Archer",
     name: "Archer",
-    tier: 1,
+    tier: CANONICAL_HERO_CLASS_TIERS.Archer,
     description: "Une classe à distance précise, spécialisée dans les attaques sûres, les tirs critiques et le contrôle de la distance.",
     mainStats: ["dex", "agi"],
     jobChangeBuildingId: "poste_chasse",
@@ -88,7 +89,7 @@ export const CLASS_INFO_LIST: ClassInfo[] = [
   {
     type: "Mage",
     name: "Mage",
-    tier: 1,
+    tier: CANONICAL_HERO_CLASS_TIERS.Mage,
     description: "Une classe magique offensive, spécialisée dans les sorts destructeurs, les dégâts magiques et l’utilisation du mana.",
     mainStats: ["int", "dex"],
     jobChangeBuildingId: "academie",
@@ -107,7 +108,7 @@ export const CLASS_INFO_LIST: ClassInfo[] = [
   {
     type: "Acolyte",
     name: "Acolyte",
-    tier: 1,
+    tier: CANONICAL_HERO_CLASS_TIERS.Acolyte,
     description: "Une classe spirituelle de soutien, spécialisée dans les soins, la protection, les bénédictions et la résistance magique.",
     mainStats: ["wiz", "dex"],
     jobChangeBuildingId: "temple",
@@ -119,7 +120,7 @@ export const CLASS_INFO_LIST: ClassInfo[] = [
   {
     type: "Aède",
     name: "Aède",
-    tier: 1,
+    tier: CANONICAL_HERO_CLASS_TIERS["Aède"],
     description: "Une classe de soutien mystique utilisant les chants, les récits et les arts sonores pour renforcer ses alliés ou affaiblir ses ennemis.",
     mainStats: ["wiz", "int"],
     jobChangeBuildingId: "academie",
@@ -131,9 +132,9 @@ export const CLASS_INFO_LIST: ClassInfo[] = [
   {
     type: "Druide",
     name: "Druide",
-    tier: 1,
+    tier: CANONICAL_HERO_CLASS_TIERS.Druide,
     description: "Une classe liée à la nature, spécialisée dans la magie naturelle, les soins simples, les plantes, les bêtes et l’équilibre du vivant.",
-    mainStats: ["wiz", "int"],
+    mainStats: ["int", "wiz"],
     jobChangeBuildingId: "cercle",
     mainDerivedStats: ["maxMana", "magicDamage", "magicDefense"],
     activeSkills: ["thorn_grasp", "wild_regrowth", "barkskin"],
@@ -143,9 +144,9 @@ export const CLASS_INFO_LIST: ClassInfo[] = [
   {
     type: "Artificier",
     name: "Artificier",
-    tier: 1,
+    tier: CANONICAL_HERO_CLASS_TIERS.Artificier,
     description: "Une classe technique et inventive, spécialisée dans les outils, les mécanismes, les enchantements simples et l’utilisation stratégique d’objets fabriqués.",
-    mainStats: ["int", "dex"],
+    mainStats: ["dex", "int"],
     jobChangeBuildingId: "forge",
     mainDerivedStats: ["maxMana", "magicDamage", "criticalChance"],
     activeSkills: ["flame_thrower", "lightning_arc", "overcharged_core", "static_trap"],
@@ -155,7 +156,7 @@ export const CLASS_INFO_LIST: ClassInfo[] = [
   {
     type: "Pugiliste",
     name: "Pugiliste",
-    tier: 1,
+    tier: CANONICAL_HERO_CLASS_TIERS.Pugiliste,
     description: "Une classe de combat rapproché utilisant le corps comme arme, spécialisée dans les coups rapides, l’endurance physique et les enchaînements à mains nues.",
     mainStats: ["str", "agi"],
     jobChangeBuildingId: "caserne",
