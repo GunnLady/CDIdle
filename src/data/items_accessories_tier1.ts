@@ -230,7 +230,7 @@ export const TIER1_ITEM_ACC_LIST: ItemInfo[] = [
     "common",
     10,
     "Un petit talisman sans grande valeur apparente, mais qui semble attirer les occasions favorables.",
-    [{ stat: "luck", type: "flat", value: 3 }]
+    [{ stat: "criticalChance", type: "percent", value: 3 }]
   ),
   createAccessory(
     "cracked_coin_charm",
@@ -239,7 +239,7 @@ export const TIER1_ITEM_ACC_LIST: ItemInfo[] = [
     "common",
     10,
     "Une vieille pièce percée portée comme talisman, attirant parfois une chance inattendue.",
-    [{ stat: "luck", type: "flat", value: 3 }]
+    [{ stat: "dodgeChance", type: "percent", value: 3 }]
   ),
   createAccessory(
     "gilded_fortune_charm",
@@ -249,7 +249,7 @@ export const TIER1_ITEM_ACC_LIST: ItemInfo[] = [
     22,
     "Un charme doré gravé de symboles de chance, favorisant les découvertes rares et les coups décisifs.",
     [
-      { stat: "luck", type: "flat", value: 5 },
+      { stat: "dodgeChance", type: "percent", value: 5 },
       { stat: "criticalChance", type: "percent", value: 4 }
     ]
   ),
@@ -261,7 +261,7 @@ export const TIER1_ITEM_ACC_LIST: ItemInfo[] = [
     20,
     "Un petit talisman noué selon une ancienne superstition, censé détourner le mauvais sort au bon moment.",
     [
-      { stat: "luck", type: "flat", value: 5 },
+      { stat: "criticalChance", type: "percent", value: 5 },
       { stat: "dodgeChance", type: "percent", value: 4 }
     ]
   )

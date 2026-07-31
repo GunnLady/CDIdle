@@ -7,6 +7,7 @@ import React, { useState, useMemo } from "react";
 import { Search } from "lucide-react";
 import { StoredItemInstance, StoredForgeMaterialStack, Rarity, ItemInfo, Hero } from "../types";
 import { getItemById } from "../data/items";
+import { canClassEquipTier1Item } from "../data/tier1ClassEquipment";
 import { applyItemRarityScaling, FORGE_MATERIALS } from "../utils/gameCalculations";
 
 interface StoragePanelProps {
@@ -312,28 +313,32 @@ export default function StoragePanel({
                           {heroes.map((hero) => {
                             const requiredLevel = getItemById(stack.itemId)?.requiredLevel ?? 1;
                             const isLevelTooLow = hero.level < requiredLevel;
+                            const isClassBlocked = !canClassEquipTier1Item(hero.classType, stack.itemId);
+                            const isEquipBlocked = isLevelTooLow || isClassBlocked;
                             return (
                               <button
                                 key={hero.id}
-                                disabled={isLevelTooLow}
+                                disabled={isEquipBlocked}
                                 onClick={() => {
-                                  if (isLevelTooLow) return;
+                                  if (isEquipBlocked) return;
                                   onEquipItem(hero.id, stack.instanceId);
                                   setEquippingInstanceId(null);
                                 }}
                                 className={`text-[10px] text-left p-1 rounded font-serif transition-all duration-150 ${
-                                  isLevelTooLow
+                                  isEquipBlocked
                                     ? "bg-[#18110e]/60 border border-[#2a1d15] text-[#7c6d5f] cursor-not-allowed opacity-60"
                                     : "bg-[#100805] hover:bg-[#caa050]/20 border border-[#3e2b1f] hover:border-[#caa050]/60 text-[#dfdbc7] cursor-pointer"
                                 }`}
-                                title={isLevelTooLow ? `Niveau requis : ${requiredLevel}` : undefined}
+                                title={isClassBlocked
+                                  ? `Incompatible avec la classe ${hero.classType}`
+                                  : isLevelTooLow ? `Niveau requis : ${requiredLevel}` : undefined}
                               >
                                 <span className="block truncate">
-                                  {isLevelTooLow ? "🚫 " : "⚔️ "}{hero.name} (Niv.{hero.level})
+                                  {isEquipBlocked ? "🚫 " : "⚔️ "}{hero.name} (Niv.{hero.level})
                                 </span>
-                                {isLevelTooLow && (
+                                {isEquipBlocked && (
                                   <span className="text-[8px] text-red-400 font-sans italic block mt-0.5">
-                                    (Req. Niv.{requiredLevel})
+                                    {isClassBlocked ? `(Classe ${hero.classType} incompatible)` : `(Req. Niv.${requiredLevel})`}
                                   </span>
                                 )}
                               </button>

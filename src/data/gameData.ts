@@ -12,3 +12,4 @@ export * from "./monsters.ts";
 export * from "./accessories.ts";
 export * from "./armors.ts";
 export * from "./items.ts";
+export * from "./tier1ClassEquipment.ts";

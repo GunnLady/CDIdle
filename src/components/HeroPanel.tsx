@@ -14,6 +14,7 @@ import { Hero, Resources, HeroEquipment, StoredItemInstance, Rarity, ItemInfo, M
 import { CLASS_INFO_LIST, RACE_INFO_LIST } from "../data/gameData";
 import { getSkillById } from "../data/skills";
 import { getItemById } from "../data/items";
+import { canClassEquipTier1Item } from "../data/tier1ClassEquipment";
 import { getHeroAttributes, resolveEquippedItem, isMainHandTwoHanded, resolveWeaponDamageTypes, applyItemRarityScaling } from "../utils/gameCalculations";
 import HeroPortrait from "./HeroPortrait";
 
@@ -153,7 +154,7 @@ export default function HeroPanel({
     return `${sign}${mod.value}${unit} ${translateStatKey(mod.stat)}`;
   };
 
-  const getCompatibleItemsForSlot = (slotKey: keyof HeroEquipment): { instanceId: string; item: ItemInfo; rarity: Rarity; modifiers?: Modifier[] }[] => {
+  const getCompatibleItemsForSlot = (slotKey: keyof HeroEquipment, classType: Hero["classType"]): { instanceId: string; item: ItemInfo; rarity: Rarity; modifiers?: Modifier[] }[] => {
     if (!storedItems || storedItems.length === 0) return [];
     
     return storedItems
@@ -174,6 +175,7 @@ export default function HeroPanel({
       .filter((entry): entry is { instanceId: string; item: ItemInfo; rarity: Rarity; modifiers: Modifier[] | undefined } => {
         if (!entry) return false;
         const { item } = entry;
+        if (!canClassEquipTier1Item(classType, item.id)) return false;
         
         // Slot filtering
         if (slotKey === "mainHand") {
@@ -207,7 +209,7 @@ export default function HeroPanel({
 
     // 1. Off-hand restriction check
     const isBlocked = slotKey === "offHand" && isMainHandTwoHanded(hero);
-    const compatibleEntries = isBlocked ? [] : getCompatibleItemsForSlot(slotKey);
+    const compatibleEntries = isBlocked ? [] : getCompatibleItemsForSlot(slotKey, hero.classType);
 
     return (
       <motion.div

@@ -23,3 +23,10 @@ l etat canonique. Les materiaux de forge conservent leurs piles et `count`.
 
 La forge et le recyclage autoritaires sont raccordes depuis CDI-028 et durcis
 par CDI-059.
+
+CDI-068 ajoute les recompenses de vocation Tier 1. Les objets retenus sont
+restreints aux classes presentes dans leurs pools canoniques, avec la meme
+decision dans l interface et dans `inventory-authority.ts`. Le coffre ne
+possede pas de capacite maximale : les objets remplaces par la vocation y sont
+toujours restitues. Les pools, l ordre RNG et les identifiants deterministes
+sont decrits dans `docs/architecture/tier1-class-equipment.md`.

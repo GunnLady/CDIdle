@@ -2,6 +2,7 @@ import {
   calculateAuthoritativeHeroStats,
   type AuthoritativeNoviceStats,
 } from "./novice-stats-authority.ts";
+import { getTier1ClassItemDefinition } from "../../../src/data/tier1ClassEquipment.ts";
 
 export type InventoryRarity = "common" | "uncommon" | "rare" | "epic" | "legendary";
 export type InventorySlot = "mainHand" | "offHand" | "armor" | "accessory";
@@ -20,7 +21,12 @@ export type InventoryHero = {
   equipment?: Partial<Record<InventorySlot, InventoryEquipmentRef | null>>;
 };
 
-type ItemDefinition = { slot: InventorySlot; requiredLevel: number; twoHanded?: boolean };
+type ItemDefinition = {
+  slot: InventorySlot;
+  requiredLevel: number;
+  twoHanded?: boolean;
+  allowedClasses?: readonly string[];
+};
 
 // Server-owned catalog subset. Unknown identifiers are rejected instead of
 // trusting client-supplied item metadata.
@@ -72,7 +78,15 @@ export class InventoryCommandError extends Error {
 
 const clone = <T>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
 function ensureItem(itemId: string): ItemDefinition {
-  const definition = ITEM_DEFINITIONS[itemId];
+  const tier1Definition = getTier1ClassItemDefinition(itemId);
+  const definition = ITEM_DEFINITIONS[itemId] ?? (tier1Definition
+    ? {
+        slot: tier1Definition.slot,
+        requiredLevel: tier1Definition.requiredLevel,
+        twoHanded: tier1Definition.twoHanded,
+        allowedClasses: tier1Definition.allowedClasses,
+      }
+    : undefined);
   if (!definition) throw new InventoryCommandError("ITEM_NOT_FOUND", "unknown item");
   return definition;
 }
@@ -106,10 +120,20 @@ export function applyInventoryCommand(current: Record<string, unknown>, command:
     const instance = storedItems[index];
     const definition = ensureItem(instance.itemId);
     if ((hero.level ?? 1) < definition.requiredLevel) throw new InventoryCommandError("EQUIP_BLOCKED", "hero level is too low");
+    if (definition.allowedClasses && !definition.allowedClasses.includes(hero.classType ?? "Novice")) {
+      throw new InventoryCommandError("EQUIP_BLOCKED", "hero class cannot equip this item");
+    }
     const equipment = { ...(hero.equipment ?? {}) };
     if (equipment[definition.slot]) throw new InventoryCommandError("EQUIP_BLOCKED", "equipment slot is occupied");
-    if (definition.slot === "offHand" && equipment.mainHand && ITEM_DEFINITIONS[equipment.mainHand.itemId]?.twoHanded) {
+    if (definition.slot === "offHand" && equipment.mainHand && ensureItem(equipment.mainHand.itemId).twoHanded) {
       throw new InventoryCommandError("EQUIP_BLOCKED", "off-hand is blocked by the main-hand item");
+    }
+    if (definition.slot === "mainHand" && definition.twoHanded && equipment.offHand) {
+      if (storedItems.some((entry) => entry.instanceId === equipment.offHand?.instanceId)) {
+        throw new InventoryCommandError("INVALID_GAME_STATE", "off-hand item instance is duplicated");
+      }
+      storedItems.push(equipment.offHand);
+      equipment.offHand = undefined;
     }
     storedItems.splice(index, 1);
     equipment[definition.slot] = instance;
