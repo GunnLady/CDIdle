@@ -1,6 +1,6 @@
 ---
 id: CDI-077
-title: Migrer progressivement les ecrans vers la bibliotheque UI
+title: Migrer les ecrans et faire murir le design system CDIdle
 status: Later
 area: frontend
 priority: P1
@@ -13,13 +13,14 @@ github_issue: null
 related_docs: ["workboard/data/Later/CDI-069/ticket.md", "workboard/data/Later/CDI-076/ticket.md", "src/App.tsx", "src/components", "src/index.css"]
 ---
 
-# CDI-077 - Migrer progressivement les ecrans vers la bibliotheque UI
+# CDI-077 - Migrer les ecrans et faire murir le design system CDIdle
 
 ## Objectif
 
 Migrer les ecrans CDIdle par lots limites et validables vers les fondations et
-composants internes, tout en conservant le fonctionnement du jeu a chaque
-etape et en supprimant ensuite les duplications devenues mortes.
+composants internes, faire emerger les patterns metier eprouves et mesurer l
+adoption du design system, tout en conservant le fonctionnement du jeu a
+chaque etape.
 
 ## Resultat utilisateur
 
@@ -29,9 +30,10 @@ accessibles sans interruption globale ni regression des actions du jeu.
 ## Contexte
 
 CDI-069 definit les parcours et l ordre de priorite. CDI-076 fournit les
-fondations et le catalogue. La migration ne doit pas devenir une reecriture
-simultanee de tout le frontend : chaque lot doit apporter un gain visible,
-rester testable et pouvoir etre audite avant de poursuivre.
+fondations, la version v0.1 du design system et le catalogue. La migration ne
+doit pas devenir une reecriture simultanee de tout le frontend : chaque lot
+doit apporter un gain visible, rester testable, enrichir le systeme seulement
+par les besoins prouves du jeu et pouvoir etre audite avant de poursuivre.
 
 ## Perimetre autorise
 
@@ -41,6 +43,13 @@ rester testable et pouvoir etre audite avant de poursuivre.
 - Remplacer progressivement styles et structures dupliques par les composants
   de CDI-076.
 - Completer la bibliotheque uniquement lorsqu un besoin reel apparait.
+- Recolter les compositions repetees et eprouvees comme patterns metier
+  documentes : amelioration, affectation, equipement, recompense, action
+  optimiste ou mode observateur selon les besoins constates.
+- Mesurer apres chaque lot les composants adoptes, les exceptions restantes
+  et les styles encore hors systeme.
+- Justifier toute exception au design system et decider si elle doit rester
+  locale ou faire evoluer le systeme.
 - Migrer boutons, champs, cartes, panneaux, menus, modales, infobulles,
   alertes, progressions, ressources et ameliorations selon leurs usages.
 - Preserver les etats actifs, verrouilles, desactives, chargement et erreur.
@@ -53,6 +62,8 @@ rester testable et pouvoir etre audite avant de poursuivre.
 - Reecrire tous les ecrans en une seule livraison.
 - Modifier le gameplay, les commandes ou l autorite serveur.
 - Introduire des variantes non presentes dans les parcours valides.
+- Transformer une exception unique en composant partage sans preuve de
+  reutilisation.
 - Supprimer des styles par recherche textuelle sans preuve de non-utilisation.
 - Melanger un refactor visuel avec un chantier domaine sans ticket explicite.
 
@@ -68,6 +79,12 @@ rester testable et pouvoir etre audite avant de poursuivre.
 - Le code mort est retire uniquement dans le lot qui supprime son dernier
   consommateur.
 - Toute extension des fondations est ajoutee au catalogue.
+- Un pattern entre dans le design system seulement apres un usage reel et une
+  preuve de reutilisation ou de valeur transversale.
+- La maturite v0.2 correspond aux premiers patterns metier valides ; la v1
+  correspond aux ecrans principaux migres et a une documentation fiable.
+- Le taux d adoption sert a guider le nettoyage, pas a forcer artificiellement
+  tous les ecrans dans une abstraction commune.
 
 ## Dependances
 
@@ -83,6 +100,10 @@ CDI-069.
 - [ ] Chaque lot conserve les comportements et contrats existants.
 - [ ] Les composants reutilisables remplacent les duplications confirmees.
 - [ ] Toute nouvelle variante apparait aussi dans le catalogue.
+- [ ] Les patterns metier issus des ecrans migres sont documentes avec leurs
+      usages et limites.
+- [ ] Chaque lot fournit son adoption, ses exceptions et les styles restants.
+- [ ] Les exceptions locales sont justifiees plutot que masquees.
 - [ ] Les etats actifs, verrouilles, desactives, chargement et erreur restent
       comprehensibles.
 - [ ] Desktop, mobile et clavier sont verifies apres chaque lot.
@@ -91,6 +112,8 @@ CDI-069.
       non-utilisation.
 - [ ] Le bundle et les performances restent dans les budgets valides.
 - [ ] Aucun changement de gameplay n est introduit pour compenser l UI.
+- [ ] Le passage v0.2 puis v1 repose sur des criteres mesurables et non sur la
+      seule quantite de composants disponibles.
 
 ## Tests
 
@@ -99,6 +122,7 @@ CDI-069.
 - Captures comparatives desktop et mobile pour chaque lot.
 - Verification clavier, focus, semantique et contrastes utiles.
 - Recherche des derniers consommateurs avant chaque suppression.
+- Controle de l adoption et des exceptions apres chaque lot.
 - `npm.cmd run typecheck`
 - `npm.cmd run lint`
 - `npm.cmd test -- --run`
@@ -130,6 +154,7 @@ puis confirmer le lot avant de migrer l ecran suivant.
 
 ## Handoff
 
-Pour chaque lot, fournir perimetre, captures avant/apres, composants ajoutes
-ou reutilises, styles supprimes, preuves fonctionnelles, responsive et
-accessibilite, budget bundle et prochain lot recommande.
+Pour chaque lot, fournir perimetre, captures avant/apres, composants et
+patterns ajoutes ou reutilises, taux d adoption, exceptions, styles supprimes,
+preuves fonctionnelles, responsive et accessibilite, budget bundle, niveau de
+maturite atteint et prochain lot recommande.
