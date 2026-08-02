@@ -62,6 +62,14 @@ interface TownPanelProps {
   onCancelForge: (previewId: string) => void;
 }
 
+const FORGE_RARITY_LABELS: Record<ItemInfo["minimumRarity"], string> = {
+  common: "Commune",
+  uncommon: "Inhabituelle",
+  rare: "Rare",
+  epic: "Épique",
+  legendary: "Légendaire",
+};
+
 export default function TownPanel({
   resources,
   buildings,
@@ -710,7 +718,7 @@ export default function TownPanel({
                 {/* Left Column: Blueprints List */}
                 <div className="md:col-span-5 space-y-3">
                   <h4 className="text-xs font-bold tracking-widest text-[#caa050] uppercase font-serif">
-                    📜 Plans d'Artisanat de Novice
+                    📜 Plans d'artisanat
                   </h4>
                   <div className="space-y-2 max-h-[350px] overflow-y-auto pr-1">
                     {craftableItems.map((item) => {
@@ -793,7 +801,9 @@ export default function TownPanel({
                               <h4 className="text-xs font-black tracking-wider text-[#caa050] uppercase font-serif">
                                 Détails du Plan : {selectedBlueprint.name}
                               </h4>
-                              <p className="text-[10px] text-[#a89078]">Qualité de départ : Commune</p>
+                              <p className="text-[10px] text-[#a89078]">
+                                Qualité de départ : {FORGE_RARITY_LABELS[selectedBlueprint.minimumRarity]}
+                              </p>
                             </div>
                           </div>
 
@@ -898,7 +908,9 @@ export default function TownPanel({
                               </span>
                             </div>
                             <div className="text-[11px] text-[#a89078] font-mono leading-relaxed bg-[#120a06]/60 p-2 rounded border border-[#302014]/60">
-                              Qualité standard : <span className="text-gray-400 uppercase font-bold">Commune</span>
+                              Qualité standard : <span className="text-gray-400 uppercase font-bold">
+                                {FORGE_RARITY_LABELS[activeCraftPreview.minimumRarity]}
+                              </span>
                             </div>
                           </div>
 

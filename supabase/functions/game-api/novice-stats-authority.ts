@@ -4,7 +4,8 @@ import {
   type CanonicalStatModifier,
 } from "../../../shared/domain/hero-stats.ts";
 import { getSkillById } from "../../../src/data/gameData.ts";
-import { getTier1ClassItemDefinition } from "../../../src/data/tier1ClassEquipment.ts";
+import { getItemById } from "../../../shared/domain/items/items.ts";
+import { resolveItemModifiers } from "../../../shared/domain/items/scaling.ts";
 
 export type AuthoritativeNoviceStats = CanonicalHeroBaseStats;
 
@@ -17,45 +18,18 @@ export type AuthoritativeEquipment = Partial<Record<
   } | null
 >>;
 
-const ITEM_BASE_MODIFIERS: Record<string, CanonicalStatModifier[]> = {
-  starter_sword: [{ stat: "physicalDamage", type: "flat", value: 1 }],
-  quick_dagger: [{ stat: "criticalChance", type: "percent", value: 1 }],
-  woodcutter_axe: [{ stat: "physicalDamage", type: "flat", value: 2 }],
-  wooden_shield: [{ stat: "physicalDefense", type: "flat", value: 1 }],
-  traveler_clothes: [{ stat: "maxMana", type: "percent", value: 3 }],
-  simple_leather_armor: [
-    { stat: "physicalDefense", type: "percent", value: 5 },
-    { stat: "dodgeChance", type: "percent", value: 3 },
-  ],
-  novice_mystic_robe: [
-    { stat: "maxMana", type: "percent", value: 5 },
-    { stat: "arcaneResistance", type: "flat", value: 5 },
-    { stat: "natureResistance", type: "flat", value: 5 },
-  ],
-};
-
-const FLAT_RARITY_MULTIPLIERS = { common: 1, uncommon: 1.5, rare: 2.5, epic: 4, legendary: 6 } as const;
-const PERCENT_RARITY_MULTIPLIERS = { common: 1, uncommon: 1.25, rare: 1.75, epic: 2.5, legendary: 3.5 } as const;
-
 export function resolveAuthoritativeNoviceItemModifiers(
   itemId: string,
-  rarity: keyof typeof FLAT_RARITY_MULTIPLIERS = "common",
+  rarity: "common" | "uncommon" | "rare" | "epic" | "legendary" = "common",
   persisted?: Array<{ stat: string; type?: "flat" | "percent"; value: number }>,
 ): CanonicalStatModifier[] {
-  if (persisted?.length) {
-    return persisted.map((modifier) => ({ ...modifier, type: modifier.type ?? "flat" }));
-  }
-  const tier1Modifiers = getTier1ClassItemDefinition(itemId)?.item.modifiers?.map((modifier) => ({
-    stat: modifier.stat,
-    type: modifier.type ?? "flat",
-    value: modifier.value,
-  })) ?? [];
-  return (ITEM_BASE_MODIFIERS[itemId] ?? tier1Modifiers).map((modifier) => {
-    const multiplier = modifier.type === "flat"
-      ? FLAT_RARITY_MULTIPLIERS[rarity]
-      : PERCENT_RARITY_MULTIPLIERS[rarity];
-    return { ...modifier, value: Math.sign(modifier.value) * Math.round(Math.abs(modifier.value) * multiplier) };
-  });
+  const item = getItemById(itemId);
+  if (!item) return [];
+  return resolveItemModifiers(
+    item,
+    rarity,
+    persisted?.map((modifier) => ({ ...modifier, type: modifier.type ?? "flat" })),
+  );
 }
 
 export function calculateAuthoritativeHeroStats(

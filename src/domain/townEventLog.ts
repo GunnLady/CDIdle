@@ -1,5 +1,5 @@
 import { BUILDINGS_LIST } from "../data/buildings";
-import { getItemById } from "../data/items";
+import { getItemById } from "../../shared/domain/items/items.ts";
 
 export type TownEventLog = {
   message: string;

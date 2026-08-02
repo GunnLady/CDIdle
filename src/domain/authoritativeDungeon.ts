@@ -3,6 +3,7 @@ import type {
   DamageType,
   DungeonEncounterType,
   Hero,
+  ItemBlueprint,
   Monster,
   PendingClassTransition,
   Rarity,
@@ -11,6 +12,12 @@ import type {
   StoredItemInstance,
 } from "../types.ts";
 import { BOSSES_LIBRARY, ITEM_LIBRARY, MONSTERS_LIBRARY, getSkillById } from "../data/gameData.ts";
+import { BOSS_LOOT_TABLES_REGISTRY } from "../../shared/domain/items/boss-loot-tables.ts";
+import {
+  getChestLootBand,
+  resolveEligibleCatalogDrop,
+  rollWeightedRarity,
+} from "../../shared/domain/items/items.ts";
 import {
   addItemToStorage,
   applyMonsterDefenseOrResistance,
@@ -75,6 +82,7 @@ export type AuthoritativeDungeonState = Record<string, unknown> & {
   buildings?: Record<string, number>;
   storedItems?: StoredItemInstance[];
   forgeMaterials?: StoredForgeMaterialStack[];
+  itemBlueprints?: ItemBlueprint[];
   autoExplore?: boolean;
   pendingClassTransitions?: PendingClassTransition[];
 };
@@ -350,6 +358,7 @@ function resolveFight(
   };
   let forgeMaterials = clone(source.forgeMaterials ?? []);
   let storedItems = clone(source.storedItems ?? []);
+  let itemBlueprints = clone(source.itemBlueprints ?? []);
   const pendingClassTransitions = clone(source.pendingClassTransitions ?? []);
   const transcript: AuthoritativeDungeonTranscriptEvent[] = [];
   const loot: Array<Record<string, unknown>> = [];
@@ -719,12 +728,64 @@ function resolveFight(
   if (victory) {
     const goblinBonus = heroes.some((hero) => hero.race === "Gobelin") ? 1.25 : 1;
     const leaderBonus = 1 + Number(source.buildings?.maison_chef ?? 0) * 0.03;
-    const baseGold = Math.floor(monster.goldYield * goblinBonus * leaderBonus);
+    const bossTable = monster.isBoss ? BOSS_LOOT_TABLES_REGISTRY[monster.name] : undefined;
+    if (monster.isBoss && !bossTable) throw new Error(`BOSS_LOOT_TABLE_NOT_FOUND:${monster.name}`);
+    const bossGold = bossTable?.goldRange
+      ? bossTable.goldRange[0] + rng.nextInt(bossTable.goldRange[1] - bossTable.goldRange[0] + 1)
+      : monster.goldYield;
+    const baseGold = Math.floor(bossGold * goblinBonus * leaderBonus);
     const gold = Math.floor(applyLootModifiers("goldGain", baseGold, heroes));
     resources.gold = Number(resources.gold ?? 0) + gold;
     log("reward.gold", `+${gold} or.`, "loot", { gold });
 
-    if (rng.next() < 0.35) {
+    if (bossTable) {
+      for (const reward of bossTable.materials) {
+        if (rng.next() >= reward.chance) continue;
+        const count = reward.minCount + rng.nextInt(reward.maxCount - reward.minCount + 1);
+        const material = {
+          materialId: reward.materialId,
+          rarity: reward.rarity,
+          count,
+          name: reward.displayName,
+        };
+        forgeMaterials = appendMaterial(forgeMaterials, material);
+        loot.push({ type: "material", ...material });
+        log("reward.material", `Materiau : +${count} ${reward.displayName} (${reward.rarity}).`, "loot", material);
+      }
+      for (const reward of bossTable.items) {
+        if (rng.next() >= reward.chance) continue;
+        const drop = resolveEligibleCatalogDrop({
+          rarity: reward.rarity,
+          levelMin: reward.levelMin ?? 1,
+          levelMax: reward.levelMax ?? Number.MAX_SAFE_INTEGER,
+          provenance: "boss",
+        });
+        if (!drop) continue;
+        const item = drop.candidates[rng.nextInt(drop.candidates.length)];
+        const instanceId = `item:dungeon:${encounterId}:loot:${loot.length}`;
+        addItemToStorage(storedItems, { instanceId, itemId: item.id, rarity: drop.rarity });
+        loot.push({ type: "item", instanceId, itemId: item.id, rarity: drop.rarity, count: 1 });
+        log("reward.item", `${item.name} [${drop.rarity}] obtenu.`, "loot", {
+          instanceId, itemId: item.id, itemName: item.name, rarity: drop.rarity, count: 1,
+        });
+      }
+      for (const reward of bossTable.blueprints) {
+        if (rng.next() >= reward.chance) continue;
+        const unlocked = new Set(itemBlueprints.filter((entry) => entry.unlocked).map((entry) => entry.itemId));
+        const candidates = ITEM_LIBRARY.filter((item) => (
+          item.blueprintAvailable
+          && item.provenances.includes("forge")
+          && item.requiredLevel >= (reward.levelMin ?? 1)
+          && item.requiredLevel <= (reward.levelMax ?? Number.MAX_SAFE_INTEGER)
+          && !unlocked.has(item.id)
+        ));
+        if (candidates.length === 0) continue;
+        const item = candidates[rng.nextInt(candidates.length)];
+        itemBlueprints = [...itemBlueprints.filter((entry) => entry.itemId !== item.id), { itemId: item.id, unlocked: true }];
+        loot.push({ type: "blueprint", itemId: item.id, count: 1 });
+        log("reward.blueprint", `Plan de forge obtenu : ${item.name}.`, "loot", { itemId: item.id, itemName: item.name });
+      }
+    } else if (rng.next() < 0.35) {
       const material = rollEncounterForgeMaterial(floor, rng);
       forgeMaterials = appendMaterial(forgeMaterials, material);
       loot.push({ type: "material", ...material });
@@ -778,6 +839,7 @@ function resolveFight(
       resources,
       storedItems,
       forgeMaterials,
+      itemBlueprints,
       pendingClassTransitions,
       autoExplore: victory && pendingClassTransitions.length === 0
         ? source.autoExplore ?? false
@@ -822,6 +884,7 @@ function resolveNonFight(
   };
   let storedItems = clone(source.storedItems ?? []);
   let forgeMaterials = clone(source.forgeMaterials ?? []);
+  const itemBlueprints = clone(source.itemBlueprints ?? []);
   const pendingClassTransitions = clone(source.pendingClassTransitions ?? []);
   const transcript: AuthoritativeDungeonTranscriptEvent[] = [];
   const loot: Array<Record<string, unknown>> = [];
@@ -853,15 +916,25 @@ function resolveNonFight(
       resources.gold = Number(resources.gold ?? 0) + goldReward;
       log("reward.gold", `+${goldReward} or.`, "loot", { gold: goldReward });
     } else if (ITEM_LIBRARY.length > 0) {
-      const item = ITEM_LIBRARY[rng.nextInt(ITEM_LIBRARY.length)];
+      const band = getChestLootBand(floor);
+      const rarity = rollWeightedRarity(band.weights, rng.next());
+      const drop = resolveEligibleCatalogDrop({
+        rarity,
+        levelMin: band.levelMin,
+        levelMax: band.levelMax,
+        provenance: "chest",
+      });
+      if (!drop) throw new Error(`EMPTY_CHEST_ITEM_POOL:${floor}:${rarity}`);
+      const item = drop.candidates[rng.nextInt(drop.candidates.length)];
+      const effectiveRarity = drop.rarity;
       const instanceId = `item:dungeon:${encounterId}:loot:${loot.length}`;
-      addItemToStorage(storedItems, { instanceId, itemId: item.id, rarity: "rare" });
-      loot.push({ type: "item", instanceId, itemId: item.id, rarity: "rare", count: 1 });
-      log("reward.item", `${item.name} [Rare] obtenu.`, "loot", {
+      addItemToStorage(storedItems, { instanceId, itemId: item.id, rarity: effectiveRarity });
+      loot.push({ type: "item", instanceId, itemId: item.id, rarity: effectiveRarity, count: 1 });
+      log("reward.item", `${item.name} [${effectiveRarity}] obtenu.`, "loot", {
         instanceId,
         itemId: item.id,
         itemName: item.name,
-        rarity: "rare",
+        rarity: effectiveRarity,
         count: 1,
       });
     } else {
@@ -1126,6 +1199,7 @@ function resolveNonFight(
       resources,
       storedItems,
       forgeMaterials,
+      itemBlueprints,
       pendingClassTransitions,
       autoExplore: pendingClassTransitions.length > 0 ? false : source.autoExplore ?? false,
     },

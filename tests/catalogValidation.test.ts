@@ -8,15 +8,20 @@ import {
 } from "../src/data/buildings";
 import { BOSSES_LIBRARY, MONSTERS_LIBRARY } from "../src/data/monsters";
 import { CLASS_INFO_LIST, RACE_INFO_LIST } from "../src/data/heroes";
-import { ITEM_LIBRARY, validateUniqueItemIds } from "../src/data/items";
+import {
+  CHEST_LOOT_BANDS,
+  ITEM_LIBRARY,
+  validateItemCatalog,
+  validateUniqueItemIds,
+} from "../shared/domain/items/items";
 import { SKILLS_LIBRARY } from "../src/data/skills";
-import { createModifier, createModifiers, flatModifier, percentModifier } from "../src/data/modifierBuilder";
+import { createModifier, createModifiers, flatModifier, percentModifier } from "../shared/domain/items/modifierBuilder";
 import { BOSS_LOOT_TABLES_REGISTRY } from "../src/data/bossLootTables";
-import { WEAPON_INFO_LIST } from "../src/data/weapons";
-import { ARMOR_INFO_LIST } from "../src/data/armors";
-import { ACCESSORY_INFO_LIST } from "../src/data/accessories";
-import { OFF_HAND_INFO_LIST } from "../src/data/offhands";
-import { createAccessory, createArmor, createOffhand, createWeapon } from "../src/data/itemBuilders";
+import { WEAPON_INFO_LIST } from "../shared/domain/items/weapons";
+import { ARMOR_INFO_LIST } from "../shared/domain/items/armors";
+import { ACCESSORY_INFO_LIST } from "../shared/domain/items/accessories";
+import { OFF_HAND_INFO_LIST } from "../shared/domain/items/offhands";
+import { createAccessory, createArmor, createOffhand, createWeapon } from "../shared/domain/items/itemBuilders";
 import { buffEffect, damageEffect, debuffEffect, healEffect, lootModifierEffect, statModifierEffect } from "../src/data/skillBuilders";
 
 const unique = (values: string[]) => new Set(values).size === values.length;
@@ -39,6 +44,12 @@ describe("catalogue invariants", () => {
 
   it("keeps item, race, class, skill and monster registries unique and valid", () => {
     expect(validateUniqueItemIds(ITEM_LIBRARY)).toEqual([]);
+    expect(validateItemCatalog()).toEqual([]);
+    expect(ITEM_LIBRARY).toHaveLength(131);
+    expect(ITEM_LIBRARY.every((item) => item.provenances.includes("chest") && item.provenances.includes("boss"))).toBe(true);
+    for (const band of CHEST_LOOT_BANDS) {
+      expect(Object.values(band.weights).reduce((sum, weight) => sum + weight, 0)).toBe(100);
+    }
     expect(unique(RACE_INFO_LIST.map((race) => race.id))).toBe(true);
     expect(unique(CLASS_INFO_LIST.map((entry) => entry.type))).toBe(true);
     expect(unique(SKILLS_LIBRARY.map((skill) => skill.id))).toBe(true);

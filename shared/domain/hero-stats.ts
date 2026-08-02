@@ -19,6 +19,18 @@ export const CANONICAL_RESISTANCE_FIELDS = [
   "dark", "nature", "sound", "poison", "blood", "radiant",
 ] as const;
 
+export const CANONICAL_ITEM_MODIFIER_FIELDS = [
+  "maxHp", "maxMana", "physicalDamage", "magicDamage", "criticalChance",
+  "dodgeChance", "speed", "physicalDefense", "magicDefense",
+  ...CANONICAL_RESISTANCE_FIELDS.map((field) => `${field}Resistance`),
+] as const;
+
+const CANONICAL_ITEM_MODIFIER_FIELD_SET = new Set<string>(CANONICAL_ITEM_MODIFIER_FIELDS);
+
+export function isCanonicalItemModifierField(stat: string): boolean {
+  return CANONICAL_ITEM_MODIFIER_FIELD_SET.has(stat);
+}
+
 /**
  * Canonical pure core behind the historical global getHeroStats function.
  * Both the client adapter and server authorities must use this implementation.

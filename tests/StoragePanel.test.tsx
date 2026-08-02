@@ -49,7 +49,7 @@ describe("StoragePanel modifier stacks", () => {
     expect(onEquipItem).toHaveBeenCalledWith("hero-target", "item-second");
   });
 
-  it("blocks a Tier 1 reward for a class outside its canonical pool", () => {
+  it("allows a Tier 1 reward for a class outside its vocation pool", () => {
     const onEquipItem = vi.fn();
     render(<StoragePanel
       storedItems={[{ instanceId: "item-lute", itemId: "basic_lute", rarity: "common" }]}
@@ -59,9 +59,8 @@ describe("StoragePanel modifier stacks", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /quiper$/i }));
     const heroButton = screen.getByRole("button", { name: /Guerrier test/ });
-    expect(heroButton).toBeDisabled();
-    expect(heroButton).toHaveAttribute("title", "Incompatible avec la classe Guerrier");
+    expect(heroButton).not.toBeDisabled();
     fireEvent.click(heroButton);
-    expect(onEquipItem).not.toHaveBeenCalled();
+    expect(onEquipItem).toHaveBeenCalledWith("hero-warrior", "item-lute");
   });
 });

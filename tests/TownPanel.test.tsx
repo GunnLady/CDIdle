@@ -76,4 +76,16 @@ describe("TownPanel city controls", () => {
     expect(props.onCancelForge).toHaveBeenCalledWith("preview-cancel");
     expect(props.onFinalizeForge).not.toHaveBeenCalled();
   });
+
+  it("displays the catalog minimum rarity in a high-tier forge preview", async () => {
+    const props = baseProps();
+    render(<TownPanel
+      {...props}
+      itemBlueprints={[{ itemId: "embercleaver_greataxe", unlocked: true }]}
+      pendingForge={{ previewId: "preview-epic", itemId: "embercleaver_greataxe", upgradeProc: "none" }}
+    />);
+    fireEvent.click(screen.getByRole("button", { name: /forge/i }));
+    expect(await screen.findByText("Épique")).toBeInTheDocument();
+    expect(screen.queryByText("Commune")).not.toBeInTheDocument();
+  });
 });

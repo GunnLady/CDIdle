@@ -1,12 +1,17 @@
 import type { CanonicalRng } from "./authoritative-rng.ts";
 import { resolveAuthoritativeNoviceItemModifiers } from "./novice-stats-authority.ts";
+import { ITEM_LIBRARY, rarityRank } from "../../../shared/domain/items/items.ts";
 
 export type ForgeRarity = "common" | "uncommon" | "rare" | "epic" | "legendary";
 export type ForgeUpgradeProc = "none" | "uncommon" | "rare";
 export type ForgeMaterialStack = { materialId: string; rarity: ForgeRarity; count: number };
 type ItemInstance = { instanceId: string; itemId: string; rarity: ForgeRarity; modifiers?: Array<Record<string, unknown>> };
 type ItemBlueprint = { itemId: string; unlocked: boolean };
-type Recipe = { itemId: string; itemType: "weapon" | "offhand" | "armor" | "accessory" };
+type Recipe = {
+  itemId: string;
+  itemType: "weapon" | "offhand" | "armor" | "accessory";
+  minimumRarity: ForgeRarity;
+};
 
 export type ForgeCommand =
   | { type: "forge.start"; recipeId: string; commandId?: string }
@@ -43,15 +48,15 @@ const UPGRADE_COSTS: Record<Exclude<ForgeUpgradeProc, "none">, ForgeMaterialStac
   ],
 };
 
-const RECIPES: Record<string, Recipe> = {
-  starter_sword: { itemId: "starter_sword", itemType: "weapon" },
-  quick_dagger: { itemId: "quick_dagger", itemType: "weapon" },
-  woodcutter_axe: { itemId: "woodcutter_axe", itemType: "weapon" },
-  wooden_shield: { itemId: "wooden_shield", itemType: "offhand" },
-  traveler_clothes: { itemId: "traveler_clothes", itemType: "armor" },
-  simple_leather_armor: { itemId: "simple_leather_armor", itemType: "armor" },
-  novice_mystic_robe: { itemId: "novice_mystic_robe", itemType: "armor" },
-};
+const RECIPES: Record<string, Recipe> = Object.fromEntries(
+  ITEM_LIBRARY
+    .filter((item) => item.blueprintAvailable && item.provenances.includes("forge"))
+    .map((item) => [item.id, {
+      itemId: item.id,
+      itemType: item.itemType,
+      minimumRarity: item.minimumRarity,
+    }]),
+);
 
 const WEAPON_MODIFIERS = new Set(["physicalDamage", "magicDamage", "criticalChance", "speed"]);
 const ARMOR_MODIFIERS = new Set([
@@ -145,7 +150,10 @@ export function applyForgeCommand(
     if (!rng) throw new ForgeCommandError("RNG_REQUIRED", "canonical RNG is required");
     const nextMaterials = consume(materials, CRAFT_COST);
     const previewId = `preview-${typed.commandId ?? "command"}`;
-    const upgradeProc = rollUpgradeProc(rng);
+    const rolledUpgradeProc = rollUpgradeProc(rng);
+    const upgradeProc = rolledUpgradeProc !== "none" && rarityRank(rolledUpgradeProc) > rarityRank(recipe.minimumRarity)
+      ? rolledUpgradeProc
+      : "none";
     return {
       state: {
         ...current,
@@ -170,7 +178,7 @@ export function applyForgeCommand(
       throw new ForgeCommandError("INVALID_GAME_STATE", "forge preview upgrade proc is invalid");
     }
 
-    let rarity: ForgeRarity = "common";
+    let rarity: ForgeRarity = recipe.minimumRarity;
     let modifier: Record<string, unknown> | undefined;
     let nextMaterials = materials;
     if (typed.acceptUpgrade) {

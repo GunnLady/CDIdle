@@ -471,7 +471,60 @@ describe("authoritative town commands", () => {
     expect(() => applyTownCommand({ ...current, storedItems: [{ instanceId: "item-unknown", itemId: "unknown-item", rarity: "common" }] }, { type: "hero.equip", heroId: "hero-1", instanceId: "item-unknown" })).toThrow("unknown item");
   });
 
-  it("enforces Tier 1 class restrictions on the server", () => {
+  it("preserves health and mana percentages across equipment mutations", () => {
+    const baseline = refreshHeroDerivedStats(makeHero({
+      id: "hero-resource-ratio",
+      level: 10,
+      equipment: {},
+    }));
+    const full = {
+      ...baseline,
+      currentHp: baseline.calculatedStats.maxHp,
+      currentMana: baseline.calculatedStats.maxMana,
+    };
+    const withBelt = applyTownCommand({
+      ...initialTownState(),
+      heroes: [full],
+      storedItems: [
+        { instanceId: "ratio-belt", itemId: "sturdy_travel_belt", rarity: "common" },
+        { instanceId: "ratio-robe", itemId: "novice_mystic_robe", rarity: "common" },
+      ],
+    }, { type: "hero.equip", heroId: full.id, instanceId: "ratio-belt" });
+    const withBoth = applyTownCommand(withBelt.state, {
+      type: "hero.equip",
+      heroId: full.id,
+      instanceId: "ratio-robe",
+    });
+    const equipped = (withBoth.state.heroes as Hero[])[0];
+    expect(equipped.currentHp).toBe(equipped.calculatedStats.maxHp);
+    expect(equipped.currentMana).toBe(equipped.calculatedStats.maxMana);
+
+    const injured = {
+      ...equipped,
+      currentHp: Math.floor(equipped.calculatedStats.maxHp / 2),
+      currentMana: Math.floor(equipped.calculatedStats.maxMana / 2),
+    };
+    const withoutBelt = applyTownCommand({ ...withBoth.state, heroes: [injured] }, {
+      type: "hero.unequip",
+      heroId: full.id,
+      slot: "accessory",
+    });
+    const hpAdjusted = (withoutBelt.state.heroes as Hero[])[0];
+    expect(hpAdjusted.currentHp).toBe(Math.floor(
+      hpAdjusted.calculatedStats.maxHp * injured.currentHp / injured.calculatedStats.maxHp,
+    ));
+    const withoutRobe = applyTownCommand(withoutBelt.state, {
+      type: "hero.unequip",
+      heroId: full.id,
+      slot: "armor",
+    });
+    const manaAdjusted = (withoutRobe.state.heroes as Hero[])[0];
+    expect(manaAdjusted.currentMana).toBe(Math.floor(
+      manaAdjusted.calculatedStats.maxMana * hpAdjusted.currentMana / hpAdjusted.calculatedStats.maxMana,
+    ));
+  });
+
+  it("allows equipment independently from the vocation reward pools", () => {
     const mage = makeHero({ id: "hero-mage", level: 10, classType: "Mage", equipment: {} });
     const current = {
       ...initialTownState(),
@@ -479,11 +532,15 @@ describe("authoritative town commands", () => {
       storedItems: [{ instanceId: "warrior-sword", itemId: "basic_sword", rarity: "common" }],
     };
 
-    expect(() => applyTownCommand(current, {
+    const equipped = applyTownCommand(current, {
       type: "hero.equip",
       heroId: mage.id,
       instanceId: "warrior-sword",
-    })).toThrow("hero class cannot equip this item");
+    });
+    expect(equipped.state).toMatchObject({
+      storedItems: [],
+      heroes: [{ id: mage.id, equipment: { mainHand: { itemId: "basic_sword" } } }],
+    });
   });
 
   it("returns the off-hand to storage when equipping an approved two-handed Tier 1 weapon", () => {

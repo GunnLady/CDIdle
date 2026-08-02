@@ -1,4 +1,7 @@
-import { CANONICAL_RESISTANCE_FIELDS } from "../domain/hero-stats.ts";
+import {
+  CANONICAL_ITEM_MODIFIER_FIELDS,
+  CANONICAL_RESISTANCE_FIELDS,
+} from "../domain/hero-stats.ts";
 import {
   CANONICAL_HERO_CLASSES,
   CANONICAL_HERO_CLASS_TIERS,
@@ -130,12 +133,7 @@ export const CANONICAL_COMMAND_TYPES = [
 
 const CANONICAL_RARITIES = ["common", "uncommon", "rare", "epic", "legendary"] as const;
 const CANONICAL_EQUIPMENT_SLOTS = ["mainHand", "offHand", "armor", "accessory"] as const;
-const CANONICAL_MODIFIER_STATS = new Set([
-  "str", "agi", "end", "int", "wiz", "dex", "luk",
-  "maxHp", "maxMana", "physicalDamage", "magicDamage", "criticalChance",
-  "dodgeChance", "speed", "physicalDefense", "magicDefense", "physicalResistance",
-  ...CANONICAL_RESISTANCE_FIELDS.map((field) => `${field}Resistance`),
-]);
+const CANONICAL_MODIFIER_STATS = new Set<string>(CANONICAL_ITEM_MODIFIER_FIELDS);
 
 const hasOnlyKeys = (value: Record<string, unknown>, allowed: readonly string[]) =>
   Object.keys(value).every((key) => allowed.includes(key));
@@ -424,14 +422,23 @@ export function validateCanonicalGameState(input: unknown): string[] {
   }
   if ("itemBlueprints" in value) {
     if (!Array.isArray(value.itemBlueprints)) errors.push("itemBlueprints must be an array");
-    else value.itemBlueprints.forEach((entry, index) => {
+    else {
+      const itemIds = new Set<string>();
+      value.itemBlueprints.forEach((entry, index) => {
       if (!isRecord(entry)) {
         errors.push(`itemBlueprints[${index}] must be an object`);
         return;
       }
-      if (typeof entry.itemId !== "string" || !entry.itemId.trim()) errors.push(`itemBlueprints[${index}].itemId is required`);
+      if (typeof entry.itemId !== "string" || !entry.itemId.trim()) {
+        errors.push(`itemBlueprints[${index}].itemId is required`);
+      } else if (itemIds.has(entry.itemId)) {
+        errors.push(`itemBlueprints[${index}].itemId must be unique`);
+      } else {
+        itemIds.add(entry.itemId);
+      }
       if (typeof entry.unlocked !== "boolean") errors.push(`itemBlueprints[${index}].unlocked must be a boolean`);
-    });
+      });
+    }
   }
   if ("pendingClassTransitions" in value) {
     if (!Array.isArray(value.pendingClassTransitions)) {

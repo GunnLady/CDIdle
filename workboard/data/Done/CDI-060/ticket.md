@@ -1,7 +1,7 @@
 ---
 id: CDI-060
 title: Catalogue autoritaire et butin de boss
-status: ToDo
+status: Done
 area: domain
 priority: P1
 size: L
@@ -10,7 +10,7 @@ source: Audit fonctionnel forge, craft, scrap et objets du 2026-07-26
 depends_on: []
 blocks: ["CDI-079"]
 github_issue: null
-related_docs: ["docs/architecture/zero-rebase-audit.md", "docs/architecture/inventory-domain.md", "docs/architecture/forge-domain.md", "src/data/items.ts", "src/data/bossLootTables.ts", "src/domain/authoritativeDungeon.ts", "supabase/functions/game-api/inventory-authority.ts"]
+related_docs: ["docs/architecture/item-catalog.md", "docs/architecture/item-catalog-matrix.md", "docs/architecture/zero-rebase-audit.md", "docs/architecture/inventory-domain.md", "docs/architecture/forge-domain.md", "shared/domain/items/items.ts", "shared/domain/items/boss-loot-tables.ts", "src/domain/authoritativeDungeon.ts", "supabase/functions/game-api/inventory-authority.ts"]
 ---
 
 # CDI-060 - Catalogue autoritaire et butin de boss
@@ -51,8 +51,10 @@ forge novice. Sa phase de definition doit etre validee avant implementation.
 - Etablir dans la couche neutre `shared` une source canonique unique partagee
   par les autorites et l UI.
 - Inventorier et statuer sur les 131 objets existants.
-- Definir identite, slot, niveau, classe, mains, rarete, modificateurs,
+- Definir identite, slot, niveau, mains, rarete, modificateurs,
   statistiques, types de degats et provenance de chaque objet.
+- Ne poser aucune restriction de classe : les pools de vocation determinent
+  uniquement les cadeaux T1.
 - Definir la semantique de rarete : fixe, mise a l echelle, generee ou
   persistante.
 - Definir les contraintes de forgeabilite et de plans avances.
@@ -113,33 +115,34 @@ implementation de la phase E.
 
 ## Criteres d'acceptation
 
-- [ ] Une matrice des 131 objets et de leurs provenances est documentee et
+- [x] Une matrice des 131 objets et de leurs provenances est documentee et
       validee avant implementation.
-- [ ] Le catalogue autoritaire possede une source unique sans duplication
+- [x] Le catalogue autoritaire possede une source unique sans duplication
       client/serveur.
-- [ ] Chaque objet possede slot, contraintes et effets canoniques valides.
-- [ ] Tous les objets obtenables sont equipables ou explicitement marques non
+- [x] Chaque objet possede slot, contraintes et effets canoniques valides.
+- [x] Tous les objets obtenables sont equipables ou explicitement marques non
       equipables avec une raison produit.
-- [ ] Les classes Novice et Tier 1 recalculent leurs statistiques apres
+- [x] Les classes Novice et Tier 1 recalculent leurs statistiques apres
       equipement et desequipement.
-- [ ] Raretes et modificateurs influencent affichage et combat de facon
+- [x] Raretes et modificateurs influencent affichage et combat de facon
       identique.
-- [ ] Les sauvegardes existantes sont migrees ou refusees explicitement sans
+- [x] Les sauvegardes existantes sont migrees ou refusees explicitement sans
       perte silencieuse.
-- [ ] Chaque boss utilise sa table validee pour objets, materiaux et plans.
-- [ ] Les coffres ordinaires utilisent une courbe de rarete evoluant avec les
+- [x] Chaque boss utilise sa table validee pour objets, materiaux et plans.
+- [x] Les coffres ordinaires utilisent une courbe de rarete evoluant avec les
       etages et un pool d objets filtre par niveau.
-- [ ] Une epee de depart peut apparaitre en qualite commune, inhabituelle ou
+- [x] Une epee de depart peut apparaitre en qualite commune, inhabituelle ou
       rare dans les premieres bandes, puis disparait du pool quand son niveau
       devient trop faible pour l etage.
-- [ ] Les objets de niveau trop eleve ne peuvent pas apparaitre prematurement
+- [x] Les objets de niveau trop eleve ne peuvent pas apparaitre prematurement
       et le comportement sans objet eligible est explicite et teste.
-- [ ] Loot, plans, RNG, F5 et replay sont couverts sans duplication.
+- [x] Loot, plans, RNG, F5 et replay sont couverts sans duplication.
 
 ## Tests
 
 - Validation structurelle et unicite des 131 objets.
-- Matrice niveau, classe, slot, mains, rarete et modificateurs.
+- Matrice niveau, slot, mains, rarete, provenance et modificateurs ; absence
+  explicite de restriction de classe.
 - Tests equipement/desequipement et statistiques pour chaque famille.
 - Tests de combat prouvant l effet des objets, raretes et modificateurs.
 - Golden tests de loot pour chaque boss et chaque bande de rarete.
@@ -187,7 +190,15 @@ disparition progressive des objets de niveau trop faible.
 
 ## Handoff
 
-Fournir la matrice validee, la decision d architecture, la strategie de
-migration, la liste des objets actifs, les golden tests catalogue/boss, les
-preuves de statistiques et combat, les etats RNG avant/apres, les validations
-F5/replay et l audit fonctionnel pre-push.
+Livre avec une source autoritaire de 131 objets dans `shared`, la matrice
+generee, les courbes de coffre, les tables de boss, les plans et la forge
+raccordes au RNG canonique. Les tests manuels couvrent les cinq bandes de
+coffres, cinq boss, F5, replay, equipement interclasse, recalcul des statistiques,
+forge epique et recyclage exact.
+
+La migration `20260802010000_cdi060_item_state_migration.sql` promeut les
+anciennes raretes sous le minimum et convertit `physicalResistance` en
+`physicalDefense` sans modifier les `instanceId` ni la revision canonique.
+Preuves finales : 127 tests DB, suite applicative et build rapportes au vert,
+typecheck, matrice, determinisme et workboard valides. Deploiement requis dans
+l ordre : migration SQL, fonction `game-api`, puis frontend.

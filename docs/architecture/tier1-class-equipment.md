@@ -2,7 +2,9 @@
 
 CDI-068 attribue une arme et un accessoire lors de la vocation Tier 1. Les
 objets sont tires dans les pools canoniques de
-`src/data/tier1ClassEquipment.ts`. Aucun objet nouveau n est cree.
+`shared/domain/items/vocation-rewards.ts`. L adaptateur
+`src/data/tier1ClassEquipment.ts` expose encore ce contrat au domaine de
+vocation. Aucun modele nouveau n est cree.
 
 ## Ordre RNG
 
@@ -30,9 +32,10 @@ un contrat uniforme entre les neuf classes.
 | Artificier | `basic_gear_cannon`, `basic_rifle`, `basic_crossbow` | `copper_focus_ring`, `warm_ember_amulet`, `cracked_coin_charm` |
 | Pugiliste | `basic_knuckles`, `basic_gauntlets`, `basic_bo` | `ashwood_bracelet`, `knotted_leather_bracelet`, `sturdy_travel_belt` |
 
-Tous les objets sont communs et utilisables au niveau 10. Un objet partage
-entre plusieurs pools peut etre equipe par l union de ces classes. Toute autre
-classe est refusee par le serveur et filtree par l interface.
+Tous les cadeaux sont communs et utilisables au niveau 10. L appartenance a un
+pool determine uniquement ce que la vocation peut offrir : elle ne constitue
+jamais une autorisation d equipement. Toute classe peut equiper tout modele si
+le niveau, le slot et le maniement sont compatibles.
 
 Les charmes n utilisent pas un pseudo-attribut `luck` distinct de `luk` :
 leurs effets portent sur le critique ou l esquive, les sous-statistiques deja

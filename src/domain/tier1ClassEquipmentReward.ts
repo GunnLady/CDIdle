@@ -1,9 +1,8 @@
 import type { ClassType, EquippedItemRef, Hero, StoredItemInstance } from "../types.ts";
-import { getItemById } from "../data/items.ts";
+import { getItemById } from "../../shared/domain/items/items.ts";
 import {
   getTier1ClassItemDefinition,
   rollTier1ClassEquipment,
-  type Tier1ClassType,
 } from "../data/tier1ClassEquipment.ts";
 import { refreshHeroDerivedStats } from "../utils/gameCalculations.ts";
 import type { Rng } from "./random.ts";
@@ -64,11 +63,6 @@ export function grantTier1ClassEquipment(
   if (!accessoryDefinition || accessoryDefinition.slot !== "accessory") {
     throw new Error(`INVALID_TIER1_REWARD_ACCESSORY:${classType}:${accessoryId}`);
   }
-  if (!weaponDefinition.allowedClasses.includes(classType as Tier1ClassType)
-    || !accessoryDefinition.allowedClasses.includes(classType as Tier1ClassType)) {
-    throw new Error(`INVALID_TIER1_REWARD_CLASS:${classType}`);
-  }
-
   const weaponInstanceId = `item:${hero.id}:tier1:weapon`;
   const accessoryInstanceId = `item:${hero.id}:tier1:accessory`;
   const weapon = takeExistingRewardInstance(hero, nextStoredItems, weaponInstanceId, weaponId);

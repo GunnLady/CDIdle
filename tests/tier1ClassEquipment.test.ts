@@ -1,14 +1,13 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   TIER1_CLASS_EQUIPMENT_POOLS,
-  canClassEquipTier1Item,
   getTier1ClassItemDefinition,
   rollTier1ClassEquipment,
   validateTier1ClassEquipmentPools,
   type Tier1ClassType,
 } from "../src/data/tier1ClassEquipment";
 import { grantTier1ClassEquipment } from "../src/domain/tier1ClassEquipmentReward";
-import { getItemById } from "../src/data/items";
+import { getItemById } from "../shared/domain/items/items";
 import { getHeroStats } from "../src/utils/gameCalculations";
 import { makeHero } from "./fixtures/game";
 
@@ -34,13 +33,12 @@ describe("Tier 1 class equipment pools", () => {
     expect(nextInt).toHaveBeenNthCalledWith(2, 3);
   });
 
-  it.each(CLASS_TYPES)("restricts every $classType reward to its approved classes", (classType) => {
+  it.each(CLASS_TYPES)("keeps every $classType reward in its vocation pool without restricting equipment", (classType) => {
     const pool = TIER1_CLASS_EQUIPMENT_POOLS[classType];
     for (const itemId of [...pool.weaponIds, ...pool.accessoryIds]) {
       const definition = getTier1ClassItemDefinition(itemId);
       expect(definition?.requiredLevel).toBe(10);
-      expect(canClassEquipTier1Item(classType, itemId)).toBe(true);
-      expect(definition?.allowedClasses).toContain(classType);
+      expect(definition).not.toBeNull();
     }
   });
 

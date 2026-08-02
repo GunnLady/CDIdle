@@ -343,9 +343,12 @@ export interface BaseItemInfo {
   name: string;
   itemType: ItemType;
   rarity: Rarity;
+  minimumRarity: Rarity;
   requiredLevel: number;
   description: string;
   modifiers?: Modifier[];
+  provenances: Array<"vocation" | "chest" | "boss" | "forge">;
+  blueprintAvailable: boolean;
 }
 
 export interface WeaponItemInfo extends BaseItemInfo {

@@ -5,11 +5,11 @@
 
 export * from "./buildings.ts";
 export * from "./heroes.ts";
-export * from "./weapons.ts";
-export * from "./offhands.ts";
+export * from "../../shared/domain/items/weapons.ts";
+export * from "../../shared/domain/items/offhands.ts";
 export * from "./skills.ts";
 export * from "./monsters.ts";
-export * from "./accessories.ts";
-export * from "./armors.ts";
-export * from "./items.ts";
+export * from "../../shared/domain/items/accessories.ts";
+export * from "../../shared/domain/items/armors.ts";
+export * from "../../shared/domain/items/items.ts";
 export * from "./tier1ClassEquipment.ts";

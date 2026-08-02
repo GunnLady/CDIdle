@@ -2,7 +2,11 @@ import {
   calculateAuthoritativeHeroStats,
   type AuthoritativeNoviceStats,
 } from "./novice-stats-authority.ts";
-import { getTier1ClassItemDefinition } from "../../../src/data/tier1ClassEquipment.ts";
+import {
+  getItemById,
+  getItemHandedness,
+  getItemSlot,
+} from "../../../shared/domain/items/items.ts";
 
 export type InventoryRarity = "common" | "uncommon" | "rare" | "epic" | "legendary";
 export type InventorySlot = "mainHand" | "offHand" | "armor" | "accessory";
@@ -25,19 +29,6 @@ type ItemDefinition = {
   slot: InventorySlot;
   requiredLevel: number;
   twoHanded?: boolean;
-  allowedClasses?: readonly string[];
-};
-
-// Server-owned catalog subset. Unknown identifiers are rejected instead of
-// trusting client-supplied item metadata.
-const ITEM_DEFINITIONS: Record<string, ItemDefinition> = {
-  starter_sword: { slot: "mainHand", requiredLevel: 1 },
-  quick_dagger: { slot: "mainHand", requiredLevel: 1 },
-  woodcutter_axe: { slot: "mainHand", requiredLevel: 1 },
-  wooden_shield: { slot: "offHand", requiredLevel: 1 },
-  traveler_clothes: { slot: "armor", requiredLevel: 1 },
-  simple_leather_armor: { slot: "armor", requiredLevel: 1 },
-  novice_mystic_robe: { slot: "armor", requiredLevel: 1 },
 };
 
 const NOVICE_WEAPON_IDS = ["starter_sword", "quick_dagger", "woodcutter_axe"] as const;
@@ -78,17 +69,30 @@ export class InventoryCommandError extends Error {
 
 const clone = <T>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
 function ensureItem(itemId: string): ItemDefinition {
-  const tier1Definition = getTier1ClassItemDefinition(itemId);
-  const definition = ITEM_DEFINITIONS[itemId] ?? (tier1Definition
-    ? {
-        slot: tier1Definition.slot,
-        requiredLevel: tier1Definition.requiredLevel,
-        twoHanded: tier1Definition.twoHanded,
-        allowedClasses: tier1Definition.allowedClasses,
-      }
-    : undefined);
-  if (!definition) throw new InventoryCommandError("ITEM_NOT_FOUND", "unknown item");
-  return definition;
+  const item = getItemById(itemId);
+  if (!item) throw new InventoryCommandError("ITEM_NOT_FOUND", "unknown item");
+  const handedness = getItemHandedness(item);
+  return {
+    slot: getItemSlot(item),
+    requiredLevel: item.requiredLevel,
+    twoHanded: handedness === "two_handed" || handedness === "dual_wield",
+  };
+}
+
+function preserveResourceRatio(
+  current: number | undefined,
+  previousMax: unknown,
+  nextMax: number,
+  keepAlive: boolean,
+): number {
+  if (typeof current !== "number" || !Number.isFinite(current)) return nextMax;
+  if (typeof previousMax !== "number" || !Number.isFinite(previousMax) || previousMax <= 0) {
+    return Math.min(Math.max(0, current), nextMax);
+  }
+  if (current <= 0) return 0;
+  const ratio = Math.min(1, current / previousMax);
+  const scaled = Math.floor(nextMax * ratio);
+  return keepAlive ? Math.max(1, scaled) : scaled;
 }
 
 function withEquipment(hero: InventoryHero, equipment: InventoryHero["equipment"]): InventoryHero {
@@ -101,8 +105,18 @@ function withEquipment(hero: InventoryHero, equipment: InventoryHero["equipment"
   return {
     ...hero,
     equipment,
-    currentHp: Math.min(hero.currentHp ?? calculatedStats.maxHp, calculatedStats.maxHp),
-    currentMana: Math.min(hero.currentMana ?? calculatedStats.maxMana, calculatedStats.maxMana),
+    currentHp: preserveResourceRatio(
+      hero.currentHp,
+      hero.calculatedStats?.maxHp,
+      calculatedStats.maxHp,
+      true,
+    ),
+    currentMana: preserveResourceRatio(
+      hero.currentMana,
+      hero.calculatedStats?.maxMana,
+      calculatedStats.maxMana,
+      false,
+    ),
     calculatedStats,
   };
 }
@@ -120,9 +134,6 @@ export function applyInventoryCommand(current: Record<string, unknown>, command:
     const instance = storedItems[index];
     const definition = ensureItem(instance.itemId);
     if ((hero.level ?? 1) < definition.requiredLevel) throw new InventoryCommandError("EQUIP_BLOCKED", "hero level is too low");
-    if (definition.allowedClasses && !definition.allowedClasses.includes(hero.classType ?? "Novice")) {
-      throw new InventoryCommandError("EQUIP_BLOCKED", "hero class cannot equip this item");
-    }
     const equipment = { ...(hero.equipment ?? {}) };
     if (equipment[definition.slot]) throw new InventoryCommandError("EQUIP_BLOCKED", "equipment slot is occupied");
     if (definition.slot === "offHand" && equipment.mainHand && ensureItem(equipment.mainHand.itemId).twoHanded) {

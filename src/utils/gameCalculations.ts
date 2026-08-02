@@ -36,6 +36,15 @@ import { BUILDINGS_LIST } from "../data/buildings.ts";
 import type { Rng } from "../domain/random.ts";
 import { systemRng } from "../domain/random.ts";
 import { calculateHeroDerivedStats } from "../../shared/domain/hero-stats.ts";
+import { applyItemRarityScaling as applyCanonicalItemRarityScaling } from "../../shared/domain/items/scaling.ts";
+export {
+  ITEM_RARITY_DAMAGE_MULTIPLIERS,
+  ITEM_RARITY_FLAT_MODIFIER_MULTIPLIERS,
+  ITEM_RARITY_PERCENT_MODIFIER_MULTIPLIERS,
+  ITEM_RARITY_MODIFIER_COUNTS,
+  scaleModifierByRarity,
+  generateExtraModifiersForRarity,
+} from "../../shared/domain/items/scaling.ts";
 
 export const getHeroAttributes = (
   hero: Hero
@@ -53,6 +62,7 @@ export const getHeroAttributes = (
   return { str, agi, end, int, wiz, dex, luk };
 };
 
+/* Historical implementation retained as adapter context until CDI-079 prunes it.
 export const ITEM_RARITY_DAMAGE_MULTIPLIERS: Record<Rarity, number> = {
   common: 1,
   uncommon: 1.5,
@@ -267,38 +277,10 @@ export function generateExtraModifiersForRarity(
 
   return extraModifiers;
 }
+*/
 
 export function applyItemRarityScaling<T extends ItemInfo>(item: T, rarity: Rarity, skipExtraModifiers: boolean = false): T {
-  // 1. Clone the item to prevent mutation
-  const cloned = {
-    ...item,
-    modifiers: item.modifiers ? item.modifiers.map(m => ({ ...m })) : undefined
-  } as T;
-
-  cloned.rarity = rarity;
-
-  // 2. Damage range scaling if weapon
-  if (cloned.itemType === "weapon") {
-    const weapon = cloned as any;
-    if (weapon.damageRange) {
-      const multiplier = ITEM_RARITY_DAMAGE_MULTIPLIERS[rarity] ?? 1;
-      const baseMin = weapon.damageRange.min;
-      const baseMax = weapon.damageRange.max;
-      const scaledMin = Math.max(1, Math.round(baseMin * multiplier));
-      const scaledMax = Math.max(scaledMin, Math.round(baseMax * multiplier));
-      weapon.damageRange = { min: scaledMin, max: scaledMax };
-    }
-  }
-
-  // 3. Modifier scaling and extra modifier generation
-  const baseModifiers = cloned.modifiers || [];
-  const scaledBaseModifiers = baseModifiers.map(mod => scaleModifierByRarity(mod, rarity));
-
-  const extraMods = skipExtraModifiers ? [] : generateExtraModifiersForRarity(item, rarity);
-
-  cloned.modifiers = [...scaledBaseModifiers, ...extraMods];
-
-  return cloned;
+  return applyCanonicalItemRarityScaling(item, rarity, skipExtraModifiers) as unknown as T;
 }
 
 export function resolveEquippedItem(equippedItemRef: EquippedItemRef | null | undefined): ItemInfo | null {

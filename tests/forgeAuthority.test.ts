@@ -47,6 +47,27 @@ describe("authoritative novice forge", () => {
     });
   });
 
+  it.each([
+    ["embercleaver_greataxe", "epic"],
+    ["eclipse_heart_spellbook", "legendary"],
+  ] as const)("crafts catalog plan %s at no less than its minimum rarity", (itemId, rarity) => {
+    const state = {
+      ...forgeState(),
+      itemBlueprints: [{ itemId, unlocked: true }],
+    };
+    const started = applyForgeCommand(state, { type: "forge.start", recipeId: itemId, commandId: itemId }, rngAt(0));
+    expect(started.state.pendingForge).toMatchObject({ itemId, upgradeProc: "none" });
+    const finalized = applyForgeCommand(started.state, {
+      type: "forge.finalize",
+      previewId: `preview-${itemId}`,
+      acceptUpgrade: false,
+    });
+    expect(finalized.state).toMatchObject({
+      storedItems: [{ itemId, rarity }],
+      pendingForge: null,
+    });
+  });
+
   it("charges and applies an uncommon upgrade", () => {
     const started = applyForgeCommand(forgeState([
       { materialId: "metal_scrap", rarity: "common", count: 6 },
@@ -65,12 +86,12 @@ describe("authoritative novice forge", () => {
         instanceId: "item:forge:preview-uncommon",
         itemId: "quick_dagger",
         rarity: "uncommon",
-        modifiers: [
-          { stat: "criticalChance", type: "percent", value: 1 },
-          { stat: "criticalChance", type: "flat", value: 1 },
-        ],
       }],
     });
+    expect((finalized.state.storedItems as Array<{ modifiers: unknown[] }>)[0].modifiers).toEqual(expect.arrayContaining([
+      { stat: "criticalChance", type: "percent", value: 1 },
+      { stat: "criticalChance", type: "flat", value: 1 },
+    ]));
   });
 
   it("charges the complete rare upgrade cost and accepts armor resistances", () => {
@@ -92,12 +113,12 @@ describe("authoritative novice forge", () => {
         instanceId: "item:forge:preview-rare",
         itemId: "traveler_clothes",
         rarity: "rare",
-        modifiers: [
-          { stat: "maxMana", type: "percent", value: 5 },
-          { stat: "fireResistance", type: "flat", value: 2 },
-        ],
       }],
     });
+    expect((finalized.state.storedItems as Array<{ modifiers: unknown[] }>)[0].modifiers).toEqual(expect.arrayContaining([
+      { stat: "maxMana", type: "percent", value: 5 },
+      { stat: "fireResistance", type: "flat", value: 2 },
+    ]));
   });
 
   it("cancels only the preview and keeps the consumed base cost", () => {

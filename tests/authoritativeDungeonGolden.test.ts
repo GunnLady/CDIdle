@@ -103,7 +103,12 @@ describe("authoritative dungeon golden behavior characterized from 640f89f", () 
       0.50, // legacy visual monster id roll retained for deterministic parity
       0.99, // residual multi-strike
       0.99, // critical
-      0.99, // material drop -> none
+      0.00, // boss gold range
+      0.00, 0.00, // guaranteed common material and count
+      0.00, 0.00, // guaranteed uncommon material and count
+      0.99, // rare material skipped
+      0.99, 0.99, 0.99, // item lines skipped
+      0.99, // blueprint skipped
     ]);
     const result = resolveAuthoritativeDungeonEncounter(state({
       activeDungeonRoom: 50,
@@ -122,7 +127,7 @@ describe("authoritative dungeon golden behavior characterized from 640f89f", () 
       })],
     }), "golden-boss", tape.rng);
 
-    expect(tape.draws()).toBe(4);
+    expect(tape.draws()).toBe(13);
     expect(result.encounter).toMatchObject({
       kind: "fight",
       room: 50,
@@ -180,15 +185,16 @@ describe("authoritative dungeon golden behavior characterized from 640f89f", () 
     const tape = tapeRng([
       0.94, // encounter -> treasure
       0.90, // treasure -> item
-      0.00, // first item
+      0.00, // common rarity
+      0.00, // first eligible item
       0.10, // material rarity
       0.00, // material count
     ]);
     const result = resolveAuthoritativeDungeonEncounter(state(), "golden-treasure-item", tape.rng);
 
-    expect(tape.draws()).toBe(5);
+    expect(tape.draws()).toBe(6);
     expect(result.encounter.rewards.loot).toEqual(expect.arrayContaining([
-      expect.objectContaining({ type: "item", instanceId: "item:dungeon:golden-treasure-item:loot:0", rarity: "rare", count: 1 }),
+      expect.objectContaining({ type: "item", instanceId: "item:dungeon:golden-treasure-item:loot:0", rarity: "common", count: 1 }),
       expect.objectContaining({ type: "material", count: 1 }),
     ]));
     expect(result.state.storedItems).toHaveLength(1);
