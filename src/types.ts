@@ -223,7 +223,7 @@ export interface GameState {
   districts: { [key: string]: boolean }; // districtId: unlocked
   heroes: Hero[];
   activeDungeonFloor: number;
-  activeDungeonRoom: number; // 1 to 50
+  activeDungeonRoom: number; // 1 to getDungeonRoomCount(activeDungeonFloor)
   combatTimer: number; // remaining ticks for combat log
   battleLogs: BattleLogEntry[];
   currentMonster: Monster | null;

@@ -81,7 +81,7 @@ export async function submitErrorReport(payload: ErrorReportPayload): Promise<vo
 
 export async function callGameApi<T>(path: string, init: RequestInit = {}): Promise<T> {
   const { data } = await supabase.auth.getSession();
-  const token = data.session?.access_token;
+  let token = data.session?.access_token;
   if (!token) throw new Error("UNAUTHENTICATED");
   const controller = new AbortController();
   const abortFromCaller = () => controller.abort(init.signal?.reason);
@@ -90,13 +90,24 @@ export async function callGameApi<T>(path: string, init: RequestInit = {}): Prom
   const timeout = globalThis.setTimeout(() => {
     controller.abort(new DOMException("GAME_API_TIMEOUT", "TimeoutError"));
   }, GAME_API_REQUEST_TIMEOUT_MS);
-  let response: Response;
-  try {
-    response = await fetch(gameApiUrl(path), {
+  const request = (accessToken: string) => {
+    const headers = new Headers(init.headers);
+    if (!headers.has("content-type")) headers.set("content-type", "application/json");
+    headers.set("authorization", `Bearer ${accessToken}`);
+    return fetch(gameApiUrl(path), {
       ...init,
       signal: controller.signal,
-      headers: { "content-type": "application/json", authorization: `Bearer ${token}`, ...(init.headers ?? {}) },
+      headers,
     });
+  };
+  let response: Response;
+  try {
+    response = await request(token);
+    if (response.status === 401) {
+      const refreshed = await supabase.auth.refreshSession();
+      token = refreshed.data.session?.access_token;
+      if (token) response = await request(token);
+    }
   } catch (error) {
     if (controller.signal.aborted
         && controller.signal.reason instanceof DOMException

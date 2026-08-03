@@ -84,6 +84,61 @@ describe("Supabase client contract", () => {
 
   });
 
+  it("refreshes the session and replays the exact request once after a 401", async () => {
+    const module = supabaseModule;
+    vi.spyOn(module.supabase.auth, "getSession").mockResolvedValue({
+      data: { session: { access_token: "expired-token" } },
+    } as never);
+    const refreshSession = vi.spyOn(module.supabase.auth, "refreshSession").mockResolvedValue({
+      data: { session: { access_token: "fresh-token" }, user: null },
+      error: null,
+    } as never);
+    const body = JSON.stringify({ commandId: "same-command", command: { type: "dungeon.resolve" } });
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        error: { code: "UNAUTHENTICATED", message: "a valid bearer token is required" },
+      }), { status: 401 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ ok: true, replayed: true }), { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(module.callGameApi("/commands", { method: "POST", body })).resolves.toEqual({
+      ok: true,
+      replayed: true,
+    });
+
+    expect(refreshSession).toHaveBeenCalledOnce();
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    const firstInit = fetchMock.mock.calls[0][1] as RequestInit;
+    const secondInit = fetchMock.mock.calls[1][1] as RequestInit;
+    expect(firstInit.body).toBe(body);
+    expect(secondInit.body).toBe(body);
+    expect(new Headers(firstInit.headers).get("authorization")).toBe("Bearer expired-token");
+    expect(new Headers(secondInit.headers).get("authorization")).toBe("Bearer fresh-token");
+  });
+
+  it("does not loop when the refreshed session is also rejected", async () => {
+    const module = supabaseModule;
+    vi.spyOn(module.supabase.auth, "getSession").mockResolvedValue({
+      data: { session: { access_token: "expired-token" } },
+    } as never);
+    const refreshSession = vi.spyOn(module.supabase.auth, "refreshSession").mockResolvedValue({
+      data: { session: { access_token: "fresh-token" }, user: null },
+      error: null,
+    } as never);
+    const unauthorized = () => new Response(JSON.stringify({
+      error: { code: "UNAUTHENTICATED", message: "a valid bearer token is required" },
+    }), { status: 401 });
+    const fetchMock = vi.fn().mockImplementation(unauthorized);
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(module.callGameApi("/commands", { method: "POST", body: "{}" })).rejects.toMatchObject({
+      status: 401,
+      code: "UNAUTHENTICATED",
+    });
+    expect(refreshSession).toHaveBeenCalledOnce();
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
   it("classifies an invalid canonical save separately from a network outage", async () => {
     const module = supabaseModule;
     const error = new module.GameApiError(

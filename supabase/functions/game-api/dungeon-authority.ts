@@ -4,6 +4,7 @@ import {
   type AuthoritativeDungeonState,
 } from "../../../src/domain/authoritativeDungeon.ts";
 import type { Hero, PendingClassTransition } from "../../../src/types.ts";
+import { getDungeonRoomCount } from "../../../shared/domain/dungeon-progression.ts";
 
 export type DungeonHero = Hero;
 
@@ -45,19 +46,23 @@ const activeHeroes = (heroes: DungeonHero[]) =>
 
 function progress(state: DungeonState): { floor: number; room: number; highest: number } {
   const floor = Number(state.activeDungeonFloor ?? 1);
-  const room = Number(state.activeDungeonRoom ?? 1);
+  const persistedRoom = Number(state.activeDungeonRoom ?? 1);
   const highest = Number(state.highestFloorReached ?? floor);
   if (
     !Number.isInteger(floor)
     || floor < 1
-    || !Number.isInteger(room)
-    || room < 1
-    || room > 50
+    || !Number.isInteger(persistedRoom)
+    || persistedRoom < 1
+    || persistedRoom > 50
     || !Number.isInteger(highest)
     || highest < floor
   ) {
     throw new DungeonCommandError("INVALID_DUNGEON_STATE", "dungeon progression is invalid");
   }
+  const room = state.currentEncounter
+    ? persistedRoom
+    : Math.min(persistedRoom, getDungeonRoomCount(floor));
+  state.activeDungeonRoom = room;
   return { floor, room, highest };
 }
 
@@ -105,9 +110,6 @@ export function applyDungeonCommand(
   const { floor, room, highest } = progress(state);
 
   if (typed.type === "dungeon.auto_explore") {
-    if (typed.enabled && (state.pendingClassTransitions?.length ?? 0) > 0) {
-      throw new DungeonCommandError("VOCATION_REQUIRED", "a hero must choose a vocation before automatic exploration resumes");
-    }
     if (typed.enabled && activeHeroes(state.heroes ?? []).length === 0) {
       throw new DungeonCommandError("NO_ACTIVE_HERO", "at least one active hero is required");
     }

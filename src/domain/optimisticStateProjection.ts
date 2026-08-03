@@ -25,7 +25,10 @@ function projectCommand(state: CanonicalRecord, command: GameCommand): Canonical
     let level = Number(buildings[command.buildingId] ?? 0);
     for (let index = 0; index < (command.levels ?? 1); index += 1) {
       const cost = getBuildingUpgradeCost(command.buildingId, level);
-      if (Object.entries(cost).some(([resource, amount]) => Number(resources[resource] ?? 0) < Number(amount))) break;
+      // The UI authorizes the click from its live time projection. Canonical
+      // resources can therefore still be lower until the server applies idle
+      // production. Project the intent immediately; the server remains the
+      // authority and restores the confirmed state if it rejects the command.
       resources = Object.fromEntries(Object.entries(resources).map(([resource, amount]) => [resource, Number(amount) - Number(cost[resource as keyof typeof cost] ?? 0)]));
       level += 1;
     }

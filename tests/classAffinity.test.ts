@@ -35,9 +35,9 @@ function levelTenNovice(index: number): Hero {
 }
 
 describe("Tier 1 class affinity", () => {
-  it("keeps the calibrated 10,000-Novice distribution balanced and mostly automatic", () => {
+  it("keeps the calibrated 10,000-Novice distribution balanced and mostly decisive", () => {
     const wins = new Map<ClassType, number>(TIER1_CLASSES.map((classType) => [classType, 0]));
-    let prayers = 0;
+    let multipleChoiceLists = 0;
     let shortlistContainsNaturalTopThree = 0;
     const trainingScores = new Map<ClassType, number[]>(TIER1_CLASSES.map((classType) => [classType, []]));
 
@@ -51,7 +51,7 @@ describe("Tier 1 class affinity", () => {
           trainingScores.get(classType)?.push(calculateRawClassAffinity(hero, classType));
         }
       }
-      if (shortlist.length > 1) prayers += 1;
+      if (shortlist.length > 1) multipleChoiceLists += 1;
       const naturalTopThree = [...TIER1_CLASSES]
         .map((classType) => ({ classType, score: calculateRawClassAffinity(hero, classType) }))
         .sort((left, right) => right.score - left.score)
@@ -64,8 +64,8 @@ describe("Tier 1 class affinity", () => {
 
     const shares = [...wins.values()].map((count) => count / 10_000);
     expect(Math.max(...shares) - Math.min(...shares)).toBeLessThanOrEqual(0.03);
-    const automaticShare = 1 - prayers / 10_000;
-    expect(Math.round(automaticShare * 1_000) / 1_000).toBeGreaterThanOrEqual(0.8);
+    const singleChoiceShare = 1 - multipleChoiceLists / 10_000;
+    expect(Math.round(singleChoiceShare * 1_000) / 1_000).toBeGreaterThanOrEqual(0.8);
     expect(shortlistContainsNaturalTopThree / 10_000).toBeGreaterThanOrEqual(0.98);
     for (const classType of TIER1_CLASSES) {
       const values = trainingScores.get(classType) ?? [];

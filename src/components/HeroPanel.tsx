@@ -687,10 +687,10 @@ export default function HeroPanel({
                             <div className="bg-[#24170e]/40 p-3 rounded-xl border border-amber-500/20 text-xs">
                               <div className="flex items-center gap-1.5 mb-1.5 text-[#caa050] font-serif font-bold uppercase tracking-wider">
                                 <Sparkles className="w-3.5 h-3.5 text-amber-500/80" />
-                                <span>Vocation Automatique</span>
+                                <span>Appel de vocation</span>
                               </div>
                               <p className="text-xs text-[#a89078] leading-relaxed font-sans">
-                                Ce héros cherchera une spécialisation de Tier 1 dès le <span className="text-amber-500 font-semibold">Niveau 10</span> si une infrastructure de métier est disponible. Une affinité ambiguë peut retarder le choix, mais une vocation disponible sera retenue au plus tard au niveau 13.
+                                Dès le <span className="text-amber-500 font-semibold">Niveau 10</span>, ce héros cherchera une spécialisation de Tier 1 parmi les infrastructures disponibles. Si plusieurs voies restent proches, il adressera une prière aux dieux et vous choisirez sa vocation.
                               </p>
                             </div>
                           )}

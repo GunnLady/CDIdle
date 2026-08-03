@@ -58,4 +58,19 @@ describe("projectOptimisticCommands", () => {
       expect.objectContaining({ instanceId: "item-optimistic", itemId: "starter_sword" }),
     ]);
   });
+
+  it("projects a building paid by resources accrued since the canonical snapshot", () => {
+    const canonical = {
+      resources: { gold: 390, food: 200, wood: 180, stone: 120, ore: 80 },
+      buildings: { caserne: 0 },
+    };
+
+    const projected = projectOptimisticCommands(canonical, [
+      { type: "building.upgrade", buildingId: "caserne" },
+    ]);
+
+    expect(projected.buildings.caserne).toBe(1);
+    expect(projected.resources.gold).toBe(-10);
+    expect(canonical.resources.gold).toBe(390);
+  });
 });

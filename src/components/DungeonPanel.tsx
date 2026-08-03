@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { Hero, BattleLogEntry } from "../types";
 import type { CanonicalDungeonEncounterRecord } from "../../shared/contracts/authoritative";
+import { getDungeonRoomCount } from "../../shared/domain/dungeon-progression";
 
 interface DungeonPanelProps {
   heroes: Hero[];
@@ -59,6 +60,7 @@ export default function DungeonPanel({
   onClearBattleLogs,
   onResetLevel
 }: DungeonPanelProps) {
+  const roomCount = getDungeonRoomCount(activeDungeonFloor);
   const activeHeroes = heroes.filter((h) => h.isActive);
   const logContainerRef = useRef<HTMLDivElement>(null);
   const [isResetConfirming, setIsResetConfirming] = React.useState(false);
@@ -355,7 +357,7 @@ export default function DungeonPanel({
               <ArrowLeft className="w-3.5 h-3.5" />
             </button>
             <span className="text-[10px] uppercase tracking-widest font-bold px-3 py-1 bg-[#1c1109] text-[#d4af37] border border-[#5c402b]/60 rounded font-serif">
-              Étage {activeDungeonFloor} - Salle {activeDungeonRoom}/50
+              Étage {activeDungeonFloor} - Salle {Math.min(activeDungeonRoom, roomCount)}/{roomCount}
             </span>
             <button
               onClick={() => onChangeFloor("next")}
@@ -370,11 +372,11 @@ export default function DungeonPanel({
 
         {/* Progression inside the Floor before Boss */}
         <div className="grid grid-cols-10 gap-1 mb-4 bg-[#110b06] p-2 rounded-lg border border-[#5c402b]/30">
-          {Array.from({ length: 50 }).map((_, i) => {
+          {Array.from({ length: roomCount }).map((_, i) => {
             const num = i + 1;
             const isCompleted = num < activeDungeonRoom;
             const isCurrent = num === activeDungeonRoom;
-            const isBossRoom = num === 50;
+            const isBossRoom = num === roomCount;
 
             let colClass = "bg-[#18110b] border-[#2d1d12] text-[#5c4b3f]";
             if (isCompleted) colClass = "bg-[#421d1d]/30 border-red-950/50 text-[#bf4343]/80";

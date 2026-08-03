@@ -47,15 +47,16 @@ Toute modification de génération, de croissance, de formule ou d'offset doit
 donc mettre à jour explicitement cette table et conserver les contraintes du
 test `tests/classAffinity.test.ts`.
 
-Une seule classe déclenche la vocation automatiquement. Plusieurs classes
-créent une `pendingClassTransition` canonique : le héros adresse une prière aux
-dieux et le joueur choisit uniquement parmi cette liste persistée. L'affinité
-est un indice de classement calibré, pas une probabilité.
+Une seule vocation dans la fenêtre de 1 % est appliquée automatiquement dans la
+même récompense canonique. Plusieurs vocations dans cette fenêtre créent une
+`pendingClassTransition` : le héros adresse alors une prière aux dieux et le
+joueur tranche. L'affinité est un indice de classement calibré, pas une
+probabilité.
 
 La simulation déterministe de référence porte sur 10 000 Novices réellement
 générés puis montés au niveau 10 avec tous les bâtiments. Elle impose un écart
-maximal de 3 points entre les parts de classes, au moins 80 % de vocations
-automatiques et au moins 98 % des listes contenant une des trois meilleures
+maximal de 3 points entre les parts de classes, au moins 80 % de listes à choix
+unique et au moins 98 % des listes contenant une des trois meilleures
 affinités brutes.
 
 Les classes T1 actuellement admissibles sont Guerrier et Pugiliste via la
@@ -65,9 +66,9 @@ Forge. Les races et classes T2 restent hors périmètre.
 
 ## Prière et état canonique
 
-Le héros concerné devient inactif et l'auto-donjon s'arrête après la rencontre
-qui a déclenché la prière. La ville et les autres héros restent utilisables ;
-un autre héros actif peut continuer le donjon manuellement.
+Le héros concerné reste actif et l'auto-donjon continue après la rencontre qui
+a déclenché la prière. Le choix peut donc être différé sans interrompre la
+progression.
 
 La fenêtre de prière peut être différée. Un rappel compact reste affiché tant
 que le choix canonique n'est pas résolu, afin de rendre immédiatement la ville
@@ -81,9 +82,11 @@ valider la vocation.
 `hero.choose_vocation` ne consomme aucun tirage pour le choix. La commande
 consomme ensuite seulement les tirages nécessaires aux compétences, à l'arme
 et à l'accessoire, puis applique atomiquement la transition. Les Novices déjà
-niveau 10 ou plus sont réconciliés en attente sans tirage RNG. Une attente
-obsolète est retirée si le héros ne correspond plus à sa classe et à son tier
-source.
+niveau 10 ou plus sont réconciliés en attente sans tirage RNG, y compris
+lorsqu'une sauvegarde historique ne contient qu'un candidat. Cette
+réconciliation recalcule les candidats selon les bâtiments actuels ; une
+attente obsolète est retirée si le héros ne correspond plus à sa classe et à
+son tier source.
 
 ## Compétences lors de la vocation
 

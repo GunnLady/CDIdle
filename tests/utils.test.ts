@@ -290,7 +290,7 @@ describe("hero domain", () => {
     expect(leveled).toMatchObject({ level: 10, classType: "Novice" });
   });
 
-  it("applies a delayed vocation and its rewards through the progression facade", () => {
+  it("applies an unambiguous vocation through the progression facade", () => {
     const hero = makeHero({
       id: "hero-delayed-transition",
       level: 10,
@@ -307,11 +307,13 @@ describe("hero domain", () => {
     });
 
     expect(progression.hero).toMatchObject({ level: 11, classType: "Guerrier" });
-    expect(progression.classChange).toMatchObject({ fromTier: 0, toTier: 1, toClass: "Guerrier" });
-    expect(progression.hero.equipment).toMatchObject({
-      mainHand: { instanceId: "item:hero-delayed-transition:tier1:weapon" },
-      accessory: { instanceId: "item:hero-delayed-transition:tier1:accessory" },
+    expect(progression.classChange).toMatchObject({
+      fromClass: "Novice",
+      toClass: "Guerrier",
+      fromTier: 0,
+      toTier: 1,
     });
+    expect(progression.pendingTransition).toBeUndefined();
   });
 
   it("describes class transitions independently from their tier policy", () => {
@@ -327,6 +329,7 @@ describe("hero domain", () => {
       fromTier: 0,
       toTier: 1,
     });
+    expect(resolution.pendingTransition).toBeUndefined();
     expect(() => applyClassTransition(hero, {
       fromClass: "Guerrier",
       toClass: "Guerrier",

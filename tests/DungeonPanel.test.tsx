@@ -45,6 +45,7 @@ describe("DungeonPanel authoritative encounter history", () => {
     expect(screen.getByText("Tour 1 — Ragnor inflige 6 dégâts.")).toBeInTheDocument();
     expect(screen.getAllByText("Tour 1 — Ragnor inflige 6 dégâts.")).toHaveLength(1);
     expect(screen.getByText("Combat en cours")).toBeInTheDocument();
+    expect(screen.getByText("Étage 2 - Salle 8/10")).toBeInTheDocument();
     expect(screen.queryByText(/Résoudre/i)).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Exploration en cours…" })).toBeDisabled();
 

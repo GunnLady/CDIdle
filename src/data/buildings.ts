@@ -222,31 +222,31 @@ export const getBuildingUpgradeCost = (buildingId: string, currentLevel: number)
     }
   } else if (buildingId === "academie") {
     switch (currentLevel) {
-      default: return { gold: 1595, food: 1260, wood: 2030, stone: 2105, ore: 1800 };
+      default: return { gold: 450, food: 250, wood: 300, stone: 280, ore: 180 };
     }
   } else if (buildingId === "temple") {
     switch (currentLevel) {
-      default: return { gold: 1325, food: 1170, wood: 1150, stone: 1810, ore: 750  };
+      default: return { gold: 350, food: 250, wood: 180, stone: 220, ore: 80 };
     }
   } else if (buildingId === "cercle") {
     switch (currentLevel) {
-      default: return { gold: 1785, food: 2525, wood: 3080, stone: 1755, ore: 450 };
+      default: return { gold: 450, food: 350, wood: 400, stone: 200, ore: 80 };
     }
   } else if (buildingId === "lair") {
     switch (currentLevel) {
-      default: return { gold: 1345, food: 1260, wood: 2030, stone: 1805, ore: 800 };
+      default: return { gold: 350, food: 220, wood: 260, stone: 140, ore: 80 };
     }
   } else if (buildingId === "caserne") {
     switch (currentLevel) {
-      default: return { gold: 1275, food: 1270, wood: 1050, stone: 980, ore: 800 };
+      default: return { gold: 400, food: 200, wood: 180, stone: 120, ore: 80 };
     }
   } else if (buildingId === "poste_chasse") {
     switch (currentLevel) {
-      default: return { gold: 1185, food: 1435, wood: 2380, stone: 1355, ore: 450 };
+      default: return { gold: 300, food: 250, wood: 300, stone: 100, ore: 50 };
     }
   } else if (buildingId === "forge") {
     switch (currentLevel) {
-      default: return { gold: 2000, food: 500, wood: 2500, stone: 1500, ore: 1500 };
+      default: return { gold: 600, food: 150, wood: 450, stone: 300, ore: 250 };
     }
   } 
 };
@@ -291,34 +291,34 @@ export const BUILDING_UNLOCKS: { [key: string]: UnlockRequirement } = {
     desc: "Campement Niv. 1, Mine Niv. 1 et Étage atteint 3"
   },
   cercle: {
-    requiredBuildings: { temple: 1 },
-    requiredFloor: 6,
-    desc: "Église Niv. 1 Étage atteint 6"
+    requiredBuildings: { guilde: 1, mine: 1 },
+    requiredFloor: 3,
+    desc: "Campement Niv. 1, Mine Niv. 1 et Étage atteint 3"
   },
   poste_chasse: {
-    requiredBuildings: { caserne: 1 },
-    requiredFloor: 4,
-    desc: "Caserne Niv. 1 et Étage atteint 4"
+    requiredBuildings: { guilde: 1, mine: 1 },
+    requiredFloor: 3,
+    desc: "Campement Niv. 1, Mine Niv. 1 et Étage atteint 3"
   },
   lair: {
-    requiredBuildings: { caserne: 1 },
-    requiredFloor: 4,
-    desc: "Caserne Niv. 1 et Étage atteint 4"
+    requiredBuildings: { guilde: 1, mine: 1 },
+    requiredFloor: 3,
+    desc: "Campement Niv. 1, Mine Niv. 1 et Étage atteint 3"
   },
   temple: {
-    requiredBuildings: { guilde: 1 },
-    requiredFloor: 5,
-    desc: "Campement Niv. 1 et Étage atteint 5"
+    requiredBuildings: { guilde: 1, mine: 1 },
+    requiredFloor: 3,
+    desc: "Campement Niv. 1, Mine Niv. 1 et Étage atteint 3"
   },
   academie: {
-    requiredBuildings: { temple: 1 },
-    requiredFloor: 6,
-    desc: "Église Niv. 1 et Étage atteint 6"
+    requiredBuildings: { guilde: 1, mine: 1 },
+    requiredFloor: 3,
+    desc: "Campement Niv. 1, Mine Niv. 1 et Étage atteint 3"
   },
   forge: {
-    requiredBuildings: { guilde: 1, maison_chef: 1 },
-    requiredFloor: 7,
-    desc: "Campement Niv. 1, Maison du chef Niv. 1 et Étage atteint 7"
+    requiredBuildings: { guilde: 1, mine: 1 },
+    requiredFloor: 3,
+    desc: "Campement Niv. 1, Mine Niv. 1 et Étage atteint 3"
   }
 };
 

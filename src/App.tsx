@@ -1615,7 +1615,7 @@ export default function App() {
           {activeTab === "city" && (
             <div className={`w-full ${canMutate ? "" : "pointer-events-none opacity-80"}`} aria-disabled={!canMutate}>
               <TownPanel
-                resources={town.resources}
+                resources={town.displayResources}
                 buildings={town.buildings}
                 citizens={town.citizens}
                 totalCitizensCount={town.displayTotalCitizens}

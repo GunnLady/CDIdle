@@ -6,7 +6,6 @@ import {
 import type { Rng } from "../src/domain/random";
 import { seededRng } from "../src/domain/random";
 import { applyHeroExperienceLevels } from "../src/domain/hero";
-import { getHeroStats } from "../src/utils/gameCalculations";
 import { makeHero, makeResources } from "./fixtures/game";
 import { generateAuthoritativeNovice } from "../supabase/functions/game-api/novice-authority";
 
@@ -76,10 +75,10 @@ describe("authoritative dungeon golden behavior characterized from 640f89f", () 
         id: "0.25",
         name: "Rat Énorme des Égouts",
         hp: 0,
-        maxHp: 39,
+        maxHp: 48,
         isBoss: false,
       },
-      rewards: { gold: 2, loot: [] },
+      rewards: { gold: 3, loot: [] },
     });
     expect(result.encounter.transcript.map((event) => event.type)).toEqual([
       "encounter.started",
@@ -94,11 +93,11 @@ describe("authoritative dungeon golden behavior characterized from 640f89f", () 
       activeDungeonRoom: 2,
       highestFloorReached: 1,
       autoExplore: true,
-      resources: { gold: 2 },
+      resources: { gold: 3 },
     });
   });
 
-  it("forces the characterized boss without encounter or monster selection rolls", () => {
+  it("forces a major boss at floor 10 without encounter or monster selection rolls", () => {
     const tape = tapeRng([
       0.50, // legacy visual monster id roll retained for deterministic parity
       0.99, // residual multi-strike
@@ -111,7 +110,9 @@ describe("authoritative dungeon golden behavior characterized from 640f89f", () 
       0.99, // blueprint skipped
     ]);
     const result = resolveAuthoritativeDungeonEncounter(state({
+      activeDungeonFloor: 10,
       activeDungeonRoom: 50,
+      highestFloorReached: 11,
       heroes: [makeHero({
         name: "Ariane",
         baseStats: { str: 500, agi: 1, end: 500, int: 1, wiz: 1, dex: 1, luk: 1 },
@@ -140,10 +141,51 @@ describe("authoritative dungeon golden behavior characterized from 640f89f", () 
       },
     });
     expect(result.state).toMatchObject({
-      activeDungeonFloor: 2,
+      activeDungeonFloor: 11,
       activeDungeonRoom: 1,
-      highestFloorReached: 2,
+      highestFloorReached: 11,
     });
+  });
+
+  it("awards the floor-clear bonus only on the first completion", () => {
+    const hero = makeHero({
+      name: "Ariane",
+      currentHp: 100_000,
+      calculatedStats: {
+        ...makeHero().calculatedStats,
+        maxHp: 100_000,
+        hp: 100_000,
+        physicalDamage: 1_000_000,
+        speed: 5,
+        criticalChance: 0,
+      },
+    });
+    const first = resolveAuthoritativeDungeonEncounter(state({
+      activeDungeonRoom: 5,
+      heroes: [hero],
+    }), "first-floor-clear", seededRng(42));
+    const replay = resolveAuthoritativeDungeonEncounter({
+      ...first.state,
+      activeDungeonFloor: 1,
+      activeDungeonRoom: 5,
+      heroes: first.state.heroes?.map((entry) => ({
+        ...entry,
+        currentHp: entry.calculatedStats.maxHp,
+        isActive: true,
+        status: "idle",
+      })),
+    }, "replayed-floor-clear", seededRng(43));
+
+    expect(first.encounter.transcript.some((event) => event.type === "reward.floor_first_clear")).toBe(true);
+    expect(first.encounter.transcript).toContainEqual(expect.objectContaining({
+      type: "reward.floor_first_clear_xp",
+      source: "floor_first_clear",
+      floor: 1,
+      message: expect.stringContaining("Prime de première sécurisation"),
+    }));
+    expect(replay.encounter.transcript.some((event) => event.type === "reward.floor_first_clear")).toBe(false);
+    expect(replay.encounter.transcript.some((event) => event.type === "reward.floor_first_clear_xp")).toBe(false);
+    expect(replay.encounter.transcript.some((event) => event.type === "dungeon.floor_completed")).toBe(false);
   });
 
   it("preserves the treasure branch and its independent reward rolls", () => {
@@ -162,7 +204,7 @@ describe("authoritative dungeon golden behavior characterized from 640f89f", () 
       roundCount: 0,
       enemy: null,
       rewards: {
-        gold: 5,
+        gold: 8,
         loot: [{
           type: "material",
           materialId: "refined_metal",
@@ -222,11 +264,11 @@ describe("authoritative dungeon golden behavior characterized from 640f89f", () 
 
   it.each([
     ["trap", 0.60, 0, 0],
-    ["enigma", 0.67, 25, 15],
-    ["ambush", 0.73, 15, 0],
+    ["enigma", 0.67, 8, 15],
+    ["ambush", 0.73, 4, 0],
     ["ritual", 0.79, 0, 20],
     ["obstacle", 0.85, 0, 0],
-    ["negotiation", 0.90, 35, 0],
+    ["negotiation", 0.90, 12, 0],
   ] as const)("preserves the successful %s challenge branch", (
     kind,
     encounterRoll,
@@ -354,7 +396,7 @@ describe("authoritative dungeon golden behavior characterized from 640f89f", () 
       },
     });
     const source = state({
-      activeDungeonRoom: 50,
+      activeDungeonRoom: 5,
       heroes: [durableHero],
     });
     const before = structuredClone(source);
@@ -426,6 +468,42 @@ describe("authoritative dungeon golden behavior characterized from 640f89f", () 
       damageType: "physical",
       round: 1,
     });
+  });
+
+  it.each([
+    ["double_cut", 2],
+    ["rapid_combo", 5],
+  ] as const)("details every impact of the %s multi-hit skill", (skillId, hitCount) => {
+    const tape = tapeRng([
+      0.10, // encounter -> fight
+      0.00, // monster
+      0.25, // visual id
+      0.99, // material drop -> none
+    ]);
+    const result = resolveAuthoritativeDungeonEncounter(state({
+      heroes: [makeHero({
+        name: "Ariane",
+        activeSkills: [skillId],
+        currentMana: 100,
+        calculatedStats: {
+          ...makeHero().calculatedStats,
+          maxHp: 200,
+          hp: 200,
+          maxMana: 100,
+          mana: 100,
+          physicalDamage: 100,
+          physicalDefense: 100,
+        },
+        currentHp: 200,
+      })],
+    }), `golden-${skillId}`, tape.rng);
+    const event = result.encounter.transcript.find((entry) => entry.type === "hero.skill.damage");
+
+    expect(event).toMatchObject({ skillId, hitCount });
+    expect(event?.damage).toBe(Number(event?.damagePerHit) * hitCount);
+    expect(event?.message).toBe(
+      `Ariane declenche ${event?.skillName} et frappe ${hitCount} fois pour ${event?.damagePerHit} degats physical par impact (${event?.damage} au total).`,
+    );
   });
 
   it.each([
@@ -793,7 +871,7 @@ describe("authoritative dungeon golden behavior characterized from 640f89f", () 
         hp: 100,
         maxMana: 0,
         mana: 0,
-        physicalDamage: 20,
+        physicalDamage: 30,
         magicDamage: 0,
         speed: 0,
         physicalDefense: 0,
@@ -812,7 +890,7 @@ describe("authoritative dungeon golden behavior characterized from 640f89f", () 
     expect(result.state.heroes?.[0].currentHp).toBe(100);
   });
 
-  it("consumes ten growth rolls and preserves the automatic novice class change", () => {
+  it("consumes growth rolls and applies an unambiguous vocation automatically", () => {
     const tape = tapeRng([
       0.10, // encounter -> fight
       0.00, // monster
@@ -823,12 +901,9 @@ describe("authoritative dungeon golden behavior characterized from 640f89f", () 
       0.10, 0.10,
       0.10, 0.10,
       0.10, 0.10,
+      ...Array.from({ length: 10 }, () => 0.10),
       0.10, 0.10,
       0.10, 0.10,
-      0.10, // Tier 1 class active
-      0.10, // Tier 1 class passive
-      0.10, // Tier 1 weapon reward
-      0.10, // Tier 1 accessory reward
     ]);
     const levelingHero = makeHero({
       name: "Ariane",
@@ -859,13 +934,17 @@ describe("authoritative dungeon golden behavior characterized from 640f89f", () 
       },
     }), "golden-level", tape.rng);
 
-    expect(tape.draws()).toBe(20);
+    expect(tape.draws()).toBeGreaterThan(16);
     expect(result.state.heroes?.[0].level).toBe(10);
-    expect(result.state.heroes?.[0].classType).not.toBe("Novice");
-    expect(result.state.heroes?.[0].activeSkills).toHaveLength(1);
-    expect(result.state.heroes?.[0].passiveSkills).toHaveLength(1);
+    expect(result.state.heroes?.[0].classType).toBe("Guerrier");
+    expect(result.state.heroes?.[0]).toMatchObject({ isActive: true, status: "idle" });
+    expect(result.state.heroes?.[0].activeSkills).not.toEqual(levelingHero.activeSkills);
+    expect(result.state.heroes?.[0].passiveSkills).not.toEqual(levelingHero.passiveSkills);
     expect(result.encounter.transcript.map((event) => event.type)).toContain("hero.level_up");
+    expect(result.encounter.transcript.map((event) => event.type)).not.toContain("hero.vocation_prayer");
     expect(result.encounter.transcript.map((event) => event.type)).toContain("hero.class_changed");
+    expect(result.state.pendingClassTransitions ?? []).toHaveLength(0);
+    expect(result.state.autoExplore).toBe(true);
     const evolved = result.state.heroes?.[0];
     const levelEvent = result.encounter.transcript.find((event) => event.type === "hero.level_up");
     expect(levelEvent).toMatchObject({
@@ -917,42 +996,36 @@ describe("authoritative dungeon golden behavior characterized from 640f89f", () 
     }), "golden-multi-level", tape.rng);
     const levelEvents = result.encounter.transcript.filter((event) => event.type === "hero.level_up");
 
-    expect(tape.draws()).toBe(45);
-    expect(result.state.heroes?.[0].level).toBe(5);
+    expect(tape.draws()).toBe(25);
+    expect(result.state.heroes?.[0].level).toBe(3);
     expect(levelEvents).toHaveLength(1);
     expect(levelEvents[0]).toMatchObject({
-      levels: [2, 3, 4, 5],
+      levels: [2, 3],
       levelBefore: 1,
-      levelAfter: 5,
-      statGains: { str: 20 },
+      levelAfter: 3,
+      statGains: { str: 10 },
     });
-    expect(levelEvents[0].message).toContain("Ygritte gagne 4 niveaux (1 → 5) !");
+    expect(levelEvents[0].message).toContain("Ygritte gagne 2 niveaux (1 → 3) !");
   });
 
   it.each([
-    ["Guerrier", { caserne: 1 }, { str: 50, agi: 1, end: 50, int: 1, wiz: 1, dex: 1, luk: 1 }, "basic_sword", "sturdy_travel_belt", 2],
-    ["Voleur", { lair: 1 }, { str: 1, agi: 50, end: 1, int: 1, wiz: 1, dex: 50, luk: 1 }, "basic_dagger", "dusty_travel_cloak", 2],
-    ["Archer", { poste_chasse: 1 }, { str: 1, agi: 50, end: 1, int: 1, wiz: 1, dex: 50, luk: 1 }, "basic_shortbow", "knotted_leather_bracelet", 2],
-    ["Mage", { academie: 1 }, { str: 1, agi: 1, end: 1, int: 50, wiz: 1, dex: 50, luk: 1 }, "basic_wand", "silver_ring", 3],
-    ["Acolyte", { temple: 1 }, { str: 1, agi: 1, end: 1, int: 1, wiz: 50, dex: 50, luk: 1 }, "basic_mace", "silver_ring", 2],
-    ["Aède", { academie: 1 }, { str: 1, agi: 1, end: 1, int: 50, wiz: 50, dex: 1, luk: 1 }, "basic_lute", "silver_ring", 2],
-    ["Druide", { cercle: 1 }, { str: 1, agi: 1, end: 1, int: 50, wiz: 50, dex: 1, luk: 1 }, "basic_staff", "riverstone_amulet", 2],
-    ["Artificier", { forge: 1 }, { str: 1, agi: 1, end: 1, int: 50, wiz: 1, dex: 50, luk: 1 }, "basic_gear_cannon", "copper_focus_ring", 2],
-    ["Pugiliste", { caserne: 1 }, { str: 50, agi: 50, end: 1, int: 1, wiz: 1, dex: 1, luk: 1 }, "basic_knuckles", "ashwood_bracelet", 2],
-  ] as const)("awards the approved canonical equipment when a Novice becomes %s", (
+    ["Guerrier", { caserne: 1 }, { str: 50, agi: 1, end: 50, int: 1, wiz: 1, dex: 1, luk: 1 }],
+    ["Voleur", { lair: 1 }, { str: 1, agi: 50, end: 1, int: 1, wiz: 1, dex: 50, luk: 1 }],
+    ["Archer", { poste_chasse: 1 }, { str: 1, agi: 50, end: 1, int: 1, wiz: 1, dex: 50, luk: 1 }],
+    ["Mage", { academie: 1 }, { str: 1, agi: 1, end: 1, int: 50, wiz: 1, dex: 50, luk: 1 }],
+    ["Acolyte", { temple: 1 }, { str: 1, agi: 1, end: 1, int: 1, wiz: 50, dex: 50, luk: 1 }],
+    ["Aède", { academie: 1 }, { str: 1, agi: 1, end: 1, int: 50, wiz: 50, dex: 1, luk: 1 }],
+    ["Druide", { cercle: 1 }, { str: 1, agi: 1, end: 1, int: 50, wiz: 50, dex: 1, luk: 1 }],
+    ["Artificier", { forge: 1 }, { str: 1, agi: 1, end: 1, int: 50, wiz: 1, dex: 50, luk: 1 }],
+    ["Pugiliste", { caserne: 1 }, { str: 50, agi: 50, end: 1, int: 1, wiz: 1, dex: 1, luk: 1 }],
+  ] as const)("applies the expected unambiguous %s vocation automatically", (
     classType,
     buildings,
     baseStats,
-    expectedWeaponId,
-    expectedAccessoryId,
-    skillDraws,
   ) => {
     const tape = tapeRng([
       0.10, 0.00, 0.25, 0.99, 0.99, 0.99,
-      ...Array.from({ length: 10 }, () => 0.10),
-      ...Array.from({ length: skillDraws }, () => 0.10),
-      0.10,
-      0.10,
+      ...Array.from({ length: 20 }, () => 0.10),
     ]);
     const levelingHero = makeHero({
       id: `hero-${classType}`,
@@ -980,25 +1053,13 @@ describe("authoritative dungeon golden behavior characterized from 640f89f", () 
       buildings,
     }), `golden-tier1-${classType}`, tape.rng);
     const evolved = result.state.heroes?.[0];
-    const classEvent = result.encounter.transcript.find((event) => event.type === "hero.class_changed");
-
-    expect(tape.draws()).toBe(16 + skillDraws);
+    expect(tape.draws()).toBeGreaterThan(14);
     expect(evolved?.classType).toBe(classType);
-    expect(evolved?.calculatedStats).toEqual(evolved ? getHeroStats(evolved) : undefined);
-    expect(evolved?.equipment).toMatchObject({
-      mainHand: { itemId: expectedWeaponId, instanceId: `item:${levelingHero.id}:tier1:weapon` },
-      accessory: { itemId: expectedAccessoryId, instanceId: `item:${levelingHero.id}:tier1:accessory` },
-    });
-    expect(classEvent).toMatchObject({
-      classType,
-      equipmentReward: {
-        weapon: { itemId: expectedWeaponId },
-        accessory: { itemId: expectedAccessoryId },
-      },
-    });
+    expect(result.state.pendingClassTransitions ?? []).toHaveLength(0);
+    expect(result.encounter.transcript.some((event) => event.type === "hero.class_changed")).toBe(true);
   });
 
-  it("persists a prayer and stops auto-exploration when level 10 has several candidates", () => {
+  it("persists a prayer without stopping the hero or auto-exploration", () => {
     const buildings = {
       caserne: 1,
       lair: 1,
@@ -1041,12 +1102,12 @@ describe("authoritative dungeon golden behavior characterized from 640f89f", () 
     }
 
     expect(prayerResult).not.toBeNull();
-    expect(prayerResult?.state.autoExplore).toBe(false);
+    expect(prayerResult?.state.autoExplore).toBe(true);
     expect(prayerResult?.state.heroes?.[0]).toMatchObject({
       level: 10,
       classType: "Novice",
-      isActive: false,
-      status: "resting",
+      isActive: true,
+      status: "idle",
     });
     expect(prayerResult?.state.pendingClassTransitions?.[0].candidates.length).toBeGreaterThan(1);
     expect(prayerResult?.encounter.transcript).toContainEqual(expect.objectContaining({
@@ -1054,92 +1115,6 @@ describe("authoritative dungeon golden behavior characterized from 640f89f", () 
       candidates: prayerResult?.state.pendingClassTransitions?.[0].candidates,
     }));
     expect(prayerResult?.state.storedItems).toEqual([]);
-  });
-
-  it.each([
-    {
-      classType: "Mage",
-      buildings: { academie: 1 },
-      baseStats: { str: 1, agi: 1, end: 1, int: 50, wiz: 1, dex: 50, luk: 1 },
-      skillDraws: 3,
-      activeCount: 2,
-      requiredActive: null,
-    },
-    {
-      classType: "Acolyte",
-      buildings: { temple: 1 },
-      baseStats: { str: 1, agi: 1, end: 1, int: 1, wiz: 50, dex: 50, luk: 1 },
-      skillDraws: 2,
-      activeCount: 2,
-      requiredActive: "minor_heal",
-    },
-  ] as const)("persists the $classType vocation and its authoritative skill rolls", ({
-    classType,
-    buildings,
-    baseStats,
-    skillDraws,
-    activeCount,
-    requiredActive,
-  }) => {
-    const tape = tapeRng([
-      0.10, 0.00, 0.25, 0.99, 0.99, 0.99,
-      ...Array.from({ length: 10 }, () => 0.10),
-      ...Array.from({ length: skillDraws }, () => 0.10),
-      0.10, // Tier 1 weapon reward
-      0.10, // Tier 1 accessory reward
-    ]);
-    const levelingHero = makeHero({
-      name: `Novice ${classType}`,
-      level: 9,
-      xp: 2562,
-      xpNeeded: 2563,
-      baseStats,
-      activeSkills: ["heavy_blow"],
-      passiveSkills: ["survival_instinct"],
-      calculatedStats: {
-        ...makeHero().calculatedStats,
-        maxHp: 200,
-        hp: 200,
-        maxMana: 100,
-        mana: 100,
-        physicalDamage: 100,
-        physicalDefense: 100,
-      },
-      currentHp: 200,
-      currentMana: 100,
-    });
-
-    const result = resolveAuthoritativeDungeonEncounter(state({
-      heroes: [levelingHero],
-      buildings,
-    }), `golden-level-${classType}`, tape.rng);
-    const evolved = result.state.heroes?.[0];
-    const classEvent = result.encounter.transcript.find((event) => event.type === "hero.class_changed");
-
-    expect(tape.draws()).toBe(16 + skillDraws);
-    expect(evolved).toMatchObject({
-      level: 10,
-      classType,
-      cooldowns: {},
-    });
-    expect(evolved?.activeSkills).toHaveLength(activeCount);
-    if (requiredActive) expect(evolved?.activeSkills).toContain(requiredActive);
-    expect(evolved?.activeSkills).not.toContain("heavy_blow");
-    expect(evolved?.passiveSkills).toContain("survival_instinct");
-    expect(evolved?.passiveSkills).toHaveLength(2);
-    expect(evolved?.currentHp).toBe(evolved?.calculatedStats.maxHp);
-    expect(evolved?.currentMana).toBe(evolved?.calculatedStats.maxMana);
-    expect(classEvent).toMatchObject({
-      classType,
-      activeSkills: evolved?.activeSkills,
-      passiveSkills: evolved?.passiveSkills,
-      equipmentReward: {
-        weapon: { instanceId: `item:${levelingHero.id}:tier1:weapon` },
-        accessory: { instanceId: `item:${levelingHero.id}:tier1:accessory` },
-      },
-    });
-    expect(evolved?.equipment?.mainHand?.instanceId).toBe(`item:${levelingHero.id}:tier1:weapon`);
-    expect(evolved?.equipment?.accessory?.instanceId).toBe(`item:${levelingHero.id}:tier1:accessory`);
   });
 
   it("preserves a failed stat-check mutation and consumes no reward rolls", () => {

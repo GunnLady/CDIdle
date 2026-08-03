@@ -41,6 +41,15 @@ import {
 } from "./heroProgression.ts";
 import { describeTier1EquipmentReward } from "./tier1ClassEquipmentReward.ts";
 import { validateAuthoritativeHero } from "./authoritativeHeroValidation.ts";
+import {
+  getFirstClearRewards,
+  getDungeonGoldReward,
+  getMajorBossIndex,
+  getPartyXpShare,
+  getRegularEnemyBudget,
+  isDungeonFinalRoom,
+  isMajorBossFloor,
+} from "../../shared/domain/dungeon-progression.ts";
 
 export type AuthoritativeDungeonTranscriptEvent = {
   sequence: number;
@@ -126,12 +135,22 @@ function logExperienceAward(
   original: Hero,
   xp: number,
   award: HeroProgressionResult,
+  context?: { source: "floor_first_clear"; floor: number },
 ) {
-  log("reward.xp", `${original.name} gagne +${xp} XP.`, "info", {
+  const isFloorClearBonus = context?.source === "floor_first_clear";
+  log(
+    isFloorClearBonus ? "reward.floor_first_clear_xp" : "reward.xp",
+    isFloorClearBonus
+      ? `Prime de première sécurisation : ${original.name} gagne +${xp} XP.`
+      : `${original.name} gagne +${xp} XP.`,
+    "info",
+    {
     heroId: original.id,
     heroName: original.name,
     xp,
-  });
+    ...(context ?? {}),
+    },
+  );
   if (award.levels.length > 0) {
     const statLabels: Record<keyof Hero["baseStats"], string> = {
       str: "FOR",
@@ -282,7 +301,7 @@ function summarizeHeroChanges(before: Hero[], after: Hero[]) {
 }
 
 function nextProgress(floor: number, room: number, highestFloorReached: number) {
-  if (room < 50) {
+  if (!isDungeonFinalRoom(floor, room)) {
     return {
       activeDungeonFloor: floor,
       activeDungeonRoom: room + 1,
@@ -297,45 +316,58 @@ function nextProgress(floor: number, room: number, highestFloorReached: number) 
 }
 
 function scaleMonster(floor: number, room: number, rng: Rng): Monster {
-  const boss = room === 50;
+  const bossRoom = isDungeonFinalRoom(floor, room);
+  const majorBossIndex = bossRoom ? getMajorBossIndex(floor) : null;
+  const majorBoss = majorBossIndex !== null;
   let selected: Omit<Monster, "id" | "hp" | "maxHp">;
-  if (boss) {
-    if (floor <= 5) selected = BOSSES_LIBRARY[0];
-    else if (floor <= 10) selected = BOSSES_LIBRARY[1];
-    else if (floor <= 20) selected = BOSSES_LIBRARY[2];
-    else if (floor <= 30) selected = BOSSES_LIBRARY[3];
-    else selected = BOSSES_LIBRARY[4];
+  const pool = floor <= 5
+    ? MONSTERS_LIBRARY.slice(0, 4)
+    : floor <= 15
+    ? MONSTERS_LIBRARY.slice(2, 8)
+    : floor <= 29
+    ? MONSTERS_LIBRARY.slice(6, 12)
+    : MONSTERS_LIBRARY.slice(10);
+  if (majorBoss) {
+    selected = BOSSES_LIBRARY[majorBossIndex];
   } else {
-    const pool = floor <= 5
-      ? MONSTERS_LIBRARY.slice(0, 4)
-      : floor <= 15
-      ? MONSTERS_LIBRARY.slice(2, 8)
-      : floor <= 29
-      ? MONSTERS_LIBRARY.slice(6, 12)
-      : MONSTERS_LIBRARY.slice(10);
     selected = pool[rng.nextInt(pool.length)];
   }
 
-  const scale = 1 + (floor - 1) * 0.18;
-  const maxHp = Math.floor(selected.atk * (selected.isBoss ? 24 : 13) * scale);
-  const resistances = Object.fromEntries(Object.entries(selected.resistances ?? {}).map(([key, value]) => [
-    key,
-    Number(value) > 0 ? Math.min(90, Math.round(Number(value) * scale)) : Number(value),
-  ]));
+  const budget = getRegularEnemyBudget(floor);
+  const average = (field: "atk" | "xpYield" | "goldYield") =>
+    pool.reduce((sum, monster) => sum + monster[field], 0) / pool.length;
+  const archetypeFactor = (field: "atk" | "xpYield" | "goldYield") =>
+    Math.max(0.75, Math.min(1.3, selected[field] / average(field)));
+  const miniBossFactor = bossRoom && !majorBoss ? 1.2 : 1;
+  const attack = majorBoss
+    ? selected.atk
+    : Math.max(1, Math.floor(budget.attack * archetypeFactor("atk") * miniBossFactor));
+  const maxHp = majorBoss
+    ? selected.atk * 24
+    : Math.max(1, Math.floor(attack * 16 * (bossRoom ? 2 : 1)));
+  const defenseRatio = selected.def / Math.max(1, selected.atk);
+  const magicDefenseRatio = selected.magicDef / Math.max(1, selected.atk);
+  const xpYield = majorBoss
+    ? selected.xpYield
+    : Math.max(1, Math.round(budget.xp * archetypeFactor("xpYield") * (bossRoom ? 2.5 : 1)));
+  const goldYield = majorBoss
+    ? selected.goldYield
+    : Math.max(1, Math.round(budget.gold * archetypeFactor("goldYield") * (bossRoom ? 2.5 : 1)));
 
   // The characterized 640f89f behavior consumed a gameplay RNG draw for this visual ID.
   const id = rng.next().toString();
   return {
     ...selected,
+    ...(bossRoom && !majorBoss ? { name: `${selected.name} d'élite`, isBoss: true } : {}),
     id,
     hp: maxHp,
     maxHp,
-    atk: Math.floor(selected.atk * scale),
-    def: Math.floor(selected.def * scale),
-    magicDef: Math.floor(selected.magicDef * scale),
-    resistances,
-    xpYield: Math.floor(selected.xpYield * scale),
-    goldYield: Math.floor(selected.goldYield * scale),
+    atk: attack,
+    def: majorBoss ? selected.def : Math.max(0, Math.floor(attack * defenseRatio)),
+    magicDef: majorBoss ? selected.magicDef : Math.max(0, Math.floor(attack * magicDefenseRatio)),
+    resistances: selected.resistances,
+    xpYield,
+    goldYield,
   };
 }
 
@@ -417,7 +449,8 @@ function resolveFight(
             effect.damageType,
             monster,
           );
-          const damage = damagePerHit * (effect.hitCount ?? 1);
+          const hitCount = effect.hitCount ?? 1;
+          const damage = damagePerHit * hitCount;
           const useful = damage >= monster.hp
             || monster.isBoss
             || monster.atk > 45
@@ -432,7 +465,9 @@ function resolveFight(
           }
           log(
             "hero.skill.damage",
-            `${hero.name} declenche ${skill.name} et inflige ${damage} degats ${effect.damageType}.`,
+            hitCount > 1
+              ? `${hero.name} declenche ${skill.name} et frappe ${hitCount} fois pour ${damagePerHit} degats ${effect.damageType} par impact (${damage} au total).`
+              : `${hero.name} declenche ${skill.name} et inflige ${damage} degats ${effect.damageType}.`,
             "combat-hero",
             {
               round,
@@ -442,7 +477,8 @@ function resolveFight(
               monsterName: monster.name,
               skillId,
               skillName: skill.name,
-              hitCount: effect.hitCount ?? 1,
+              hitCount,
+              damagePerHit,
               damage,
               damageType: effect.damageType,
               enemyHp: Math.max(0, monster.hp - damage),
@@ -716,6 +752,9 @@ function resolveFight(
   }
 
   const victory = monster.hp === 0;
+  const finalRoom = isDungeonFinalRoom(floor, room);
+  const firstClear = finalRoom && floor === Number(source.highestFloorReached ?? floor);
+  const majorBoss = finalRoom && isMajorBossFloor(floor);
   if (!victory) {
     log(
       "encounter.defeat",
@@ -728,8 +767,8 @@ function resolveFight(
   if (victory) {
     const goblinBonus = heroes.some((hero) => hero.race === "Gobelin") ? 1.25 : 1;
     const leaderBonus = 1 + Number(source.buildings?.maison_chef ?? 0) * 0.03;
-    const bossTable = monster.isBoss ? BOSS_LOOT_TABLES_REGISTRY[monster.name] : undefined;
-    if (monster.isBoss && !bossTable) throw new Error(`BOSS_LOOT_TABLE_NOT_FOUND:${monster.name}`);
+    const bossTable = majorBoss ? BOSS_LOOT_TABLES_REGISTRY[monster.name] : undefined;
+    if (majorBoss && !bossTable) throw new Error(`BOSS_LOOT_TABLE_NOT_FOUND:${monster.name}`);
     const bossGold = bossTable?.goldRange
       ? bossTable.goldRange[0] + rng.nextInt(bossTable.goldRange[1] - bossTable.goldRange[0] + 1)
       : monster.goldYield;
@@ -737,6 +776,16 @@ function resolveFight(
     const gold = Math.floor(applyLootModifiers("goldGain", baseGold, heroes));
     resources.gold = Number(resources.gold ?? 0) + gold;
     log("reward.gold", `+${gold} or.`, "loot", { gold });
+    if (firstClear) {
+      const reward = getFirstClearRewards(floor);
+      resources.gold = Number(resources.gold ?? 0) + reward.gold;
+      log(
+        "reward.floor_first_clear",
+        `Prime de première sécurisation : +${reward.gold} or.`,
+        "loot",
+        { gold: reward.gold, floor },
+      );
+    }
 
     if (bossTable) {
       for (const reward of bossTable.materials) {
@@ -802,7 +851,7 @@ function resolveFight(
     const eligibleCount = heroes.filter((hero) => hero.isActive && hero.currentHp > 0).length;
     heroes = heroes.map((hero) => {
       if (!hero.isActive || hero.currentHp <= 0) return hero;
-      const share = eligibleCount > 0 ? monster.xpYield / eligibleCount : 0;
+      const share = monster.xpYield * getPartyXpShare(eligibleCount);
       const xp = Math.round(share * (hero.race === "Humain" ? 1.15 : 1));
       const award = awardExperience(hero, xp, rng, source.buildings ?? {}, storedItems);
       storedItems = award.storedItems;
@@ -810,7 +859,21 @@ function resolveFight(
       logExperienceAward(log, hero, xp, award);
       return award.hero;
     });
-    if (room === 50) {
+    if (firstClear) {
+      const reward = getFirstClearRewards(floor);
+      const bonusEligibleCount = heroes.filter((hero) => hero.isActive && hero.currentHp > 0).length;
+      heroes = heroes.map((hero) => {
+        if (!hero.isActive || hero.currentHp <= 0) return hero;
+        const share = reward.xpPool * getPartyXpShare(bonusEligibleCount);
+        const xp = Math.round(share * (hero.race === "Humain" ? 1.15 : 1));
+        const award = awardExperience(hero, xp, rng, source.buildings ?? {}, storedItems);
+        storedItems = award.storedItems;
+        appendPendingTransition(pendingClassTransitions, award);
+        logExperienceAward(log, hero, xp, award, { source: "floor_first_clear", floor });
+        return award.hero;
+      });
+    }
+    if (firstClear) {
       log(
         "dungeon.floor_completed",
         `Étage ${floor} sécurisé : l'étage ${floor + 1} est désormais accessible.`,
@@ -841,9 +904,7 @@ function resolveFight(
       forgeMaterials,
       itemBlueprints,
       pendingClassTransitions,
-      autoExplore: victory && pendingClassTransitions.length === 0
-        ? source.autoExplore ?? false
-        : false,
+      autoExplore: victory ? source.autoExplore ?? false : false,
     },
     encounter: {
       encounterId,
@@ -912,7 +973,7 @@ function resolveNonFight(
       "victory",
     );
     if (rng.next() < 0.5) {
-      goldReward = Math.max(1, Math.round(floor * 5));
+      goldReward = getDungeonGoldReward(floor, "treasure");
       resources.gold = Number(resources.gold ?? 0) + goldReward;
       log("reward.gold", `+${goldReward} or.`, "loot", { gold: goldReward });
     } else if (ITEM_LIBRARY.length > 0) {
@@ -1051,7 +1112,7 @@ function resolveNonFight(
 
     if (victory) {
       if (kind === "enigma") {
-        goldReward = Math.round(25 * (1 + (floor - 1) * 0.18));
+        goldReward = getDungeonGoldReward(floor, "enigma");
         heroes = heroes.map((hero) => hero.isActive && hero.currentHp > 0
           ? {
               ...hero,
@@ -1062,7 +1123,7 @@ function resolveNonFight(
             }
           : hero);
       } else if (kind === "ambush") {
-        goldReward = Math.round(15 * (1 + (floor - 1) * 0.15));
+        goldReward = getDungeonGoldReward(floor, "ambush");
       } else if (kind === "ritual") {
         heroes = heroes.map((hero) => {
           if (!hero.isActive || hero.currentHp <= 0) return hero;
@@ -1073,7 +1134,7 @@ function resolveNonFight(
           };
         });
       } else if (kind === "negotiation") {
-        goldReward = Math.round(35 * (1 + (floor - 1) * 0.2));
+        goldReward = getDungeonGoldReward(floor, "negotiation");
       }
       resources.gold = Number(resources.gold ?? 0) + goldReward;
       log("challenge.succeeded", `Réussite : ${luckRoll} + ${selected.bestScore} ≥ ${difficulty}.`, "victory", {
@@ -1201,7 +1262,7 @@ function resolveNonFight(
       forgeMaterials,
       itemBlueprints,
       pendingClassTransitions,
-      autoExplore: pendingClassTransitions.length > 0 ? false : source.autoExplore ?? false,
+      autoExplore: source.autoExplore ?? false,
     },
     encounter: {
       encounterId,
@@ -1232,7 +1293,9 @@ export function resolveAuthoritativeDungeonEncounter(
   }
   const activeHeroes = source.heroes.filter((hero) => hero.isActive && hero.currentHp > 0);
   if (activeHeroes.length === 0) throw new Error("NO_ACTIVE_HERO");
-  const kind: DungeonEncounterType = room === 50 ? "fight" : getRandomDungeonEncounterType(rng);
+  const kind: DungeonEncounterType = isDungeonFinalRoom(floor, room)
+    ? "fight"
+    : getRandomDungeonEncounterType(rng);
   return kind === "fight"
     ? resolveFight(source, floor, room, encounterId, rng)
     : resolveNonFight(source, kind, floor, room, encounterId, rng);

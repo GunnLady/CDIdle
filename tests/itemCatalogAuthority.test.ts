@@ -222,11 +222,11 @@ describe("authoritative item catalog", () => {
   });
 
   it.each([
-    [1, "Giga Gobelin 'Roi des Déchets'"],
-    [6, "Chef de Meute Orc Blindé"],
-    [11, "Gardien du Portail en Obsidienne"],
-    [21, "La Liche Éternelle 'Malakor'"],
-    [31, "Sinueux Dragon Rouge Primordial"],
+    [10, "Giga Gobelin 'Roi des Déchets'"],
+    [20, "Chef de Meute Orc Blindé"],
+    [30, "Gardien du Portail en Obsidienne"],
+    [40, "La Liche Éternelle 'Malakor'"],
+    [50, "Sinueux Dragon Rouge Primordial"],
   ] as const)("applies the boss table for floor %i", (floor, bossName) => {
     const rng: Rng = { next: () => 0, nextInt: () => 0 };
     const hero = makeHero({

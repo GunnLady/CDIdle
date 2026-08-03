@@ -52,22 +52,23 @@ const resolveTier0ToTier1: ClassTransitionResolver = (
   if (candidates.length === 0) {
     return { transition: null, reason: "Aucun bâtiment de métier débloqué dans la colonie" };
   }
-  if (candidates.length > 1) {
+  if (candidates.length === 1) {
+    const candidate = candidates[0];
     return {
-      transition: null,
-      pendingTransition: createPendingClassTransition(hero, candidates),
-      reason: "Plusieurs vocations répondent à la prière du héros",
+      transition: {
+        fromClass: hero.classType,
+        toClass: candidate.classType,
+        fromTier: requiredClassTier(hero.classType),
+        toTier: requiredClassTier(candidate.classType),
+        reason: `Affinité dominante (${candidate.affinity.toFixed(1)})`,
+      },
+      reason: "Une vocation dominante s'impose naturellement",
     };
   }
-  const selected = candidates[0];
   return {
-    transition: {
-      fromClass: hero.classType,
-      toClass: selected.classType,
-      fromTier: requiredClassTier(hero.classType),
-      toTier: requiredClassTier(selected.classType),
-      reason: `Affinité dominante (indice calibré ${selected.affinity.toFixed(3)})`,
-    },
+    transition: null,
+    pendingTransition: createPendingClassTransition(hero, candidates),
+    reason: "Plusieurs vocations répondent à la prière du héros",
   };
 };
 

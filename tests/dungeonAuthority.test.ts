@@ -46,6 +46,8 @@ describe("authoritative dungeon commands", () => {
   it("persists only the last fifteen resolved encounters", () => {
     let current: DungeonState = {
       ...state(),
+      activeDungeonFloor: 10,
+      highestFloorReached: 10,
       heroes: [makeHero({
         id: "hero-1",
         isActive: true,
@@ -54,14 +56,26 @@ describe("authoritative dungeon commands", () => {
           ...makeHero().calculatedStats,
           maxHp: 10_000,
           hp: 10_000,
-          physicalDamage: 100,
+          physicalDamage: 1_000_000,
         },
       })],
     };
     for (let index = 0; index < 16; index += 1) {
+      current.heroes = (current.heroes ?? []).map((hero) => ({
+        ...hero,
+        isActive: true,
+        status: "idle",
+        currentHp: 100_000,
+        calculatedStats: {
+          ...hero.calculatedStats,
+          maxHp: 100_000,
+          hp: 100_000,
+          physicalDamage: 1_000_000,
+        },
+      }));
       current = applyDungeonCommand(current, {
         type: "dungeon.explore",
-        floor: 1,
+        floor: 10,
         commandId: `history-${index}`,
       }).state;
       current = applyDungeonCommand(current, { type: "dungeon.resolve" }, fixedRng()).state;
@@ -69,6 +83,38 @@ describe("authoritative dungeon commands", () => {
     expect(current.encounterHistory).toHaveLength(15);
     expect(current.encounterHistory?.[0]).toMatchObject({ encounterId: "encounter-history-1", room: 2 });
     expect(current.encounterHistory?.[14]).toMatchObject({ encounterId: "encounter-history-15", room: 16 });
+  });
+
+  it("normalizes a legacy room unless its encounter is still active", () => {
+    const normalized = applyDungeonCommand({
+      ...state(),
+      activeDungeonRoom: 50,
+    }, { type: "dungeon.auto_explore", enabled: false });
+    expect(normalized.state.activeDungeonRoom).toBe(5);
+
+    const legacyEncounter = applyDungeonCommand({
+      ...state(),
+      activeDungeonRoom: 50,
+      heroes: [makeHero({
+        isActive: true,
+        currentHp: 100_000,
+        calculatedStats: {
+          ...makeHero().calculatedStats,
+          maxHp: 100_000,
+          hp: 100_000,
+          physicalDamage: 1_000_000,
+        },
+      })],
+      currentEncounter: {
+        encounterId: "encounter-legacy",
+        kind: "pending",
+        status: "active",
+        floor: 1,
+        room: 50,
+      },
+    }, { type: "dungeon.resolve" }, fixedRng());
+    expect(legacyEncounter.state.activeDungeonFloor).toBe(2);
+    expect(legacyEncounter.state.activeDungeonRoom).toBe(1);
   });
 
   it("replays the same server RNG sequence with an injected generator", () => {
@@ -138,10 +184,11 @@ describe("authoritative dungeon commands", () => {
       }],
     };
 
-    expect(() => applyDungeonCommand(source, {
+    const resumed = applyDungeonCommand(source, {
       type: "dungeon.auto_explore",
       enabled: true,
-    })).toThrowError("choose a vocation");
+    });
+    expect(resumed.state.autoExplore).toBe(true);
     const started = applyDungeonCommand(source, {
       type: "dungeon.explore",
       floor: 1,

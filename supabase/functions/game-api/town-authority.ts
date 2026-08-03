@@ -48,6 +48,7 @@ import {
   applyClassTransition,
   createExistingHeroPendingTransition,
 } from "../../../src/domain/classTransition.ts";
+import { getDungeonRoomCount } from "../../../shared/domain/dungeon-progression.ts";
 
 export type TownResources = { gold: number; food: number; wood: number; stone: number; ore: number };
 export type TownState = {
@@ -304,14 +305,8 @@ export function applyTownCommand(current: Record<string, unknown>, command: Reco
   if (typed.type === "hero.activity") {
     const hero = heroes.find((entry) => entry.id === typed.heroId);
     if (!hero) throw new TownCommandError("HERO_NOT_FOUND", "hero not found");
-    if (typed.active && town.pendingClassTransitions.some((entry) => entry.heroId === typed.heroId)) {
-      throw new TownCommandError("VOCATION_REQUIRED", "hero must choose a vocation before returning to the dungeon");
-    }
     if (typed.active && Number(hero.currentHp ?? 0) <= 0) throw new TownCommandError("INVALID_HEALTH", "hero has no health");
-    const reservedActiveIds = new Set(town.pendingClassTransitions
-      .filter((entry) => entry.wasActive)
-      .map((entry) => entry.heroId));
-    const occupiedSlots = heroes.filter((entry) => entry.isActive || reservedActiveIds.has(String(entry.id))).length;
+    const occupiedSlots = heroes.filter((entry) => entry.isActive).length;
     if (typed.active && occupiedSlots >= 4) throw new TownCommandError("ACTIVE_LIMIT", "active hero limit reached");
     return { state: { ...town, heroes: heroes.map((entry) => entry.id === typed.heroId ? { ...entry, isActive: typed.active, status: typed.active ? "idle" : "resting" } : entry) }, events: [{ type: "hero.activity_changed", heroId: typed.heroId, active: typed.active }] };
   }
@@ -469,6 +464,13 @@ export function migrateTownState(current: Record<string, unknown>, legacySeed?: 
       : [],
     rngState: migrateCanonicalRngState(current.rngState, legacySeed),
   } as TownState);
+  if (!migrated.currentEncounter) {
+    const floor = Number(migrated.activeDungeonFloor ?? 1);
+    const room = Number(migrated.activeDungeonRoom ?? 1);
+    if (Number.isInteger(floor) && floor >= 1 && Number.isInteger(room) && room >= 1) {
+      migrated.activeDungeonRoom = Math.min(room, getDungeonRoomCount(floor));
+    }
+  }
   const errors = [
     ...validateCanonicalGameState(migrated),
     ...validateAuthoritativeTownState(migrated as unknown as Record<string, unknown>),
@@ -492,32 +494,23 @@ export function migrateTownState(current: Record<string, unknown>, legacySeed?: 
 
 function reconcileExistingVocations(state: TownState): TownState {
   const heroes = (state.heroes ?? []) as unknown as Hero[];
-  const heroesById = new Map(heroes.map((hero) => [hero.id, hero]));
-  const pending = state.pendingClassTransitions
-    .filter((entry) => {
-      const hero = heroesById.get(entry.heroId);
-      return hero?.classType === entry.fromClass
-        && hero.classType === "Novice"
-        && hero.level >= 10
-        && entry.fromTier === 0
-        && entry.toTier === 1;
-    });
-  const pendingIds = new Set(pending.map((entry) => entry.heroId));
+  const previousById = new Map(state.pendingClassTransitions.map((entry) => [entry.heroId, entry]));
+  const pending: PendingClassTransition[] = [];
   for (const hero of heroes) {
-    if (pendingIds.has(hero.id) || hero.classType !== "Novice" || hero.level < 10) continue;
+    if (hero.classType !== "Novice" || hero.level < 10) continue;
     const created = createExistingHeroPendingTransition(hero, state.buildings);
     if (!created) continue;
-    pending.push(created);
-    pendingIds.add(hero.id);
+    const previous = previousById.get(hero.id);
+    pending.push(previous ? {
+      ...created,
+      originLevel: previous.originLevel,
+      wasActive: previous.wasActive,
+      previousStatus: previous.previousStatus,
+    } : created);
   }
-  if (pending.length === 0) return { ...state, pendingClassTransitions: [] };
   return {
     ...state,
-    autoExplore: false,
     pendingClassTransitions: pending,
-    heroes: heroes.map((hero) => pendingIds.has(hero.id)
-      ? { ...hero, isActive: false, status: "resting" }
-      : hero) as unknown as Array<Record<string, unknown>>,
   };
 }
 

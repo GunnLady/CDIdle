@@ -74,6 +74,10 @@ sont appliqués par le chemin temporel CDI-061.
   refus ou une panne restaure le dernier état confirmé et informe l'utilisateur.
   Un conflit recharge l'état canonique, retente une fois la mutation courante,
   puis rejoue visuellement les lots suivants encore valides.
+- Un `401` provoque un renouvellement silencieux de la session puis un unique
+  renvoi du même envelope, avec le même `commandId`, la même clé d'idempotence,
+  la même révision et le même corps. Un second refus suit le traitement d'erreur
+  normal ; aucun retry supplémentaire n'est lancé.
 - `building.upgrade.levels` condense jusqu'à cinq améliorations dans une seule
   transition atomique. Tous les coûts, plafonds et prérequis sont validés avant
   commit ; un échec annule le lot entier.
@@ -102,16 +106,20 @@ sont appliqués par le chemin temporel CDI-061.
 
 ## Choix canonique de vocation (CDI-072)
 
+- Une vocation seule dans la fenêtre d'affinité est appliquée automatiquement.
+  La commande ci-dessous concerne une prière à plusieurs candidats ou une
+  attente historique déjà persistée.
 - `hero.choose_vocation({ heroId, classType })` n'accepte qu'une classe
   présente dans la `pendingClassTransition` persistée pour ce héros.
 - Le choix lui-même ne consomme aucun tirage. Compétences et équipement sont
   ensuite tirés avec le RNG canonique dans la même transition atomique.
 - La réponse supprime l'attente, persiste classe, compétences, équipement,
   coffre et restauration, puis expose l'événement `hero.vocation_chosen`.
-- Une prière stoppe l'auto-donjon. Le héros concerné reste inactif jusqu'au
-  choix, sans empêcher les autres héros actifs d'explorer manuellement.
-- Bootstrap, replay et multi-onglets lisent les candidats persistés : ils ne
-  recalculent ni la liste ni l'affinité.
+- Une prière ne bloque ni le héros ni l'auto-donjon. Le Novice peut continuer
+  à progresser et le joueur peut différer son choix.
+- Les candidats sont persistés pour le replay, puis réconciliés sans tirage RNG
+  au bootstrap et après une construction. Un nouveau bâtiment de classe peut
+  donc enrichir ou modifier une prière encore ouverte.
 - Le contrat commun valide la classe source avec son tier déclaré, impose un
   tier cible immédiatement supérieur et vérifie que chaque candidat appartient
   à ce tier. La politique disponible reste actuellement `0->1`, mais la forme
@@ -165,6 +173,8 @@ Contrat complet : `docs/architecture/authoritative-rng.md`.
   aucune action manuelle `Résoudre` n'est exposée.
 - Le résultat canonique contient le transcript ordonné. L'interface le présente
   ligne par ligne toutes les 400 ms sans recalculer le combat.
+- Une compétence multi-frappe expose `hitCount`, `damagePerHit` et le total. Le
+  transcript annonce explicitement chaque quantité sans ajouter de tirage RNG.
 - `state.encounterHistory` conserve au plus les 15 derniers combats résolus,
   transcript et récompenses inclus. Le serveur tronque la collection dans la
   même mutation atomique que la résolution.

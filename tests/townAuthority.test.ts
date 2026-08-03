@@ -34,6 +34,29 @@ describe("authoritative town commands", () => {
     expect(migrated.rngState).toEqual(current.rngState);
   });
 
+  it("normalizes legacy dungeon rooms only when no encounter is active", () => {
+    const idle = migrateTownState({
+      ...initialTownState(),
+      activeDungeonFloor: 1,
+      activeDungeonRoom: 50,
+    });
+    expect(idle.activeDungeonRoom).toBe(5);
+
+    const active = migrateTownState({
+      ...initialTownState(),
+      activeDungeonFloor: 1,
+      activeDungeonRoom: 50,
+      currentEncounter: {
+        encounterId: "encounter-legacy",
+        kind: "pending",
+        status: "active",
+        floor: 1,
+        room: 50,
+      },
+    });
+    expect(active.activeDungeonRoom).toBe(50);
+  });
+
   it("rejects excess persisted XP that would require random level growth to repair", () => {
     expect(() => migrateTownState({
       ...initialTownState(),
@@ -287,7 +310,7 @@ describe("authoritative town commands", () => {
 
     expect(migrated.rngState).toEqual(base.rngState);
     expect(migrated.autoExplore).toBe(false);
-    expect(migrated.heroes?.[0]).toMatchObject({ isActive: false, status: "resting" });
+    expect(migrated.heroes?.[0]).toMatchObject({ isActive: true, status: "idle" });
     expect(migrated.pendingClassTransitions).toHaveLength(1);
     expect(migrated.pendingClassTransitions[0]).toMatchObject({
       heroId: novice.id,
@@ -318,6 +341,49 @@ describe("authoritative town commands", () => {
     const instanceIds = (Object.values(evolved.equipment) as Array<{ instanceId?: string } | null>)
       .flatMap((item) => item?.instanceId ? [item.instanceId] : []);
     expect(new Set(instanceIds).size).toBe(instanceIds.length);
+  });
+
+  it("refreshes a pending prayer when a new class building becomes available", () => {
+    const base = initialTownState();
+    let before: ReturnType<typeof migrateTownState> | null = null;
+    let after: ReturnType<typeof migrateTownState> | null = null;
+
+    for (let index = 0; index < 2_000 && !after; index += 1) {
+      const generated = generateAuthoritativeNovice(`dynamic-prayer-${index}`, `hero-dynamic-${index}`) as unknown as Hero;
+      const hero = refreshHeroDerivedStats({
+        ...generated,
+        level: 10,
+        xp: 0,
+        xpNeeded: calculateXpNeeded(11, "Novice"),
+        isActive: true,
+        status: "idle",
+      });
+      const initial = migrateTownState({
+        ...base,
+        heroes: [hero],
+        buildings: { ...base.buildings, caserne: 1 },
+      });
+      const refreshed = migrateTownState({
+        ...initial,
+        buildings: { ...initial.buildings, caserne: 1, temple: 1 },
+      });
+      if (JSON.stringify(initial.pendingClassTransitions[0]?.candidates)
+        !== JSON.stringify(refreshed.pendingClassTransitions[0]?.candidates)) {
+        before = initial;
+        after = refreshed;
+      }
+    }
+
+    expect(before).not.toBeNull();
+    expect(after).not.toBeNull();
+    expect(after?.rngState).toEqual(before?.rngState);
+    expect(after?.heroes[0]).toMatchObject({ isActive: true, status: "idle", classType: "Novice" });
+    expect(after?.pendingClassTransitions[0]?.candidates).not.toEqual(before?.pendingClassTransitions[0]?.candidates);
+    expect(after?.pendingClassTransitions[0]).toMatchObject({
+      originLevel: before?.pendingClassTransitions[0]?.originLevel,
+      wasActive: true,
+      previousStatus: "idle",
+    });
   });
 
   it("drops a stale pending vocation when the persisted hero already changed class", () => {

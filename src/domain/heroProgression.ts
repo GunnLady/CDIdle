@@ -35,7 +35,6 @@ export function applyHeroProgression(input: {
     if (resolution.pendingTransition) {
       return {
         ...experience,
-        hero: { ...experience.hero, isActive: false, status: "resting" },
         storedItems,
         pendingTransition: resolution.pendingTransition,
       };
