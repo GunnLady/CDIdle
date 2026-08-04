@@ -6,6 +6,72 @@ import { makeHero } from "./fixtures/game";
 afterEach(cleanup);
 
 describe("StoragePanel modifier stacks", () => {
+  it("filters items by required-level bands and resets the level filter", () => {
+    render(<StoragePanel
+      storedItems={[
+        { instanceId: "item-level-1", itemId: "starter_sword", rarity: "common" },
+        { instanceId: "item-level-10", itemId: "basic_sword", rarity: "common" },
+        { instanceId: "item-level-20", itemId: "steel_sword", rarity: "uncommon" },
+        { instanceId: "item-level-33", itemId: "eclipse_heart_spellbook", rarity: "legendary" },
+      ]}
+    />);
+
+    const levelRange = screen.getByRole("combobox", { name: "Tranche de niveau requis" });
+    const expectedByRange = [
+      ["1-9", "Épée de départ"],
+      ["10-19", "Épée simple"],
+      ["20-29", "Épée en acier"],
+      ["30+", "Grimoire du cœur d’éclipse"],
+    ];
+
+    for (const [range, expectedName] of expectedByRange) {
+      fireEvent.change(levelRange, { target: { value: range } });
+      expect(screen.getAllByText(/^(Épée de départ|Épée simple|Épée en acier|Grimoire du cœur d’éclipse)$/))
+        .toHaveLength(1);
+      expect(screen.getByText(expectedName)).toBeInTheDocument();
+    }
+
+    fireEvent.click(screen.getByRole("button", { name: "Réinitialiser" }));
+    expect(levelRange).toHaveValue("all");
+    expect(screen.getAllByText(/^(Épée de départ|Épée simple|Épée en acier|Grimoire du cœur d’éclipse)$/))
+      .toHaveLength(4);
+  });
+
+  it("sorts the displayed copy in both directions and resets the controls", () => {
+    render(<StoragePanel
+      storedItems={[
+        { instanceId: "item-basic", itemId: "basic_sword", rarity: "legendary" },
+        { instanceId: "item-starter", itemId: "starter_sword", rarity: "rare" },
+        { instanceId: "item-steel", itemId: "steel_sword", rarity: "common" },
+      ]}
+    />);
+
+    const displayedNames = () => screen.getAllByText(/^(Épée simple|Épée de départ|Épée en acier)$/)
+      .map((element) => element.textContent);
+    const sortCriterion = screen.getByRole("combobox", { name: "Critère de tri" });
+    const sortDirection = screen.getByRole("combobox", { name: "Direction du tri" });
+
+    fireEvent.change(sortCriterion, { target: { value: "rarity" } });
+    expect(displayedNames()).toEqual(["Épée en acier", "Épée de départ", "Épée simple"]);
+    fireEvent.change(sortDirection, { target: { value: "desc" } });
+    expect(displayedNames()).toEqual(["Épée simple", "Épée de départ", "Épée en acier"]);
+
+    fireEvent.change(sortCriterion, { target: { value: "requiredLevel" } });
+    expect(displayedNames()).toEqual(["Épée en acier", "Épée simple", "Épée de départ"]);
+    fireEvent.change(sortDirection, { target: { value: "asc" } });
+    expect(displayedNames()).toEqual(["Épée de départ", "Épée simple", "Épée en acier"]);
+
+    fireEvent.change(sortCriterion, { target: { value: "name" } });
+    expect(displayedNames()).toEqual(["Épée de départ", "Épée en acier", "Épée simple"]);
+    fireEvent.change(sortDirection, { target: { value: "desc" } });
+    expect(displayedNames()).toEqual(["Épée simple", "Épée en acier", "Épée de départ"]);
+
+    fireEvent.click(screen.getByRole("button", { name: "Réinitialiser" }));
+    expect(displayedNames()).toEqual(["Épée simple", "Épée de départ", "Épée en acier"]);
+    expect(sortCriterion).toHaveValue("none");
+    expect(sortDirection).toHaveValue("asc");
+  });
+
   it("renders and recycles same-item stacks independently", () => {
     const onScrapItem = vi.fn();
     const physical = [{ stat: "physicalDamage", type: "flat" as const, value: 2 }];

@@ -1361,7 +1361,7 @@ export default function App() {
           </div>
         </div>
 
-        <div className="max-w-6xl mx-auto flex flex-col lg:flex-row lg:items-center justify-between gap-4 animate-fade-in">
+        <div className="max-w-[1440px] mx-auto flex flex-col lg:flex-row lg:items-center justify-between gap-4 animate-fade-in">
           <div className="flex items-center gap-3">
             <CrestBadge />
             <div>
@@ -1514,7 +1514,7 @@ export default function App() {
       )}
 
       {/* 3. CORE VIEW APPLICATION LAYOUT CONTAINER */}
-      <main className="flex-1 p-3 sm:p-6 overflow-y-auto max-w-6xl mx-auto w-full flex flex-col gap-4 select-none text-[15px] sm:text-base leading-relaxed">
+      <main className="flex-1 p-3 sm:p-6 overflow-y-auto max-w-[1440px] mx-auto w-full flex flex-col gap-4 select-none text-[15px] sm:text-base leading-relaxed">
         
         {/* CHEAT CODES ZONE */}
         {cheatsAllowedForUser && cityName && (

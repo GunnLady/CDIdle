@@ -6,8 +6,12 @@
 import React, { useState, useMemo } from "react";
 import { Search } from "lucide-react";
 import { StoredItemInstance, StoredForgeMaterialStack, Rarity, ItemInfo, Hero } from "../types";
-import { getItemById } from "../../shared/domain/items/items.ts";
+import { getItemById, RARITY_ORDER } from "../../shared/domain/items/items.ts";
 import { applyItemRarityScaling, FORGE_MATERIALS } from "../utils/gameCalculations";
+
+type StorageSortKey = "none" | "rarity" | "requiredLevel" | "name";
+type StorageSortDirection = "asc" | "desc";
+type StorageLevelRange = "all" | "1-9" | "10-19" | "20-29" | "30+";
 
 interface StoragePanelProps {
   storedItems: StoredItemInstance[];
@@ -29,6 +33,9 @@ export default function StoragePanel({
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedRarity, setSelectedRarity] = useState<string>("all");
   const [selectedType, setSelectedType] = useState<string>("all");
+  const [selectedLevelRange, setSelectedLevelRange] = useState<StorageLevelRange>("all");
+  const [sortKey, setSortKey] = useState<StorageSortKey>("none");
+  const [sortDirection, setSortDirection] = useState<StorageSortDirection>("asc");
   const [equippingInstanceId, setEquippingInstanceId] = useState<string | null>(null);
 
   // Helper to translate item type
@@ -99,16 +106,54 @@ export default function StoragePanel({
       .filter((instance): instance is StoredItemInstance & { item: ItemInfo } => instance !== null);
   }, [storedItems]);
 
-  // Filter stacks based on search and selected filters
+  // Filter and sort a display-only copy. Canonical storage order is preserved.
   const filteredStacks = useMemo(() => {
-    return resolvedStacks.filter((stack) => {
+    const filtered = resolvedStacks.filter((stack) => {
       const matchSearch = stack.item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (stack.item.description && stack.item.description.toLowerCase().includes(searchTerm.toLowerCase()));
       const matchRarity = selectedRarity === "all" || stack.rarity === selectedRarity;
       const matchType = selectedType === "all" || stack.item.itemType === selectedType;
-      return matchSearch && matchRarity && matchType;
+      const requiredLevel = stack.item.requiredLevel;
+      const matchLevel = selectedLevelRange === "all"
+        || (selectedLevelRange === "1-9" && requiredLevel >= 1 && requiredLevel <= 9)
+        || (selectedLevelRange === "10-19" && requiredLevel >= 10 && requiredLevel <= 19)
+        || (selectedLevelRange === "20-29" && requiredLevel >= 20 && requiredLevel <= 29)
+        || (selectedLevelRange === "30+" && requiredLevel >= 30);
+      return matchSearch && matchRarity && matchType && matchLevel;
     });
-  }, [resolvedStacks, searchTerm, selectedRarity, selectedType]);
+
+    if (sortKey === "none") return filtered;
+    const direction = sortDirection === "asc" ? 1 : -1;
+    return filtered
+      .map((stack, originalIndex) => ({ stack, originalIndex }))
+      .sort((left, right) => {
+        const comparison = sortKey === "rarity"
+          ? RARITY_ORDER.indexOf(left.stack.rarity) - RARITY_ORDER.indexOf(right.stack.rarity)
+          : sortKey === "requiredLevel"
+            ? left.stack.item.requiredLevel - right.stack.item.requiredLevel
+            : left.stack.item.name.localeCompare(right.stack.item.name, "fr", { sensitivity: "base" });
+        return comparison === 0
+          ? left.originalIndex - right.originalIndex
+          : comparison * direction;
+      })
+      .map(({ stack }) => stack);
+  }, [resolvedStacks, searchTerm, selectedLevelRange, selectedRarity, selectedType, sortDirection, sortKey]);
+
+  const resetDisplayControls = () => {
+    setSearchTerm("");
+    setSelectedRarity("all");
+    setSelectedType("all");
+    setSelectedLevelRange("all");
+    setSortKey("none");
+    setSortDirection("asc");
+  };
+
+  const hasActiveDisplayControls = searchTerm !== ""
+    || selectedRarity !== "all"
+    || selectedType !== "all"
+    || selectedLevelRange !== "all"
+    || sortKey !== "none"
+    || sortDirection !== "asc";
 
   const itemTypes = ["weapon", "offhand", "armor", "accessory"];
   const rarities: Rarity[] = ["common", "uncommon", "rare", "epic", "legendary"];
@@ -226,6 +271,51 @@ export default function StoragePanel({
                 </option>
               ))}
             </select>
+
+            <select
+              aria-label="Tranche de niveau requis"
+              value={selectedLevelRange}
+              onChange={(e) => setSelectedLevelRange(e.target.value as StorageLevelRange)}
+              className="bg-[#100805] text-[#fbf7f0] border border-[#5c402b]/40 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-[#caa050] font-serif cursor-pointer"
+            >
+              <option value="all">Tous les niveaux</option>
+              <option value="1-9">Niveaux 1–9</option>
+              <option value="10-19">Niveaux 10–19</option>
+              <option value="20-29">Niveaux 20–29</option>
+              <option value="30+">Niveaux 30+</option>
+            </select>
+
+            <select
+              aria-label="Critère de tri"
+              value={sortKey}
+              onChange={(e) => setSortKey(e.target.value as StorageSortKey)}
+              className="bg-[#100805] text-[#fbf7f0] border border-[#5c402b]/40 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-[#caa050] font-serif cursor-pointer"
+            >
+              <option value="none">Ordre du coffre</option>
+              <option value="rarity">Trier par rareté</option>
+              <option value="requiredLevel">Trier par niveau requis</option>
+              <option value="name">Trier par nom</option>
+            </select>
+
+            <select
+              aria-label="Direction du tri"
+              value={sortDirection}
+              onChange={(e) => setSortDirection(e.target.value as StorageSortDirection)}
+              disabled={sortKey === "none"}
+              className="bg-[#100805] text-[#fbf7f0] border border-[#5c402b]/40 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-[#caa050] font-serif cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <option value="asc">Croissant</option>
+              <option value="desc">Décroissant</option>
+            </select>
+
+            <button
+              type="button"
+              onClick={resetDisplayControls}
+              disabled={!hasActiveDisplayControls}
+              className="bg-[#231710] hover:bg-[#342217] border border-[#5c402b]/70 text-[#caa050] rounded-xl px-3 py-2 text-xs font-serif font-bold transition cursor-pointer disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              Réinitialiser
+            </button>
           </div>
         </div>
       </div>
