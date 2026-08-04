@@ -206,6 +206,7 @@ export default function App() {
 
   // Hero customizer recruitment states
   const [pendingRecruit, setPendingRecruit] = useState<Hero | null>(null);
+  const [isRecruitConfirmationPending, setIsRecruitConfirmationPending] = useState(false);
   const [onboardingCandidates, setOnboardingCandidates] = useState<Hero[]>([]);
   const [pendingOnboardingCityName, setPendingOnboardingCityName] = useState("");
 
@@ -441,6 +442,7 @@ export default function App() {
       interactive?: boolean;
       silentConflict?: boolean;
       silentSuccess?: boolean;
+      refreshAfterSuccess?: boolean;
       beforeApplyAuthoritativeState?: () => void;
       onConflictResolved?: () => void;
     } = {},
@@ -486,6 +488,30 @@ export default function App() {
           result?.lastProcessedAt,
         );
         publishAuthoritativeSnapshot(result);
+        if (options.refreshAfterSuccess) {
+          try {
+            const canonical = await measureNetwork(() => callGameApi<AuthoritativeGameEnvelope>("/bootstrap", { method: "POST" }));
+            await applyAuthoritativeState(
+              canonical?.state,
+              canonical?.revision,
+              String(currentUser.id),
+              canonical?.serverTime,
+              canonical?.lastProcessedAt,
+            );
+            publishAuthoritativeSnapshot(canonical);
+            setApiAvailable(true);
+            setCanonicalStateFailureDetails(null);
+          } catch (refreshError) {
+            const stateFailure = canonicalStateFailure(refreshError);
+            if (stateFailure) {
+              setCanonicalStateFailureDetails(stateFailure);
+              setApiAvailable(true);
+            } else if (!(refreshError instanceof GameApiError) || refreshError.status >= 500) {
+              setApiAvailable(false);
+            }
+            showCrossTabNotice("Action enregistrée, mais la resynchronisation de confirmation a échoué.");
+          }
+        }
         for (const event of result?.events ?? []) {
           const townLog = formatCanonicalTownEvent(event);
           if (townLog && !options.silentSuccess) addLog(townLog.message, townLog.type, "colony");
@@ -890,13 +916,16 @@ export default function App() {
   ]);
 
   const handleConfirmRecruit = () => {
-    if (!pendingRecruit) return;
-    void dispatchAuthoritativeCommand({ type: "hero.recruit_confirm", name: pendingRecruit.name }).then((ok) => {
-      if (ok) setPendingRecruit(null);
-    });
+    if (!pendingRecruit || isRecruitConfirmationPending) return;
+    setIsRecruitConfirmationPending(true);
+    void dispatchAuthoritativeCommand(
+      { type: "hero.recruit_confirm", name: pendingRecruit.name },
+      { refreshAfterSuccess: true },
+    ).finally(() => setIsRecruitConfirmationPending(false));
   };
 
   const handleCancelRecruit = () => {
+    if (isRecruitConfirmationPending) return;
     void dispatchAuthoritativeCommand({ type: "hero.recruit_cancel" });
   };
 
@@ -1896,16 +1925,22 @@ export default function App() {
                 <button
                   type="button"
                   onClick={handleCancelRecruit}
-                  className="flex-1 py-2.5 px-4 bg-[#231710] hover:bg-[#342217] border border-[#5c402b]/70 text-[#a89078] rounded-xl font-serif font-bold text-xs text-center transition cursor-pointer"
+                  disabled={isRecruitConfirmationPending}
+                  className="flex-1 py-2.5 px-4 bg-[#231710] hover:bg-[#342217] border border-[#5c402b]/70 text-[#a89078] rounded-xl font-serif font-bold text-xs text-center transition cursor-pointer disabled:cursor-wait disabled:opacity-50"
                 >
                   Décliner l'Offre
                 </button>
                 <button
                   type="button"
                   onClick={handleConfirmRecruit}
-                  className="flex-1 py-2.5 px-4 bg-[#8c5a2b] hover:bg-[#b0773f] text-[#fdf9f2] border border-[#d4af37] rounded-xl font-serif font-bold text-xs text-center transition cursor-pointer shadow-[0_4px_12px_rgba(140,90,43,0.3)] flex items-center justify-center gap-1.5"
+                  disabled={isRecruitConfirmationPending}
+                  className="flex-1 py-2.5 px-4 bg-[#8c5a2b] hover:bg-[#b0773f] text-[#fdf9f2] border border-[#d4af37] rounded-xl font-serif font-bold text-xs text-center transition cursor-pointer shadow-[0_4px_12px_rgba(140,90,43,0.3)] flex items-center justify-center gap-1.5 disabled:cursor-wait disabled:opacity-70"
                 >
-                  <span>SCELLER (🪙 {(100 + dungeon.heroes.length * 150).toLocaleString()})</span>
+                  <span>
+                    {isRecruitConfirmationPending
+                      ? "CONFIRMATION…"
+                      : `SCELLER (🪙 ${(100 + dungeon.heroes.length * 150).toLocaleString()})`}
+                  </span>
                 </button>
               </div>
             </div>
