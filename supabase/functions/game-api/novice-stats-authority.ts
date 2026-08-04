@@ -5,7 +5,8 @@ import {
 } from "../../../shared/domain/hero-stats.ts";
 import { getSkillById } from "../../../src/data/gameData.ts";
 import { getItemById } from "../../../shared/domain/items/items.ts";
-import { resolveItemModifiers } from "../../../shared/domain/items/scaling.ts";
+import { applyItemRarityScaling, resolveItemModifiers } from "../../../shared/domain/items/scaling.ts";
+import type { WeaponOffensiveContext } from "../../../shared/domain/weapon-combat.ts";
 
 export type AuthoritativeNoviceStats = CanonicalHeroBaseStats;
 
@@ -45,7 +46,25 @@ export function calculateAuthoritativeHeroStats(
   const equipmentModifiers = Object.values(equipment).flatMap((item) => item
     ? resolveAuthoritativeNoviceItemModifiers(item.itemId, item.rarity ?? "common", item.modifiers)
     : []);
-  return calculateHeroDerivedStats(stats, [...passiveModifiers, ...equipmentModifiers]);
+  const mainHand = equipment.mainHand;
+  let weaponContext: WeaponOffensiveContext | undefined;
+  if (mainHand) {
+    const item = getItemById(mainHand.itemId);
+    if (item?.itemType === "weapon") {
+      const scaled = applyItemRarityScaling(item, mainHand.rarity ?? "common");
+      weaponContext = {
+        scaling: scaled.scaling,
+        attackProfile: scaled.attackProfile,
+        damageRange: scaled.damageRange,
+        attackSpeed: scaled.attackSpeed,
+      };
+    }
+  }
+  return calculateHeroDerivedStats(
+    stats,
+    [...passiveModifiers, ...equipmentModifiers],
+    weaponContext,
+  );
 }
 
 export function calculateAuthoritativeNoviceStats(

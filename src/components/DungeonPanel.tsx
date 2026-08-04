@@ -18,6 +18,22 @@ import {
 import { Hero, BattleLogEntry } from "../types";
 import type { CanonicalDungeonEncounterRecord } from "../../shared/contracts/authoritative";
 import { getDungeonRoomCount } from "../../shared/domain/dungeon-progression";
+import {
+  UNARMED_WEAPON_CONTEXT,
+  calculateGuaranteedWeaponPower,
+  selectWeaponAttackPower,
+} from "../../shared/domain/weapon-combat";
+import { getHeroMainHandWeapon } from "../utils/gameCalculations";
+
+function getDisplayedNormalAttackPower(hero: Hero): number {
+  const weapon = getHeroMainHandWeapon(hero);
+  const attackProfile = weapon?.attackProfile ?? UNARMED_WEAPON_CONTEXT.attackProfile;
+  const attackPower = selectWeaponAttackPower(
+    hero.calculatedStats,
+    weapon?.scaling ?? UNARMED_WEAPON_CONTEXT.scaling,
+  );
+  return calculateGuaranteedWeaponPower(attackPower, attackProfile);
+}
 
 interface DungeonPanelProps {
   heroes: Hero[];
@@ -104,8 +120,7 @@ export default function DungeonPanel({
     let totalLvl = 0;
     
     activeHeroes.forEach(hero => {
-      const isMagicClass = ["Mage", "Acolyte", "Aède", "Druide"].includes(hero.classType);
-      const heroAtk = isMagicClass ? hero.calculatedStats.magicDamage : hero.calculatedStats.physicalDamage;
+      const heroAtk = getDisplayedNormalAttackPower(hero);
       totalAtk += heroAtk;
       totalDef += hero.calculatedStats.physicalDefense;
       totalLvl += hero.level;
@@ -485,8 +500,7 @@ export default function DungeonPanel({
             {activeHeroes.map((hero) => {
               const hpPercent = (hero.currentHp / hero.calculatedStats.maxHp) * 100;
               const xpPercent = (hero.xp / hero.xpNeeded) * 100;
-              const isMagicClass = ["Mage", "Acolyte", "Aède", "Druide"].includes(hero.classType);
-              const heroAtk = isMagicClass ? hero.calculatedStats.magicDamage : hero.calculatedStats.physicalDamage;
+              const heroAtk = getDisplayedNormalAttackPower(hero);
               const heroDef = hero.calculatedStats.physicalDefense;
 
               return (
@@ -542,7 +556,7 @@ export default function DungeonPanel({
 
                   {/* Combat Stats Grid */}
                   <div className="grid grid-cols-2 gap-x-2 gap-y-1 text-[8.5px] font-mono mt-3 pt-2.5 border-t border-[#5c402b]/20">
-                    <span className="flex items-center gap-1 text-red-400 font-semibold" title="Attaque">
+                    <span className="flex items-center gap-1 text-red-400 font-semibold" title="Puissance garantie de l'attaque normale avant le jet de l'arme">
                       <Sword className="w-2.5 h-2.5 text-red-500" /> ATK: <strong className="text-[#dfdbc7]">{Math.floor(heroAtk)}</strong>
                     </span>
                     <span className="flex items-center gap-1 text-sky-400 font-semibold" title="Défense">
@@ -559,6 +573,12 @@ export default function DungeonPanel({
                     </span>
                     <span className="flex items-center gap-1 text-teal-400 font-semibold" title="Esquive">
                       🍃 ESQ: <strong className="text-[#dfdbc7]">{hero.calculatedStats.dodgeChance || 3}%</strong>
+                    </span>
+                    <span
+                      className="flex items-center gap-1 text-emerald-300 font-semibold"
+                      title="DPS estimé de l'attaque normale par cycle, avant défense et résistances"
+                    >
+                      DPS: <strong className="text-[#dfdbc7]">{hero.calculatedStats.estimatedDps.toFixed(2)}</strong>
                     </span>
                   </div>
                 </div>

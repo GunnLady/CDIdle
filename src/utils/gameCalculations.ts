@@ -334,7 +334,16 @@ export const getHeroStats = (
 
   const equipmentModifiers = getHeroEquipmentModifiers(hero);
   const allModifiers = [...passiveModifiers, ...equipmentModifiers];
-  return calculateHeroDerivedStats(getHeroAttributes(hero), allModifiers) as CalculatedStats;
+  const mainHand = resolveEquippedItem(hero.equipment?.mainHand);
+  const weaponContext = mainHand?.itemType === "weapon"
+    ? {
+        scaling: mainHand.scaling,
+        attackProfile: mainHand.attackProfile,
+        damageRange: mainHand.damageRange,
+        attackSpeed: mainHand.attackSpeed,
+      }
+    : undefined;
+  return calculateHeroDerivedStats(getHeroAttributes(hero), allModifiers, weaponContext) as CalculatedStats;
 };
 
 export const calculateXpNeeded = (nextLevel: number, classType: ClassType): number => {

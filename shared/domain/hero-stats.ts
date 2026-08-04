@@ -1,3 +1,11 @@
+import {
+  UNARMED_WEAPON_CONTEXT,
+  calculateEstimatedDps,
+  calculateWeaponBasePower,
+  selectWeaponAttackPower,
+  type WeaponOffensiveContext,
+} from "./weapon-combat.ts";
+
 export type CanonicalHeroBaseStats = {
   str: number;
   agi: number;
@@ -38,6 +46,7 @@ export function isCanonicalItemModifierField(stat: string): boolean {
 export function calculateHeroDerivedStats(
   stats: CanonicalHeroBaseStats,
   modifiers: CanonicalStatModifier[],
+  weaponContext: WeaponOffensiveContext = UNARMED_WEAPON_CONTEXT,
 ) {
   const { str, agi, end, int, wiz, dex, luk } = stats;
   const apply = (baseValue: number, statName: string): number => {
@@ -53,8 +62,13 @@ export function calculateHeroDerivedStats(
 
   const baseHp = Math.max(1, 50 + end * 8 + str);
   const baseMana = Math.max(1, Math.floor(20 + int * 7 + wiz * 4));
-  const basePhysicalDamage = Math.max(1, Math.floor(2 + str * 1.3 + dex * 0.4));
-  const baseMagicDamage = Math.max(1, Math.floor(2 + int * 1.3 + wiz * 0.4));
+  const physicalScaling = weaponContext.scaling.category === "magic"
+    ? UNARMED_WEAPON_CONTEXT.scaling
+    : weaponContext.scaling;
+  const basePhysicalDamage = calculateWeaponBasePower(stats, physicalScaling);
+  const baseMagicDamage = weaponContext.scaling.category === "magic"
+    ? calculateWeaponBasePower(stats, weaponContext.scaling)
+    : Math.max(1, Math.floor(2 + int * 1.3 + wiz * 0.4));
   const baseCriticalChance = Math.max(1, Math.min(100, 3 + dex * 0.1 + luk * 0.2));
   const baseDodgeChance = Math.max(3, Math.min(90, 1 + agi * 0.1 + luk * 0.2));
   const baseSpeed = Math.max(1, Math.floor(10 + agi * 1.2 + dex * 0.3));
@@ -64,17 +78,30 @@ export function calculateHeroDerivedStats(
   const maxMana = Math.max(1, Math.round(apply(baseMana, "maxMana")));
   const physicalDefense = Math.max(0, Math.round(apply(basePhysicalDefense, "physicalDefense")));
   const magicDefense = Math.max(0, Math.round(apply(baseMagicDefense, "magicDefense")));
+  const criticalChance = Number(Math.max(1, Math.min(100, apply(baseCriticalChance, "criticalChance"))).toFixed(1));
+  const physicalDamage = Math.max(1, Math.round(apply(basePhysicalDamage, "physicalDamage")));
+  const magicDamage = Math.max(1, Math.round(apply(baseMagicDamage, "magicDamage")));
+  const speed = Math.max(1, Math.round(apply(baseSpeed, "speed")));
+  const estimatedDps = calculateEstimatedDps({
+    attackPower: selectWeaponAttackPower({ physicalDamage, magicDamage }, weaponContext.scaling),
+    attackProfile: weaponContext.attackProfile,
+    damageRange: weaponContext.damageRange,
+    attackSpeed: weaponContext.attackSpeed,
+    heroSpeed: speed,
+    criticalChance,
+  });
 
   return {
     maxHp,
     hp: maxHp,
     maxMana,
     mana: maxMana,
-    criticalChance: Number(Math.max(1, Math.min(100, apply(baseCriticalChance, "criticalChance"))).toFixed(1)),
+    criticalChance,
     dodgeChance: Number(Math.max(1, Math.min(90, apply(baseDodgeChance, "dodgeChance"))).toFixed(1)),
-    physicalDamage: Math.max(1, Math.round(apply(basePhysicalDamage, "physicalDamage"))),
-    magicDamage: Math.max(1, Math.round(apply(baseMagicDamage, "magicDamage"))),
-    speed: Math.max(1, Math.round(apply(baseSpeed, "speed"))),
+    physicalDamage,
+    magicDamage,
+    speed,
+    estimatedDps,
     physicalDefense,
     magicDefense,
     resistances: Object.fromEntries(

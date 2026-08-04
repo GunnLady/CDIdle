@@ -70,15 +70,15 @@ export const CLASS_CALIBRATION: Record<Exclude<ClassType, "Novice">, {
   deviation: number;
   offset: number;
 }> = {
-  Guerrier: { mean: 16.6796666667, deviation: 6.3447304732, offset: -0.1379824 },
-  Voleur: { mean: 16.8806725, deviation: 5.5472834042, offset: -0.022274 },
-  Archer: { mean: 18.1626366667, deviation: 5.6618825426, offset: -0.0209528 },
+  Guerrier: { mean: 16.1126, deviation: 6.0747546742, offset: -0.1379824 },
+  Voleur: { mean: 16.4553725, deviation: 5.7863259591, offset: -0.022274 },
+  Archer: { mean: 17.59557, deviation: 5.7792607839, offset: -0.0209528 },
   Mage: { mean: 18.18271, deviation: 6.8454770064, offset: 0.0697166 },
   Acolyte: { mean: 16.1854833333, deviation: 5.4869293669, offset: -0.0213552 },
   "A\u00e8de": { mean: 17.9173333333, deviation: 7.5547409103, offset: 0.072152 },
   Druide: { mean: 17.9654933333, deviation: 7.8508390182, offset: 0.0783162 },
   Artificier: { mean: 18.08515, deviation: 6.1210040462, offset: 0.068637 },
-  Pugiliste: { mean: 18.43442, deviation: 5.658954051, offset: -0.0862574 },
+  Pugiliste: { mean: 18.00912, deviation: 5.6896890524, offset: -0.0862574 },
 };
 
 function normalCdf(value: number): number {

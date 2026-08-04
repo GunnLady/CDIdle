@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import DungeonPanel from "../src/components/DungeonPanel";
 import type { CanonicalDungeonEncounterRecord } from "../shared/contracts/authoritative";
 import type React from "react";
+import { makeHero } from "./fixtures/game";
 
 const encounter: CanonicalDungeonEncounterRecord = {
   encounterId: "encounter-test",
@@ -87,5 +88,26 @@ describe("DungeonPanel authoritative encounter history", () => {
     );
 
     expect(panel.getByRole("button", { name: "Repli au Campement" })).toBeEnabled();
+  });
+
+  it("shows the weapon-resolved normal attack power and estimated DPS", () => {
+    const hero = makeHero({
+      isActive: true,
+      equipment: {
+        mainHand: { instanceId: "magic-main-hand", itemId: "basic_staff", rarity: "common" },
+      },
+      calculatedStats: {
+        ...makeHero().calculatedStats,
+        physicalDamage: 5,
+        magicDamage: 99,
+        estimatedDps: 123.45,
+      },
+    });
+    render(<DungeonPanel {...props} heroes={[hero]} />);
+
+    expect(screen.getByTitle("Puissance garantie de l'attaque normale avant le jet de l'arme"))
+      .toHaveTextContent("123");
+    expect(screen.getByTitle("DPS estimé de l'attaque normale par cycle, avant défense et résistances"))
+      .toHaveTextContent("123.45");
   });
 });

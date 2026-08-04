@@ -32,7 +32,10 @@ describe("HeroPanel item instances", () => {
       storedItems={[]}
     />);
 
+    expect(screen.getByText("DPS estimé")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: /équipement/i }));
+    expect(screen.getByText("Scaling: Puissance (FOR)")).toBeInTheDocument();
+    expect(screen.getByText("Profil: 1 coup × 100 % de puissance")).toBeInTheDocument();
     expect(screen.queryByText(/item-equipped-12345678/)).not.toBeInTheDocument();
     fireEvent.click(screen.getAllByRole("button", { name: /^retirer$/i })[0]);
     expect(onUnequipItem).toHaveBeenCalledWith(hero.id, "mainHand");

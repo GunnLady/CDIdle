@@ -8,6 +8,11 @@ import { Search } from "lucide-react";
 import { StoredItemInstance, StoredForgeMaterialStack, Rarity, ItemInfo, Hero } from "../types";
 import { getItemById, RARITY_ORDER } from "../../shared/domain/items/items.ts";
 import { applyItemRarityScaling, FORGE_MATERIALS } from "../utils/gameCalculations";
+import {
+  formatWeaponAttackSpeed,
+  getWeaponAttackProfileLabel,
+  getWeaponScalingLabel,
+} from "../domain/weaponPresentation";
 
 type StorageSortKey = "none" | "rarity" | "requiredLevel" | "name";
 type StorageSortDirection = "asc" | "desc";
@@ -366,7 +371,13 @@ export default function StoragePanel({
                       <span className="text-red-400">Dégâts : {item.damageRange.min}-{item.damageRange.max}</span>
                     )}
                     {item.itemType === "weapon" && item.attackSpeed !== undefined && (
-                      <span className="text-sky-400">Vit. Atk : {item.attackSpeed}s</span>
+                      <span className="text-sky-400">Indice vit. : {formatWeaponAttackSpeed(item.attackSpeed)}</span>
+                    )}
+                    {item.itemType === "weapon" && (
+                      <span className="text-emerald-400">Scaling : {getWeaponScalingLabel(item)}</span>
+                    )}
+                    {item.itemType === "weapon" && (
+                      <span className="text-amber-300">Profil : {getWeaponAttackProfileLabel(item)}</span>
                     )}
                   </div>
 

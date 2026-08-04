@@ -671,6 +671,72 @@ describe("authoritative dungeon golden behavior characterized from 640f89f", () 
     expect(replay).toEqual(first);
   });
 
+  it("does not use a persisted estimatedDps value to resolve combat", () => {
+    const initial = state();
+    const hero = initial.heroes?.[0];
+    if (!hero) throw new Error("TEST_HERO_REQUIRED");
+    const tampered = state({
+      heroes: [{
+        ...hero,
+        calculatedStats: { ...hero.calculatedStats, estimatedDps: 999_999 },
+      }],
+    });
+
+    const reference = resolveAuthoritativeDungeonEncounter(
+      initial,
+      "golden-dps-reference",
+      seededRng(0x850091),
+    );
+    const falsified = resolveAuthoritativeDungeonEncounter(
+      tampered,
+      "golden-dps-reference",
+      seededRng(0x850091),
+    );
+
+    expect(falsified.encounter).toEqual(reference.encounter);
+  });
+
+  it("uses magic power instead of physical power for a magical weapon normal attack", () => {
+    const magicalHero = makeHero({
+      activeSkills: [],
+      equipment: {
+        mainHand: { instanceId: "magic-staff", itemId: "basic_staff", rarity: "common" },
+      },
+      calculatedStats: {
+        ...makeHero().calculatedStats,
+        maxHp: 200,
+        hp: 200,
+        physicalDamage: 1,
+        magicDamage: 100,
+        physicalDefense: 100,
+        criticalChance: 0,
+      },
+      currentHp: 200,
+    });
+    const physicalOnlyHero = {
+      ...magicalHero,
+      calculatedStats: {
+        ...magicalHero.calculatedStats,
+        physicalDamage: 100,
+        magicDamage: 1,
+      },
+    };
+    const magical = resolveAuthoritativeDungeonEncounter(
+      state({ heroes: [magicalHero] }),
+      "golden-magic-weapon",
+      tapeRng([0.10, 0.00, 0.25, ...Array(1_000).fill(0.99)]).rng,
+    );
+    const physicalOnly = resolveAuthoritativeDungeonEncounter(
+      state({ heroes: [physicalOnlyHero] }),
+      "golden-magic-weapon",
+      tapeRng([0.10, 0.00, 0.25, ...Array(1_000).fill(0.99)]).rng,
+    );
+    const magicalHit = magical.encounter.transcript.find((event) => event.type === "hero.hit");
+    const physicalOnlyHit = physicalOnly.encounter.transcript.find((event) => event.type === "hero.hit");
+
+    expect(Number(magicalHit?.damage)).toBeGreaterThan(Number(physicalOnlyHit?.damage));
+  });
+
   it.each([
     ["double_cut", 2],
     ["rapid_combo", 5],
@@ -995,7 +1061,7 @@ describe("authoritative dungeon golden behavior characterized from 640f89f", () 
     });
   });
 
-  it("preserves deterministic three-strike attacks without extra speed rolls", () => {
+  it("limits speed to one bonus strike without extra speed rolls", () => {
     const fastHero = makeHero({
       calculatedStats: {
         ...makeHero().calculatedStats,
@@ -1008,7 +1074,7 @@ describe("authoritative dungeon golden behavior characterized from 640f89f", () 
       0.10, // encounter
       0.00, // monster
       0.25, // visual id
-      0.99, 0.99, 0.99, // critical checks only
+      0.99, 0.99, // critical checks only
       0.99, // no material
     ]);
     const result = resolveAuthoritativeDungeonEncounter(
@@ -1017,14 +1083,56 @@ describe("authoritative dungeon golden behavior characterized from 640f89f", () 
       tape.rng,
     );
 
-    expect(tape.draws()).toBe(7);
+    expect(tape.draws()).toBe(6);
     const hits = result.encounter.transcript.filter((event) => event.type === "hero.hit");
-    expect(hits).toHaveLength(3);
+    expect(hits).toHaveLength(2);
     expect(hits.map((event) => event.message)).toEqual([
       "Héros fixture inflige 100 dégâts à Rat Énorme des Égouts.",
       "[Frappe bonus] Héros fixture inflige 100 dégâts à Rat Énorme des Égouts.",
-      "[Frappe bonus] Héros fixture inflige 100 dégâts à Rat Énorme des Égouts.",
     ]);
+  });
+
+  it("guarantees two independently rolled strikes for a dual-wield weapon", () => {
+    const dualWieldHero = makeHero({
+      equipment: {
+        mainHand: { instanceId: "dual-gauntlets", itemId: "basic_gauntlets", rarity: "common" },
+      },
+      calculatedStats: {
+        ...makeHero().calculatedStats,
+        physicalDamage: 100,
+        speed: 0,
+        criticalChance: 50,
+      },
+    });
+    const tape = tapeRng([
+      0.10, // encounter
+      0.00, // monster
+      0.25, // visual id
+      0.00, // first weapon damage -> minimum
+      0.99, // first strike is normal
+      0.00, // second weapon damage -> minimum
+      0.00, // second strike is critical
+      0.99, // no material
+    ]);
+    const result = resolveAuthoritativeDungeonEncounter(
+      state({ heroes: [dualWieldHero] }),
+      "golden-dual-wield",
+      tape.rng,
+    );
+    const hits = result.encounter.transcript.filter((event) => event.type.startsWith("hero.hit"));
+
+    expect(tape.draws()).toBe(8);
+    expect(hits).toHaveLength(2);
+    expect(hits[0]).toMatchObject({ strike: 1, strikeCount: 2, critical: false, rawDamage: 72 });
+    expect(hits[1]).toMatchObject({
+      strike: 2,
+      strikeCount: 2,
+      critical: true,
+      rawDamage: 72,
+      message: expect.stringContaining("[Seconde arme] [Coup critique]"),
+    });
+    expect(Number(hits[0].damage)).toBeLessThan(72);
+    expect(Number(hits[1].damage)).toBeLessThan(Math.floor(72 * 1.5));
   });
 
   it("records a critical hit at the characterized roll position", () => {
@@ -1065,7 +1173,7 @@ describe("authoritative dungeon golden behavior characterized from 640f89f", () 
       0.10, // encounter
       0.00, // monster
       0.25, // visual id
-      0.00, 0.00, 0.00, // critical checks
+      0.00, 0.00, // critical checks
       0.99, // no material
     ]);
     const fastCriticalHero = makeHero({
@@ -1083,12 +1191,12 @@ describe("authoritative dungeon golden behavior characterized from 640f89f", () 
     );
     const hits = result.encounter.transcript.filter((event) => event.type === "hero.hit.critical");
 
-    expect(tape.draws()).toBe(7);
-    expect(hits).toHaveLength(3);
+    expect(tape.draws()).toBe(6);
+    expect(hits).toHaveLength(2);
     expect(hits[1]).toMatchObject({
       message: "[Frappe bonus] [Coup critique] Héros fixture inflige 150 dégâts à Rat Énorme des Égouts.",
       strike: 2,
-      strikeCount: 3,
+      strikeCount: 2,
       critical: true,
     });
   });

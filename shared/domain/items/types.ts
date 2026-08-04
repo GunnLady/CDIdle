@@ -3,7 +3,19 @@ export type CanonicalModifierType = "flat" | "percent";
 export type CanonicalItemType = "weapon" | "offhand" | "armor" | "accessory";
 export type CanonicalEquipmentSlot = "mainHand" | "offHand" | "armor" | "accessory";
 export type CanonicalWeaponHandedness = "one_handed" | "two_handed" | "dual_wield";
+export type CanonicalWeaponAttackProfile = {
+  baseStrikes: 1 | 2;
+  powerPerStrike: number;
+  maxStrikes: 3;
+};
 export type CanonicalItemProvenance = "vocation" | "chest" | "boss" | "forge";
+export type CanonicalWeaponScalingCategory = "power" | "finesse" | "ranged" | "magic";
+export type CanonicalWeaponScalingStat = "str" | "agi" | "dex" | "int" | "wiz";
+
+export type CanonicalWeaponScaling = {
+  category: CanonicalWeaponScalingCategory;
+  stat: CanonicalWeaponScalingStat;
+};
 
 export type CanonicalDamageType =
   | "physical" | "arcane" | "fire" | "ice" | "water" | "earth"
@@ -68,6 +80,8 @@ export type CanonicalBaseItem = {
 export type CanonicalWeaponItem = CanonicalBaseItem & {
   itemType: "weapon";
   weaponTypeId: string;
+  scaling: CanonicalWeaponScaling;
+  attackProfile: CanonicalWeaponAttackProfile;
   damageRange?: { min: number; max: number };
   attackSpeed?: number;
   damageTypes?: CanonicalDamageType[];

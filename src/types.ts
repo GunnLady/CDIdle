@@ -4,6 +4,10 @@
  */
 
 import type { CanonicalHeroClass } from "../shared/domain/hero-classes.ts";
+import type {
+  CanonicalWeaponAttackProfile,
+  CanonicalWeaponScaling,
+} from "../shared/domain/items/types.ts";
 
 export interface Resources {
   gold: number;
@@ -75,6 +79,7 @@ export interface CalculatedStats {
   mana: number;
   physicalDamage: number;
   magicDamage: number;
+  estimatedDps: number;
   speed: number;
   physicalDefense: number;
   magicDefense: number;
@@ -354,6 +359,8 @@ export interface BaseItemInfo {
 export interface WeaponItemInfo extends BaseItemInfo {
   itemType: "weapon";
   weaponTypeId: WeaponInfo["id"];
+  scaling: CanonicalWeaponScaling;
+  attackProfile: CanonicalWeaponAttackProfile;
   damageRange?: DamageRange;
   attackSpeed?: number;
   damageTypes?: DamageType[];

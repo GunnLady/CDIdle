@@ -57,6 +57,7 @@ export const makeHero = (overrides: Partial<Hero> = {}): Hero => ({
     mana: 10,
     physicalDamage: 5,
     magicDamage: 5,
+    estimatedDps: 6.6,
     physicalDefense: 5,
     magicDefense: 5,
     speed: 5,

@@ -16,6 +16,11 @@ import { getSkillById } from "../data/skills";
 import { getItemById } from "../../shared/domain/items/items.ts";
 import { getHeroAttributes, resolveEquippedItem, isMainHandTwoHanded, resolveWeaponDamageTypes, applyItemRarityScaling } from "../utils/gameCalculations";
 import HeroPortrait from "./HeroPortrait";
+import {
+  formatWeaponAttackSpeed,
+  getWeaponAttackProfileLabel,
+  getWeaponScalingLabel,
+} from "../domain/weaponPresentation";
 
 function getTargetLabel(target?: string): string {
   if (!target) return "";
@@ -336,10 +341,16 @@ export default function HeroPanel({
                           <span className="text-red-400 font-semibold">Dégâts: {item.damageRange.min}-{item.damageRange.max}</span>
                         )}
                         {item.itemType === "weapon" && item.attackSpeed !== undefined && (
-                          <span className="text-sky-400 font-semibold">Vit. Atk: {item.attackSpeed}s</span>
+                          <span className="text-sky-400 font-semibold">Indice vit. : {formatWeaponAttackSpeed(item.attackSpeed)}</span>
                         )}
                         {item.itemType === "weapon" && (
-                          <span className="text-amber-400 font-semibold">Type: {resolveWeaponDamageTypes(item as any).join(", ")}</span>
+                          <span className="text-amber-400 font-semibold">Type: {resolveWeaponDamageTypes(item).join(", ")}</span>
+                        )}
+                        {item.itemType === "weapon" && (
+                          <span className="text-emerald-400 font-semibold">Scaling: {getWeaponScalingLabel(item)}</span>
+                        )}
+                        {item.itemType === "weapon" && (
+                          <span className="text-amber-300 font-semibold">Profil: {getWeaponAttackProfileLabel(item)}</span>
                         )}
                       </div>
 
@@ -452,10 +463,16 @@ export default function HeroPanel({
             <span className="text-red-400">Dégâts: {item.damageRange.min}-{item.damageRange.max}</span>
           )}
           {item.itemType === "weapon" && item.attackSpeed !== undefined && (
-            <span className="text-sky-400">Vit. Atk: {item.attackSpeed}s</span>
+            <span className="text-sky-400">Indice vit. : {formatWeaponAttackSpeed(item.attackSpeed)}</span>
           )}
           {item.itemType === "weapon" && (
-            <span className="text-amber-400 font-semibold">Type: {resolveWeaponDamageTypes(item as any).join(", ")}</span>
+            <span className="text-amber-400 font-semibold">Type: {resolveWeaponDamageTypes(item).join(", ")}</span>
+          )}
+          {item.itemType === "weapon" && (
+            <span className="text-emerald-400 font-semibold">Scaling: {getWeaponScalingLabel(item)}</span>
+          )}
+          {item.itemType === "weapon" && (
+            <span className="text-amber-300 font-semibold">Profil: {getWeaponAttackProfileLabel(item)}</span>
           )}
         </div>
 
@@ -793,6 +810,18 @@ export default function HeroPanel({
                                 </span>
                                 <span className="text-[#dfdbc7] font-mono font-bold">
                                   {stats.magicDamage}
+                                </span>
+                              </div>
+
+                              <div
+                                className="flex items-center justify-between py-0.5 border-b border-[#3e2b1f]/20"
+                                title="Dégâts moyens estimés de l'attaque normale par cycle d'attaque, avant défense et résistances."
+                              >
+                                <span className="text-[#8c7460] font-medium flex items-center gap-1 font-serif">
+                                  DPS estimé
+                                </span>
+                                <span className="text-emerald-300 font-mono font-bold">
+                                  {stats.estimatedDps.toFixed(2)}
                                 </span>
                               </div>
 

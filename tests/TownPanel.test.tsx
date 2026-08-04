@@ -59,6 +59,14 @@ describe("TownPanel city controls", () => {
     expect(props.onCancelForge).not.toHaveBeenCalled();
   });
 
+  it("displays the selected weapon scaling in the forge catalog", async () => {
+    render(<TownPanel {...baseProps()} />);
+    fireEvent.click(screen.getByRole("button", { name: /forge/i }));
+    expect(await screen.findByText(/Scaling : Puissance \(FOR\)/)).toBeInTheDocument();
+    expect(screen.getByText(/Profil : 1 coup × 100 % de puissance/)).toBeInTheDocument();
+    expect(screen.getByText(/Indice de vitesse : 1/)).toBeInTheDocument();
+  });
+
   it("sends an explicit modifier for an accepted forge upgrade", async () => {
     const props = baseProps();
     render(<TownPanel {...props} pendingForge={{ previewId: "preview-upgrade", itemId: "starter_sword", upgradeProc: "uncommon" }} />);

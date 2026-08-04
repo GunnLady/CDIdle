@@ -3,6 +3,11 @@ import { applyForgeCommand, DEFAULT_NOVICE_ITEM_BLUEPRINTS } from "./forge-autho
 import { applyDungeonCommand } from "./dungeon-authority.ts";
 import { generateAuthoritativeNovice } from "./novice-authority.ts";
 import {
+  calculateAuthoritativeHeroStats,
+  type AuthoritativeEquipment,
+  type AuthoritativeNoviceStats,
+} from "./novice-stats-authority.ts";
+import {
   initialCanonicalRngState,
   forkCanonicalRng,
   migrateCanonicalRngState,
@@ -432,6 +437,34 @@ function validateCatalogReferences(state: Record<string, unknown>): string[] {
   return errors;
 }
 
+function migrateHeroWithDerivedStats(input: unknown): unknown {
+  const progressed = migrateAuthoritativeHeroProgression(input);
+  if (!progressed || typeof progressed !== "object" || Array.isArray(progressed)) return progressed;
+  const hero = progressed as Record<string, unknown>;
+  const existingCalculatedStats = hero.calculatedStats;
+  if (!existingCalculatedStats || typeof existingCalculatedStats !== "object" || Array.isArray(existingCalculatedStats)) {
+    return progressed;
+  }
+  if (!hero.baseStats || typeof hero.baseStats !== "object" || Array.isArray(hero.baseStats)) return progressed;
+  const calculatedStats = calculateAuthoritativeHeroStats(
+    hero.baseStats as AuthoritativeNoviceStats,
+    Array.isArray(hero.passiveSkills) ? hero.passiveSkills.filter((id): id is string => typeof id === "string") : [],
+    hero.equipment && typeof hero.equipment === "object" && !Array.isArray(hero.equipment)
+      ? hero.equipment as AuthoritativeEquipment
+      : {},
+  );
+  return {
+    ...hero,
+    currentHp: typeof hero.currentHp === "number"
+      ? Math.min(hero.currentHp, calculatedStats.maxHp)
+      : calculatedStats.maxHp,
+    currentMana: typeof hero.currentMana === "number"
+      ? Math.min(hero.currentMana, calculatedStats.maxMana)
+      : calculatedStats.maxMana,
+    calculatedStats,
+  };
+}
+
 export function migrateTownState(current: Record<string, unknown>, legacySeed?: number): TownState {
   const defaults = initialTownState();
   const mergeMap = <T extends Record<string, unknown>>(fallback: T, value: unknown): T | unknown =>
@@ -441,7 +474,7 @@ export function migrateTownState(current: Record<string, unknown>, legacySeed?: 
         ? { ...fallback, ...(value as Record<string, unknown>) }
         : value;
   const migratedHeroes = Array.isArray(current.heroes)
-    ? current.heroes.map(migrateAuthoritativeHeroProgression)
+    ? current.heroes.map(migrateHeroWithDerivedStats)
     : current.heroes ?? defaults.heroes;
   const migrated = reconcileExistingVocations({
     ...defaults,
@@ -451,10 +484,10 @@ export function migrateTownState(current: Record<string, unknown>, legacySeed?: 
     citizens: mergeMap(defaults.citizens, current.citizens),
     heroes: migratedHeroes,
     onboardingCandidates: Array.isArray(current.onboardingCandidates)
-      ? current.onboardingCandidates.map(migrateAuthoritativeHeroProgression)
+      ? current.onboardingCandidates.map(migrateHeroWithDerivedStats)
       : current.onboardingCandidates,
     pendingRecruit: current.pendingRecruit
-      ? migrateAuthoritativeHeroProgression(current.pendingRecruit)
+      ? migrateHeroWithDerivedStats(current.pendingRecruit)
       : current.pendingRecruit,
     itemBlueprints: Array.isArray(current.itemBlueprints) && current.itemBlueprints.length > 0
       ? current.itemBlueprints

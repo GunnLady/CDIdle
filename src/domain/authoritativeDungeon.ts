@@ -53,6 +53,12 @@ import {
 } from "../../shared/domain/dungeon-progression.ts";
 import { chooseHeroAction } from "./combatTactics.ts";
 import {
+  UNARMED_WEAPON_CONTEXT,
+  calculateWeaponStrikePower,
+  rollWeaponStrikeCount,
+  selectWeaponAttackPower,
+} from "../../shared/domain/weapon-combat.ts";
+import {
   advanceTemporaryCombatEffects,
   applyTemporaryCombatEffect,
   getEffectiveHeroStats,
@@ -562,21 +568,19 @@ function resolveFight(
       if (!skillUsed) {
         const weapon = getHeroMainHandWeapon(hero);
         const attackSpeed = weapon?.attackSpeed ?? 1;
-        let strikes = 1;
-        let remainingChance = Math.max(0, (attackSpeed - 1) * 100 + calculatedStats.speed);
-        while (remainingChance > 0 && strikes < 3) {
-          if (remainingChance >= 100) {
-            strikes += 1;
-            remainingChance -= 100;
-          } else {
-            if (rng.next() < remainingChance / 100) strikes += 1;
-            break;
-          }
-        }
+        const attackProfile = weapon?.attackProfile ?? UNARMED_WEAPON_CONTEXT.attackProfile;
+        const strikes = rollWeaponStrikeCount(
+          attackSpeed,
+          calculatedStats.speed,
+          attackProfile,
+          () => rng.next(),
+        );
 
         for (let strike = 1; strike <= strikes; strike += 1) {
           const weaponDamage = rollWeaponDamage(weapon, rng);
-          const rawDamage = calculatedStats.physicalDamage + weaponDamage;
+          const scaling = weapon?.scaling ?? UNARMED_WEAPON_CONTEXT.scaling;
+          const attackPower = selectWeaponAttackPower(calculatedStats, scaling);
+          const rawDamage = calculateWeaponStrikePower(attackPower, attackProfile) + weaponDamage;
           const critical = rng.next() < calculatedStats.criticalChance / 100;
           const criticalDamage = critical ? Math.floor(rawDamage * 1.5) : rawDamage;
           const damageTypes = weapon && getWeaponDamageTypes(weapon).length > 0
@@ -590,7 +594,11 @@ function resolveFight(
           totalDamage += damage;
           const nextHp = Math.max(0, monster.hp - totalDamage);
           const hitLabels = [
-            strike > 1 ? "[Frappe bonus]" : null,
+            strike > attackProfile.baseStrikes
+              ? "[Frappe bonus]"
+              : attackProfile.baseStrikes > 1 && strike > 1
+                ? "[Seconde arme]"
+                : null,
             critical ? "[Coup critique]" : null,
           ].filter((label): label is string => label !== null);
           const hitPrefix = hitLabels.length > 0 ? `${hitLabels.join(" ")} ` : "";

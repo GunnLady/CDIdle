@@ -41,6 +41,11 @@ import {
   BasicForgeUpgradeProc,
   FORGE_MATERIALS
 } from "../utils/gameCalculations";
+import {
+  formatWeaponAttackSpeed,
+  getWeaponAttackProfileLabel,
+  getWeaponScalingLabel,
+} from "../domain/weaponPresentation";
 
 interface TownPanelProps {
   resources: Resources;
@@ -812,9 +817,24 @@ export default function TownPanel({
                               "{selectedBlueprint.description}"
                             </p>
                             <div className="pt-1.5 border-t border-[#302014]/40 font-mono space-y-1 text-[11px]">
-                              {selectedBlueprint.itemType === "weapon" && (selectedBlueprint as any).damageRange && (
+                              {selectedBlueprint.itemType === "weapon" && selectedBlueprint.damageRange && (
                                 <p className="text-red-400">
-                                  ⚔️ Dégâts de base : {(selectedBlueprint as any).damageRange.min} - {(selectedBlueprint as any).damageRange.max}
+                                  ⚔️ Dégâts de base : {selectedBlueprint.damageRange.min} - {selectedBlueprint.damageRange.max}
+                                </p>
+                              )}
+                              {selectedBlueprint.itemType === "weapon" && (
+                                <p className="text-emerald-400">
+                                  Scaling : {getWeaponScalingLabel(selectedBlueprint)}
+                                </p>
+                              )}
+                              {selectedBlueprint.itemType === "weapon" && (
+                                <p className="text-amber-300">
+                                  Profil : {getWeaponAttackProfileLabel(selectedBlueprint)}
+                                </p>
+                              )}
+                              {selectedBlueprint.itemType === "weapon" && selectedBlueprint.attackSpeed !== undefined && (
+                                <p className="text-sky-400">
+                                  Indice de vitesse : {formatWeaponAttackSpeed(selectedBlueprint.attackSpeed)}
                                 </p>
                               )}
                               {selectedBlueprint.modifiers && selectedBlueprint.modifiers.length > 0 && (

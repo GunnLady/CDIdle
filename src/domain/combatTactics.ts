@@ -16,6 +16,12 @@ import {
   isMonsterCombatModifierApplicable,
   type TemporaryCombatEffect,
 } from "./combatEffects.ts";
+import {
+  UNARMED_WEAPON_CONTEXT,
+  calculateExpectedStrikeCount,
+  calculateWeaponStrikePower,
+  selectWeaponAttackPower,
+} from "../../shared/domain/weapon-combat.ts";
 
 export type TacticalAction = {
   kind: "normal_attack" | "skill";
@@ -79,8 +85,13 @@ export function estimateNormalAttackDamage(
     ? (weapon.damageRange.min + weapon.damageRange.max) / 2
     : 1;
   const criticalMultiplier = 1 + Math.max(0, stats.criticalChance) / 100 * 0.5;
+  const attackPower = selectWeaponAttackPower(
+    stats,
+    weapon?.scaling ?? UNARMED_WEAPON_CONTEXT.scaling,
+  );
+  const attackProfile = weapon?.attackProfile ?? UNARMED_WEAPON_CONTEXT.attackProfile;
   const rawPerStrike = Math.max(1, Math.floor(
-    (stats.physicalDamage + averageWeaponDamage) * criticalMultiplier,
+    (calculateWeaponStrikePower(attackPower, attackProfile) + averageWeaponDamage) * criticalMultiplier,
   ));
   const damageTypes = weapon && getWeaponDamageTypes(weapon).length > 0
     ? getWeaponDamageTypes(weapon)
@@ -91,8 +102,8 @@ export function estimateNormalAttackDamage(
     getEffectiveMonster(monster, effects),
   );
   const attackSpeed = weapon?.attackSpeed ?? 1;
-  const expectedBonusStrikes = Math.min(2, Math.max(0, attackSpeed - 1 + stats.speed / 100));
-  return Math.max(1, Math.floor(damagePerStrike * (1 + expectedBonusStrikes)));
+  const expectedStrikes = calculateExpectedStrikeCount(attackSpeed, stats.speed, attackProfile);
+  return Math.max(1, Math.floor(damagePerStrike * expectedStrikes));
 }
 
 export function estimateNextEnemyDamage(

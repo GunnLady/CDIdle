@@ -222,6 +222,7 @@ const HERO_CALCULATED_STAT_FIELDS = [
   "mana",
   "physicalDamage",
   "magicDamage",
+  "estimatedDps",
   "speed",
   "physicalDefense",
   "magicDefense",
@@ -299,6 +300,9 @@ export function validateCanonicalHero(input: unknown, path = "hero"): string[] {
     }
     if (isFiniteNumber(hero.calculatedStats.maxMana) && hero.calculatedStats.maxMana < 0) {
       errors.push(`${path}.calculatedStats.maxMana must be >= 0`);
+    }
+    if (isFiniteNumber(hero.calculatedStats.estimatedDps) && hero.calculatedStats.estimatedDps <= 0) {
+      errors.push(`${path}.calculatedStats.estimatedDps must be > 0`);
     }
     if (!isRecord(hero.calculatedStats.resistances)) {
       errors.push(`${path}.calculatedStats.resistances must be an object`);

@@ -5,8 +5,12 @@ import type {
   CanonicalAccessoryItem as AccessoryItemInfo,
   CanonicalRarity as Rarity,
   CanonicalDamageType as DamageType,
+  CanonicalWeaponScaling,
+  CanonicalWeaponAttackProfile,
 } from "./types.ts";
 import { createModifiers } from "./modifierBuilder.ts";
+import { getDefaultWeaponScaling } from "./weapon-scaling.ts";
+import { getDefaultWeaponAttackProfile } from "./weapon-attack-profile.ts";
 
 export { createModifiers };
 
@@ -32,7 +36,9 @@ export function createWeapon(
   max: number,
   attackSpeed: number,
   modifiers: { stat: string; type?: "flat" | "percent"; value: number }[],
-  damageTypes: DamageType[] = ["physical"]
+  damageTypes: DamageType[] = ["physical"],
+  scaling: CanonicalWeaponScaling = getDefaultWeaponScaling(weaponTypeId),
+  attackProfile: CanonicalWeaponAttackProfile = getDefaultWeaponAttackProfile(weaponTypeId),
 ): WeaponItemInfo {
   return {
     id,
@@ -43,6 +49,8 @@ export function createWeapon(
     ...catalogMetadata(rarity),
     requiredLevel,
     description,
+    scaling: { ...scaling },
+    attackProfile: { ...attackProfile },
     damageRange: { min, max },
     attackSpeed,
     damageTypes,

@@ -450,7 +450,7 @@ export const TIER1_ITEM_WPN_LIST: ItemInfo[] = [
     "common",
     10,
     "Des gantelets solides, renforçant les frappes directes au corps à corps.",
-    6, 11,
+    7, 12,
     1.9,
     [{ stat: "physicalDamage", value: 4 }]
   ),
@@ -474,7 +474,7 @@ export const TIER1_ITEM_WPN_LIST: ItemInfo[] = [
     "common",
     10,
     "Des armes de pugilat légères, idéales pour frapper vite et multiplier les coups.",
-    4, 7,
+    10, 14,
     1.8,
     [{ stat: "speed", value: 4 }]
   ),
@@ -485,7 +485,7 @@ export const TIER1_ITEM_WPN_LIST: ItemInfo[] = [
     "uncommon",
     20,
     "Des poings de combat légers et précis, conçus pour des enchaînements rapides et agressifs.",
-    8, 14,
+    15, 21,
     1.9,
     [{ stat: "criticalChance", value: 5 }, { stat: "speed", value: 6 }]
   ),
@@ -522,7 +522,7 @@ export const TIER1_ITEM_WPN_LIST: ItemInfo[] = [
     "uncommon",
     20,
     "Deux épées bien équilibrées, conçues pour maintenir une pression constante avec des enchaînements réguliers.",
-    10, 16,
+    14, 22,
     1.75,
     [
       { stat: "physicalDamage", value: 5 },
@@ -536,7 +536,7 @@ export const TIER1_ITEM_WPN_LIST: ItemInfo[] = [
     "uncommon",
     20,
     "Deux sabres légers pensés pour des attaques rapides, précises et difficiles à anticiper.",
-    9, 15,
+    14, 22,
     1.9,
     [
       { stat: "criticalChance", value: 5 },
@@ -550,7 +550,7 @@ export const TIER1_ITEM_WPN_LIST: ItemInfo[] = [
     "uncommon",
     20,
     "Deux haches agressives, idéales pour des assauts brutaux et des frappes successives à courte portée.",
-    12, 21,
+    9, 24,
     1.7,
     [
       { stat: "physicalDamage", value: 8 },
@@ -564,7 +564,7 @@ export const TIER1_ITEM_WPN_LIST: ItemInfo[] = [
     "uncommon",
     20,
     "Deux dagues sombres et effilées, faites pour multiplier les frappes rapides et exploiter chaque ouverture.",
-    7, 13,
+    14, 20,
     2.0,
     [
       { stat: "criticalChance", value: 7 },

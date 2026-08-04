@@ -11,6 +11,8 @@ import { ARMOR_INFO_LIST } from "./armors.ts";
 import { ACCESSORY_INFO_LIST } from "./accessories.ts";
 import { isVocationRewardItem } from "./vocation-rewards.ts";
 import { isCanonicalItemModifierField } from "../hero-stats.ts";
+import { isValidWeaponScaling } from "./weapon-scaling.ts";
+import { isValidWeaponAttackProfile } from "./weapon-attack-profile.ts";
 import type {
   CanonicalEquipmentSlot,
   CanonicalItemProvenance,
@@ -229,6 +231,22 @@ export function validateItemCatalog(items: ItemInfo[] = ITEM_LIBRARY): string[] 
     if (item.provenances.length === 0) errors.push(`${item.id}:NO_PROVENANCE`);
     if (new Set(item.provenances).size !== item.provenances.length) errors.push(`${item.id}:DUPLICATE_PROVENANCE`);
     if (item.itemType === "weapon" && !weapons.has(item.weaponTypeId)) errors.push(`${item.id}:INVALID_WEAPON_TYPE`);
+    if (item.itemType === "weapon" && !isValidWeaponScaling(item.scaling)) errors.push(`${item.id}:INVALID_WEAPON_SCALING`);
+    if (item.itemType === "weapon" && !isValidWeaponAttackProfile(item.attackProfile)) {
+      errors.push(`${item.id}:INVALID_WEAPON_ATTACK_PROFILE`);
+    }
+    if (
+      item.itemType === "weapon"
+      && (
+        !Number.isInteger(item.damageRange.min)
+        || !Number.isInteger(item.damageRange.max)
+        || item.damageRange.min < 0
+        || item.damageRange.max < item.damageRange.min
+      )
+    ) errors.push(`${item.id}:INVALID_WEAPON_DAMAGE_RANGE`);
+    if (item.itemType === "weapon" && (!Number.isFinite(item.attackSpeed) || item.attackSpeed <= 0)) {
+      errors.push(`${item.id}:INVALID_WEAPON_ATTACK_SPEED`);
+    }
     if (item.itemType === "offhand" && !offhands.has(item.offHandTypeId)) errors.push(`${item.id}:INVALID_OFFHAND_TYPE`);
     if (item.itemType === "armor" && !armors.has(item.armorTypeId)) errors.push(`${item.id}:INVALID_ARMOR_TYPE`);
     if (item.itemType === "accessory" && !accessories.has(item.accessoryTypeId)) errors.push(`${item.id}:INVALID_ACCESSORY_TYPE`);
