@@ -173,8 +173,11 @@ Contrat complet : `docs/architecture/authoritative-rng.md`.
   aucune action manuelle `Résoudre` n'est exposée.
 - Le résultat canonique contient le transcript ordonné. L'interface le présente
   ligne par ligne toutes les 400 ms sans recalculer le combat.
-- Une compétence multi-frappe expose `hitCount`, `damagePerHit` et le total. Le
-  transcript annonce explicitement chaque quantité sans ajouter de tirage RNG.
+- Une compétence multi-frappe expose `hitCount`, `hitResults`,
+  `criticalHitCount` et le total. Chaque entrée de `hitResults` contient le
+  numéro d'impact, ses dégâts et son résultat critique. Chaque impact consomme
+  son propre jet critique canonique et le transcript annonce le détail sans
+  recalcul côté client.
 - `state.encounterHistory` conserve au plus les 15 derniers combats résolus,
   transcript et récompenses inclus. Le serveur tronque la collection dans la
   même mutation atomique que la résolution.

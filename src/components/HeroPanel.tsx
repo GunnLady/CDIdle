@@ -56,6 +56,11 @@ function getEffectSummary(effect: any): string {
       return `Inflige ${Math.round(effect.power * 100)}% de ${translateStat(effect.scalingStat)} (${dmgTypeDesc})${countStr}`;
     }
     case "buff": {
+      if (effect.modifiers?.some((modifier: any) => (
+        modifier.stat === "forcedTarget" && modifier.value > 0
+      ))) {
+        return `Force les ennemis à cibler le lanceur pendant ${effect.durationRounds} tours`;
+      }
       const mods = effect.modifiers
         ?.map((m: any) => `+${m.value}% ${translateStat(m.stat)}`)
         .join(", ");

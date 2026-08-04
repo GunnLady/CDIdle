@@ -38,8 +38,8 @@ export const NOVICE_SKILLS: SkillInfo[] = [
   createPassiveSkill(
     "small_profit",
     "Petit profit",
-    "Augmente légèrement l’or gagné après un combat.",
-    lootModifierEffect([{ stat: "goldGain", type: "percent", value: 3 }])
+    "Augmente de 5 % l’or obtenu sur les rencontres victorieuses (minimum +1 or).",
+    lootModifierEffect([{ stat: "goldGain", type: "percent", value: 5 }])
   )
 ];
 
@@ -65,11 +65,11 @@ export const WARRIOR_SKILLS: SkillInfo[] = [
   createActiveSkill(
     "provocation",
     "Provocation",
-    "Les ennemis on plus des chance de vous attaquer.",
-    "single_enemy",
+    "Force les ennemis à vous attaquer pendant une courte durée.",
+    "self",
     20,
     6,
-    buffEffect(4, [{ stat: "forcedTarget", type: "percent", value: 50 }])
+    buffEffect(2, [{ stat: "forcedTarget", type: "flat", value: 1 }])
   ),
   createPassiveSkill(
     "weapon_training",
@@ -110,13 +110,13 @@ export const ROGUE_SKILLS: SkillInfo[] = [
   createActiveSkill(
     "blinding_dust",
     "Poudre aveuglante",
-    "Réduit temporairement la puissance offensive d’un ennemi.",
+    "Réduit temporairement les dégâts physiques et magiques d’un ennemi.",
     "single_enemy",
     28,
     4,
     debuffEffect(2, [
       { stat: "physicalDamage", type: "percent", value: -20 },
-      { stat: "criticalChance", type: "percent", value: -15 }
+      { stat: "magicDamage", type: "percent", value: -20 }
     ])
   ),
   createPassiveSkill(
@@ -155,13 +155,13 @@ export const ARCHER_SKILLS: SkillInfo[] = [
   createActiveSkill(
     "crippling_shot",
     "Tir handicapant",
-    "Réduit temporairement la vitesse et l’esquive d’un ennemi.",
+    "Blesse un ennemi, réduisant temporairement ses dégâts et sa défense physiques.",
     "single_enemy",
     26,
     3,
     debuffEffect(2, [
-      { stat: "speed", type: "percent", value: -20 },
-      { stat: "dodgeChance", type: "percent", value: -15 }
+      { stat: "physicalDefense", type: "percent", value: -20 },
+      { stat: "physicalDamage", type: "percent", value: -15 }
     ])
   ),
   createPassiveSkill(
@@ -371,13 +371,13 @@ export const DRUID_SKILLS: SkillInfo[] = [
   createActiveSkill(
     "thorn_grasp",
     "Étreinte de ronces",
-    "Entrave violemment un ennemi avec des ronces, réduisant presque totalement sa vitesse et son esquive pendant un court moment.",
+    "Entrave violemment un ennemi et réduit fortement ses dégâts physiques et magiques.",
     "single_enemy",
     48,
     6,
     debuffEffect(2, [
-      { stat: "speed", type: "percent", value: -95 },
-      { stat: "dodgeChance", type: "percent", value: -95 }
+      { stat: "physicalDamage", type: "percent", value: -30 },
+      { stat: "magicDamage", type: "percent", value: -30 }
     ])
   ),
   createActiveSkill(
@@ -452,12 +452,12 @@ export const ARTIFICER_SKILLS: SkillInfo[] = [
   createActiveSkill(
     "static_trap",
     "Piège statique",
-    "Réduit temporairement la vitesse et la défense magique d’un ennemi.",
+    "Perturbe temporairement les dégâts magiques et la défense magique d’un ennemi.",
     "single_enemy",
     38,
     4,
     debuffEffect(2, [
-      { stat: "speed", type: "percent", value: -25 },
+      { stat: "magicDamage", type: "percent", value: -15 },
       { stat: "magicDefense", type: "percent", value: -20 }
     ])
   ),
@@ -500,7 +500,7 @@ export const PUGILIST_SKILLS: SkillInfo[] = [
   createActiveSkill(
     "rapid_combo",
     "Combo rapide",
-    "Enchaîne several frappes physiques contre un ennemi.",
+    "Enchaîne cinq frappes physiques rapides contre un ennemi.",
     "single_enemy",
     36,
     4,

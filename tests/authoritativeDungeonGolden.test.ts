@@ -245,6 +245,26 @@ describe("authoritative dungeon golden behavior characterized from 640f89f", () 
       .not.toContain("item:dungeon:golden-treasure-item:loot:0");
   });
 
+  it("applies encounter gold passives to treasure rewards", () => {
+    const tape = tapeRng([
+      0.94, // encounter -> treasure
+      0.10, // treasure -> gold
+      0.10, // material rarity
+      0.00, // material count
+    ]);
+    const result = resolveAuthoritativeDungeonEncounter(state({
+      heroes: [makeHero({ passiveSkills: ["small_profit"] })],
+    }), "golden-treasure-small-profit", tape.rng);
+
+    expect(tape.draws()).toBe(4);
+    expect(result.encounter.rewards.gold).toBe(9);
+    expect(result.state.resources?.gold).toBe(9);
+    expect(result.encounter.transcript).toContainEqual(expect.objectContaining({
+      type: "reward.gold",
+      gold: 9,
+    }));
+  });
+
   it("restores the active party during a rest encounter", () => {
     const hero = makeHero({ currentHp: 1, currentMana: 0 });
     const tape = tapeRng([0.99]); // encounter -> rest
@@ -308,6 +328,32 @@ describe("authoritative dungeon golden behavior characterized from 640f89f", () 
     expect(result.state.resources?.gold).toBe(expectedGold);
     expect(result.state.heroes?.[0].currentMana).toBe(expectedMana);
     expect(result.state.activeDungeonRoom).toBe(2);
+  });
+
+  it("applies encounter gold passives to successful non-combat challenges", () => {
+    const capable = makeHero({
+      passiveSkills: ["small_profit"],
+      baseStats: { str: 50, agi: 50, end: 50, int: 50, wiz: 50, dex: 50, luk: 50 },
+    });
+    const tape = tapeRng([
+      0.67, // encounter -> enigma
+      0.00, // luck roll
+      0.99, // no material
+    ]);
+    const result = resolveAuthoritativeDungeonEncounter(
+      state({ heroes: [capable] }),
+      "golden-enigma-small-profit",
+      tape.rng,
+    );
+
+    expect(tape.draws()).toBe(3);
+    expect(result.encounter).toMatchObject({ kind: "enigma", outcome: "victory" });
+    expect(result.encounter.rewards.gold).toBe(9);
+    expect(result.state.resources?.gold).toBe(9);
+    expect(result.encounter.transcript).toContainEqual(expect.objectContaining({
+      type: "reward.gold",
+      gold: 9,
+    }));
   });
 
   it.each([
@@ -427,11 +473,12 @@ describe("authoritative dungeon golden behavior characterized from 640f89f", () 
     expect(() => resolveAuthoritativeDungeonEncounter(state(), "rng-failure", rng)).toThrow(failure);
   });
 
-  it("uses a useful skill without inserting hidden combat rolls", () => {
+  it("uses a useful offensive skill with an explicit critical roll", () => {
     const tape = tapeRng([
       0.10, // encounter -> fight
       0.00, // monster
       0.25, // visual id
+      0.00, // skill critical
       0.99, // material drop -> none
     ]);
     const result = resolveAuthoritativeDungeonEncounter(state({
@@ -446,14 +493,15 @@ describe("authoritative dungeon golden behavior characterized from 640f89f", () 
           hp: 200,
           maxMana: 100,
           mana: 100,
-          physicalDamage: 100,
+          physicalDamage: 35,
           physicalDefense: 100,
+          criticalChance: 50,
         },
         currentHp: 200,
       })],
     }), "golden-skill", tape.rng);
 
-    expect(tape.draws()).toBe(4);
+    expect(tape.draws()).toBe(5);
     expect(result.encounter.transcript.map((event) => event.type)).toEqual([
       "encounter.started",
       "hero.skill.damage",
@@ -467,7 +515,160 @@ describe("authoritative dungeon golden behavior characterized from 640f89f", () 
       skillId: "heavy_blow",
       damageType: "physical",
       round: 1,
+      criticalHitCount: 1,
+      hitResults: [{ hit: 1, critical: true, damage: expect.any(Number) }],
     });
+    expect(result.encounter.transcript[1].message).toMatch(/^\[Coup critique\]/);
+  });
+
+  it("coordinates a healer and a magical damage dealer in an ordinary room", () => {
+    const healer = makeHero({
+      id: "healer",
+      name: "Healer",
+      activeSkills: ["minor_heal"],
+      passiveSkills: ["healing_grace"],
+      currentMana: 100,
+      calculatedStats: {
+        ...makeHero().calculatedStats,
+        maxHp: 100,
+        hp: 100,
+        maxMana: 100,
+        mana: 100,
+        magicDamage: 20,
+        physicalDamage: 1,
+      },
+      currentHp: 100,
+    });
+    const mage = makeHero({
+      id: "mage",
+      name: "Mage",
+      activeSkills: ["fire_bolt"],
+      currentMana: 100,
+      currentHp: 10,
+      calculatedStats: {
+        ...makeHero().calculatedStats,
+        maxHp: 100,
+        hp: 100,
+        maxMana: 100,
+        mana: 100,
+        magicDamage: 50,
+        physicalDamage: 1,
+      },
+    });
+    const tape = tapeRng([0.10, 0.00, 0.25, 0.99, 0.99]);
+    const result = resolveAuthoritativeDungeonEncounter(
+      state({ heroes: [healer, mage] }),
+      "golden-healer-mage",
+      tape.rng,
+    );
+
+    expect(tape.draws()).toBe(5);
+    expect(result.encounter.transcript).toContainEqual(expect.objectContaining({
+      type: "hero.skill.heal",
+      heroId: "healer",
+      targetHeroId: "mage",
+      healing: 34,
+    }));
+    expect(result.encounter.transcript).toContainEqual(expect.objectContaining({
+      type: "hero.skill.damage",
+      heroId: "mage",
+      skillId: "fire_bolt",
+    }));
+  });
+
+  it("keeps the last strong attack in reserve near the boss", () => {
+    const hero = makeHero({
+      id: "reserved",
+      activeSkills: ["heavy_blow"],
+      currentMana: 14,
+      calculatedStats: {
+        ...makeHero().calculatedStats,
+        maxMana: 100,
+        mana: 100,
+        physicalDamage: 100,
+        physicalDefense: 100,
+        speed: 0,
+        criticalChance: 0,
+      },
+    });
+    const tape = tapeRng([0.10, 0.00, 0.25, 0.99, 0.99]);
+    const result = resolveAuthoritativeDungeonEncounter(state({
+      activeDungeonRoom: 4,
+      heroes: [hero],
+    }), "golden-low-mana-near-boss", tape.rng);
+
+    expect(result.state.heroes?.[0].currentMana).toBe(14);
+    expect(result.encounter.transcript).toContainEqual(expect.objectContaining({
+      type: "hero.hit",
+      heroId: "reserved",
+      decisionReason: expect.stringMatching(/normal_attack_lethal|mana_preserved/),
+    }));
+  });
+
+  it("carries spent mana across consecutive rooms", () => {
+    const hero = makeHero({
+      id: "persistent-mana",
+      activeSkills: ["heavy_blow"],
+      currentMana: 100,
+      calculatedStats: {
+        ...makeHero().calculatedStats,
+        maxMana: 100,
+        mana: 100,
+        physicalDamage: 35,
+        physicalDefense: 100,
+      },
+    });
+    const firstTape = tapeRng([0.10, 0.00, 0.25, 0.99, 0.99]);
+    const first = resolveAuthoritativeDungeonEncounter(
+      state({ heroes: [hero] }),
+      "golden-mana-room-1",
+      firstTape.rng,
+    );
+    const secondTape = tapeRng([
+      0.10, 0.00, 0.25,
+      0.99, 0.99,
+      0.99, 0.99, 0.99,
+      0.99, 0.99,
+      0.99,
+    ]);
+    const second = resolveAuthoritativeDungeonEncounter(
+      first.state,
+      "golden-mana-room-2",
+      secondTape.rng,
+    );
+
+    expect(first.state.heroes?.[0].currentMana).toBe(86);
+    expect(second.state.heroes?.[0].currentMana).toBe(86);
+    expect(second.state.heroes?.[0].cooldowns).toEqual({ heavy_blow: 1 });
+    expect(second.state.activeDungeonRoom).toBe(3);
+  });
+
+  it("replays the same tactical encounter identically", () => {
+    const initial = state({
+      heroes: [makeHero({
+        activeSkills: ["heavy_blow"],
+        currentMana: 100,
+        calculatedStats: {
+          ...makeHero().calculatedStats,
+          maxMana: 100,
+          mana: 100,
+          physicalDamage: 35,
+          physicalDefense: 100,
+        },
+      })],
+    });
+    const first = resolveAuthoritativeDungeonEncounter(
+      initial,
+      "golden-tactical-replay",
+      seededRng(0x850090),
+    );
+    const replay = resolveAuthoritativeDungeonEncounter(
+      initial,
+      "golden-tactical-replay",
+      seededRng(0x850090),
+    );
+
+    expect(replay).toEqual(first);
   });
 
   it.each([
@@ -478,6 +679,7 @@ describe("authoritative dungeon golden behavior characterized from 640f89f", () 
       0.10, // encounter -> fight
       0.00, // monster
       0.25, // visual id
+      ...Array.from({ length: hitCount }, (_, index) => index === 0 ? 0.00 : 0.99),
       0.99, // material drop -> none
     ]);
     const result = resolveAuthoritativeDungeonEncounter(state({
@@ -491,68 +693,163 @@ describe("authoritative dungeon golden behavior characterized from 640f89f", () 
           hp: 200,
           maxMana: 100,
           mana: 100,
-          physicalDamage: 100,
+          physicalDamage: 30,
           physicalDefense: 100,
+          criticalChance: 50,
         },
         currentHp: 200,
       })],
     }), `golden-${skillId}`, tape.rng);
     const event = result.encounter.transcript.find((entry) => entry.type === "hero.skill.damage");
 
-    expect(event).toMatchObject({ skillId, hitCount });
-    expect(event?.damage).toBe(Number(event?.damagePerHit) * hitCount);
-    expect(event?.message).toBe(
-      `Ariane declenche ${event?.skillName} et frappe ${hitCount} fois pour ${event?.damagePerHit} degats physical par impact (${event?.damage} au total).`,
-    );
+    expect(event).toMatchObject({
+      skillId,
+      hitCount,
+      criticalHitCount: 1,
+      hitResults: expect.arrayContaining([
+        expect.objectContaining({ hit: 1, critical: true }),
+        expect.objectContaining({ hit: 2, critical: false }),
+      ]),
+    });
+    const hitResults = event?.hitResults as Array<{ damage: number }>;
+    expect(hitResults).toHaveLength(hitCount);
+    expect(event?.damage).toBe(hitResults.reduce((sum, hit) => sum + hit.damage, 0));
+    expect(event?.message).toContain(`${hitCount} fois`);
+    expect(event?.message).toContain("[critique]");
+    expect(event?.message).toContain(`(${event?.damage} au total)`);
   });
 
-  it.each([
-    ["guard_stance", "hero.skill.buff"],
-    ["weakening_shout", "hero.skill.debuff"],
-  ] as const)("preserves the characterized %s support action", (skillId, eventType) => {
-    const support = makeHero({
-      name: "Support",
-      activeSkills: [skillId],
+  it("applies and expires a defensive buff during a complete boss fight", () => {
+    const defender = makeHero({
+      id: "defender",
+      name: "Defender",
+      activeSkills: ["guard_stance"],
       currentMana: 100,
+      currentHp: 100_000,
       calculatedStats: {
         ...makeHero().calculatedStats,
-        maxHp: 200,
-        hp: 200,
+        maxHp: 100_000,
+        hp: 100_000,
         maxMana: 100,
         mana: 100,
-        physicalDamage: 1,
-        physicalDefense: 100,
-      },
-      currentHp: 200,
-    });
-    const finisher = makeHero({
-      id: "finisher",
-      name: "Finisher",
-      calculatedStats: {
-        ...makeHero().calculatedStats,
-        physicalDamage: 100,
+        physicalDamage: 200,
+        physicalDefense: 40,
+        magicDefense: 100,
         speed: 0,
         criticalChance: 0,
+        dodgeChance: 0,
       },
     });
-    const tape = tapeRng([
-      0.10, // encounter
-      0.00, // monster
-      0.25, // visual id
-      0.99, // finisher critical
-      0.99, // no material
-    ]);
-    const result = resolveAuthoritativeDungeonEncounter(
-      state({ heroes: [support, finisher] }),
-      `golden-${skillId}`,
-      tape.rng,
-    );
+    const result = resolveAuthoritativeDungeonEncounter(state({
+      activeDungeonFloor: 50,
+      activeDungeonRoom: 50,
+      highestFloorReached: 51,
+      heroes: [defender],
+    }), "golden-temporary-buff", seededRng(0x850085));
+    const enemyHits = result.encounter.transcript.filter((event) => event.type === "enemy.hit");
 
-    expect(tape.draws()).toBe(5);
-    expect(result.encounter.transcript.map((event) => event.type)).toContain(eventType);
-    expect(result.encounter.transcript.find((event) => event.type === eventType)).toMatchObject({
-      modifiers: expect.any(Array),
+    expect(result.encounter.transcript).toContainEqual(expect.objectContaining({
+      type: "hero.skill.buff",
+      skillId: "guard_stance",
+      decisionReason: "useful_combat_buff",
+    }));
+    expect(enemyHits.some((event) => event.defense === 50)).toBe(true);
+    expect(enemyHits.some((event) => event.defense === 40)).toBe(true);
+  });
+
+  it("applies and expires an offensive debuff during a complete boss fight", () => {
+    const support = makeHero({
+      id: "support",
+      name: "Support",
+      activeSkills: ["weakening_shout"],
+      currentMana: 100,
+      currentHp: 100_000,
+      calculatedStats: {
+        ...makeHero().calculatedStats,
+        maxHp: 100_000,
+        hp: 100_000,
+        maxMana: 100,
+        mana: 100,
+        physicalDamage: 200,
+        physicalDefense: 0,
+        magicDefense: 0,
+        speed: 0,
+        criticalChance: 0,
+        dodgeChance: 0,
+      },
     });
+    const result = resolveAuthoritativeDungeonEncounter(state({
+      activeDungeonFloor: 50,
+      activeDungeonRoom: 50,
+      highestFloorReached: 51,
+      heroes: [support],
+    }), "golden-temporary-debuff", seededRng(0x850086));
+    const enemyDamage = result.encounter.transcript
+      .filter((event) => event.type === "enemy.hit")
+      .map((event) => Number(event.damage));
+
+    expect(result.encounter.transcript).toContainEqual(expect.objectContaining({
+      type: "hero.skill.debuff",
+      skillId: "weakening_shout",
+      decisionReason: "useful_combat_debuff",
+    }));
+    expect(Math.min(...enemyDamage)).toBeLessThan(Math.max(...enemyDamage));
+  });
+
+  it("forces enemy strikes onto a surviving provocateur", () => {
+    const tank = makeHero({
+      id: "tank",
+      name: "Tank",
+      activeSkills: ["provocation"],
+      currentMana: 100,
+      currentHp: 1_000,
+      calculatedStats: {
+        ...makeHero().calculatedStats,
+        maxHp: 1_000,
+        hp: 1_000,
+        maxMana: 100,
+        mana: 100,
+        physicalDamage: 100,
+        physicalDefense: 20,
+        speed: 0,
+        criticalChance: 0,
+        dodgeChance: 0,
+      },
+    });
+    const fragile = makeHero({
+      id: "fragile",
+      name: "Fragile",
+      currentHp: 10,
+      calculatedStats: {
+        ...makeHero().calculatedStats,
+        maxHp: 100,
+        hp: 100,
+        physicalDamage: 100,
+        physicalDefense: 0,
+        speed: 0,
+        criticalChance: 0,
+        dodgeChance: 0,
+      },
+    });
+    const result = resolveAuthoritativeDungeonEncounter(state({
+      activeDungeonFloor: 10,
+      activeDungeonRoom: 50,
+      highestFloorReached: 11,
+      heroes: [tank, fragile],
+    }), "golden-provocation", seededRng(0x850091));
+    const tauntIndex = result.encounter.transcript.findIndex((event) => (
+      event.type === "hero.skill.buff" && event.skillId === "provocation"
+    ));
+    const firstEnemyHit = result.encounter.transcript.find((event, index) => (
+      index > tauntIndex && event.type === "enemy.hit"
+    ));
+
+    expect(tauntIndex).toBeGreaterThanOrEqual(0);
+    expect(result.encounter.transcript[tauntIndex]).toMatchObject({
+      targetHeroIds: ["tank"],
+      decisionReason: "taunt_protects_ally",
+    });
+    expect(firstEnemyHit).toMatchObject({ heroId: "tank" });
   });
 
   it("preserves a useful healing action before the next hero attacks", () => {

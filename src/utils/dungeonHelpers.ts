@@ -219,5 +219,7 @@ export function applyLootModifiers(statKey: string, baseValue: number, partyHero
       }
     }
   }
-  return finalValue;
+  return finalValue > baseValue
+    ? Math.max(Math.floor(baseValue) + 1, Math.floor(finalValue))
+    : Math.floor(finalValue);
 }

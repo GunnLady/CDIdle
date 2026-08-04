@@ -22,7 +22,7 @@ describe("inventory and dungeon helper edge cases", () => {
     expect(passive).toBeDefined();
     if (!passive) return;
     const hero = makeHero({ passiveSkills: [passive.id], isActive: true });
-    expect(applyLootModifiers("gold", 10, [hero])).toBeGreaterThanOrEqual(10);
+    expect(applyLootModifiers("goldGain", 10, [hero])).toBe(11);
     expect(applyLootModifiers("unrelated", 10, [hero])).toBe(10);
   });
 });

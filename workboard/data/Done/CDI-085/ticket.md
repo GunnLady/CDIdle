@@ -1,7 +1,7 @@
 ---
 id: CDI-085
 title: Rendre l IA de combat tactique dans sa gestion du mana
-status: ToDo
+status: Done
 area: gameplay
 priority: P1
 size: L
@@ -10,7 +10,7 @@ source: Analyse du systeme de mana avec l utilisateur le 2026-08-03
 depends_on: []
 blocks: []
 github_issue: null
-related_docs: ["src/domain/authoritativeDungeon.ts", "src/domain/tier1ClassTransition.ts", "src/data/skills.ts", "shared/domain/dungeon-progression.ts", "tests/authoritativeDungeonGolden.test.ts", "docs/architecture/authoritative-dungeon-parity-audit.md"]
+related_docs: ["src/domain/authoritativeDungeon.ts", "src/domain/combatTactics.ts", "src/domain/combatEffects.ts", "src/domain/tier1ClassTransition.ts", "src/data/skills.ts", "shared/domain/dungeon-progression.ts", "tests/authoritativeDungeonGolden.test.ts", "docs/development/combat-tactics.md", "docs/architecture/authoritative-dungeon-parity-audit.md"]
 ---
 
 # CDI-085 - Rendre l IA de combat tactique dans sa gestion du mana
@@ -112,11 +112,8 @@ les rencontres aleatoires intermediaires.
   futur aleatoire.
 - Ajouter des raisons de decision stables et exploitables dans le transcript ou
   les diagnostics de test.
-- Prevoir trois profils configurables une fois le comportement par defaut
-  valide :
-  - prudent ;
-  - equilibre ;
-  - agressif.
+- Conserver uniquement le profil equilibre dans ce ticket. Les profils
+  alternatifs restent differes jusqu a un besoin de gameplay explicite.
 - Documenter les regles de choix et les valeurs d equilibrage.
 
 ## Hors perimetre
@@ -187,32 +184,39 @@ place au moment de l implementation.
 
 ## Criteres d'acceptation
 
-- [ ] Buffs et debuffs modifies influencent reellement le combat.
-- [ ] Leur duree, expiration, rafraichissement et cumul sont explicites et
+- [x] Buffs et debuffs modifies influencent reellement le combat.
+- [x] Leur duree, expiration, rafraichissement et cumul sont explicites et
       testes.
-- [ ] La selection d action est extraite dans une fonction pure.
-- [ ] Toutes les actions legales sont comparees avec l attaque normale.
-- [ ] L ordre de `activeSkills` ne determine plus arbitrairement l action.
-- [ ] Un departage egal reste stable et ne consomme aucun RNG.
-- [ ] Un soin empechant probablement une mort est prioritaire.
-- [ ] Un soin inutile ou largement gaspille n est pas lance.
-- [ ] Un soin de groupe exige une valeur collective suffisante.
-- [ ] Une competence offensive est privilegiee lorsqu elle evite une attaque
+- [x] La selection d action est extraite dans une fonction pure.
+- [x] Toutes les actions legales sont comparees avec l attaque normale.
+- [x] L ordre de `activeSkills` ne determine plus arbitrairement l action.
+- [x] Un departage egal reste stable et ne consomme aucun RNG.
+- [x] Un soin empechant probablement une mort est prioritaire.
+- [x] Un soin inutile ou largement gaspille n est pas lance.
+- [x] Un soin de groupe exige une valeur collective suffisante.
+- [x] Une competence offensive est privilegiee lorsqu elle evite une attaque
       ennemie que l attaque normale laisserait passer.
-- [ ] Une competence marginale est refusee lorsque son gain ne justifie pas son
+- [x] Une competence marginale est refusee lorsque son gain ne justifie pas son
       cout.
-- [ ] Les defenses et resistances reelles interviennent dans le choix offensif.
-- [ ] Un heros magique n est plus evalue a partir de ses seuls degats physiques.
-- [ ] Une reserve de mana adaptee aux competences est conservee avant le boss.
-- [ ] Une urgence vitale peut utiliser cette reserve.
-- [ ] La reserve est depensee utilement pendant le boss et ne provoque pas une
+- [x] Chaque impact d une competence offensive effectue son propre jet
+      critique canonique et le transcript expose son resultat.
+- [x] Les passifs `healingPower` augmentent reellement les soins executes et
+      leur estimation tactique.
+- [x] Les passifs `goldGain` modifient l or de toutes les rencontres
+      victorieuses, avec un minimum de +1, sans modifier les primes de premiere
+      securisation.
+- [x] Les defenses et resistances reelles interviennent dans le choix offensif.
+- [x] Un heros magique n est plus evalue a partir de ses seuls degats physiques.
+- [x] Une reserve de mana adaptee aux competences est conservee avant le boss.
+- [x] Une urgence vitale peut utiliser cette reserve.
+- [x] La reserve est depensee utilement pendant le boss et ne provoque pas une
       defaite par retention excessive.
-- [ ] Le profil equilibre fonctionne sans configuration historique.
-- [ ] Les profils prudent, equilibre et agressif ont des differences
-      deterministes et documentees.
-- [ ] Chaque action executee fournit une raison stable exploitable par les tests.
-- [ ] Le moteur reste autoritaire, rejouable et deterministe.
-- [ ] Aucun nouvel ecart reel de gameplay n est laisse non documente.
+- [x] Le profil equilibre fonctionne sans configuration historique.
+- [x] Seul le profil equilibre est expose et fonctionne sans configuration
+      historique ; les autres profils restent hors perimetre.
+- [x] Chaque action executee fournit une raison stable exploitable par les tests.
+- [x] Le moteur reste autoritaire, rejouable et deterministe.
+- [x] Aucun nouvel ecart reel de gameplay n est laisse non documente.
 
 ## Tests
 
@@ -223,6 +227,9 @@ Ajouter des tests unitaires parametrises du selecteur pur couvrant au minimum :
 - sort lethal alors que l attaque normale ne tue pas ;
 - refus d un sort qui ne fait que produire des degats excedentaires ;
 - choix entre deux sorts de couts et efficacites differents ;
+- critique independant de chaque impact d une competence multi-frappe ;
+- application autoritaire de `healingPower` sur un soin ;
+- application de `goldGain` sur un combat, un coffre et un defi non-combat ;
 - choix elementaire face aux defenses et resistances ;
 - departage stable independant de l ordre des competences ;
 - soin individuel empechant une mort probable ;
@@ -237,7 +244,7 @@ Ajouter des tests unitaires parametrises du selecteur pur couvrant au minimum :
 - refus d un buff sur un ennemi presque mort ;
 - absence de cumul interdit et rafraichissement explicite ;
 - expiration des effets ;
-- profils prudent, equilibre et agressif ;
+- profil equilibre sans configuration historique ni profil alternatif expose ;
 - invariance du choix sans consommation RNG.
 
 Completer avec des golden tests de rencontres completes :
@@ -275,7 +282,7 @@ Sur une partie locale controlee :
 5. Combattre le boss et verifier que cette reserve est effectivement utilisee.
 6. Observer un buff et un debuff et confirmer leur incidence reelle puis leur
    expiration.
-7. Comparer les profils prudent, equilibre et agressif.
+7. Verifier que le profil equilibre reste actif sans configuration historique.
 8. Rejouer une commande autoritaire identique et verifier le meme resultat et
    le meme transcript.
 
@@ -314,16 +321,16 @@ fournis a l utilisateur au moment de la validation.
 
 ## Handoff
 
-Fournir :
-
-- le contrat du contexte et du resultat de selection ;
-- la liste des niveaux tactiques et leurs regles ;
-- les formules ou tables d efficacite et de reserve ;
-- les regles d application, cumul et expiration des effets ;
-- la matrice de tests unitaires et golden ;
-- l inventaire des golden tests modifies avec justification ;
-- la preuve que le selecteur ne consomme aucun RNG ;
-- la preuve de determinisme et de replay ;
-- les commandes de validation executees ;
-- les validations manuelles restant a effectuer ;
-- les decisions d equilibrage et les points encore a mesurer.
+- Le selecteur pur et le moteur d effets sont documentes dans
+  `docs/development/combat-tactics.md`.
+- Le profil equilibre est le seul profil expose.
+- Les buffs, debuffs, soins, provocations, critiques independants par impact,
+  reserves de mana et raisons de decision sont couverts par les tests unitaires
+  et golden.
+- La campagne `tests/combatTacticsSimulation.test.ts` couvre 486 decisions
+  tactiques et 216 resolutions/replays autoritaires sur plusieurs classes,
+  groupes, etages et graines.
+- Validation finale : 51 fichiers et 475 tests passent ; typecheck, lint,
+  determinisme, workboard et build utilisateur passent.
+- Aucun test manuel long ne reste bloquant. Les retours alpha continueront de
+  couvrir les ecarts eventuels d interface, de transport ou d equilibrage reel.

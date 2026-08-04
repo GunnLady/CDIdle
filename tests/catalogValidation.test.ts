@@ -23,6 +23,7 @@ import { ACCESSORY_INFO_LIST } from "../shared/domain/items/accessories";
 import { OFF_HAND_INFO_LIST } from "../shared/domain/items/offhands";
 import { createAccessory, createArmor, createOffhand, createWeapon } from "../shared/domain/items/itemBuilders";
 import { buffEffect, damageEffect, debuffEffect, healEffect, lootModifierEffect, statModifierEffect } from "../src/data/skillBuilders";
+import { isHeroCombatModifierApplicable, isMonsterCombatModifierApplicable } from "../src/domain/combatEffects";
 
 const unique = (values: string[]) => new Set(values).size === values.length;
 
@@ -93,6 +94,39 @@ describe("catalogue invariants", () => {
       expect(monster.magicDef).toBeGreaterThanOrEqual(0);
       expect(monster.xpYield).toBeGreaterThanOrEqual(0);
       expect(monster.goldYield).toBeGreaterThanOrEqual(0);
+    }
+  });
+
+  it("keeps every skill effect connected to an authoritative consumer", () => {
+    const calculatedStats = new Set([
+      "maxHp", "maxMana", "physicalDamage", "magicDamage", "criticalChance",
+      "dodgeChance", "speed", "physicalDefense", "magicDefense",
+    ]);
+
+    for (const skill of SKILLS_LIBRARY) {
+      const effect = skill.effect;
+      if (skill.type === "active") {
+        expect(skill.target, skill.id).toBeTruthy();
+        expect(skill.manaCost, skill.id).toBeGreaterThanOrEqual(0);
+        expect(skill.cooldownRounds, skill.id).toBeGreaterThanOrEqual(0);
+      }
+      if (effect.type === "damage") {
+        expect(calculatedStats.has(effect.scalingStat), skill.id).toBe(true);
+        expect(effect.hitCount, skill.id).toBeGreaterThan(0);
+      } else if (effect.type === "heal") {
+        expect(calculatedStats.has(effect.scalingStat), skill.id).toBe(true);
+        expect(["single_ally", "all_allies"], skill.id).toContain(skill.target);
+      } else if (effect.type === "buff") {
+        expect(effect.modifiers.every(isHeroCombatModifierApplicable), skill.id).toBe(true);
+      } else if (effect.type === "debuff") {
+        expect(effect.modifiers.every(isMonsterCombatModifierApplicable), skill.id).toBe(true);
+      } else if (effect.type === "stat_modifier") {
+        expect(effect.modifiers.every((modifier) => (
+          calculatedStats.has(modifier.stat) || modifier.stat === "healingPower"
+        )), skill.id).toBe(true);
+      } else if (effect.type === "loot_modifier") {
+        expect(effect.modifiers.every((modifier) => modifier.stat === "goldGain"), skill.id).toBe(true);
+      }
     }
   });
 

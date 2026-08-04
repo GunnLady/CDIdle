@@ -44,12 +44,23 @@ import { validateAuthoritativeHero } from "./authoritativeHeroValidation.ts";
 import {
   getFirstClearRewards,
   getDungeonGoldReward,
+  getDungeonRoomCount,
   getMajorBossIndex,
   getPartyXpShare,
   getRegularEnemyBudget,
   isDungeonFinalRoom,
   isMajorBossFloor,
 } from "../../shared/domain/dungeon-progression.ts";
+import { chooseHeroAction } from "./combatTactics.ts";
+import {
+  advanceTemporaryCombatEffects,
+  applyTemporaryCombatEffect,
+  getEffectiveHeroStats,
+  getEffectiveHealingMultiplier,
+  getEffectiveMonster,
+  getForcedTargetHeroIds,
+  type TemporaryCombatEffect,
+} from "./combatEffects.ts";
 
 export type AuthoritativeDungeonTranscriptEvent = {
   sequence: number;
@@ -102,10 +113,6 @@ export type AuthoritativeDungeonResolution = {
 };
 
 const clone = <T>(value: T): T => structuredClone(value);
-
-function persistedCombatStats(hero: Hero) {
-  return hero.calculatedStats;
-}
 
 function requiredCalculatedStat(stats: CalculatedStats, field: string): number {
   const value = (stats as unknown as Record<string, unknown>)[field];
@@ -396,6 +403,7 @@ function resolveFight(
   const loot: Array<Record<string, unknown>> = [];
   let sequence = 0;
   let round = 0;
+  let activeEffects: TemporaryCombatEffect[] = [];
   const log = (
     type: string,
     message: string,
@@ -431,182 +439,123 @@ function resolveFight(
     for (let heroIndex = 0; heroIndex < heroes.length && monster.hp > 0; heroIndex += 1) {
       const hero = heroes[heroIndex];
       if (!hero.isActive || hero.currentHp <= 0) continue;
-      const calculatedStats = persistedCombatStats(hero);
+      const calculatedStats = getEffectiveHeroStats(hero, activeEffects);
       let skillUsed = false;
       let totalDamage = 0;
-
-      for (const skillId of hero.activeSkills) {
+      const chosenAction = chooseHeroAction({
+        hero,
+        heroes,
+        monster,
+        activeEffects,
+        floor,
+        room,
+        finalRoom: getDungeonRoomCount(floor),
+        round,
+      });
+      if (chosenAction.kind === "skill" && chosenAction.skillId) {
+        const skillId = chosenAction.skillId;
         const skill = getSkillById(skillId);
-        if (!skill || skill.type !== "active") continue;
-        const manaCost = skill.manaCost ?? 0;
-        if (hero.currentMana < manaCost || Number(hero.cooldowns?.[skillId] ?? 0) > 0) continue;
+        if (!skill || skill.type !== "active") throw new Error(`INVALID_DUNGEON_SKILL:${skillId}`);
         const effect = skill.effect;
+        skillUsed = true;
+        hero.currentMana = Math.max(0, hero.currentMana - (skill.manaCost ?? 0));
+        if (skill.cooldownRounds) {
+          hero.cooldowns = { ...(hero.cooldowns ?? {}), [skillId]: skill.cooldownRounds };
+        }
 
         if (effect.type === "damage") {
-          const statValue = requiredCalculatedStat(calculatedStats, effect.scalingStat);
-          const damagePerHit = applyMonsterDefenseOrResistance(
-            Math.floor(statValue * effect.power),
-            effect.damageType,
-            monster,
-          );
           const hitCount = effect.hitCount ?? 1;
-          const damage = damagePerHit * hitCount;
-          const useful = damage >= monster.hp
-            || monster.isBoss
-            || monster.atk > 45
-            || monster.hp > monster.maxHp * 0.55
-            || monster.hp > calculatedStats.physicalDamage * 3;
-          if (!useful) continue;
-          skillUsed = true;
+          const rawDamagePerHit = Math.floor(
+            requiredCalculatedStat(calculatedStats, effect.scalingStat) * effect.power,
+          );
+          const hitResults = Array.from({ length: hitCount }, (_, hitIndex) => {
+            const critical = rng.next() < calculatedStats.criticalChance / 100;
+            const rawDamage = critical ? Math.floor(rawDamagePerHit * 1.5) : rawDamagePerHit;
+            const damage = applyMonsterDefenseOrResistance(
+              rawDamage,
+              effect.damageType,
+              getEffectiveMonster(monster, activeEffects),
+            );
+            return { hit: hitIndex + 1, damage, critical };
+          });
+          const damage = hitResults.reduce((sum, hit) => sum + hit.damage, 0);
+          const criticalHitCount = hitResults.filter((hit) => hit.critical).length;
+          const impactSummary = hitResults
+            .map((hit) => `${hit.damage}${hit.critical ? " [critique]" : ""}`)
+            .join(", ");
           totalDamage = damage;
-          hero.currentMana = Math.max(0, hero.currentMana - manaCost);
-          if (skill.cooldownRounds) {
-            hero.cooldowns = { ...(hero.cooldowns ?? {}), [skillId]: skill.cooldownRounds };
-          }
           log(
             "hero.skill.damage",
             hitCount > 1
-              ? `${hero.name} declenche ${skill.name} et frappe ${hitCount} fois pour ${damagePerHit} degats ${effect.damageType} par impact (${damage} au total).`
-              : `${hero.name} declenche ${skill.name} et inflige ${damage} degats ${effect.damageType}.`,
+              ? `${hero.name} declenche ${skill.name} et frappe ${hitCount} fois : ${impactSummary} degats ${effect.damageType} (${damage} au total).`
+              : `${criticalHitCount > 0 ? "[Coup critique] " : ""}${hero.name} declenche ${skill.name} et inflige ${damage} degats ${effect.damageType}.`,
             "combat-hero",
             {
-              round,
-              heroId: hero.id,
-              heroName: hero.name,
-              monsterId: monster.id,
-              monsterName: monster.name,
-              skillId,
-              skillName: skill.name,
-              hitCount,
-              damagePerHit,
-              damage,
-              damageType: effect.damageType,
-              enemyHp: Math.max(0, monster.hp - damage),
-              enemyMaxHp: monster.maxHp,
+              round, heroId: hero.id, heroName: hero.name, monsterId: monster.id,
+              monsterName: monster.name, skillId, skillName: skill.name, hitCount,
+              hitResults, criticalHitCount, damage, damageType: effect.damageType,
+              enemyHp: Math.max(0, monster.hp - damage), enemyMaxHp: monster.maxHp,
+              decisionReason: chosenAction.reason,
             },
           );
-          break;
-        }
-
-        if (effect.type === "heal") {
-          const statValue = requiredCalculatedStat(calculatedStats, effect.scalingStat);
-          const healAmount = Math.floor(statValue * effect.power);
-          const living = heroes.filter((candidate) => candidate.isActive && candidate.currentHp > 0);
-          if (skill.target === "all_allies") {
-            const critical = living.filter((candidate) =>
-              candidate.currentHp / candidate.calculatedStats.maxHp < 0.4
+        } else if (effect.type === "heal") {
+          const healAmount = Math.floor(
+            requiredCalculatedStat(calculatedStats, effect.scalingStat)
+              * effect.power
+              * getEffectiveHealingMultiplier(hero, activeEffects),
+          );
+          const targets = skill.target === "all_allies"
+            ? heroes.filter((candidate) => candidate.isActive && candidate.currentHp > 0)
+            : heroes.filter((candidate) => candidate.id === chosenAction.targetHeroId);
+          for (const target of targets) {
+            const targetIndex = heroes.findIndex((candidate) => candidate.id === target.id);
+            const actual = Math.min(target.calculatedStats.maxHp - target.currentHp, healAmount);
+            heroes[targetIndex] = {
+              ...target,
+              currentHp: Math.min(target.calculatedStats.maxHp, target.currentHp + healAmount),
+            };
+            if (actual <= 0) continue;
+            log(
+              "hero.skill.heal",
+              `${hero.name} utilise ${skill.name} sur ${target.name} et soigne ${actual} PV.`,
+              "combat-hero",
+              {
+                round, heroId: hero.id, heroName: hero.name, targetHeroId: target.id,
+                targetHeroName: target.name, skillId, skillName: skill.name, healing: actual,
+                heroHp: heroes[targetIndex].currentHp, heroMaxHp: target.calculatedStats.maxHp,
+                decisionReason: chosenAction.reason,
+              },
             );
-            const injured = living.filter((candidate) =>
-              candidate.currentHp / candidate.calculatedStats.maxHp < 0.7
-            );
-            if (critical.length === 0 && injured.length < 2) continue;
-            skillUsed = true;
-            hero.currentMana = Math.max(0, hero.currentMana - manaCost);
-            if (skill.cooldownRounds) {
-              hero.cooldowns = { ...(hero.cooldowns ?? {}), [skillId]: skill.cooldownRounds };
-            }
-            for (const target of living) {
-              const index = heroes.findIndex((candidate) => candidate.id === target.id);
-              const actual = Math.min(
-                heroes[index].calculatedStats.maxHp - heroes[index].currentHp,
-                healAmount,
-              );
-              heroes[index].currentHp = Math.min(
-                heroes[index].calculatedStats.maxHp,
-                heroes[index].currentHp + healAmount,
-              );
-              if (actual > 0) {
-                log(
-                  "hero.skill.heal",
-                  `${hero.name} utilise ${skill.name} et soigne ${target.name} de ${actual} PV.`,
-                  "combat-hero",
-                  {
-                    round,
-                    heroId: hero.id,
-                    heroName: hero.name,
-                    targetHeroId: target.id,
-                    targetHeroName: target.name,
-                    skillId,
-                    skillName: skill.name,
-                    healing: actual,
-                    heroHp: heroes[index].currentHp,
-                    heroMaxHp: heroes[index].calculatedStats.maxHp,
-                  },
-                );
-              }
-            }
-            break;
           }
-
-          const target = living.reduce((lowest, candidate) =>
-            candidate.currentHp / candidate.calculatedStats.maxHp
-              < lowest.currentHp / lowest.calculatedStats.maxHp
-              ? candidate
-              : lowest
-          );
-          const missing = target.calculatedStats.maxHp - target.currentHp;
-          const fraction = target.currentHp / target.calculatedStats.maxHp;
-          if (!(fraction < 0.4 || (fraction < 0.7 && missing >= healAmount * 0.4))) continue;
-          skillUsed = true;
-          hero.currentMana = Math.max(0, hero.currentMana - manaCost);
-          if (skill.cooldownRounds) {
-            hero.cooldowns = { ...(hero.cooldowns ?? {}), [skillId]: skill.cooldownRounds };
+        } else if (effect.type === "buff" || effect.type === "debuff") {
+          const targets = effect.type === "debuff"
+            ? [{ id: monster.id, side: "monster" as const }]
+            : skill.target === "all_allies"
+              ? heroes.filter((candidate) => candidate.isActive && candidate.currentHp > 0)
+                .map((candidate) => ({ id: candidate.id, side: "hero" as const }))
+              : [{ id: chosenAction.targetHeroId ?? hero.id, side: "hero" as const }];
+          for (const target of targets) {
+            activeEffects = applyTemporaryCombatEffect(activeEffects, {
+              sourceSkillId: skillId,
+              sourceHeroId: hero.id,
+              targetId: target.id,
+              targetSide: target.side,
+              remainingRounds: effect.durationRounds,
+              modifiers: effect.modifiers,
+            });
           }
-          const targetIndex = heroes.findIndex((candidate) => candidate.id === target.id);
-          const actual = Math.min(missing, healAmount);
-          heroes[targetIndex].currentHp = Math.min(
-            heroes[targetIndex].calculatedStats.maxHp,
-            heroes[targetIndex].currentHp + healAmount,
-          );
-          log(
-            "hero.skill.heal",
-            `${hero.name} utilise ${skill.name} sur ${target.name} et soigne ${actual} PV.`,
-            "combat-hero",
-            {
-              round,
-              heroId: hero.id,
-              heroName: hero.name,
-              targetHeroId: target.id,
-              targetHeroName: target.name,
-              skillId,
-              skillName: skill.name,
-              healing: actual,
-              heroHp: heroes[targetIndex].currentHp,
-              heroMaxHp: heroes[targetIndex].calculatedStats.maxHp,
-            },
-          );
-          break;
-        }
-
-        if (effect.type === "buff" || effect.type === "debuff") {
-          const useful = monster.isBoss
-            || monster.atk > 45
-            || monster.hp > monster.maxHp * 0.6
-            || monster.hp > calculatedStats.physicalDamage * 3;
-          if (!useful) continue;
-          skillUsed = true;
-          hero.currentMana = Math.max(0, hero.currentMana - manaCost);
-          if (skill.cooldownRounds) {
-            hero.cooldowns = { ...(hero.cooldowns ?? {}), [skillId]: skill.cooldownRounds };
-          }
-          // Characterized behavior only logged these effects; no modifier was applied.
           log(
             `hero.skill.${effect.type}`,
             `${hero.name} utilise ${skill.name} (${effect.type}).`,
             "combat-hero",
             {
-              round,
-              heroId: hero.id,
-              heroName: hero.name,
-              monsterId: monster.id,
-              monsterName: monster.name,
-              skillId,
-              skillName: skill.name,
-              durationRounds: effect.durationRounds,
-              modifiers: effect.modifiers,
+              round, heroId: hero.id, heroName: hero.name, monsterId: monster.id,
+              monsterName: monster.name, skillId, skillName: skill.name,
+              durationRounds: effect.durationRounds, modifiers: effect.modifiers,
+              ...(effect.type === "buff" ? { targetHeroIds: targets.map((target) => target.id) } : {}),
+              decisionReason: chosenAction.reason,
             },
           );
-          break;
         }
       }
 
@@ -633,7 +582,11 @@ function resolveFight(
           const damageTypes = weapon && getWeaponDamageTypes(weapon).length > 0
             ? getWeaponDamageTypes(weapon)
             : ["physical" as DamageType];
-          const damage = applySplitDamageDefenseOrResistance(criticalDamage, damageTypes, monster);
+          const damage = applySplitDamageDefenseOrResistance(
+            criticalDamage,
+            damageTypes,
+            getEffectiveMonster(monster, activeEffects),
+          );
           totalDamage += damage;
           const nextHp = Math.max(0, monster.hp - totalDamage);
           const hitLabels = [
@@ -660,13 +613,18 @@ function resolveFight(
               damage,
               enemyHp: nextHp,
               enemyMaxHp: monster.maxHp,
+              decisionReason: chosenAction.reason,
             },
           );
         }
       }
 
       monster = { ...monster, hp: Math.max(0, monster.hp - totalDamage) };
-      heroes[heroIndex] = hero;
+      heroes[heroIndex] = {
+        ...heroes[heroIndex],
+        currentMana: hero.currentMana,
+        cooldowns: hero.cooldowns,
+      };
       if (monster.hp === 0) {
         log(
           "encounter.victory",
@@ -693,13 +651,20 @@ function resolveFight(
       const living = heroes.filter((hero) => hero.isActive && hero.currentHp > 0);
       if (living.length === 0) break;
       const strikePrefix = strike > 1 ? "[Frappe bonus] " : "";
-      const target = living[rng.nextInt(living.length)];
+      const forcedTargetIds = new Set(getForcedTargetHeroIds(activeEffects));
+      const forcedTargets = living.filter((candidate) => forcedTargetIds.has(candidate.id));
+      const targetPool = forcedTargets.length > 0 ? forcedTargets : living;
+      const target = targetPool[Math.min(
+        targetPool.length - 1,
+        Math.floor(rng.next() * targetPool.length),
+      )];
       const targetIndex = heroes.findIndex((hero) => hero.id === target.id);
-      const targetStats = persistedCombatStats(target);
-      const defense = monster.damageType === "physical"
+      const targetStats = getEffectiveHeroStats(target, activeEffects);
+      const effectiveMonster = getEffectiveMonster(monster, activeEffects);
+      const defense = effectiveMonster.damageType === "physical"
         ? targetStats.physicalDefense
         : targetStats.magicDefense;
-      const damage = Math.max(1, monster.atk - defense);
+      const damage = Math.max(1, effectiveMonster.atk - defense);
       const dodged = rng.next() < targetStats.dodgeChance / 100;
       if (dodged) {
         log(
@@ -749,6 +714,7 @@ function resolveFight(
         },
       );
     }
+    activeEffects = advanceTemporaryCombatEffects(activeEffects);
   }
 
   const victory = monster.hp === 0;
@@ -773,7 +739,7 @@ function resolveFight(
       ? bossTable.goldRange[0] + rng.nextInt(bossTable.goldRange[1] - bossTable.goldRange[0] + 1)
       : monster.goldYield;
     const baseGold = Math.floor(bossGold * goblinBonus * leaderBonus);
-    const gold = Math.floor(applyLootModifiers("goldGain", baseGold, heroes));
+    const gold = applyLootModifiers("goldGain", baseGold, heroes);
     resources.gold = Number(resources.gold ?? 0) + gold;
     log("reward.gold", `+${gold} or.`, "loot", { gold });
     if (firstClear) {
@@ -973,7 +939,11 @@ function resolveNonFight(
       "victory",
     );
     if (rng.next() < 0.5) {
-      goldReward = getDungeonGoldReward(floor, "treasure");
+      goldReward = applyLootModifiers(
+        "goldGain",
+        getDungeonGoldReward(floor, "treasure"),
+        heroes,
+      );
       resources.gold = Number(resources.gold ?? 0) + goldReward;
       log("reward.gold", `+${goldReward} or.`, "loot", { gold: goldReward });
     } else if (ITEM_LIBRARY.length > 0) {
@@ -1136,6 +1106,7 @@ function resolveNonFight(
       } else if (kind === "negotiation") {
         goldReward = getDungeonGoldReward(floor, "negotiation");
       }
+      goldReward = applyLootModifiers("goldGain", goldReward, heroes);
       resources.gold = Number(resources.gold ?? 0) + goldReward;
       log("challenge.succeeded", `Réussite : ${luckRoll} + ${selected.bestScore} ≥ ${difficulty}.`, "victory", {
         heroId: selected.bestHero.id,
