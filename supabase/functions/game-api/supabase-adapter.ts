@@ -4,6 +4,7 @@ export type SupabaseAdapterOptions = {
   supabaseUrl: string;
   serviceRoleKey: string;
   fetcher?: typeof fetch;
+  now?: () => number;
   initialState: Record<string, unknown>;
   initialStateForUser?: (userId: string) => Record<string, unknown>;
   migrateState?: (state: Record<string, unknown>, userId: string) => Record<string, unknown>;
@@ -31,6 +32,7 @@ const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3
 
 export function createSupabaseGameApiServices(options: SupabaseAdapterOptions) {
   const fetcher = options.fetcher ?? fetch;
+  const now = options.now ?? (() => globalThis.performance?.now() ?? Date.now());
   const base = options.supabaseUrl.replace(/\/$/, "");
   const headers = { apikey: options.serviceRoleKey, authorization: `Bearer ${options.serviceRoleKey}`, "content-type": "application/json" };
   async function request(path: string, init: RequestInit = {}): Promise<unknown> {
@@ -110,27 +112,53 @@ export function createSupabaseGameApiServices(options: SupabaseAdapterOptions) {
     return current.migration_pending === true || lastProcessedAt !== current.last_processed_at;
   }
   async function bootstrap(userId: string) {
-    const existing = await load(userId);
+    const startedAt = now();
+    let loadMs = 0;
+    let idleMs = 0;
+    let commitMs = 0;
+    const timedLoad = async () => {
+      const phaseStartedAt = now();
+      try {
+        return await load(userId);
+      } finally {
+        loadMs += Math.max(0, now() - phaseStartedAt);
+      }
+    };
+    const complete = <T extends Record<string, unknown>>(payload: T): T & { bootstrapTiming: { loadMs: number; idleMs: number; commitMs: number; totalMs: number } } => ({
+      ...payload,
+      bootstrapTiming: {
+        loadMs,
+        idleMs,
+        commitMs,
+        totalMs: Math.max(0, now() - startedAt),
+      },
+    });
+    const existing = await timedLoad();
     if (existing) {
       if (!existing.server_time) throw new SupabaseAdapterError("SUPABASE_INVALID_RESPONSE", "Supabase omitted server time");
+      const idleStartedAt = now();
       const idle = options.applyIdle?.(existing.state, existing.last_processed_at, new Date(existing.server_time));
+      idleMs += Math.max(0, now() - idleStartedAt);
       if (idle && temporalChange(existing, idle.lastProcessedAt)) {
         try {
-          const committed = await commitIdle(userId, existing, idle);
-          return { schemaVersion: committed.schema_version, revision: committed.revision, serverTime: existing.server_time, lastProcessedAt: committed.last_processed_at, state: committed.state, idleReport: idle.report };
+          const commitStartedAt = now();
+          const committed = await commitIdle(userId, existing, idle).finally(() => {
+            commitMs += Math.max(0, now() - commitStartedAt);
+          });
+          return complete({ schemaVersion: committed.schema_version, revision: committed.revision, serverTime: existing.server_time, lastProcessedAt: committed.last_processed_at, state: committed.state, idleReport: idle.report });
         } catch (error) {
           if (!(error instanceof SupabaseAdapterError) || error.code !== "REVISION_CONFLICT") throw error;
           // Concurrent bootstrap calls may race on the same idle timestamp.
           // If another request already committed it, return the fresh row.
-          const refreshed = await load(userId);
+          const refreshed = await timedLoad();
           if (refreshed && (refreshed.revision !== existing.revision
               || refreshed.last_processed_at !== existing.last_processed_at)) {
-            return { schemaVersion: refreshed.schema_version, revision: refreshed.revision, serverTime: refreshed.server_time, lastProcessedAt: refreshed.last_processed_at, state: refreshed.state };
+            return complete({ schemaVersion: refreshed.schema_version, revision: refreshed.revision, serverTime: refreshed.server_time, lastProcessedAt: refreshed.last_processed_at, state: refreshed.state });
           }
           throw error;
         }
       }
-      return { schemaVersion: existing.schema_version, revision: existing.revision, serverTime: existing.server_time, lastProcessedAt: existing.last_processed_at, state: existing.state, ...(idle ? { idleReport: idle.report } : {}) };
+      return complete({ schemaVersion: existing.schema_version, revision: existing.revision, serverTime: existing.server_time, lastProcessedAt: existing.last_processed_at, state: existing.state, ...(idle ? { idleReport: idle.report } : {}) });
     }
     const initialState = options.initialStateForUser?.(userId)
       ?? options.migrateState?.(options.initialState, userId)
@@ -140,9 +168,9 @@ export function createSupabaseGameApiServices(options: SupabaseAdapterOptions) {
       body: JSON.stringify({ p_user_id: userId, p_state: initialState }),
     });
     row(created);
-    const value = await load(userId);
+    const value = await timedLoad();
     if (!value) throw new SupabaseAdapterError("GAME_NOT_FOUND", "created game not found", 404);
-    return { schemaVersion: value.schema_version, revision: value.revision, serverTime: value.server_time, lastProcessedAt: value.last_processed_at, state: value.state };
+    return complete({ schemaVersion: value.schema_version, revision: value.revision, serverTime: value.server_time, lastProcessedAt: value.last_processed_at, state: value.state });
   }
   async function commands(userId: string, payload: Record<string, unknown>) {
     if (typeof payload.commandId !== "string" || !UUID_PATTERN.test(payload.commandId)) return { ok: false, error: { code: "VALIDATION_FAILED", message: "commandId must be a UUID" }, commandId: payload.commandId };

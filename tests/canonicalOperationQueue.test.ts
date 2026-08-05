@@ -64,21 +64,26 @@ describe("CanonicalOperationQueue", () => {
     let now = 0;
     const onMetrics = vi.fn();
     const queue = new CanonicalOperationQueue({ now: () => now, onMetrics });
-    const operation = queue.enqueueUser(async ({ measureNetwork }) => {
+    const operation = queue.enqueueUser(async ({ measureNetwork, measureApplication }) => {
       now = 5;
       await measureNetwork(async () => {
         now = 17;
-        throw new Error("network failed");
       });
-    });
+      await measureApplication(async () => {
+        now = 19;
+        throw new Error("application failed");
+      });
+    }, "bootstrap:initial");
     now = 3;
-    await expect(operation).rejects.toThrow("network failed");
+    await expect(operation).rejects.toThrow("application failed");
 
     expect(onMetrics).toHaveBeenCalledWith({
       kind: "user",
+      label: "bootstrap:initial",
       queueWaitMs: 3,
       networkMs: 12,
-      operationMs: 14,
+      applicationMs: 2,
+      operationMs: 16,
     });
     await expect(queue.whenIdle()).resolves.toBeUndefined();
   });

@@ -16,7 +16,17 @@ describe("Supabase game-api adapter", () => {
         return new Response("[]", { status: 200 });
       },
     });
-    await expect(adapter.bootstrap("u1")).resolves.toMatchObject({ revision: 1, idleReport: { appliedSeconds: 3600 }, state: { idleApplied: true } });
+    await expect(adapter.bootstrap("u1")).resolves.toMatchObject({
+      revision: 1,
+      idleReport: { appliedSeconds: 3600 },
+      state: { idleApplied: true },
+      bootstrapTiming: {
+        loadMs: expect.any(Number),
+        idleMs: expect.any(Number),
+        commitMs: expect.any(Number),
+        totalMs: expect.any(Number),
+      },
+    });
     expect(calls.some((call) => call.includes("commit_idle_transition"))).toBe(true);
   });
 

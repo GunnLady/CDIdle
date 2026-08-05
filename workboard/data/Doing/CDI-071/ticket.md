@@ -1,7 +1,7 @@
 ---
 id: CDI-071
 title: Reduire la latence du bootstrap canonique
-status: ToDo
+status: Doing
 area: fullstack
 priority: P1
 size: M
@@ -112,6 +112,9 @@ revision canonique courante.
 - Preserver autorite serveur, revision, atomicite et idle transactionnel.
 - Preserver cache confirme, erreurs visibles et mode maitre/observateur.
 - Preserver la priorite des commandes utilisateur de CDI-070.
+- Toute acquisition du controle doit confirmer la revision serveur avant de
+  deverrouiller les mutations ; l age seul d un snapshot ne prouve pas son
+  autorite.
 
 ## Risques
 

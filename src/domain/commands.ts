@@ -51,6 +51,12 @@ export interface AuthoritativeGameEnvelope<T = CanonicalGameState> {
   lastProcessedAt: string;
   state: T;
   idleReport?: CanonicalIdleReport;
+  bootstrapTiming?: {
+    loadMs: number;
+    idleMs: number;
+    commitMs: number;
+    totalMs: number;
+  };
 }
 
 export interface CommandFailure {

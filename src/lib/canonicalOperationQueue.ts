@@ -2,17 +2,21 @@ export type CanonicalOperationKind = "user" | "background";
 
 export type CanonicalOperationMetrics = {
   kind: CanonicalOperationKind;
+  label?: string;
   queueWaitMs: number;
   networkMs: number;
+  applicationMs: number;
   operationMs: number;
 };
 
 export type CanonicalOperationContext = {
   measureNetwork<T>(operation: () => Promise<T>): Promise<T>;
+  measureApplication<T>(operation: () => Promise<T>): Promise<T>;
 };
 
 type PendingOperation<T> = {
   kind: CanonicalOperationKind;
+  label?: string;
   enqueuedAt: number;
   run: (context: CanonicalOperationContext) => Promise<T>;
   resolve: (value: T | PromiseLike<T>) => void;
@@ -45,17 +49,17 @@ export class CanonicalOperationQueue {
     return this.running || this.userOperations.length > 0 || this.backgroundOperations.length > 0;
   }
 
-  enqueueUser<T>(run: (context: CanonicalOperationContext) => Promise<T>): Promise<T> {
-    return this.enqueue("user", run);
+  enqueueUser<T>(run: (context: CanonicalOperationContext) => Promise<T>, label?: string): Promise<T> {
+    return this.enqueue("user", run, label);
   }
 
-  enqueueBackground<T>(run: (context: CanonicalOperationContext) => Promise<T>): Promise<T> {
-    return this.enqueue("background", run);
+  enqueueBackground<T>(run: (context: CanonicalOperationContext) => Promise<T>, label?: string): Promise<T> {
+    return this.enqueue("background", run, label);
   }
 
-  tryEnqueueBackground<T>(run: (context: CanonicalOperationContext) => Promise<T>): Promise<T> | null {
+  tryEnqueueBackground<T>(run: (context: CanonicalOperationContext) => Promise<T>, label?: string): Promise<T> | null {
     if (this.isBusy) return null;
-    return this.enqueueBackground(run);
+    return this.enqueueBackground(run, label);
   }
 
   whenIdle(): Promise<void> {
@@ -66,10 +70,12 @@ export class CanonicalOperationQueue {
   private enqueue<T>(
     kind: CanonicalOperationKind,
     run: (context: CanonicalOperationContext) => Promise<T>,
+    label?: string,
   ): Promise<T> {
     const promise = new Promise<T>((resolve, reject) => {
       const operation: PendingOperation<T> = {
         kind,
+        label,
         enqueuedAt: this.now(),
         run,
         resolve,
@@ -101,6 +107,7 @@ export class CanonicalOperationQueue {
     this.running = true;
     const startedAt = this.now();
     let networkMs = 0;
+    let applicationMs = 0;
     const context: CanonicalOperationContext = {
       measureNetwork: async <T>(networkOperation: () => Promise<T>) => {
         const networkStartedAt = this.now();
@@ -108,6 +115,14 @@ export class CanonicalOperationQueue {
           return await networkOperation();
         } finally {
           networkMs += Math.max(0, this.now() - networkStartedAt);
+        }
+      },
+      measureApplication: async <T>(applicationOperation: () => Promise<T>) => {
+        const applicationStartedAt = this.now();
+        try {
+          return await applicationOperation();
+        } finally {
+          applicationMs += Math.max(0, this.now() - applicationStartedAt);
         }
       },
     };
@@ -121,8 +136,10 @@ export class CanonicalOperationQueue {
       try {
         this.onMetrics?.({
           kind: operation.kind,
+          ...(operation.label ? { label: operation.label } : {}),
           queueWaitMs: Math.max(0, startedAt - operation.enqueuedAt),
           networkMs,
+          applicationMs,
           operationMs: Math.max(0, finishedAt - startedAt),
         });
       } catch {
@@ -143,7 +160,8 @@ export function runInteractiveCanonicalOperation<T>(
   queue: CanonicalOperationQueue,
   run: (context: CanonicalOperationContext) => Promise<T>,
   onPendingChange: (pending: boolean) => void,
+  label?: string,
 ): Promise<T> {
   onPendingChange(true);
-  return queue.enqueueUser(run).finally(() => onPendingChange(false));
+  return queue.enqueueUser(run, label).finally(() => onPendingChange(false));
 }

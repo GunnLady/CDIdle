@@ -41,7 +41,6 @@ import type { AuthoritativeCommandSuccess, AuthoritativeGameEnvelope, GameComman
 import { createCommandEnvelope } from "./domain/commandEnvelope";
 import { BUILD_VERSION, DISPLAY_BUILD_VERSION } from "./lib/buildVersion";
 import {
-  isCanonicalGameState,
   type CanonicalActiveDungeonEncounter,
   type CanonicalDungeonEncounterRecord,
   type CanonicalGameState,
@@ -51,6 +50,9 @@ import { formatCanonicalIdleReport } from "./domain/idleReport";
 import { projectCanonicalState } from "./domain/canonicalStateProjection";
 import { projectOptimisticCommands } from "./domain/optimisticStateProjection";
 import { shouldRefreshTownAuthority } from "./domain/townHeartbeat";
+import { type CanonicalBootstrapReason } from "./domain/bootstrapPolicy";
+import { hydrateCanonicalBootstrapCache } from "./lib/bootstrapCacheHydration";
+import { canMutateCanonicalState } from "./lib/canonicalMutationAccess";
 import { formatCanonicalTownEvent } from "./domain/townEventLog";
 import {
   createAuthoritativeTimeAnchor,
@@ -92,6 +94,14 @@ import {
   OreIconDetail,
   formatResourceValue
 } from "./components/IconDetails";
+
+async function requestCanonicalBootstrap(reason: CanonicalBootstrapReason): Promise<AuthoritativeGameEnvelope> {
+  const envelope = await callGameApi<AuthoritativeGameEnvelope>("/bootstrap", { method: "POST" });
+  if ((import.meta.env.DEV || import.meta.env.MODE === "alpha") && envelope.bootstrapTiming) {
+    console.info("Canonical bootstrap server timing", { reason, ...envelope.bootstrapTiming });
+  }
+  return envelope;
+}
 
 export default function App() {
   // Layout active tab controller (City, Heroes, Dungeon, Storage or Account)
@@ -138,7 +148,9 @@ export default function App() {
   if (!canonicalQueueRef.current) {
     canonicalQueueRef.current = new CanonicalOperationQueue({
       onMetrics: (metrics) => {
-        if (import.meta.env.DEV) console.debug("Canonical operation timing", metrics);
+        if (import.meta.env.DEV || import.meta.env.MODE === "alpha") {
+          console.info("Canonical operation timing", metrics);
+        }
       },
     });
   }
@@ -163,7 +175,11 @@ export default function App() {
   const bootstrapUserRef = useRef<string | null>(null);
   const transportOnline = browserOnline && apiAvailable;
   const isOnline = transportOnline && canonicalStateFailureDetails === null;
-  const canMutate = isOnline && isAutomationLeader;
+  const canMutate = canMutateCanonicalState({
+    online: isOnline,
+    authoritativeReady: isInitialGameLoadDone,
+    automationLeader: isAutomationLeader,
+  });
   // Google signup is gated by the server-side alpha_allowlist hook and every
   // game-api request is rechecked against the same allowlist at runtime.
   const cheatsAllowedForUser = cheatsEnabled && currentUser?.app_metadata?.provider === "google";
@@ -176,6 +192,7 @@ export default function App() {
   const enqueueInteractiveOperation = useCallback(<T,>(
     run: (context: CanonicalOperationContext) => Promise<T>,
     syncing = false,
+    label?: string,
   ): Promise<T> | null => {
     if (pendingUserCommandCountRef.current > 0) {
       showCrossTabNotice("Action déjà en cours…");
@@ -185,7 +202,7 @@ export default function App() {
       pendingUserCommandCountRef.current = pending ? 1 : 0;
       setPendingUserCommandCount(pendingUserCommandCountRef.current + (optimisticBufferRef.current?.pendingCount ?? 0));
       if (syncing) setIsSyncing(pending);
-    });
+    }, label);
   }, [canonicalQueue, showCrossTabNotice]);
 
   useEffect(() => {
@@ -449,7 +466,6 @@ export default function App() {
       interactive?: boolean;
       silentConflict?: boolean;
       silentSuccess?: boolean;
-      refreshAfterSuccess?: boolean;
       beforeApplyAuthoritativeState?: () => void;
       onConflictResolved?: () => void;
     } = {},
@@ -467,7 +483,7 @@ export default function App() {
       showCrossTabNotice("Mode observateur : prenez le contrôle pour agir.");
       return Promise.resolve(false);
     }
-    const runCommand = async ({ measureNetwork }: CanonicalOperationContext): Promise<{
+    const runCommand = async ({ measureNetwork, measureApplication }: CanonicalOperationContext): Promise<{
       ok: boolean;
       playback?: Promise<void>;
     }> => {
@@ -487,38 +503,14 @@ export default function App() {
           .find((event) => event.type === "dungeon.encounter_resolved")
           ?.encounter as CanonicalDungeonEncounterRecord | undefined;
         options.beforeApplyAuthoritativeState?.();
-        await applyAuthoritativeState(
+        await measureApplication(() => applyAuthoritativeState(
           result?.state,
           result?.revision,
           String(currentUser.id),
           result?.serverTime,
           result?.lastProcessedAt,
-        );
+        ));
         publishAuthoritativeSnapshot(result);
-        if (options.refreshAfterSuccess) {
-          try {
-            const canonical = await measureNetwork(() => callGameApi<AuthoritativeGameEnvelope>("/bootstrap", { method: "POST" }));
-            await applyAuthoritativeState(
-              canonical?.state,
-              canonical?.revision,
-              String(currentUser.id),
-              canonical?.serverTime,
-              canonical?.lastProcessedAt,
-            );
-            publishAuthoritativeSnapshot(canonical);
-            setApiAvailable(true);
-            setCanonicalStateFailureDetails(null);
-          } catch (refreshError) {
-            const stateFailure = canonicalStateFailure(refreshError);
-            if (stateFailure) {
-              setCanonicalStateFailureDetails(stateFailure);
-              setApiAvailable(true);
-            } else if (!(refreshError instanceof GameApiError) || refreshError.status >= 500) {
-              setApiAvailable(false);
-            }
-            showCrossTabNotice("Action enregistrée, mais la resynchronisation de confirmation a échoué.");
-          }
-        }
         for (const event of result?.events ?? []) {
           const townLog = formatCanonicalTownEvent(event);
           if (townLog && !options.silentSuccess) addLog(townLog.message, townLog.type, "colony");
@@ -534,8 +526,8 @@ export default function App() {
           const commandInProgress = error.code === "COMMAND_IN_PROGRESS";
           let reloadSucceeded = false;
           try {
-            const canonical = await measureNetwork(() => callGameApi<AuthoritativeGameEnvelope>("/bootstrap", { method: "POST" }));
-            await applyAuthoritativeState(canonical?.state, canonical?.revision, String(currentUser.id), canonical?.serverTime, canonical?.lastProcessedAt);
+            const canonical = await measureNetwork(() => requestCanonicalBootstrap("conflict"));
+            await measureApplication(() => applyAuthoritativeState(canonical?.state, canonical?.revision, String(currentUser.id), canonical?.serverTime, canonical?.lastProcessedAt));
             publishAuthoritativeSnapshot(canonical);
             setApiAvailable(true);
             setCanonicalStateFailureDetails(null);
@@ -585,8 +577,8 @@ export default function App() {
       }
     };
     const operation = interactive
-      ? enqueueInteractiveOperation(runCommand)
-      : canonicalQueue.enqueueUser(runCommand);
+      ? enqueueInteractiveOperation(runCommand, false, `command:${command.type}`)
+      : canonicalQueue.enqueueUser(runCommand, `command:${command.type}`);
     if (!operation) return Promise.resolve(false);
     return operation.then(async ({ ok, playback }) => {
       if (playback) await playback;
@@ -767,23 +759,22 @@ export default function App() {
           }
           return;
         }
-        const operation = canonicalQueue.enqueueBackground(async ({ measureNetwork }) => {
-          const canonical = await measureNetwork(() => callGameApi<AuthoritativeGameEnvelope>("/bootstrap", { method: "POST" }));
+        await canonicalQueue.enqueueBackground(async ({ measureNetwork, measureApplication }) => {
+          const canonical = await measureNetwork(() => requestCanonicalBootstrap("leadership"));
           if (!active) return;
-          await applyAuthoritativeState(
+          await measureApplication(() => applyAuthoritativeState(
             canonical.state,
             canonical.revision,
             userId,
             canonical.serverTime,
             canonical.lastProcessedAt,
-          );
+          ));
           publishAuthoritativeSnapshot(canonical);
-        });
-        await operation;
+        }, "bootstrap:leadership");
         if (!active) return;
-        const currentRequest = window.localStorage.getItem(requestKey);
-        const explicitlyRequested = requestedControlOwner(currentRequest) === tabId;
-        if (explicitlyRequested || isControlRequestExpired(currentRequest, Date.now())) {
+        const resolvedRequest = window.localStorage.getItem(requestKey);
+        const resolvedExplicitlyRequested = requestedControlOwner(resolvedRequest) === tabId;
+        if (resolvedExplicitlyRequested || isControlRequestExpired(resolvedRequest, Date.now())) {
           window.localStorage.removeItem(requestKey);
         }
         setApiAvailable(true);
@@ -791,7 +782,7 @@ export default function App() {
         isAutomationLeaderRef.current = true;
         setIsControlTransferPending(false);
         setIsAutomationLeader(true);
-        if (explicitlyRequested) showCrossTabNotice("Cet onglet contrôle maintenant la partie.");
+        if (resolvedExplicitlyRequested) showCrossTabNotice("Cet onglet contrôle maintenant la partie.");
       },
     });
     controlLeaseRef.current = lease;
@@ -923,10 +914,10 @@ export default function App() {
   const handleConfirmRecruit = () => {
     if (!pendingRecruit || isRecruitConfirmationPending) return;
     setIsRecruitConfirmationPending(true);
-    void dispatchAuthoritativeCommand(
-      { type: "hero.recruit_confirm", name: pendingRecruit.name },
-      { refreshAfterSuccess: true },
-    ).finally(() => setIsRecruitConfirmationPending(false));
+    void dispatchAuthoritativeCommand({
+      type: "hero.recruit_confirm",
+      name: pendingRecruit.name,
+    }).finally(() => setIsRecruitConfirmationPending(false));
   };
 
   const handleCancelRecruit = () => {
@@ -1017,22 +1008,53 @@ export default function App() {
 
       if (user) {
         setIsInitialGameLoadDone(false);
+        let authoritativeReceived = false;
+        let cacheApplied = false;
+        const cacheHydration = hydrateCanonicalBootstrapCache({
+          read: () => readGameCache(user.id),
+          apply: async (cached, revision) => {
+            await applyAuthoritativeState(
+              cached,
+              revision,
+              String(user.id),
+              undefined,
+              undefined,
+              false,
+            );
+            if (cached.autoExplore !== undefined) setAutoExplore(Boolean(cached.autoExplore));
+          },
+          shouldIgnore: () => authoritativeReceived || isStale(),
+          now: () => globalThis.performance?.now() ?? Date.now(),
+          onMetrics: (metrics) => {
+            if (import.meta.env.DEV || import.meta.env.MODE === "alpha") {
+              console.info("Canonical bootstrap cache timing", metrics);
+            }
+          },
+        })
+          .then((outcome) => { cacheApplied = outcome === "applied"; })
+          .catch(() => { cacheApplied = false; });
         try {
           setIsSyncing(true);
-          const parsed = await canonicalQueue.enqueueBackground(({ measureNetwork }) =>
-            measureNetwork(() => callGameApi<AuthoritativeGameEnvelope>("/bootstrap", { method: "POST" })));
+          const reason = reconnectNonce > 0 ? "reconnect" : "initial";
+          const parsed = await canonicalQueue.enqueueBackground(async ({ measureNetwork, measureApplication }) => {
+            const envelope = await measureNetwork(() => requestCanonicalBootstrap(reason));
+            authoritativeReceived = true;
+            if (!isStale() && envelope?.state) {
+              await measureApplication(() => applyAuthoritativeState(
+                envelope.state,
+                envelope.revision,
+                String(user.id),
+                envelope.serverTime,
+                envelope.lastProcessedAt,
+              ));
+            }
+            return envelope;
+          }, `bootstrap:${reason}`);
           if (isStale()) return;
           setApiAvailable(true);
           setCanonicalStateFailureDetails(null);
-          if (Number.isInteger(parsed?.revision)) {
-            gameRevisionRef.current = parsed.revision;
-            setGameRevision(parsed.revision);
-          }
 
           if (parsed && parsed.state) {
-            const state = parsed.state;
-            await applyAuthoritativeState(state, parsed.revision, String(user.id), parsed?.serverTime, parsed?.lastProcessedAt);
-            if (isStale()) return;
             const idleSummary = formatCanonicalIdleReport(parsed.idleReport);
             if (idleSummary) addLog(idleSummary, "info", "colony");
             addLog("☁️ Royaume synchronisé : Sauvegarde Supabase chargée avec succès !", "victory");
@@ -1054,28 +1076,17 @@ export default function App() {
           }
           if (!isRevisionConflict) setApiAvailable(false);
           if (isRevisionConflict) {
+            setApiAvailable(false);
             bootstrapUserRef.current = null;
             addLog("Synchronisation concurrente détectée. Rechargez la partie.", "info");
             return;
           }
           console.error("Supabase sync error", err);
-          const cachedEntry = await readGameCache(user.id).catch(() => null);
-          const cached = isCanonicalGameState(cachedEntry) ? cachedEntry : null;
+          await cacheHydration;
           if (isStale()) return;
-          if (cached) {
-            await applyAuthoritativeState(
-              cached,
-              Number(cached.revision),
-              String(user.id),
-              undefined,
-              undefined,
-              false,
-            );
-          }
-          if (isStale()) return;
-          if (cached?.autoExplore !== undefined) setAutoExplore(Boolean(cached.autoExplore));
-          addLog(cached ? "📖 Session hors connexion : cache local en lecture seule chargé." : "❌ Échec de la récupération des données Supabase.", cached ? "info" : "defeat");
+          addLog(cacheApplied ? "📖 Session hors connexion : cache local en lecture seule chargé." : "❌ Échec de la récupération des données Supabase.", cacheApplied ? "info" : "defeat");
         } finally {
+          void cacheHydration;
           if (!isStale()) {
             setIsSyncing(false);
             setIsInitialGameLoadDone(true);
@@ -1122,12 +1133,12 @@ export default function App() {
     let pending = false;
     const refresh = () => {
       if (!isAutomationLeaderRef.current || pending) return;
-      const operation = canonicalQueue.tryEnqueueBackground(async ({ measureNetwork }) => {
+      const operation = canonicalQueue.tryEnqueueBackground(async ({ measureNetwork, measureApplication }) => {
         if (!isAutomationLeaderRef.current) return;
         try {
-          const parsed = await measureNetwork(() => callGameApi<AuthoritativeGameEnvelope>("/bootstrap", { method: "POST" }));
+          const parsed = await measureNetwork(() => requestCanonicalBootstrap("heartbeat"));
           if (!active) return;
-          await applyAuthoritativeState(parsed?.state, parsed?.revision, String(currentUser.id), parsed?.serverTime, parsed?.lastProcessedAt);
+          await measureApplication(() => applyAuthoritativeState(parsed?.state, parsed?.revision, String(currentUser.id), parsed?.serverTime, parsed?.lastProcessedAt));
           publishAuthoritativeSnapshot(parsed);
           const idleSummary = formatCanonicalIdleReport(parsed?.idleReport);
           if (idleSummary) addLog(idleSummary, "info", "colony");
@@ -1139,7 +1150,7 @@ export default function App() {
           if (stateFailure) setCanonicalStateFailureDetails(stateFailure);
           else setApiAvailable(false);
         }
-      });
+      }, "bootstrap:heartbeat");
       if (!operation) return;
       pending = true;
       void operation.finally(() => { pending = false; });
@@ -1173,10 +1184,10 @@ export default function App() {
       showCrossTabNotice("Mode observateur : prenez le contrôle pour synchroniser.");
       return;
     }
-    const operation = enqueueInteractiveOperation(async ({ measureNetwork }) => {
+    const operation = enqueueInteractiveOperation(async ({ measureNetwork, measureApplication }) => {
       try {
-        const parsed = await measureNetwork(() => callGameApi<AuthoritativeGameEnvelope>("/bootstrap", { method: "POST" }));
-        await applyAuthoritativeState(parsed?.state, parsed?.revision, String(currentUser.id), parsed?.serverTime, parsed?.lastProcessedAt);
+        const parsed = await measureNetwork(() => requestCanonicalBootstrap("manual"));
+        await measureApplication(() => applyAuthoritativeState(parsed?.state, parsed?.revision, String(currentUser.id), parsed?.serverTime, parsed?.lastProcessedAt));
         publishAuthoritativeSnapshot(parsed);
         const idleSummary = formatCanonicalIdleReport(parsed?.idleReport);
         if (idleSummary) addLog(idleSummary, "info", "colony");
@@ -1193,7 +1204,7 @@ export default function App() {
         }
         addLog("Échec de l’actualisation de l’état canonique.", "defeat");
       }
-    }, true);
+    }, true, "bootstrap:manual");
     if (!operation) return;
     await operation;
   }, [addLog, applyAuthoritativeState, currentUser, enqueueInteractiveOperation, isOnline, publishAuthoritativeSnapshot, showCrossTabNotice]);
