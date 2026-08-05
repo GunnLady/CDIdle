@@ -72,12 +72,15 @@ export function rollEncounterForgeMaterial(floor: number, rng: Rng = systemRng):
   return { materialId, rarity, count, name };
 }
 
-export function getRandomDungeonEncounterType(rng: Rng = systemRng): DungeonEncounterType {
+export function getRandomDungeonEncounterType(
+  rng: Rng = systemRng,
+  excludedType?: Exclude<DungeonEncounterType, "fight">,
+): DungeonEncounterType {
   const keys = Object.keys(DUNGEON_ENCOUNTER_WEIGHTS) as DungeonEncounterType[];
   let totalWeight = 0;
 
   for (const key of keys) {
-    const weight = DUNGEON_ENCOUNTER_WEIGHTS[key];
+    const weight = key === excludedType ? 0 : DUNGEON_ENCOUNTER_WEIGHTS[key];
     if (weight && weight > 0) {
       totalWeight += weight;
     }
@@ -90,7 +93,7 @@ export function getRandomDungeonEncounterType(rng: Rng = systemRng): DungeonEnco
   const roll = rng.next() * totalWeight;
   let cumulative = 0;
   for (const key of keys) {
-    const weight = DUNGEON_ENCOUNTER_WEIGHTS[key];
+    const weight = key === excludedType ? 0 : DUNGEON_ENCOUNTER_WEIGHTS[key];
     if (weight && weight > 0) {
       cumulative += weight;
       if (roll <= cumulative) {

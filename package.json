@@ -53,6 +53,7 @@
     "typecheck": "tsc --noEmit && node --experimental-strip-types scripts/generate-item-catalog-matrix.mjs --check",
     "lint": "eslint src tests",
     "test": "vitest",
+    "test:dungeon-simulation": "vitest run tests/dungeonRulesSimulation.test.ts tests/dungeonEncounterRules.test.ts --reporter=verbose",
     "test:weapon-simulation": "vitest run tests/weaponProfilesSimulation.test.tsx --reporter=verbose",
     "test:watch": "vitest --watch",
     "test:coverage": "vitest --coverage --run",

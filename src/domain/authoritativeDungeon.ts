@@ -51,6 +51,11 @@ import {
   isDungeonFinalRoom,
   isMajorBossFloor,
 } from "../../shared/domain/dungeon-progression.ts";
+import {
+  resolveMonsterAttackProfile,
+  resolveMonsterCombatRank,
+  rollMonsterStrikeCount,
+} from "../../shared/domain/monster-combat.ts";
 import { chooseHeroAction } from "./combatTactics.ts";
 import {
   UNARMED_WEAPON_CONTEXT,
@@ -111,6 +116,7 @@ export type AuthoritativeDungeonState = Record<string, unknown> & {
   itemBlueprints?: ItemBlueprint[];
   autoExplore?: boolean;
   pendingClassTransitions?: PendingClassTransition[];
+  encounterHistory?: AuthoritativeDungeonEncounter[];
 };
 
 export type AuthoritativeDungeonResolution = {
@@ -410,6 +416,9 @@ function resolveFight(
   let sequence = 0;
   let round = 0;
   let activeEffects: TemporaryCombatEffect[] = [];
+  const majorBossEncounter = isDungeonFinalRoom(floor, room) && isMajorBossFloor(floor);
+  const monsterRank = resolveMonsterCombatRank(monster.isBoss, majorBossEncounter);
+  const monsterAttackProfile = resolveMonsterAttackProfile(monsterRank, floor);
   const log = (
     type: string,
     message: string,
@@ -645,15 +654,7 @@ function resolveFight(
 
     if (monster.hp === 0) break;
 
-    let strikes = 1;
-    if (monster.isBoss) {
-      if (floor >= 30) strikes = 3;
-      else if (floor >= 10) strikes = rng.next() < 0.4 ? 3 : 2;
-      else strikes = 2;
-    } else {
-      const chance = Math.min(0.5, (floor - 1) * 0.015);
-      if (rng.next() < chance) strikes = 2;
-    }
+    const strikes = rollMonsterStrikeCount(monsterAttackProfile, () => rng.next());
 
     for (let strike = 1; strike <= strikes; strike += 1) {
       const living = heroes.filter((hero) => hero.isActive && hero.currentHp > 0);
@@ -1272,9 +1273,13 @@ export function resolveAuthoritativeDungeonEncounter(
   }
   const activeHeroes = source.heroes.filter((hero) => hero.isActive && hero.currentHp > 0);
   if (activeHeroes.length === 0) throw new Error("NO_ACTIVE_HERO");
+  const previousKind = source.encounterHistory?.at(-1)?.kind;
+  const excludedType = previousKind && previousKind !== "fight"
+    ? previousKind
+    : undefined;
   const kind: DungeonEncounterType = isDungeonFinalRoom(floor, room)
     ? "fight"
-    : getRandomDungeonEncounterType(rng);
+    : getRandomDungeonEncounterType(rng, excludedType);
   return kind === "fight"
     ? resolveFight(source, floor, room, encounterId, rng)
     : resolveNonFight(source, kind, floor, room, encounterId, rng);

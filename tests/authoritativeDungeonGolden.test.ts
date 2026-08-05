@@ -885,7 +885,7 @@ describe("authoritative dungeon golden behavior characterized from 640f89f", () 
     const fragile = makeHero({
       id: "fragile",
       name: "Fragile",
-      currentHp: 10,
+      currentHp: 5,
       calculatedStats: {
         ...makeHero().calculatedStats,
         maxHp: 100,

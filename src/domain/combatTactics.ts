@@ -22,6 +22,12 @@ import {
   calculateWeaponStrikePower,
   selectWeaponAttackPower,
 } from "../../shared/domain/weapon-combat.ts";
+import { isMajorBossFloor } from "../../shared/domain/dungeon-progression.ts";
+import {
+  calculateExpectedMonsterStrikeCount,
+  resolveMonsterAttackProfile,
+  resolveMonsterCombatRank,
+} from "../../shared/domain/monster-combat.ts";
 
 export type TacticalAction = {
   kind: "normal_attack" | "skill";
@@ -121,11 +127,12 @@ export function estimateNextEnemyDamage(
   return Math.max(1, effectiveMonster.atk - defense) * Math.max(0, strikeCount) * hitChance;
 }
 
-function expectedEnemyStrikeCount(context: HeroActionContext): number {
-  if (!context.monster.isBoss) return 1 + Math.min(0.5, Math.max(0, context.floor - 1) * 0.015);
-  if (context.floor >= 30) return 3;
-  if (context.floor >= 10) return 2.4;
-  return 2;
+export function expectedEnemyStrikeCount(context: HeroActionContext): number {
+  const majorBossEncounter = context.room >= context.finalRoom && isMajorBossFloor(context.floor);
+  const rank = resolveMonsterCombatRank(context.monster.isBoss, majorBossEncounter);
+  return calculateExpectedMonsterStrikeCount(
+    resolveMonsterAttackProfile(rank, context.floor),
+  );
 }
 
 function expectedEnemyDamageForTarget(
