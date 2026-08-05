@@ -1,7 +1,7 @@
 ---
 id: CDI-073
 title: Rendre immediatement disponible un citoyen immigre
-status: Later
+status: Doing
 area: fullstack
 priority: P2
 size: S
@@ -10,7 +10,7 @@ source: Retour utilisateur du 2026-08-01
 depends_on: []
 blocks: []
 github_issue: null
-related_docs: ["workboard/data/Done/CDI-057/ticket.md", "workboard/data/Done/CDI-061/ticket.md", "workboard/data/Done/CDI-070/ticket.md", "workboard/data/ToDo/CDI-071/ticket.md"]
+related_docs: ["workboard/data/Done/CDI-057/ticket.md", "workboard/data/Done/CDI-061/ticket.md", "workboard/data/Done/CDI-070/ticket.md", "workboard/data/Done/CDI-071/ticket.md"]
 ---
 
 # CDI-073 - Rendre immediatement disponible un citoyen immigre

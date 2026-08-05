@@ -57,6 +57,7 @@
     "test:weapon-simulation": "vitest run tests/weaponProfilesSimulation.test.tsx --reporter=verbose",
     "test:state-simulation": "vitest run tests/canonicalStateCompatibilitySimulation.test.ts --reporter=verbose",
     "test:bootstrap-simulation": "vitest run tests/bootstrapLatencySimulation.test.ts --reporter=verbose",
+    "test:immigration-simulation": "vitest run tests/immigrationReconciliationSimulation.test.ts tests/immigrationFrontendIntegration.test.tsx --reporter=verbose",
     "test:watch": "vitest --watch",
     "test:coverage": "vitest --coverage --run",
     "check:coverage": "node scripts/check-coverage-thresholds.mjs",

@@ -13,6 +13,7 @@ export type TownDisplayProjection = {
   resources: Resources;
   totalCitizens: number;
   citizenGrowthProgress: number;
+  hasPendingImmigration: boolean;
 };
 
 /** Read-only UI projection. The authoritative snapshot is never mutated. */
@@ -28,24 +29,23 @@ export function projectTownDisplay(input: TownProjectionInput): TownDisplayProje
   const capacity = Math.max(0, input.habitationLevel) * 3;
   let citizens = input.totalCitizens;
   let progress = input.citizenGrowthProgress;
-  let completedOnLastSecond = false;
   for (let second = 0; second < seconds && citizens < capacity; second += 1) {
-    completedOnLastSecond = false;
     if (resources.food < 1) break;
     resources.food -= 1;
     progress += 5;
     if (progress >= 100) {
       progress -= 100;
       citizens += 1;
-      completedOnLastSecond = second === seconds - 1;
     }
   }
+  const hasPendingImmigration = citizens > input.totalCitizens;
   return {
     resources,
-    totalCitizens: completedOnLastSecond ? citizens - 1 : citizens,
-    citizenGrowthProgress: completedOnLastSecond
+    totalCitizens: input.totalCitizens,
+    citizenGrowthProgress: hasPendingImmigration
       ? 100
       : citizens >= capacity ? 0 : progress,
+    hasPendingImmigration,
   };
 }
 

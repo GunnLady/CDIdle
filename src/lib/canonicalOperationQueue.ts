@@ -32,6 +32,7 @@ type CanonicalOperationQueueOptions = {
 export class CanonicalOperationQueue {
   private readonly userOperations: PendingOperation<unknown>[] = [];
   private readonly backgroundOperations: PendingOperation<unknown>[] = [];
+  private readonly coalescedOperations = new Map<string, Promise<void>>();
   private readonly idleWaiters = new Set<() => void>();
   private readonly now: () => number;
   private readonly schedule: (callback: () => void) => void;
@@ -57,9 +58,54 @@ export class CanonicalOperationQueue {
     return this.enqueue("background", run, label);
   }
 
+  enqueueCoalescedBackground(
+    key: string,
+    run: (context: CanonicalOperationContext) => Promise<void>,
+    label?: string,
+  ): Promise<void> {
+    return this.enqueueCoalesced("background", key, run, label);
+  }
+
+  enqueueCoalescedUser(
+    key: string,
+    run: (context: CanonicalOperationContext) => Promise<void>,
+    label?: string,
+  ): Promise<void> {
+    return this.enqueueCoalesced("user", key, run, label);
+  }
+
+  private enqueueCoalesced(
+    kind: CanonicalOperationKind,
+    key: string,
+    run: (context: CanonicalOperationContext) => Promise<void>,
+    label?: string,
+  ): Promise<void> {
+    const existing = this.coalescedOperations.get(key);
+    if (existing) return existing;
+    const operation = this.enqueue(kind, run, label);
+    this.coalescedOperations.set(key, operation);
+    void operation.finally(() => {
+      if (this.coalescedOperations.get(key) === operation) {
+        this.coalescedOperations.delete(key);
+      }
+    }).catch(() => undefined);
+    return operation;
+  }
+
   tryEnqueueBackground<T>(run: (context: CanonicalOperationContext) => Promise<T>, label?: string): Promise<T> | null {
     if (this.isBusy) return null;
     return this.enqueueBackground(run, label);
+  }
+
+  tryEnqueueCoalescedBackground(
+    key: string,
+    run: (context: CanonicalOperationContext) => Promise<void>,
+    label?: string,
+  ): Promise<void> | null {
+    const existing = this.coalescedOperations.get(key);
+    if (existing) return existing;
+    if (this.isBusy) return null;
+    return this.enqueueCoalescedBackground(key, run, label);
   }
 
   whenIdle(): Promise<void> {
@@ -164,4 +210,15 @@ export function runInteractiveCanonicalOperation<T>(
 ): Promise<T> {
   onPendingChange(true);
   return queue.enqueueUser(run, label).finally(() => onPendingChange(false));
+}
+
+export function runInteractiveCoalescedCanonicalOperation(
+  queue: CanonicalOperationQueue,
+  key: string,
+  run: (context: CanonicalOperationContext) => Promise<void>,
+  onPendingChange: (pending: boolean) => void,
+  label?: string,
+): Promise<void> {
+  onPendingChange(true);
+  return queue.enqueueCoalescedUser(key, run, label).finally(() => onPendingChange(false));
 }

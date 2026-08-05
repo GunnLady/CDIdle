@@ -32,6 +32,31 @@ describe("server idle authority", () => {
     expect((result.state.citizens as { unassigned: number }).unassigned).toBe(4);
   });
 
+  it("commits multiple immigration thresholds with the exact residual progress", () => {
+    const state: CanonicalGameState = {
+      ...structuredClone(base),
+      resources: { ...base.resources, food: 100 },
+      buildings: { ...base.buildings, habitation: 3, ferme: 0 },
+      citizens: { farmers: 0, woodcutters: 0, quarrymen: 0, miners: 0, unassigned: 3 },
+    };
+    const now = new Date("2026-07-18T00:00:45.000Z");
+    const result = applyIdleAuthority(state, "2026-07-18T00:00:00.000Z", now);
+
+    expect(result.report).toMatchObject({ citizensAdded: 2, foodConsumed: 45 });
+    expect(result.state).toMatchObject({
+      totalCitizensCount: 5,
+      citizenGrowthProgress: 25,
+      citizens: { unassigned: 5 },
+    });
+    expect(result.state.totalCitizensCount).toBeLessThanOrEqual(
+      Number(result.state.buildings.habitation) * 3,
+    );
+
+    const replay = applyIdleAuthority(result.state, result.lastProcessedAt, now);
+    expect(replay.report).toMatchObject({ appliedSeconds: 0, citizensAdded: 0 });
+    expect(replay.state).toEqual(result.state);
+  });
+
   it("is idempotent when the authoritative timestamp does not advance", () => {
     const now = new Date("2026-07-18T00:00:20.000Z");
     const first = applyIdleAuthority(base, "2026-07-18T00:00:00.000Z", now);

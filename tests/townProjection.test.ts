@@ -28,7 +28,7 @@ describe("town resource display projection", () => {
     }).food).toBe(50);
   });
 
-  it("fills the immigration bar before presenting the new citizen", () => {
+  it("fills the immigration bar without presenting an uncommitted citizen", () => {
     const input = {
       resources: makeResources({ food: 100 }),
       rates: { food: 0, wood: 0, stone: 0, ore: 0 },
@@ -39,14 +39,32 @@ describe("town resource display projection", () => {
     expect(projectTownDisplay({ ...input, elapsedSeconds: 19 })).toMatchObject({
       totalCitizens: 3,
       citizenGrowthProgress: 95,
+      hasPendingImmigration: false,
     });
     expect(projectTownDisplay({ ...input, elapsedSeconds: 20 })).toMatchObject({
       totalCitizens: 3,
       citizenGrowthProgress: 100,
+      hasPendingImmigration: true,
     });
     expect(projectTownDisplay({ ...input, elapsedSeconds: 21 })).toMatchObject({
-      totalCitizens: 4,
-      citizenGrowthProgress: 5,
+      totalCitizens: 3,
+      citizenGrowthProgress: 100,
+      hasPendingImmigration: true,
+    });
+  });
+
+  it("keeps multiple projected immigrants pending until one server reconciliation", () => {
+    expect(projectTownDisplay({
+      resources: makeResources({ food: 1_000 }),
+      rates: { food: 0, wood: 0, stone: 0, ore: 0 },
+      elapsedSeconds: 45,
+      totalCitizens: 3,
+      habitationLevel: 3,
+      citizenGrowthProgress: 0,
+    })).toMatchObject({
+      totalCitizens: 3,
+      citizenGrowthProgress: 100,
+      hasPendingImmigration: true,
     });
   });
 });

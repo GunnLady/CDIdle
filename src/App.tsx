@@ -26,6 +26,7 @@ import {
 import { deleteGameCache, purgeLegacyGameCache, readGameCache, writeGameCache } from "./lib/gameCache";
 import {
   CanonicalOperationQueue,
+  runInteractiveCoalescedCanonicalOperation,
   runInteractiveCanonicalOperation,
   type CanonicalOperationContext,
 } from "./lib/canonicalOperationQueue";
@@ -53,6 +54,7 @@ import { shouldRefreshTownAuthority } from "./domain/townHeartbeat";
 import { type CanonicalBootstrapReason } from "./domain/bootstrapPolicy";
 import { hydrateCanonicalBootstrapCache } from "./lib/bootstrapCacheHydration";
 import { canMutateCanonicalState } from "./lib/canonicalMutationAccess";
+import { CanonicalAuthorityGeneration } from "./lib/canonicalReconciliation";
 import { formatCanonicalTownEvent } from "./domain/townEventLog";
 import {
   createAuthoritativeTimeAnchor,
@@ -81,6 +83,7 @@ import {
 // Custom Hooks & Utilities
 import { useGameLog } from "./hooks/useGameLog";
 import { useTownSystem } from "./hooks/useTownSystem";
+import { useImmigrationReconciliation } from "./hooks/useImmigrationReconciliation";
 
 const cheatsEnabled = import.meta.env.MODE === "development" || import.meta.env.MODE === "staging";
 import { useDungeonSystem } from "./hooks/useDungeonSystem";
@@ -102,6 +105,9 @@ async function requestCanonicalBootstrap(reason: CanonicalBootstrapReason): Prom
   }
   return envelope;
 }
+
+const canonicalBootstrapOperationKey = (userId: string, epoch: number) =>
+  `canonical-bootstrap:${userId}:${epoch}`;
 
 export default function App() {
   // Layout active tab controller (City, Heroes, Dungeon, Storage or Account)
@@ -158,10 +164,16 @@ export default function App() {
   const pendingUserCommandCountRef = useRef(0);
   const authorityChannelRef = useRef<CrossTabAuthorityBridge | null>(null);
   const latestAuthoritativeSnapshotRef = useRef<CrossTabAuthoritySnapshot | null>(null);
+  const authorityGenerationRef = useRef<CanonicalAuthorityGeneration | null>(null);
+  if (!authorityGenerationRef.current) {
+    authorityGenerationRef.current = new CanonicalAuthorityGeneration();
+  }
+  const authorityGeneration = authorityGenerationRef.current;
   const controlLeaseRef = useRef<AutomationLease | null>(null);
   const controlTabIdRef = useRef(crypto.randomUUID());
   const clientStateUserRef = useRef<string | null>(null);
   const authSnapshotGenerationRef = useRef(0);
+  const canonicalBootstrapEpochRef = useRef(0);
   const deletedCacheUserIdsRef = useRef(new Set<string>());
   const isAutomationLeaderRef = useRef(false);
   const crossTabNoticeIdRef = useRef(0);
@@ -205,6 +217,23 @@ export default function App() {
     }, label);
   }, [canonicalQueue, showCrossTabNotice]);
 
+  const enqueueInteractiveCoalescedOperation = useCallback((
+    key: string,
+    run: (context: CanonicalOperationContext) => Promise<void>,
+    syncing = false,
+    label?: string,
+  ): Promise<void> | null => {
+    if (pendingUserCommandCountRef.current > 0) {
+      showCrossTabNotice("Action déjà en cours…");
+      return null;
+    }
+    return runInteractiveCoalescedCanonicalOperation(canonicalQueue, key, run, (pending) => {
+      pendingUserCommandCountRef.current = pending ? 1 : 0;
+      setPendingUserCommandCount(pendingUserCommandCountRef.current + (optimisticBufferRef.current?.pendingCount ?? 0));
+      if (syncing) setIsSyncing(pending);
+    }, label);
+  }, [canonicalQueue, showCrossTabNotice]);
+
   useEffect(() => {
     if (!crossTabNotice) return;
     const timeout = window.setTimeout(() => setCrossTabNotice(null), 8_000);
@@ -215,6 +244,7 @@ export default function App() {
     const handleOffline = () => setBrowserOnline(false);
     const handleOnline = () => {
       bootstrapUserRef.current = null;
+      canonicalBootstrapEpochRef.current += 1;
       setBrowserOnline(true);
       setReconnectNonce((value) => value + 1);
     };
@@ -324,6 +354,7 @@ export default function App() {
     if (!state) return false;
     const userId = cacheUserId;
     if (userId && deletedCacheUserIdsRef.current.has(String(userId))) return false;
+    authorityGeneration.advance();
     if (Number.isInteger(revision)
       && typeof state === "object"
       && typeof serverTime === "string"
@@ -366,6 +397,7 @@ export default function App() {
     return true;
   }, [
     applyProjectedReactState,
+    authorityGeneration,
   ]);
 
   const clearClientGameState = useCallback(() => {
@@ -759,7 +791,7 @@ export default function App() {
           }
           return;
         }
-        await canonicalQueue.enqueueBackground(async ({ measureNetwork, measureApplication }) => {
+        await canonicalQueue.enqueueCoalescedBackground(canonicalBootstrapOperationKey(userId, canonicalBootstrapEpochRef.current), async ({ measureNetwork, measureApplication }) => {
           const canonical = await measureNetwork(() => requestCanonicalBootstrap("leadership"));
           if (!active) return;
           await measureApplication(() => applyAuthoritativeState(
@@ -999,6 +1031,7 @@ export default function App() {
       const isStale = () => !active || authSnapshotGenerationRef.current !== generation;
       const nextUserId = user ? String(user.id) : null;
       if (clientStateUserRef.current !== nextUserId) {
+        canonicalBootstrapEpochRef.current += 1;
         clearClientGameState();
         clientStateUserRef.current = nextUserId;
       }
@@ -1036,8 +1069,10 @@ export default function App() {
         try {
           setIsSyncing(true);
           const reason = reconnectNonce > 0 ? "reconnect" : "initial";
-          const parsed = await canonicalQueue.enqueueBackground(async ({ measureNetwork, measureApplication }) => {
+          let parsed: AuthoritativeGameEnvelope | null = null;
+          await canonicalQueue.enqueueCoalescedBackground(canonicalBootstrapOperationKey(String(user.id), canonicalBootstrapEpochRef.current), async ({ measureNetwork, measureApplication }) => {
             const envelope = await measureNetwork(() => requestCanonicalBootstrap(reason));
+            parsed = envelope;
             authoritativeReceived = true;
             if (!isStale() && envelope?.state) {
               await measureApplication(() => applyAuthoritativeState(
@@ -1048,17 +1083,17 @@ export default function App() {
                 envelope.lastProcessedAt,
               ));
             }
-            return envelope;
           }, `bootstrap:${reason}`);
+          authoritativeReceived = true;
           if (isStale()) return;
           setApiAvailable(true);
           setCanonicalStateFailureDetails(null);
 
-          if (parsed && parsed.state) {
+          if (parsed) {
             const idleSummary = formatCanonicalIdleReport(parsed.idleReport);
             if (idleSummary) addLog(idleSummary, "info", "colony");
             addLog("☁️ Royaume synchronisé : Sauvegarde Supabase chargée avec succès !", "victory");
-          } else {
+          } else if (!latestAuthoritativeSnapshotRef.current) {
             setCityName("");
             setTownResources({ gold: 0, food: 0, wood: 0, stone: 0, ore: 0 });
             addLog("👑 Bienvenue souverain ! Veuillez nommer votre cité pour fonder votre campement.", "info");
@@ -1117,8 +1152,83 @@ export default function App() {
     setTownResources,
   ]);
 
-  // Refresh active city progression from the authoritative clock. The
-  // command queue prevents this heartbeat from racing user mutations.
+  const reconcileTownAuthority = useCallback((
+    reason: "heartbeat" | "immigration",
+    skipWhenBusy: boolean,
+    skipIfAuthorityAdvancedFrom?: number,
+  ): Promise<void> | null => {
+    if (!isAutomationLeaderRef.current || !currentUser || !browserOnline
+      || !isInitialGameLoadDone || !cityName || canonicalStateFailureDetails) return null;
+    const run = async ({ measureNetwork, measureApplication }: CanonicalOperationContext) => {
+      if (!isAutomationLeaderRef.current) return;
+      if (skipIfAuthorityAdvancedFrom !== undefined
+        && !authorityGeneration.isCurrent(skipIfAuthorityAdvancedFrom)) return;
+      try {
+        const parsed = await measureNetwork(() => requestCanonicalBootstrap(reason));
+        if (!isAutomationLeaderRef.current) return;
+        await measureApplication(() => applyAuthoritativeState(
+          parsed.state,
+          parsed.revision,
+          String(currentUser.id),
+          parsed.serverTime,
+          parsed.lastProcessedAt,
+        ));
+        publishAuthoritativeSnapshot(parsed);
+        const idleSummary = formatCanonicalIdleReport(parsed.idleReport);
+        if (idleSummary) addLog(idleSummary, "info", "colony");
+        setApiAvailable(true);
+        setCanonicalStateFailureDetails(null);
+      } catch (error) {
+        const stateFailure = canonicalStateFailure(error);
+        if (stateFailure) setCanonicalStateFailureDetails(stateFailure);
+        else setApiAvailable(false);
+        throw error;
+      }
+    };
+    const operationKey = canonicalBootstrapOperationKey(
+      String(currentUser.id),
+      canonicalBootstrapEpochRef.current,
+    );
+    return skipWhenBusy
+      ? canonicalQueue.tryEnqueueCoalescedBackground(
+        operationKey,
+        run,
+        `bootstrap:${reason}`,
+      )
+      : canonicalQueue.enqueueCoalescedBackground(
+        operationKey,
+        run,
+        `bootstrap:${reason}`,
+      );
+  }, [
+    addLog,
+    applyAuthoritativeState,
+    authorityGeneration,
+    browserOnline,
+    canonicalQueue,
+    canonicalStateFailureDetails,
+    cityName,
+    currentUser,
+    isInitialGameLoadDone,
+    publishAuthoritativeSnapshot,
+  ]);
+
+  // A projected threshold never creates a local citizen. It schedules one
+  // coalesced canonical reconciliation, after any player command already in
+  // the queue, and the server response unlocks the new citizen.
+  const reconcilePendingImmigration = useCallback((scheduledGeneration: number) =>
+    reconcileTownAuthority("immigration", false, scheduledGeneration), [reconcileTownAuthority]);
+
+  useImmigrationReconciliation({
+    isAutomationLeader,
+    hasPendingImmigration: town.hasPendingImmigration,
+    authorityGeneration: authorityGeneration.current,
+    reconcile: reconcilePendingImmigration,
+  });
+
+  // Refresh other active city progression from the authoritative clock. A
+  // periodic heartbeat is skipped while unrelated canonical work is busy and
+  // reuses an immigration reconciliation already in flight.
   useEffect(() => {
     if (!isAutomationLeader || !currentUser || !browserOnline || !isInitialGameLoadDone || !cityName || canonicalStateFailureDetails) return;
     const rates = getTownRates();
@@ -1129,42 +1239,14 @@ export default function App() {
       habitationLevel: townBuildings.habitation ?? 0,
       heroes: dungeon.heroes,
     })) return;
-    let active = true;
-    let pending = false;
     const refresh = () => {
-      if (!isAutomationLeaderRef.current || pending) return;
-      const operation = canonicalQueue.tryEnqueueBackground(async ({ measureNetwork, measureApplication }) => {
-        if (!isAutomationLeaderRef.current) return;
-        try {
-          const parsed = await measureNetwork(() => requestCanonicalBootstrap("heartbeat"));
-          if (!active) return;
-          await measureApplication(() => applyAuthoritativeState(parsed?.state, parsed?.revision, String(currentUser.id), parsed?.serverTime, parsed?.lastProcessedAt));
-          publishAuthoritativeSnapshot(parsed);
-          const idleSummary = formatCanonicalIdleReport(parsed?.idleReport);
-          if (idleSummary) addLog(idleSummary, "info", "colony");
-          setApiAvailable(true);
-          setCanonicalStateFailureDetails(null);
-        } catch (error) {
-          if (!active) return;
-          const stateFailure = canonicalStateFailure(error);
-          if (stateFailure) setCanonicalStateFailureDetails(stateFailure);
-          else setApiAvailable(false);
-        }
-      }, "bootstrap:heartbeat");
-      if (!operation) return;
-      pending = true;
-      void operation.finally(() => { pending = false; });
+      const operation = reconcileTownAuthority("heartbeat", true);
+      if (operation) void operation.catch(() => undefined);
     };
     const interval = window.setInterval(refresh, 30_000);
-    return () => {
-      active = false;
-      window.clearInterval(interval);
-    };
+    return () => window.clearInterval(interval);
   }, [
-    addLog,
-    applyAuthoritativeState,
     browserOnline,
-    canonicalQueue,
     canonicalStateFailureDetails,
     cityName,
     currentUser,
@@ -1172,7 +1254,7 @@ export default function App() {
     getTownRates,
     isAutomationLeader,
     isInitialGameLoadDone,
-    publishAuthoritativeSnapshot,
+    reconcileTownAuthority,
     townBuildings,
     townResources.food,
     townTotalCitizens,
@@ -1184,7 +1266,9 @@ export default function App() {
       showCrossTabNotice("Mode observateur : prenez le contrôle pour synchroniser.");
       return;
     }
-    const operation = enqueueInteractiveOperation(async ({ measureNetwork, measureApplication }) => {
+    const operation = enqueueInteractiveCoalescedOperation(
+      canonicalBootstrapOperationKey(String(currentUser.id), canonicalBootstrapEpochRef.current),
+      async ({ measureNetwork, measureApplication }) => {
       try {
         const parsed = await measureNetwork(() => requestCanonicalBootstrap("manual"));
         await measureApplication(() => applyAuthoritativeState(parsed?.state, parsed?.revision, String(currentUser.id), parsed?.serverTime, parsed?.lastProcessedAt));
@@ -1193,7 +1277,6 @@ export default function App() {
         if (idleSummary) addLog(idleSummary, "info", "colony");
         setApiAvailable(true);
         setCanonicalStateFailureDetails(null);
-        addLog("☁️ État canonique actualisé depuis le serveur.", "victory");
       } catch (error) {
         const stateFailure = canonicalStateFailure(error);
         if (stateFailure) {
@@ -1202,12 +1285,17 @@ export default function App() {
         } else if (!(error instanceof GameApiError) || error.status >= 500) {
           setApiAvailable(false);
         }
-        addLog("Échec de l’actualisation de l’état canonique.", "defeat");
+        throw error;
       }
     }, true, "bootstrap:manual");
     if (!operation) return;
-    await operation;
-  }, [addLog, applyAuthoritativeState, currentUser, enqueueInteractiveOperation, isOnline, publishAuthoritativeSnapshot, showCrossTabNotice]);
+    try {
+      await operation;
+      addLog("☁️ État canonique actualisé depuis le serveur.", "victory");
+    } catch {
+      addLog("Échec de l’actualisation de l’état canonique.", "defeat");
+    }
+  }, [addLog, applyAuthoritativeState, currentUser, enqueueInteractiveCoalescedOperation, isOnline, publishAuthoritativeSnapshot, showCrossTabNotice]);
 
   // Lock offline users to the Account panel
   useEffect(() => {

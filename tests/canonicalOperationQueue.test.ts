@@ -60,6 +60,43 @@ describe("CanonicalOperationQueue", () => {
     expect(queue.tryEnqueueBackground(async () => "accepted")).not.toBeNull();
   });
 
+  it("coalesces immediate and periodic refreshes sharing the same authority key", async () => {
+    const release = deferred<void>();
+    const run = vi.fn(() => release.promise);
+    const queue = new CanonicalOperationQueue();
+
+    const immediate = queue.enqueueCoalescedBackground("town-authority", run, "bootstrap:immigration");
+    const periodic = queue.tryEnqueueCoalescedBackground("town-authority", run, "bootstrap:heartbeat");
+
+    expect(periodic).toBe(immediate);
+    await Promise.resolve();
+    expect(run).toHaveBeenCalledTimes(1);
+    release.resolve();
+    await immediate;
+  });
+
+  it("lets an interactive bootstrap reuse a background bootstrap for the same user", async () => {
+    const release = deferred<void>();
+    const run = vi.fn(() => release.promise);
+    const queue = new CanonicalOperationQueue();
+    const reconnect = queue.enqueueCoalescedBackground(
+      "canonical-bootstrap:user-1",
+      run,
+      "bootstrap:reconnect",
+    );
+    const manual = queue.enqueueCoalescedUser(
+      "canonical-bootstrap:user-1",
+      run,
+      "bootstrap:manual",
+    );
+
+    expect(manual).toBe(reconnect);
+    await Promise.resolve();
+    expect(run).toHaveBeenCalledTimes(1);
+    release.resolve();
+    await manual;
+  });
+
   it("reports queue wait and network time separately after failures", async () => {
     let now = 0;
     const onMetrics = vi.fn();

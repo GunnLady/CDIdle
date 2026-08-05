@@ -2,6 +2,7 @@ export type CanonicalBootstrapReason =
   | "initial"
   | "reconnect"
   | "heartbeat"
+  | "immigration"
   | "leadership"
   | "conflict"
   | "manual";
@@ -33,6 +34,12 @@ export const CANONICAL_BOOTSTRAP_POLICIES: Record<CanonicalBootstrapReason, Cano
     skipWhenQueueBusy: true,
     mayReuseRecentSnapshot: false,
     justification: "Apply server-owned idle progression without delaying player commands.",
+  },
+  immigration: {
+    priority: "background",
+    skipWhenQueueBusy: false,
+    mayReuseRecentSnapshot: false,
+    justification: "Commit a projected immigration threshold before exposing the new citizen.",
   },
   leadership: {
     priority: "background",

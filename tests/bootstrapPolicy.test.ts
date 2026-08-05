@@ -8,6 +8,7 @@ describe("canonical bootstrap policy", () => {
     expect(Object.keys(CANONICAL_BOOTSTRAP_POLICIES).sort()).toEqual([
       "conflict",
       "heartbeat",
+      "immigration",
       "initial",
       "leadership",
       "manual",

@@ -57,7 +57,9 @@ export function useTownSystem(
   const displayProjection = useMemo(() => projectTownDisplay({
     resources,
     rates: getRates(),
-    elapsedSeconds: isOnline ? projectAuthoritativeElapsedSeconds(timeAnchor, projectionNow) : 0,
+    // When transport drops, projectionNow stops advancing but the last
+    // read-only projection remains visible until the server reconciles.
+    elapsedSeconds: projectAuthoritativeElapsedSeconds(timeAnchor, projectionNow),
     totalCitizens,
     habitationLevel: buildings.habitation ?? 0,
     citizenGrowthProgress,
@@ -65,7 +67,6 @@ export function useTownSystem(
     buildings.habitation,
     citizenGrowthProgress,
     getRates,
-    isOnline,
     projectionNow,
     resources,
     timeAnchor,
@@ -85,6 +86,7 @@ export function useTownSystem(
     displayResources: displayProjection.resources,
     displayTotalCitizens: displayProjection.totalCitizens,
     displayCitizenGrowthProgress: displayProjection.citizenGrowthProgress,
+    hasPendingImmigration: displayProjection.hasPendingImmigration,
     setResources,
     buildings,
     setBuildings,
