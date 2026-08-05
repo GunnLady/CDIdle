@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import type { CanonicalHero } from "../shared/contracts/authoritative";
 import {
   CanonicalRngExhaustedError,
   CanonicalRngStateError,
@@ -134,10 +135,10 @@ describe("canonical authoritative RNG", () => {
       cityName: "Oakhaven",
       commandId: "offer-b",
     });
-    const profiles = (value: unknown) => (value as Array<Record<string, unknown>>)
+    const profiles = (value: CanonicalHero[]) => value
       .map(({ id: _id, equipment, ...profile }) => ({
         ...profile,
-        equipment: Object.fromEntries(Object.entries(equipment as Record<string, Record<string, unknown> | null>)
+        equipment: Object.fromEntries(Object.entries(equipment ?? {})
           .map(([slot, item]) => {
             if (!item) return [slot, item];
             const { instanceId: _instanceId, ...itemProfile } = item;
@@ -149,10 +150,10 @@ describe("canonical authoritative RNG", () => {
     );
     expect(firstOffer.state.rngState).toEqual(secondOffer.state.rngState);
     expect((firstOffer.state.rngState as { draws: number }).draws).toBe(5);
-    expect((firstOffer.state.onboardingCandidates as Array<Record<string, unknown>>)
+    expect(firstOffer.state.onboardingCandidates
       .every((candidate) => candidate.race === "Humain")).toBe(true);
-    const instanceIds = (firstOffer.state.onboardingCandidates as Array<Record<string, any>>)
-      .flatMap((candidate) => Object.values(candidate.equipment as Record<string, { instanceId?: string } | null>))
+    const instanceIds = firstOffer.state.onboardingCandidates
+      .flatMap((candidate) => Object.values(candidate.equipment ?? {}))
       .flatMap((item) => item?.instanceId ? [item.instanceId] : []);
     expect(new Set(instanceIds).size).toBe(instanceIds.length);
   });

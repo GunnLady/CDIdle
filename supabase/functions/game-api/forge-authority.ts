@@ -1,12 +1,21 @@
 import type { CanonicalRng } from "./authoritative-rng.ts";
 import { resolveAuthoritativeNoviceItemModifiers } from "./novice-stats-authority.ts";
 import { ITEM_LIBRARY, rarityRank } from "../../../shared/domain/items/items.ts";
+import type {
+  CanonicalForgeMaterialStack,
+  CanonicalGameState,
+  CanonicalItemBlueprint,
+  CanonicalPendingForge,
+  CanonicalStateTransition,
+  CanonicalStoredItemInstance,
+} from "../../../shared/contracts/authoritative.ts";
+import type { CanonicalStatModifier } from "../../../shared/domain/hero-stats.ts";
 
 export type ForgeRarity = "common" | "uncommon" | "rare" | "epic" | "legendary";
 export type ForgeUpgradeProc = "none" | "uncommon" | "rare";
-export type ForgeMaterialStack = { materialId: string; rarity: ForgeRarity; count: number };
-type ItemInstance = { instanceId: string; itemId: string; rarity: ForgeRarity; modifiers?: Array<Record<string, unknown>> };
-type ItemBlueprint = { itemId: string; unlocked: boolean };
+export type ForgeMaterialStack = CanonicalForgeMaterialStack;
+type ItemInstance = CanonicalStoredItemInstance;
+type ItemBlueprint = CanonicalItemBlueprint;
 type Recipe = {
   itemId: string;
   itemType: "weapon" | "offhand" | "armor" | "accessory";
@@ -66,7 +75,7 @@ const ARMOR_MODIFIERS = new Set([
   "poisonResistance", "bloodResistance", "soundResistance", "radiantResistance",
 ]);
 
-const MODIFIER_VALUES: Record<string, Record<string, unknown>> = {
+const MODIFIER_VALUES: Record<string, CanonicalStatModifier> = {
   physicalDamage: { stat: "physicalDamage", type: "flat", value: 1 },
   magicDamage: { stat: "magicDamage", type: "flat", value: 1 },
   criticalChance: { stat: "criticalChance", type: "flat", value: 1 },
@@ -129,20 +138,20 @@ const ensureRarity = (rarity: unknown): ForgeRarity => {
 };
 
 export function applyForgeCommand(
-  current: Record<string, unknown>,
+  current: CanonicalGameState,
   command: Record<string, unknown>,
   rng?: CanonicalRng,
-): { state: Record<string, unknown>; events: unknown[] } {
-  const materials = clone((current.forgeMaterials as ForgeMaterialStack[] | undefined) ?? []);
-  const items = clone((current.storedItems as ItemInstance[] | undefined) ?? []);
-  const pending = clone((current.pendingForge as Record<string, unknown> | null | undefined) ?? null);
+): CanonicalStateTransition {
+  const materials = clone(current.forgeMaterials);
+  const items = clone(current.storedItems);
+  const pending: CanonicalPendingForge | null = clone(current.pendingForge ?? null);
   const typed = command as ForgeCommand;
-  const forgeUnlocked = Number((current.buildings as Record<string, number> | undefined)?.forge ?? 0) >= 1;
+  const forgeUnlocked = Number(current.buildings.forge ?? 0) >= 1;
   if (!forgeUnlocked) throw new ForgeCommandError("FORGE_LOCKED", "forge building is required");
 
   if (typed.type === "forge.start") {
     const recipe = RECIPES[typed.recipeId];
-    const blueprints = (current.itemBlueprints as ItemBlueprint[] | undefined) ?? [];
+    const blueprints = current.itemBlueprints;
     if (!recipe || !blueprints.some((entry) => entry.itemId === typed.recipeId && entry.unlocked === true)) {
       throw new ForgeCommandError("BLUEPRINT_LOCKED", "forge blueprint is locked");
     }
@@ -179,7 +188,7 @@ export function applyForgeCommand(
     }
 
     let rarity: ForgeRarity = recipe.minimumRarity;
-    let modifier: Record<string, unknown> | undefined;
+    let modifier: CanonicalStatModifier | undefined;
     let nextMaterials = materials;
     if (typed.acceptUpgrade) {
       if (upgradeProc === "none") throw new ForgeCommandError("UPGRADE_UNAVAILABLE", "forge upgrade is unavailable");
@@ -199,8 +208,8 @@ export function applyForgeCommand(
       ? [...resolveAuthoritativeNoviceItemModifiers(recipe.itemId, rarity), modifier]
       : undefined;
     const instanceId = `item:forge:${typed.previewId}`;
-    const equippedInstances = ((current.heroes as Array<Record<string, unknown>> | undefined) ?? [])
-      .flatMap((hero) => Object.values((hero.equipment as Record<string, ItemInstance | null | undefined> | undefined) ?? {}))
+    const equippedInstances = current.heroes
+      .flatMap((hero) => Object.values(hero.equipment ?? {}))
       .filter((entry): entry is ItemInstance => Boolean(entry));
     if ([...items, ...equippedInstances].some((entry) => entry.instanceId === instanceId)) {
       throw new ForgeCommandError("INVALID_GAME_STATE", "forged item instance already exists");

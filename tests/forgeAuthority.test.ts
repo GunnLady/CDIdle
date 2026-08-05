@@ -6,6 +6,9 @@ import {
 } from "../supabase/functions/game-api/forge-authority";
 import type { CanonicalRng } from "../supabase/functions/game-api/authoritative-rng";
 import { initialCanonicalRngState } from "../supabase/functions/game-api/authoritative-rng";
+import { initialTownState } from "../supabase/functions/game-api/town-authority";
+import type { CanonicalForgeMaterialStack, CanonicalGameState } from "../shared/contracts/authoritative";
+import type { CanonicalStatModifier } from "../shared/domain/hero-stats";
 
 const rngAt = (value: number): CanonicalRng => ({
   next: () => value,
@@ -13,11 +16,12 @@ const rngAt = (value: number): CanonicalRng => ({
   snapshot: () => initialCanonicalRngState(42),
 });
 
-const forgeState = (materials = [
+const forgeState = (materials: CanonicalForgeMaterialStack[] = [
   { materialId: "metal_scrap", rarity: "common", count: 6 },
   { materialId: "refined_metal", rarity: "uncommon", count: 1 },
-]) => ({
-  buildings: { forge: 1 },
+]): CanonicalGameState => ({
+  ...initialTownState(42),
+  buildings: { ...initialTownState(42).buildings, forge: 1 },
   storedItems: [],
   forgeMaterials: materials,
   itemBlueprints: DEFAULT_NOVICE_ITEM_BLUEPRINTS.map((entry) => ({ ...entry })),
@@ -183,9 +187,9 @@ describe("authoritative novice forge", () => {
   });
 
   it("recycles only the selected item instance", () => {
-    const physical = [{ stat: "physicalDamage", type: "flat", value: 2 }];
-    const critical = [{ stat: "criticalChance", type: "flat", value: 1 }];
-    const state = {
+    const physical: CanonicalStatModifier[] = [{ stat: "physicalDamage", type: "flat", value: 2 }];
+    const critical: CanonicalStatModifier[] = [{ stat: "criticalChance", type: "flat", value: 1 }];
+    const state: CanonicalGameState = {
       ...forgeState([]),
       storedItems: [
         { instanceId: "item-physical", itemId: "starter_sword", rarity: "uncommon", modifiers: physical },

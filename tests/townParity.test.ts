@@ -40,7 +40,7 @@ describe("authoritative town parity", () => {
         const result = applyTownCommand(current, { type: "building.upgrade", buildingId: building.id });
         expect((result.state.buildings as Record<string, number>)[building.id]).toBe(level + 1);
         for (const resource of ["gold", "food", "wood", "stone", "ore"] as const) {
-          expect((result.state.resources as Record<string, number>)[resource]).toBe(before[resource] - cost[resource]);
+          expect(result.state.resources[resource]).toBe(before[resource] - cost[resource]);
         }
       }
       const maximum = richState();
@@ -78,7 +78,7 @@ describe("authoritative town parity", () => {
       const state = initialTownState();
       state.buildings[buildingId] = 1;
       const allocated = applyTownCommand(state, { type: "citizens.allocate", role: role as keyof typeof requirements, amount: 1 });
-      const citizens = allocated.state.citizens as Record<string, number>;
+      const citizens = allocated.state.citizens;
       expect(Object.values(citizens).reduce((sum, value) => sum + value, 0)).toBe(3);
       const removed = applyTownCommand(allocated.state, { type: "citizens.allocate", role: role as keyof typeof requirements, amount: -1 });
       expect(removed.state.citizens).toEqual(state.citizens);
@@ -111,7 +111,7 @@ describe("authoritative town parity", () => {
       current.buildings.guilde = guildLevel;
       current.heroes = Array.from(
         { length: guildLevel + 2 },
-        (_, index) => makeHero({ id: `hero-${index}` }) as unknown as Record<string, unknown>,
+        (_, index) => makeHero({ id: `hero-${index}` }),
       );
       expect(() => applyTownCommand(current, { type: "hero.recruit_offer", commandId: `offer-${guildLevel}` })).toThrow("hero capacity reached");
     }

@@ -4,6 +4,7 @@
  */
 
 import React, { lazy, Suspense, useState, useEffect, useCallback, useRef } from "react";
+import type { User } from "@supabase/supabase-js";
 import type { Hero, PendingClassTransition } from "./types";
 const TownPanel = lazy(() => import("./components/TownPanel"));
 const DungeonPanel = lazy(() => import("./components/DungeonPanel"));
@@ -39,7 +40,13 @@ import {
 import type { AuthoritativeCommandSuccess, AuthoritativeGameEnvelope, GameCommand } from "./domain/commands";
 import { createCommandEnvelope } from "./domain/commandEnvelope";
 import { BUILD_VERSION, DISPLAY_BUILD_VERSION } from "./lib/buildVersion";
-import type { CanonicalDungeonEncounterRecord } from "../shared/contracts/authoritative";
+import {
+  isCanonicalGameState,
+  type CanonicalActiveDungeonEncounter,
+  type CanonicalDungeonEncounterRecord,
+  type CanonicalGameState,
+  type CanonicalPendingForge,
+} from "../shared/contracts/authoritative";
 import { formatCanonicalIdleReport } from "./domain/idleReport";
 import { projectCanonicalState } from "./domain/canonicalStateProjection";
 import { projectOptimisticCommands } from "./domain/optimisticStateProjection";
@@ -100,7 +107,7 @@ export default function App() {
   }, [activeTab]);
 
   // Supabase Auth and authoritative game API sync states
-  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isAuthLoading, setIsAuthLoading] = useState<boolean>(true);
   const [isInitialGameLoadDone, setIsInitialGameLoadDone] = useState<boolean>(false);
   const [cityName, setCityName] = useState<string>("");
@@ -111,7 +118,7 @@ export default function App() {
   const [canonicalStateFailureDetails, setCanonicalStateFailureDetails] = useState<CanonicalStateFailure | null>(null);
   const [reconnectNonce, setReconnectNonce] = useState(0);
   const [, setGameRevision] = useState(0);
-  const [currentEncounter, setCurrentEncounter] = useState<Record<string, unknown> | null>(null);
+  const [currentEncounter, setCurrentEncounter] = useState<CanonicalActiveDungeonEncounter | null>(null);
   const [encounterHistory, setEncounterHistory] = useState<CanonicalDungeonEncounterRecord[]>([]);
   const [encounterPlayback, setEncounterPlayback] = useState<{
     encounterId: string;
@@ -122,7 +129,7 @@ export default function App() {
   const [isAutomationLeader, setIsAutomationLeader] = useState(false);
   const [isControlTransferPending, setIsControlTransferPending] = useState(false);
   const [controlLeaseEpoch, setControlLeaseEpoch] = useState(0);
-  const [pendingForge, setPendingForge] = useState<{ previewId: string; itemId: string; upgradeProc?: "none" | "uncommon" | "rare" } | null>(null);
+  const [pendingForge, setPendingForge] = useState<CanonicalPendingForge | null>(null);
   const [pendingClassTransitions, setPendingClassTransitions] = useState<PendingClassTransition[]>([]);
   const [authoritativeTimeAnchor, setAuthoritativeTimeAnchor] = useState<AuthoritativeTimeAnchor | null>(null);
   const [crossTabNotice, setCrossTabNotice] = useState<{ id: number; message: string } | null>(null);
@@ -255,7 +262,7 @@ export default function App() {
     setUnlockedRaces,
   } = dungeon;
 
-  const applyProjectedReactState = useCallback((state: Record<string, any>) => {
+  const applyProjectedReactState = useCallback((state: CanonicalGameState) => {
     const projectedState = projectCanonicalState(state);
     if (projectedState.cityName !== undefined) setCityName(String(projectedState.cityName));
     if (projectedState.resources) setTownResources(projectedState.resources);
@@ -281,7 +288,7 @@ export default function App() {
     if (projectedState.onboardingCandidates !== undefined) setOnboardingCandidates(projectedState.onboardingCandidates);
     if (projectedState.pendingOnboardingCityName !== undefined) setPendingOnboardingCityName(String(projectedState.pendingOnboardingCityName));
     if (projectedState.pendingClassTransitions !== undefined) {
-      setPendingClassTransitions(projectedState.pendingClassTransitions as PendingClassTransition[]);
+      setPendingClassTransitions(projectedState.pendingClassTransitions);
     }
   }, [
     setActiveDungeonFloor, setActiveDungeonRoom, setAutoExplore, setCitizenGrowthProgress,
@@ -290,7 +297,7 @@ export default function App() {
   ]);
 
   const applyAuthoritativeState = useCallback(async (
-    state: any,
+    state: CanonicalGameState,
     revision?: number,
     cacheUserId?: string,
     serverTime?: unknown,
@@ -306,7 +313,7 @@ export default function App() {
       && typeof lastProcessedAt === "string") {
       latestAuthoritativeSnapshotRef.current = {
         revision: Number(revision),
-        state: state as Record<string, unknown>,
+        state,
         serverTime,
         lastProcessedAt,
       };
@@ -477,7 +484,7 @@ export default function App() {
         }));
         setCanonicalStateFailureDetails(null);
         const resolvedEncounter = (result?.events ?? [])
-          .find((event: any) => event?.type === "dungeon.encounter_resolved")
+          .find((event) => event.type === "dungeon.encounter_resolved")
           ?.encounter as CanonicalDungeonEncounterRecord | undefined;
         options.beforeApplyAuthoritativeState?.();
         await applyAuthoritativeState(
@@ -646,9 +653,7 @@ export default function App() {
         void canonicalQueue.enqueueBackground(async () => {
           if (!active || snapshot.revision <= gameRevisionRef.current) return;
           try {
-            const incomingHistory = Array.isArray(snapshot.state.encounterHistory)
-              ? snapshot.state.encounterHistory as CanonicalDungeonEncounterRecord[]
-              : [];
+            const incomingHistory = snapshot.state.encounterHistory;
             const incomingEncounter = incomingHistory.at(-1);
             const previousEncounter = encounterHistoryRef.current.at(-1);
             const shouldPlayEncounter = Boolean(
@@ -1054,7 +1059,8 @@ export default function App() {
             return;
           }
           console.error("Supabase sync error", err);
-          const cached = await readGameCache(user.id).catch(() => null);
+          const cachedEntry = await readGameCache(user.id).catch(() => null);
+          const cached = isCanonicalGameState(cachedEntry) ? cachedEntry : null;
           if (isStale()) return;
           if (cached) {
             await applyAuthoritativeState(
@@ -1067,8 +1073,6 @@ export default function App() {
             );
           }
           if (isStale()) return;
-          if (cached?.unlockedRaces) setUnlockedRaces(cached.unlockedRaces as any);
-          if (cached?.battleLogs) setBattleLogs(cached.battleLogs as any);
           if (cached?.autoExplore !== undefined) setAutoExplore(Boolean(cached.autoExplore));
           addLog(cached ? "📖 Session hors connexion : cache local en lecture seule chargé." : "❌ Échec de la récupération des données Supabase.", cached ? "info" : "defeat");
         } finally {

@@ -17,8 +17,9 @@ import {
 } from "./authoritative-rng.ts";
 import {
   validateCanonicalGameState,
+  type CanonicalGameState,
   type CanonicalGameCommand,
-  type CanonicalRngState,
+  type CanonicalStateTransition,
 } from "../../../shared/contracts/authoritative.ts";
 import {
   migrateAuthoritativeHeroProgression,
@@ -56,30 +57,7 @@ import {
 import { getDungeonRoomCount } from "../../../shared/domain/dungeon-progression.ts";
 
 export type TownResources = { gold: number; food: number; wood: number; stone: number; ore: number };
-export type TownState = {
-  cityName?: string;
-  resources: TownResources;
-  buildings: Record<string, number>;
-  citizens: { farmers: number; woodcutters: number; quarrymen: number; miners: number; unassigned: number };
-  totalCitizensCount: number;
-  districts: Record<string, boolean>;
-  heroes?: Array<Record<string, unknown>>;
-  storedItems?: Array<Record<string, unknown>>;
-  forgeMaterials?: Array<Record<string, unknown>>;
-  itemBlueprints?: Array<Record<string, unknown>>;
-  citizenGrowthProgress?: number;
-  activeDungeonFloor?: number;
-  activeDungeonRoom?: number;
-  highestFloorReached?: number;
-  currentEncounter?: Record<string, unknown> | null;
-  encounterHistory?: Array<Record<string, unknown>>;
-  autoExplore?: boolean;
-  onboardingCandidates?: Array<Record<string, unknown>>;
-  pendingRecruit?: Record<string, unknown> | null;
-  pendingOnboardingCityName?: string;
-  pendingClassTransitions: PendingClassTransition[];
-  rngState: CanonicalRngState;
-};
+export type TownState = CanonicalGameState;
 
 type TownCommand = CanonicalGameCommand & { commandId?: string };
 
@@ -107,11 +85,11 @@ const subtract = (resources: TownResources, cost: TownResources): TownResources 
 const nextSeedKey = (rng: CanonicalRng, scope: string) =>
   `${scope}:${nextCanonicalSubseed(rng).toString(16).padStart(8, "0")}`;
 
-export function applyTownCommand(current: Record<string, unknown>, command: Record<string, unknown>, options: { allowCheats?: boolean } = {}): { state: Record<string, unknown>; events: unknown[] } {
+export function applyTownCommand(current: Record<string, unknown>, command: Record<string, unknown>, options: { allowCheats?: boolean } = {}): CanonicalStateTransition {
   const town = migrateTownState(current);
   const typed = command as TownCommand;
   const rng = restoreCanonicalRng(town.rngState);
-  const withRng = <T extends { state: Record<string, unknown>; events: unknown[] }>(transition: T): T => ({
+  const withRng = (transition: CanonicalStateTransition): CanonicalStateTransition => ({
     ...transition,
     state: { ...transition.state, rngState: rng.snapshot() },
   });
@@ -156,7 +134,7 @@ export function applyTownCommand(current: Record<string, unknown>, command: Reco
       (town.storedItems ?? []) as unknown as StoredItemInstance[],
     );
     const nextHeroes = [...heroes];
-    nextHeroes[heroIndex] = applied.hero as unknown as Record<string, unknown>;
+    nextHeroes[heroIndex] = applied.hero;
     return withRng({
       state: {
         ...town,
@@ -176,7 +154,7 @@ export function applyTownCommand(current: Record<string, unknown>, command: Reco
     });
   }
   if (typed.type === "hero.recruit_offer") {
-    if ((town as TownState & { pendingRecruit?: unknown }).pendingRecruit) throw new TownCommandError("RECRUIT_PENDING", "a recruit offer is already pending");
+    if (town.pendingRecruit) throw new TownCommandError("RECRUIT_PENDING", "a recruit offer is already pending");
     const guildLevel = town.buildings.guilde ?? 0;
     if (guildLevel < 1) throw new TownCommandError("GUILD_REQUIRED", "guild building is required");
     if (heroes.length >= Math.max(0, guildLevel) + 2) throw new TownCommandError("CAPACITY_REACHED", "hero capacity reached");
@@ -189,11 +167,11 @@ export function applyTownCommand(current: Record<string, unknown>, command: Reco
     return withRng({ state: { ...town, pendingRecruit: candidate }, events: [{ type: "hero.recruit_offer_created", heroId: candidate.id }] });
   }
   if (typed.type === "hero.recruit_cancel") {
-    if (!(town as TownState & { pendingRecruit?: unknown }).pendingRecruit) throw new TownCommandError("RECRUIT_NOT_FOUND", "recruit offer not found");
+    if (!town.pendingRecruit) throw new TownCommandError("RECRUIT_NOT_FOUND", "recruit offer not found");
     return { state: { ...town, pendingRecruit: null }, events: [{ type: "hero.recruit_offer_cancelled" }] };
   }
   if (typed.type === "hero.recruit_confirm") {
-    const pending = (town as TownState & { pendingRecruit?: Record<string, unknown> | null }).pendingRecruit;
+    const pending = town.pendingRecruit;
     if (!pending) throw new TownCommandError("RECRUIT_NOT_FOUND", "recruit offer not found");
     const guildLevel = town.buildings.guilde ?? 0;
     const cost = 100 + heroes.length * 150;
@@ -250,7 +228,7 @@ export function applyTownCommand(current: Record<string, unknown>, command: Reco
         id: `hero-${typed.commandId ?? "onboarding"}-${index + 1}`,
         name,
         isActive: false,
-        status: "idle",
+        status: "idle" as const,
       };
     });
     return {
@@ -290,9 +268,9 @@ export function applyTownCommand(current: Record<string, unknown>, command: Reco
   if (typed.type === "hero.dismiss") {
     const dismissed = heroes.find((hero) => hero.id === typed.heroId);
     if (!dismissed) throw new TownCommandError("HERO_NOT_FOUND", "hero not found");
-    const returnedItems = Object.values((dismissed.equipment as Record<string, Record<string, unknown> | null | undefined> | undefined) ?? {})
-      .filter((item): item is Record<string, unknown> => Boolean(item));
-    const storedItems = [...(town.storedItems ?? []), ...returnedItems];
+    const returnedItems = Object.values(dismissed.equipment ?? {})
+      .filter((item): item is NonNullable<typeof item> => Boolean(item));
+    const storedItems = [...town.storedItems, ...returnedItems];
     return {
       state: {
         ...town,
@@ -467,7 +445,7 @@ function migrateHeroWithDerivedStats(input: unknown): unknown {
 
 export function migrateTownState(current: Record<string, unknown>, legacySeed?: number): TownState {
   const defaults = initialTownState();
-  const mergeMap = <T extends Record<string, unknown>>(fallback: T, value: unknown): T | unknown =>
+  const mergeMap = <T extends object>(fallback: T, value: unknown): T | unknown =>
     value === undefined
       ? { ...fallback }
       : value !== null && typeof value === "object" && !Array.isArray(value)

@@ -1,19 +1,18 @@
 import type { GameCommand } from "./commands";
 import type { Hero, HeroEquipment, StoredItemInstance } from "../types";
+import type { CanonicalGameState } from "../../shared/contracts/authoritative";
 import { getBuildingUpgradeCost } from "../data/gameData";
 import { equipItem, unequipItem } from "../utils/gameCalculations";
 
-type CanonicalRecord = Record<string, any>;
-
-export function projectOptimisticCommands(base: CanonicalRecord, commands: GameCommand[]): CanonicalRecord {
+export function projectOptimisticCommands(base: CanonicalGameState, commands: GameCommand[]): CanonicalGameState {
   let state = base;
   for (const command of commands) state = projectCommand(state, command);
   return state;
 }
 
-function projectCommand(state: CanonicalRecord, command: GameCommand): CanonicalRecord {
+function projectCommand(state: CanonicalGameState, command: GameCommand): CanonicalGameState {
   if (command.type === "citizens.allocate") {
-    const citizens = { ...(state.citizens ?? {}) };
+    const citizens = { ...state.citizens };
     const nextRole = Number(citizens[command.role] ?? 0) + command.amount;
     const nextUnassigned = Number(citizens.unassigned ?? 0) - command.amount;
     if (nextRole < 0 || nextUnassigned < 0) return state;
@@ -21,7 +20,7 @@ function projectCommand(state: CanonicalRecord, command: GameCommand): Canonical
   }
   if (command.type === "building.upgrade") {
     const buildings = { ...(state.buildings ?? {}) };
-    let resources = { ...(state.resources ?? {}) };
+    let resources = { ...state.resources };
     let level = Number(buildings[command.buildingId] ?? 0);
     for (let index = 0; index < (command.levels ?? 1); index += 1) {
       const cost = getBuildingUpgradeCost(command.buildingId, level);
@@ -29,7 +28,14 @@ function projectCommand(state: CanonicalRecord, command: GameCommand): Canonical
       // resources can therefore still be lower until the server applies idle
       // production. Project the intent immediately; the server remains the
       // authority and restores the confirmed state if it rejects the command.
-      resources = Object.fromEntries(Object.entries(resources).map(([resource, amount]) => [resource, Number(amount) - Number(cost[resource as keyof typeof cost] ?? 0)]));
+      resources = {
+        ...resources,
+        gold: resources.gold - cost.gold,
+        food: resources.food - cost.food,
+        wood: resources.wood - cost.wood,
+        stone: resources.stone - cost.stone,
+        ore: resources.ore - cost.ore,
+      };
       level += 1;
     }
     return { ...state, resources, buildings: { ...buildings, [command.buildingId]: level } };

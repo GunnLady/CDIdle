@@ -7,6 +7,13 @@ import {
   writeGameCache,
 } from "../src/lib/gameCache";
 import { createIndexedDbMock } from "./helpers/indexedDbMock";
+import { initialTownState } from "../supabase/functions/game-api/town-authority";
+
+const cacheSnapshot = (cityName: string, revision: number) => ({
+  ...initialTownState(42),
+  cityName,
+  revision,
+});
 
 describe("game cache contract", () => {
   let close: ReturnType<typeof vi.fn>;
@@ -31,23 +38,23 @@ describe("game cache contract", () => {
   });
 
   it("isolates snapshots by user and replaces only with a newer canonical revision", async () => {
-    await writeGameCache("user-a", { cityName: "A", revision: 1 });
-    await writeGameCache("user-b", { cityName: "B", revision: 2 });
-    await writeGameCache("user-a", { cityName: "Reset", revision: 3 });
-    await writeGameCache("user-a", { cityName: "Stale", revision: 2 });
+    await writeGameCache("user-a", cacheSnapshot("A", 1));
+    await writeGameCache("user-b", cacheSnapshot("B", 2));
+    await writeGameCache("user-a", cacheSnapshot("Reset", 3));
+    await writeGameCache("user-a", cacheSnapshot("Stale", 2));
 
-    await expect(readGameCache("user-a")).resolves.toEqual({ cityName: "Reset", revision: 3 });
-    await expect(readGameCache("user-b")).resolves.toEqual({ cityName: "B", revision: 2 });
+    await expect(readGameCache("user-a")).resolves.toMatchObject({ cityName: "Reset", revision: 3 });
+    await expect(readGameCache("user-b")).resolves.toMatchObject({ cityName: "B", revision: 2 });
   });
 
   it("deletes only the targeted user snapshot without allowing resurrection", async () => {
-    await writeGameCache("deleted-user", { cityName: "Old kingdom", revision: 42 });
-    await writeGameCache("other-user", { cityName: "Other kingdom", revision: 7 });
+    await writeGameCache("deleted-user", cacheSnapshot("Old kingdom", 42));
+    await writeGameCache("other-user", cacheSnapshot("Other kingdom", 7));
 
     await deleteGameCache("deleted-user");
 
     await expect(readGameCache("deleted-user")).resolves.toBeNull();
-    await expect(readGameCache("other-user")).resolves.toEqual({ cityName: "Other kingdom", revision: 7 });
+    await expect(readGameCache("other-user")).resolves.toMatchObject({ cityName: "Other kingdom", revision: 7 });
     expect(close).toHaveBeenCalled();
   });
 
@@ -55,7 +62,7 @@ describe("game cache contract", () => {
     const mock = createIndexedDbMock({ abortWrites: true });
     vi.stubGlobal("indexedDB", mock.indexedDb);
 
-    await expect(writeGameCache("user-a", { revision: 3 })).rejects.toMatchObject({ name: "AbortError" });
+    await expect(writeGameCache("user-a", cacheSnapshot("Abort", 3))).rejects.toMatchObject({ name: "AbortError" });
     expect(mock.records.has("user-a")).toBe(false);
     expect(mock.close).toHaveBeenCalled();
   });
@@ -66,7 +73,7 @@ describe("game cache contract", () => {
       open: () => ({} as IDBOpenDBRequest),
     } as unknown as IDBFactory);
 
-    const write = writeGameCache("user-a", { revision: 3 });
+    const write = writeGameCache("user-a", cacheSnapshot("Timeout", 3));
     const rejection = expect(write).rejects.toMatchObject({
       name: "TimeoutError",
       message: "CACHE_OPEN_TIMEOUT",

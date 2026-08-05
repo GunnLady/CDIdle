@@ -1,4 +1,11 @@
-export type CachedGameState = Record<string, unknown>;
+import type { CanonicalGameState, CanonicalGameStateFields } from "../../shared/contracts/authoritative";
+
+// Reads remain tolerant of older cache entries; live writes contain the full
+// canonical state plus its revision and never introduce UI-only fields.
+export type CachedGameState = Partial<CanonicalGameStateFields>
+  & Record<string, unknown>
+  & { revision?: number };
+export type CanonicalGameCacheSnapshot = CanonicalGameState & { revision: number };
 
 const DATABASE_NAME = "cdidle-cache";
 const STORE_NAME = "game-snapshots";
@@ -97,7 +104,7 @@ export async function readGameCache(userId: string): Promise<CachedGameState | n
   });
 }
 
-export async function writeGameCache(userId: string, state: CachedGameState): Promise<void> {
+export async function writeGameCache(userId: string, state: CanonicalGameCacheSnapshot): Promise<void> {
   if (typeof indexedDB === "undefined" || !userId) return;
   const database = await openDatabase();
   const transaction = database.transaction(STORE_NAME, "readwrite");

@@ -87,7 +87,7 @@ describe("authoritative item catalog", () => {
         equipment: {},
       });
       const instance = { instanceId: `instance-${item.id}`, itemId: item.id, rarity: item.minimumRarity };
-      const result = applyInventoryCommand({ heroes: [hero], storedItems: [instance] }, {
+      const result = applyInventoryCommand({ ...initialTownState(42), heroes: [hero], storedItems: [instance] }, {
         type: "hero.equip",
         heroId: hero.id,
         instanceId: instance.instanceId,
@@ -201,6 +201,7 @@ describe("authoritative item catalog", () => {
     const consume = () => values[cursor++];
     const rng: Rng = { next: consume, nextInt: (max) => Math.floor(consume() * max) };
     const result = resolveAuthoritativeDungeonEncounter({
+      ...initialTownState(42),
       activeDungeonFloor: floor,
       activeDungeonRoom: 1,
       highestFloorReached: floor,
@@ -243,6 +244,7 @@ describe("authoritative item catalog", () => {
       },
     });
     const source = {
+      ...initialTownState(42),
       activeDungeonFloor: floor,
       activeDungeonRoom: 50,
       highestFloorReached: floor,

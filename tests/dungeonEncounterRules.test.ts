@@ -14,6 +14,7 @@ import {
   getRandomDungeonEncounterType,
 } from "../src/utils/dungeonHelpers";
 import { makeHero, makeResources } from "./fixtures/game";
+import { initialTownState } from "../supabase/functions/game-api/town-authority";
 
 const nonFightTypes = Object.keys(DUNGEON_ENCOUNTER_WEIGHTS)
   .filter((kind): kind is Exclude<DungeonEncounterType, "fight"> => kind !== "fight");
@@ -63,6 +64,7 @@ function simulateEnemyStrikeCount(
     },
   });
   const result = resolveAuthoritativeDungeonEncounter({
+    ...initialTownState(42),
     activeDungeonFloor: floor,
     activeDungeonRoom: finalRoom,
     highestFloorReached: floor,
@@ -180,6 +182,7 @@ describe("non-combat encounter repetition guard", () => {
       },
     });
     const result = resolveAuthoritativeDungeonEncounter({
+      ...initialTownState(42),
       activeDungeonFloor: 1,
       activeDungeonRoom: 2,
       highestFloorReached: 1,
@@ -213,6 +216,7 @@ describe("non-combat encounter repetition guard", () => {
       },
     });
     const result = resolveAuthoritativeDungeonEncounter({
+      ...initialTownState(42),
       activeDungeonFloor: 1,
       activeDungeonRoom: 5,
       highestFloorReached: 1,

@@ -73,7 +73,7 @@ function generateNoviceStats(seedKey: string): { stats: NoviceStats; isElite: bo
   }
 }
 
-export function generateAuthoritativeNovice(seedKey: string, id: string, race = "Humain"): Record<string, unknown> {
+export function generateAuthoritativeNovice(seedKey: string, id: string, race: CanonicalHeroRace = "Humain"): CanonicalHero {
   const identityRng = createRng(`${seedKey}:identity`);
   const isMale = identityRng.nextInt(100) < 50;
   const names = isMale ? MALE_FIRST_NAMES : FEMALE_FIRST_NAMES;
@@ -103,3 +103,4 @@ export function generateAuthoritativeNovice(seedKey: string, id: string, race = 
     calculatedStats,
   };
 }
+import type { CanonicalHero, CanonicalHeroRace } from "../../../shared/contracts/authoritative.ts";

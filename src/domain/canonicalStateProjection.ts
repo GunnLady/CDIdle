@@ -1,4 +1,8 @@
-import { CANONICAL_GAME_STATE_REQUIRED_FIELDS } from "../../shared/contracts/authoritative";
+import {
+  CANONICAL_GAME_STATE_REQUIRED_FIELDS,
+  type CanonicalGameState,
+  type CanonicalGameStateFields,
+} from "../../shared/contracts/authoritative";
 
 export const CANONICAL_REACT_STATE_FIELDS = [
   "cityName",
@@ -29,6 +33,7 @@ export const CANONICAL_REACT_STATE_FIELDS = [
 export const CANONICAL_CACHE_ONLY_STATE_FIELDS = ["districts", "rngState"] as const;
 
 type CanonicalReactStateField = (typeof CANONICAL_REACT_STATE_FIELDS)[number];
+export type CanonicalReactState = Partial<Pick<CanonicalGameStateFields, CanonicalReactStateField>>;
 
 export function canonicalReactMappingErrors(
   requiredFields: readonly string[] = CANONICAL_GAME_STATE_REQUIRED_FIELDS,
@@ -42,12 +47,10 @@ export function canonicalReactMappingErrors(
     .map((field) => `canonical field ${field} is not mapped or explicitly cache-only`);
 }
 
-export function projectCanonicalState<T extends Record<string, unknown>>(
-  state: T,
-): Partial<Record<CanonicalReactStateField, T[keyof T]>> {
+export function projectCanonicalState(state: CanonicalGameState): CanonicalReactState {
   return Object.fromEntries(
     CANONICAL_REACT_STATE_FIELDS
       .filter((field) => field in state)
       .map((field) => [field, state[field]]),
-  ) as Partial<Record<CanonicalReactStateField, T[keyof T]>>;
+  ) as CanonicalReactState;
 }

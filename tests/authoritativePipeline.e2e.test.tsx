@@ -1,7 +1,7 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import { useEffect, useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { validateCanonicalGameState } from "../shared/contracts/authoritative";
+import { validateCanonicalGameState, type CanonicalGameState } from "../shared/contracts/authoritative";
 import { createGameApiHandler, type ApiServices } from "../supabase/functions/game-api/index";
 import { initialTownState } from "../supabase/functions/game-api/town-authority";
 import {
@@ -17,7 +17,7 @@ type GameEnvelope = {
   revision: number;
   serverTime: string;
   lastProcessedAt: string;
-  state: Record<string, unknown>;
+  state: CanonicalGameState;
 };
 
 const USER_ID = "e2e-user";
@@ -68,7 +68,7 @@ describe("authoritative React to persistence pipeline", () => {
           revision: Number(previous?.revision ?? 0) + 1,
           serverTime: NOW,
           lastProcessedAt: NOW,
-          state: initialTownState(42) as Record<string, unknown>,
+          state: initialTownState(42),
         };
         rows.set(userId, reset);
         return structuredClone(reset);

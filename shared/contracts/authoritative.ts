@@ -1,10 +1,13 @@
 import {
   CANONICAL_ITEM_MODIFIER_FIELDS,
   CANONICAL_RESISTANCE_FIELDS,
+  type CanonicalHeroBaseStats,
+  type CanonicalStatModifier,
 } from "../domain/hero-stats.ts";
 import {
   CANONICAL_HERO_CLASSES,
   CANONICAL_HERO_CLASS_TIERS,
+  type CanonicalHeroClass,
 } from "../domain/hero-classes.ts";
 
 export { CANONICAL_HERO_CLASSES, CANONICAL_HERO_CLASS_TIERS };
@@ -39,7 +42,123 @@ export interface CanonicalDungeonEncounterRecord {
   roundCount: number;
   enemy: { id?: string; name?: string; hp: number; maxHp: number; isBoss?: boolean } | null;
   transcript: CanonicalDungeonTranscriptEvent[];
-  rewards: { gold: number; loot: Array<Record<string, unknown>> };
+  rewards: { gold: number; loot: CanonicalDungeonLoot[] };
+}
+
+export type CanonicalRarity = "common" | "uncommon" | "rare" | "epic" | "legendary";
+export type CanonicalDungeonLoot =
+  | { type: "item"; instanceId: string; itemId: string; rarity: CanonicalRarity; count: number }
+  | { type: "material"; materialId: string; rarity: CanonicalRarity; count: number; name: string }
+  | { type: "blueprint"; itemId: string; count: number };
+export type CanonicalHeroRace =
+  | "Humain" | "Elfe" | "Nain" | "Orc" | "Gobelin" | "Homme-Lézard" | "Tieffelin" | "Homme-Bête";
+export type CanonicalHeroStatus = "idle" | "exploring" | "resting";
+
+export interface CanonicalResources {
+  gold: number;
+  food: number;
+  wood: number;
+  stone: number;
+  ore: number;
+}
+
+export interface CanonicalCitizenAllocation {
+  farmers: number;
+  woodcutters: number;
+  quarrymen: number;
+  miners: number;
+  unassigned: number;
+}
+
+export interface CanonicalStoredItemInstance {
+  instanceId: string;
+  itemId: string;
+  rarity: CanonicalRarity;
+  modifiers?: CanonicalStatModifier[];
+}
+
+export type CanonicalHeroEquipment = Partial<Record<
+  "mainHand" | "offHand" | "armor" | "accessory",
+  CanonicalStoredItemInstance | null
+>>;
+
+export interface CanonicalCalculatedStats {
+  maxHp: number;
+  criticalChance: number;
+  dodgeChance: number;
+  hp: number;
+  maxMana: number;
+  mana: number;
+  physicalDamage: number;
+  magicDamage: number;
+  estimatedDps: number;
+  speed: number;
+  physicalDefense: number;
+  magicDefense: number;
+  resistances: Record<(typeof CANONICAL_RESISTANCE_FIELDS)[number], number>;
+}
+
+export interface CanonicalHero {
+  id: string;
+  name: string;
+  race: CanonicalHeroRace;
+  classType: CanonicalHeroClass;
+  level: number;
+  xp: number;
+  xpNeeded: number;
+  currentHp: number;
+  currentMana: number;
+  baseStats: CanonicalHeroBaseStats;
+  gender?: "Male" | "Female";
+  spriteIndex?: number;
+  isElite?: boolean;
+  isActive: boolean;
+  status: CanonicalHeroStatus;
+  activeSkills: string[];
+  passiveSkills: string[];
+  calculatedStats: CanonicalCalculatedStats;
+  equipment?: CanonicalHeroEquipment;
+  cooldowns?: Record<string, number>;
+}
+
+export interface CanonicalForgeMaterialStack {
+  materialId: string;
+  rarity: CanonicalRarity;
+  count: number;
+}
+
+export interface CanonicalItemBlueprint {
+  itemId: string;
+  unlocked: boolean;
+}
+
+export interface CanonicalPendingClassTransition {
+  heroId: string;
+  fromClass: CanonicalHeroClass;
+  fromTier: number;
+  toTier: number;
+  originLevel: number;
+  wasActive: boolean;
+  previousStatus: CanonicalHeroStatus;
+  reason: string;
+  candidates: Array<{ classType: CanonicalHeroClass; affinity: number }>;
+}
+
+export interface CanonicalActiveDungeonEncounter {
+  encounterId: string;
+  kind: "pending";
+  status: "active";
+  floor: number;
+  room: number;
+  commandId?: string;
+}
+
+export interface CanonicalPendingForge {
+  previewId: string;
+  recipeId: string;
+  itemId: string;
+  itemType: "weapon" | "offhand" | "armor" | "accessory";
+  upgradeProc: "none" | "uncommon" | "rare";
 }
 
 export interface CanonicalRngState {
@@ -60,29 +179,46 @@ export const CANONICAL_GAME_STATE_REQUIRED_FIELDS = [
   "pendingClassTransitions",
 ] as const;
 
-export interface CanonicalGameState {
-  resources: Record<string, number>;
+export interface CanonicalGameStateFields {
+  cityName?: string;
+  resources: CanonicalResources;
   buildings: Record<string, number>;
-  citizens: { farmers: number; woodcutters: number; quarrymen: number; miners: number; unassigned: number };
+  citizens: CanonicalCitizenAllocation;
   totalCitizensCount: number;
   districts: Record<string, boolean>;
-  heroes: Array<Record<string, unknown>>;
-  storedItems: Array<Record<string, unknown>>;
-  forgeMaterials: Array<Record<string, unknown>>;
-  itemBlueprints: Array<Record<string, unknown>>;
+  heroes: CanonicalHero[];
+  storedItems: CanonicalStoredItemInstance[];
+  forgeMaterials: CanonicalForgeMaterialStack[];
+  itemBlueprints: CanonicalItemBlueprint[];
   activeDungeonFloor: number;
   activeDungeonRoom: number;
   highestFloorReached: number;
-  currentEncounter: Record<string, unknown> | null;
+  currentEncounter: CanonicalActiveDungeonEncounter | null;
   encounterHistory: CanonicalDungeonEncounterRecord[];
   autoExplore: boolean;
   citizenGrowthProgress: number;
-  pendingClassTransitions: Array<Record<string, unknown>>;
+  pendingClassTransitions: CanonicalPendingClassTransition[];
   rngState: CanonicalRngState;
+  pendingForge?: CanonicalPendingForge | null;
+  pendingRecruit?: CanonicalHero | null;
+  onboardingCandidates?: CanonicalHero[];
+  pendingOnboardingCityName?: string;
 }
 
+// Persisted snapshots may carry forward fields introduced by a newer server.
+// Known fields remain strongly typed while unknown additions survive replay/cache round-trips.
+export type CanonicalGameState = CanonicalGameStateFields & Record<string, unknown>;
+export type CanonicalGameEvent = Record<string, unknown>;
+export interface CanonicalStateTransition {
+  state: CanonicalGameState;
+  events: CanonicalGameEvent[];
+}
+
+type CanonicalRequiredField = {
+  [K in keyof CanonicalGameStateFields]-?: object extends Pick<CanonicalGameStateFields, K> ? never : K
+}[keyof CanonicalGameStateFields];
 type MissingCanonicalRequiredField = Exclude<
-  keyof CanonicalGameState,
+  CanonicalRequiredField,
   (typeof CANONICAL_GAME_STATE_REQUIRED_FIELDS)[number]
 >;
 const canonicalRequiredFieldsAreExhaustive: MissingCanonicalRequiredField extends never ? true : never = true;
@@ -133,6 +269,9 @@ export const CANONICAL_COMMAND_TYPES = [
 
 const CANONICAL_RARITIES = ["common", "uncommon", "rare", "epic", "legendary"] as const;
 const CANONICAL_EQUIPMENT_SLOTS = ["mainHand", "offHand", "armor", "accessory"] as const;
+const CANONICAL_RESOURCE_FIELDS = ["gold", "food", "wood", "stone", "ore"] as const;
+const CANONICAL_ENCOUNTER_KINDS = ["fight", "trap", "enigma", "ambush", "ritual", "obstacle", "negotiation", "treasure", "rest"] as const;
+const CANONICAL_TRANSCRIPT_CATEGORIES = ["info", "victory", "defeat", "loot", "combat-hero", "combat-enemy"] as const;
 const CANONICAL_MODIFIER_STATS = new Set<string>(CANONICAL_ITEM_MODIFIER_FIELDS);
 
 const hasOnlyKeys = (value: Record<string, unknown>, allowed: readonly string[]) =>
@@ -151,7 +290,7 @@ function validateCanonicalModifiers(value: unknown, path: string): string[] {
     if (!hasOnlyKeys(modifier, ["stat", "type", "value"])) errors.push(`${path}[${index}] contains unsupported fields`);
     if (typeof modifier.stat !== "string" || !modifier.stat.trim()) errors.push(`${path}[${index}].stat is required`);
     else if (!CANONICAL_MODIFIER_STATS.has(modifier.stat)) errors.push(`${path}[${index}].stat is invalid`);
-    if (modifier.type !== undefined && modifier.type !== "flat" && modifier.type !== "percent") errors.push(`${path}[${index}].type is invalid`);
+    if (modifier.type !== "flat" && modifier.type !== "percent") errors.push(`${path}[${index}].type is invalid`);
     if (typeof modifier.value !== "number" || !Number.isFinite(modifier.value)) errors.push(`${path}[${index}].value must be finite`);
   });
   return errors;
@@ -266,6 +405,9 @@ export function validateCanonicalHero(input: unknown, path = "hero"): string[] {
     errors.push(`${path}.classType must be Novice or a known Tier 1 class`);
   }
   if (typeof hero.isActive !== "boolean") errors.push(`${path}.isActive must be a boolean`);
+  if (hero.gender !== undefined && hero.gender !== "Male" && hero.gender !== "Female") errors.push(`${path}.gender is invalid`);
+  if (hero.spriteIndex !== undefined && (!Number.isInteger(hero.spriteIndex) || Number(hero.spriteIndex) < 0)) errors.push(`${path}.spriteIndex must be an integer >= 0`);
+  if (hero.isElite !== undefined && typeof hero.isElite !== "boolean") errors.push(`${path}.isElite must be a boolean`);
   if (!HERO_STATUSES.includes(hero.status as typeof HERO_STATUSES[number])) {
     errors.push(`${path}.status must be idle, exploring or resting`);
   }
@@ -348,6 +490,7 @@ export function validateCanonicalHero(input: unknown, path = "hero"): string[] {
   if (hero.equipment !== undefined) {
     if (!isRecord(hero.equipment)) errors.push(`${path}.equipment must be an object`);
     else {
+      if (!hasOnlyKeys(hero.equipment, CANONICAL_EQUIPMENT_SLOTS)) errors.push(`${path}.equipment contains unsupported slots`);
       for (const slot of CANONICAL_EQUIPMENT_SLOTS) {
         const equipped = hero.equipment[slot];
         if (equipped === undefined || equipped === null) continue;
@@ -393,6 +536,42 @@ export function validateCanonicalGameState(input: unknown): string[] {
   const errors: string[] = [];
   for (const field of CANONICAL_GAME_STATE_REQUIRED_FIELDS) {
     if (!(field in value)) errors.push(`${field} is required`);
+  }
+  const validateNumberMap = (field: "resources" | "buildings", options: { integer?: boolean; allowed?: readonly string[] } = {}) => {
+    if (!(field in value)) return;
+    if (!isRecord(value[field])) {
+      errors.push(`${field} must be an object`);
+      return;
+    }
+    if (options.allowed && !hasOnlyKeys(value[field], options.allowed)) errors.push(`${field} contains unsupported fields`);
+    if (options.allowed) for (const key of options.allowed) {
+      if (!(key in value[field])) errors.push(`${field}.${key} is required`);
+    }
+    for (const [key, entry] of Object.entries(value[field])) {
+      if (!isFiniteNumber(entry) || (options.integer && !Number.isInteger(entry))) {
+        errors.push(`${field}.${key} must be ${options.integer ? "an integer" : "a finite number"}`);
+      }
+    }
+  };
+  validateNumberMap("resources", { allowed: CANONICAL_RESOURCE_FIELDS });
+  validateNumberMap("buildings", { integer: true });
+  if ("citizens" in value) {
+    if (!isRecord(value.citizens)) errors.push("citizens must be an object");
+    else {
+      if (!hasOnlyKeys(value.citizens, ["farmers", "woodcutters", "quarrymen", "miners", "unassigned"])) errors.push("citizens contains unsupported fields");
+      for (const field of ["farmers", "woodcutters", "quarrymen", "miners", "unassigned"] as const) {
+        if (!Number.isInteger(value.citizens[field])) errors.push(`citizens.${field} must be an integer`);
+      }
+    }
+  }
+  if ("districts" in value) {
+    if (!isRecord(value.districts)) errors.push("districts must be an object");
+    else for (const [key, entry] of Object.entries(value.districts)) {
+      if (typeof entry !== "boolean") errors.push(`districts.${key} must be a boolean`);
+    }
+  }
+  if ("cityName" in value && value.cityName !== undefined && typeof value.cityName !== "string") {
+    errors.push("cityName must be a string");
   }
   if ("heroes" in value) {
     if (!Array.isArray(value.heroes)) errors.push("heroes must be an array");
@@ -499,6 +678,7 @@ export function validateCanonicalGameState(input: unknown): string[] {
   if ("pendingForge" in value && value.pendingForge !== null && value.pendingForge !== undefined) {
     if (!isRecord(value.pendingForge)) errors.push("pendingForge must be an object or null");
     else {
+      if (!hasOnlyKeys(value.pendingForge, ["previewId", "recipeId", "itemId", "itemType", "upgradeProc"])) errors.push("pendingForge contains unsupported fields");
       for (const field of ["previewId", "recipeId", "itemId", "itemType"] as const) {
         if (typeof value.pendingForge[field] !== "string" || !String(value.pendingForge[field]).trim()) errors.push(`pendingForge.${field} is required`);
       }
@@ -506,7 +686,73 @@ export function validateCanonicalGameState(input: unknown): string[] {
       if (!["none", "uncommon", "rare"].includes(String(value.pendingForge.upgradeProc))) errors.push("pendingForge.upgradeProc is invalid");
     }
   }
-  if ("encounterHistory" in value && !Array.isArray(value.encounterHistory)) errors.push("encounterHistory must be an array");
+  if ("encounterHistory" in value) {
+    if (!Array.isArray(value.encounterHistory)) errors.push("encounterHistory must be an array");
+    else value.encounterHistory.forEach((entry, index) => {
+      const path = `encounterHistory[${index}]`;
+      if (!isRecord(entry)) {
+        errors.push(`${path} must be an object`);
+        return;
+      }
+      for (const field of ["encounterId", "kind", "outcome"] as const) {
+        if (typeof entry[field] !== "string" || !String(entry[field]).trim()) errors.push(`${path}.${field} is required`);
+      }
+      if (!CANONICAL_ENCOUNTER_KINDS.includes(entry.kind as typeof CANONICAL_ENCOUNTER_KINDS[number])) errors.push(`${path}.kind is invalid`);
+      if (entry.outcome !== "victory" && entry.outcome !== "defeat") errors.push(`${path}.outcome is invalid`);
+      for (const field of ["floor", "room", "roundCount"] as const) {
+        if (!Number.isInteger(entry[field])) errors.push(`${path}.${field} must be an integer`);
+      }
+      if (!Array.isArray(entry.transcript)) errors.push(`${path}.transcript must be an array`);
+      else entry.transcript.forEach((event, eventIndex) => {
+        const eventPath = `${path}.transcript[${eventIndex}]`;
+        if (!isRecord(event)) {
+          errors.push(`${eventPath} must be an object`);
+          return;
+        }
+        if (!Number.isInteger(event.sequence) || Number(event.sequence) < 0) errors.push(`${eventPath}.sequence must be an integer >= 0`);
+        if (typeof event.type !== "string" || !event.type.trim()) errors.push(`${eventPath}.type is required`);
+        if (event.category !== undefined && !CANONICAL_TRANSCRIPT_CATEGORIES.includes(event.category as typeof CANONICAL_TRANSCRIPT_CATEGORIES[number])) errors.push(`${eventPath}.category is invalid`);
+        for (const field of ["message", "heroId", "heroName", "monsterId", "monsterName"] as const) {
+          if (event[field] !== undefined && typeof event[field] !== "string") errors.push(`${eventPath}.${field} must be a string`);
+        }
+        for (const field of ["round", "damage", "healing", "enemyHp", "enemyMaxHp", "heroHp", "heroMaxHp"] as const) {
+          if (event[field] !== undefined && !isFiniteNumber(event[field])) errors.push(`${eventPath}.${field} must be a finite number`);
+        }
+      });
+      if (entry.enemy !== null) {
+        if (!isRecord(entry.enemy)) errors.push(`${path}.enemy must be an object or null`);
+        else {
+          for (const field of ["hp", "maxHp"] as const) if (!isFiniteNumber(entry.enemy[field])) errors.push(`${path}.enemy.${field} must be a finite number`);
+          for (const field of ["id", "name"] as const) if (entry.enemy[field] !== undefined && typeof entry.enemy[field] !== "string") errors.push(`${path}.enemy.${field} must be a string`);
+          if (entry.enemy.isBoss !== undefined && typeof entry.enemy.isBoss !== "boolean") errors.push(`${path}.enemy.isBoss must be a boolean`);
+        }
+      }
+      if (!isRecord(entry.rewards)) errors.push(`${path}.rewards must be an object`);
+      else {
+        if (!isFiniteNumber(entry.rewards.gold)) errors.push(`${path}.rewards.gold must be a finite number`);
+        if (!Array.isArray(entry.rewards.loot)) errors.push(`${path}.rewards.loot must be an array`);
+        else entry.rewards.loot.forEach((loot, lootIndex) => {
+          const lootPath = `${path}.rewards.loot[${lootIndex}]`;
+          if (!isRecord(loot)) {
+            errors.push(`${lootPath} must be an object`);
+            return;
+          }
+          if (!Number.isInteger(loot.count) || Number(loot.count) < 1) errors.push(`${lootPath}.count must be a positive integer`);
+          if (loot.type === "item") {
+            if (typeof loot.instanceId !== "string" || !loot.instanceId.trim()) errors.push(`${lootPath}.instanceId is required`);
+            if (typeof loot.itemId !== "string" || !loot.itemId.trim()) errors.push(`${lootPath}.itemId is required`);
+            if (!CANONICAL_RARITIES.includes(loot.rarity as CanonicalRarity)) errors.push(`${lootPath}.rarity is invalid`);
+          } else if (loot.type === "material") {
+            if (typeof loot.materialId !== "string" || !loot.materialId.trim()) errors.push(`${lootPath}.materialId is required`);
+            if (typeof loot.name !== "string" || !loot.name.trim()) errors.push(`${lootPath}.name is required`);
+            if (!CANONICAL_RARITIES.includes(loot.rarity as CanonicalRarity)) errors.push(`${lootPath}.rarity is invalid`);
+          } else if (loot.type === "blueprint") {
+            if (typeof loot.itemId !== "string" || !loot.itemId.trim()) errors.push(`${lootPath}.itemId is required`);
+          } else errors.push(`${lootPath}.type is invalid`);
+        });
+      }
+    });
+  }
   if ("rngState" in value) {
     const rngState = value.rngState as Record<string, unknown> | null;
     if (!rngState || typeof rngState !== "object") errors.push("rngState must be an object");
@@ -531,7 +777,32 @@ export function validateCanonicalGameState(input: unknown): string[] {
     if (field in value && (typeof value[field] !== "number" || !Number.isFinite(value[field]))) errors.push(`${field} must be a number`);
   }
   if ("autoExplore" in value && typeof value.autoExplore !== "boolean") errors.push("autoExplore must be a boolean");
-  if ("currentEncounter" in value && value.currentEncounter !== null && (typeof value.currentEncounter !== "object" || value.currentEncounter === undefined)) errors.push("currentEncounter must be an object or null");
+  if ("currentEncounter" in value && value.currentEncounter !== null) {
+    if (!isRecord(value.currentEncounter)) errors.push("currentEncounter must be an object or null");
+    else {
+      for (const field of ["encounterId", "kind", "status"] as const) {
+        if (typeof value.currentEncounter[field] !== "string" || !String(value.currentEncounter[field]).trim()) errors.push(`currentEncounter.${field} is required`);
+      }
+      if (!hasOnlyKeys(value.currentEncounter, ["encounterId", "kind", "status", "floor", "room", "commandId"])) errors.push("currentEncounter contains unsupported fields");
+      if (value.currentEncounter.kind !== "pending") errors.push("currentEncounter.kind must be pending");
+      if (value.currentEncounter.status !== "active") errors.push("currentEncounter.status must be active");
+      for (const field of ["floor", "room"] as const) {
+        if (!Number.isInteger(value.currentEncounter[field])) errors.push(`currentEncounter.${field} must be an integer`);
+      }
+      if (value.currentEncounter.commandId !== undefined && typeof value.currentEncounter.commandId !== "string") {
+        errors.push("currentEncounter.commandId must be a string");
+      }
+    }
+  }
+  if (Array.isArray(value.onboardingCandidates)) {
+    value.onboardingCandidates.forEach((hero, index) => errors.push(...validateCanonicalHero(hero, `onboardingCandidates[${index}]`)));
+  } else if (value.onboardingCandidates !== undefined) errors.push("onboardingCandidates must be an array");
+  if (value.pendingRecruit !== undefined && value.pendingRecruit !== null) {
+    errors.push(...validateCanonicalHero(value.pendingRecruit, "pendingRecruit"));
+  }
+  if (value.pendingOnboardingCityName !== undefined && typeof value.pendingOnboardingCityName !== "string") {
+    errors.push("pendingOnboardingCityName must be a string");
+  }
   const instanceOwners = new Map<string, string>();
   const registerInstance = (instanceId: unknown, owner: string) => {
     if (typeof instanceId !== "string" || !instanceId.trim()) return;
@@ -561,4 +832,8 @@ export function validateCanonicalGameState(input: unknown): string[] {
     registerEquipment(value.pendingRecruit, "pendingRecruit");
   }
   return errors;
+}
+
+export function isCanonicalGameState(input: unknown): input is CanonicalGameState {
+  return validateCanonicalGameState(input).length === 0;
 }

@@ -5,6 +5,7 @@ import {
   type DungeonState,
 } from "../supabase/functions/game-api/dungeon-authority";
 import { makeHero, makeResources } from "./fixtures/game";
+import { initialTownState } from "../supabase/functions/game-api/town-authority";
 
 function fixedRng(value: number): DungeonRng {
   return {
@@ -33,6 +34,7 @@ function resolveNext(
 describe("authoritative dungeon rule simulation", () => {
   it("runs trap, fight, trap without allowing two consecutive traps", () => {
     let state: DungeonState = {
+      ...initialTownState(42),
       activeDungeonFloor: 1,
       activeDungeonRoom: 1,
       highestFloorReached: 1,

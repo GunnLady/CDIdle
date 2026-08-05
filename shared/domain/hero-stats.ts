@@ -109,6 +109,6 @@ export function calculateHeroDerivedStats(
         const resistanceStat = `${element}Resistance`;
         return [element, Math.round(apply(magicDefense, resistanceStat))];
       }),
-    ),
+    ) as Record<(typeof CANONICAL_RESISTANCE_FIELDS)[number], number>,
   };
 }

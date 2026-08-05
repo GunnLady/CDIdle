@@ -6,9 +6,10 @@ import { calculateAuthoritativeHeroStats } from "../supabase/functions/game-api/
 import { calculateXpNeeded, getHeroStats, refreshHeroDerivedStats } from "../src/utils/gameCalculations";
 import { CLASS_INFO_LIST } from "../src/data/heroes";
 import type { Hero } from "../src/types";
+import type { CanonicalHero } from "../shared/contracts/authoritative";
 import { makeHero } from "./fixtures/game";
 
-const withoutIdentity = (hero: Record<string, unknown>) => {
+const withoutIdentity = (hero: CanonicalHero) => {
   const { id: _id, name: _name, ...profile } = hero;
   return profile;
 };
@@ -134,10 +135,7 @@ describe("authoritative town commands", () => {
   });
 
   it("preserves the historical elite novice roll", () => {
-    const elite = generateAuthoritativeNovice("audit-141", "elite-audit") as Record<string, unknown> & {
-      baseStats: Record<string, number>;
-      isElite: boolean;
-    };
+    const elite = generateAuthoritativeNovice("audit-141", "elite-audit");
     const replay = generateAuthoritativeNovice("audit-141", "elite-audit");
     const values = Object.values(elite.baseStats);
     expect(elite.isElite).toBe(true);
@@ -153,7 +151,7 @@ describe("authoritative town commands", () => {
       cityName: "Oakhaven",
       commandId: "onboarding-offer",
     });
-    const candidates = offered.state.onboardingCandidates as Array<Record<string, any>>;
+    const candidates = offered.state.onboardingCandidates;
     expect(candidates).toHaveLength(5);
     expect(candidates.every((candidate) => candidate.race === "Humain")).toBe(true);
     expect(candidates[0]).toMatchObject({
@@ -188,7 +186,7 @@ describe("authoritative town commands", () => {
       ],
     });
     expect(JSON.stringify(result.state.heroes)).not.toContain("client-forged-item");
-    const createdHeroes = result.state.heroes as Array<Record<string, unknown>>;
+    const createdHeroes = result.state.heroes;
     expect(withoutIdentity(createdHeroes[0])).toEqual(withoutIdentity(candidates[0]));
     expect(withoutIdentity(createdHeroes[1])).toEqual(withoutIdentity(candidates[1]));
 
@@ -277,14 +275,14 @@ describe("authoritative town commands", () => {
         calculatedStats: { maxHp: expect.any(Number), maxMana: expect.any(Number) },
       }],
     });
-    expect((recruited.state.heroes as Array<Record<string, unknown>>)[0].activeSkills).toHaveLength(1);
-    expect((recruited.state.heroes as Array<Record<string, unknown>>)[0].passiveSkills).toHaveLength(1);
+    expect(recruited.state.heroes[0].activeSkills).toHaveLength(1);
+    expect(recruited.state.heroes[0].passiveSkills).toHaveLength(1);
     const replayedRecruit = applyTownCommand(current, { type: "hero.recruit", commandId: "hero-command" });
     expect(replayedRecruit.state.heroes).toEqual(recruited.state.heroes);
     expect(replayedRecruit.state.rngState).toEqual(recruited.state.rngState);
     const dismissed = applyTownCommand(recruited.state, { type: "hero.dismiss", heroId: "hero-hero-command" });
     expect(dismissed.state).toMatchObject({ heroes: [] });
-    const recruitedEquipment = Object.values(((recruited.state.heroes as Array<Record<string, any>>)[0].equipment as Record<string, { instanceId?: string } | null>));
+    const recruitedEquipment = Object.values(recruited.state.heroes[0].equipment ?? {});
     const expectedInstanceIds = recruitedEquipment.flatMap((item) => item?.instanceId ? [item.instanceId] : []);
     expect((dismissed.state.storedItems as Array<{ instanceId: string }>).map((item) => item.instanceId)).toEqual(expectedInstanceIds);
   });
@@ -331,14 +329,14 @@ describe("authoritative town commands", () => {
       heroId: novice.id,
       classType: "Guerrier",
     });
-    const evolved = (chosen.state.heroes as Array<Record<string, any>>)[0];
+    const evolved = chosen.state.heroes[0];
     expect(evolved).toMatchObject({ classType: "Guerrier", isActive: true, status: "idle" });
-    expect(evolved.equipment.mainHand.instanceId).toBe(`item:${novice.id}:tier1:weapon`);
-    expect(evolved.equipment.accessory.instanceId).toBe(`item:${novice.id}:tier1:accessory`);
+    expect(evolved.equipment?.mainHand?.instanceId).toBe(`item:${novice.id}:tier1:weapon`);
+    expect(evolved.equipment?.accessory?.instanceId).toBe(`item:${novice.id}:tier1:accessory`);
     expect(chosen.state.pendingClassTransitions).toEqual([]);
     expect((chosen.state.rngState as { draws: number }).draws).toBe(base.rngState.draws + 1);
     expect(authoritativeReplay).toEqual(chosen);
-    const instanceIds = (Object.values(evolved.equipment) as Array<{ instanceId?: string } | null>)
+    const instanceIds = Object.values(evolved.equipment ?? {})
       .flatMap((item) => item?.instanceId ? [item.instanceId] : []);
     expect(new Set(instanceIds).size).toBe(instanceIds.length);
   });
@@ -487,9 +485,9 @@ describe("authoritative town commands", () => {
       heroId: pendingHero.id,
       classType: "Guerrier",
     });
-    expect((chosen.state.heroes as Array<Record<string, unknown>>)
+    expect(chosen.state.heroes
       .filter((hero) => hero.isActive)).toHaveLength(4);
-    expect((chosen.state.heroes as Array<Record<string, unknown>>)
+    expect(chosen.state.heroes
       .find((hero) => hero.id === pendingHero.id)).toMatchObject({ isActive: true });
   });
 
@@ -508,13 +506,13 @@ describe("authoritative town commands", () => {
       },
       heroes: [],
     });
-    expect((offered.state.pendingRecruit as Record<string, unknown>).activeSkills).toHaveLength(1);
-    expect((offered.state.pendingRecruit as Record<string, unknown>).passiveSkills).toHaveLength(1);
+    expect(offered.state.pendingRecruit?.activeSkills).toHaveLength(1);
+    expect(offered.state.pendingRecruit?.passiveSkills).toHaveLength(1);
     const confirmed = applyTownCommand(offered.state, { type: "hero.recruit_confirm", name: "Ariane" });
     expect(confirmed.state).toMatchObject({ resources: { gold: 400 }, pendingRecruit: null, heroes: [{ id: "hero-offer-command", name: "Ariane", equipment: { mainHand: { rarity: "common" }, armor: { rarity: "common" } } }] });
-    const offeredCandidate = offered.state.pendingRecruit as Record<string, unknown>;
+    const offeredCandidate = offered.state.pendingRecruit!;
     expect(offeredCandidate.race).toBe("Humain");
-    const confirmedHero = (confirmed.state.heroes as Array<Record<string, unknown>>)[0];
+    const confirmedHero = confirmed.state.heroes[0];
     expect(withoutIdentity(confirmedHero)).toEqual(withoutIdentity(offeredCandidate));
     const secondOffer = applyTownCommand({ ...confirmed.state, pendingRecruit: null }, { type: "hero.recruit_offer", commandId: "cancel-command" });
     const cancelled = applyTownCommand(secondOffer.state, { type: "hero.recruit_cancel" });
@@ -636,35 +634,35 @@ describe("authoritative town commands", () => {
         },
       }],
     });
-    expect(((equipped.state.heroes as Array<Record<string, any>>)[0].equipment).offHand).toBeUndefined();
+    expect(equipped.state.heroes[0].equipment?.offHand).toBeUndefined();
   });
 
   it("recalculates authoritative novice stats after equipment mutations", () => {
-    const novice = generateAuthoritativeNovice("equipment-recalculation", "hero-novice") as Record<string, any>;
+    const novice = generateAuthoritativeNovice("equipment-recalculation", "hero-novice");
     const initialStats = novice.calculatedStats;
     const initialWeapon = novice.equipment.mainHand;
     const unequipped = applyTownCommand(
       { ...initialTownState(), heroes: [novice] },
       { type: "hero.unequip", heroId: novice.id, slot: "mainHand" },
     );
-    const withoutWeapon = (unequipped.state.heroes as Array<Record<string, any>>)[0];
+    const withoutWeapon = unequipped.state.heroes[0];
     expect(withoutWeapon.calculatedStats).toEqual(
-      refreshHeroDerivedStats(withoutWeapon as unknown as Hero).calculatedStats,
+      refreshHeroDerivedStats(withoutWeapon).calculatedStats,
     );
     const equipped = applyTownCommand(unequipped.state, {
       type: "hero.equip",
       heroId: novice.id,
       instanceId: initialWeapon.instanceId,
     });
-    const restored = (equipped.state.heroes as Array<Record<string, any>>)[0];
+    const restored = equipped.state.heroes[0];
     expect(restored.calculatedStats).toEqual(initialStats);
     expect(restored.calculatedStats).toEqual(
-      refreshHeroDerivedStats(restored as unknown as Hero).calculatedStats,
+      refreshHeroDerivedStats(restored).calculatedStats,
     );
   });
 
   it("recalculates Tier 1 stats with persisted rarity and forge modifiers", () => {
-    const warrior = generateAuthoritativeNovice("tier-one-equipment", "hero-warrior") as Record<string, any>;
+    const warrior = generateAuthoritativeNovice("tier-one-equipment", "hero-warrior");
     warrior.classType = "Guerrier";
     warrior.passiveSkills = ["weapon_training"];
     warrior.equipment = {};
@@ -679,27 +677,27 @@ describe("authoritative town commands", () => {
     }, { type: "forge.start", recipeId: "starter_sword", commandId: "tier-one-forge" });
     const finalized = applyTownCommand({
       ...started.state,
-      pendingForge: { ...(started.state.pendingForge as Record<string, unknown>), upgradeProc: "uncommon" },
+      pendingForge: { ...started.state.pendingForge!, upgradeProc: "uncommon" },
     }, {
       type: "forge.finalize",
       previewId: "preview-tier-one-forge",
       acceptUpgrade: true,
       chosenModifierStat: "criticalChance",
     });
-    const stack = (finalized.state.storedItems as Array<Record<string, any>>)[0];
+    const stack = finalized.state.storedItems[0];
     const equipped = applyTownCommand(finalized.state, {
       type: "hero.equip",
       heroId: warrior.id,
       instanceId: stack.instanceId,
     });
-    const updated = (equipped.state.heroes as Array<Record<string, any>>)[0];
+    const updated = equipped.state.heroes[0];
     expect(updated.calculatedStats).toEqual(
-      refreshHeroDerivedStats(updated as unknown as Hero).calculatedStats,
+      refreshHeroDerivedStats(updated).calculatedStats,
     );
     expect(updated.calculatedStats.physicalDamage).toBeGreaterThan(warrior.calculatedStats.physicalDamage);
     const unequipped = applyTownCommand(equipped.state, { type: "hero.unequip", heroId: warrior.id, slot: "mainHand" });
-    const restored = (unequipped.state.heroes as Array<Record<string, any>>)[0];
-    expect(restored.calculatedStats).toEqual(refreshHeroDerivedStats(restored as unknown as Hero).calculatedStats);
+    const restored = unequipped.state.heroes[0];
+    expect(restored.calculatedStats).toEqual(refreshHeroDerivedStats(restored).calculatedStats);
     expect(restored.calculatedStats.physicalDamage).toBeLessThan(updated.calculatedStats.physicalDamage);
   });
 
@@ -792,7 +790,7 @@ describe("authoritative town commands", () => {
     ] }, { type: "forge.start", recipeId: "quick_dagger", commandId: "second-forge" });
     expect(() => applyTownCommand({
       ...secondPreview.state,
-      pendingForge: { ...(secondPreview.state.pendingForge as Record<string, unknown>), upgradeProc: "uncommon" },
+      pendingForge: { ...secondPreview.state.pendingForge!, upgradeProc: "uncommon" },
       forgeMaterials: [{ materialId: "refined_metal", rarity: "uncommon", count: 2 }],
     }, { type: "forge.finalize", previewId: "preview-second-forge", acceptUpgrade: true, chosenModifierStat: "maxHp" })).toThrow("modifier is incompatible");
   });

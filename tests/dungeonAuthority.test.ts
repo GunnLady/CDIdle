@@ -1,12 +1,14 @@
 import { describe, expect, it } from "vitest";
 import { applyDungeonCommand, type DungeonRng, type DungeonState } from "../supabase/functions/game-api/dungeon-authority";
 import { makeHero } from "./fixtures/game";
+import { initialTownState } from "../supabase/functions/game-api/town-authority";
 
 const state = (): DungeonState => ({
+  ...initialTownState(42),
   activeDungeonFloor: 1,
   activeDungeonRoom: 1,
   highestFloorReached: 1,
-  resources: { gold: 0 },
+  resources: { ...initialTownState(42).resources, gold: 0 },
   heroes: [makeHero({ id: "hero-1", isActive: true, currentHp: 20 })],
   currentEncounter: null,
   encounterHistory: [],

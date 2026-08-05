@@ -16,7 +16,10 @@ import {
   RotateCcw
 } from "lucide-react";
 import { Hero, BattleLogEntry } from "../types";
-import type { CanonicalDungeonEncounterRecord } from "../../shared/contracts/authoritative";
+import type {
+  CanonicalActiveDungeonEncounter,
+  CanonicalDungeonEncounterRecord,
+} from "../../shared/contracts/authoritative";
 import { getDungeonRoomCount } from "../../shared/domain/dungeon-progression";
 import {
   UNARMED_WEAPON_CONTEXT,
@@ -43,7 +46,7 @@ interface DungeonPanelProps {
   battleLogs: BattleLogEntry[];
   highestFloorReached: number;
   onToggleAutoExplore: () => void;
-  activeEncounter: Record<string, unknown> | null;
+  activeEncounter: CanonicalActiveDungeonEncounter | null;
   encounterHistory: CanonicalDungeonEncounterRecord[];
   encounterPlayback: {
     encounterId: string;
@@ -111,120 +114,11 @@ export default function DungeonPanel({
     return `Tour ${event.round} — L'ennemi inflige ${event.damage} dégâts à ${heroName}.`;
   }, [heroNames]);
 
-  // Memoized scout calculations for high-performance rendering (display refresh optimization)
-  const scoutStats = React.useMemo(() => {
-    if (activeHeroes.length === 0) return null;
-    
-    let totalAtk = 0;
-    let totalDef = 0;
-    let totalLvl = 0;
-    
-    activeHeroes.forEach(hero => {
-      const heroAtk = getDisplayedNormalAttackPower(hero);
-      totalAtk += heroAtk;
-      totalDef += hero.calculatedStats.physicalDefense;
-      totalLvl += hero.level;
-    });
-
-    const avgLvl = Number((totalLvl / activeHeroes.length).toFixed(1));
-    const avgDef = Number((totalDef / activeHeroes.length).toFixed(0));
-
-    return { totalAtk, avgDef, avgLvl };
-  }, [activeHeroes]);
-
-  const biomeDetails = React.useMemo(() => {
-    const floor = activeDungeonFloor;
-    if (floor <= 5) {
-      return {
-        name: "Les Catacombes Sombres",
-        desc: "Un labyrinthe de catacombes humides et oubliées. Les murmures des morts résonnent entre les vieux piliers de pierre.",
-        threat: "Faible",
-        threatScore: 1,
-        color: "text-slate-400 border-slate-750/30 bg-slate-950/20",
-        bestiary: [
-          { name: "Rat Énorme", emoji: "🐀" },
-          { name: "Chauve-souris Vampire", emoji: "🦇" },
-          { name: "Gobelin Éclaireur", emoji: "🎭" },
-          { name: "Brigand Masqué", emoji: "🥷" }
-        ],
-        boss: "Giga Gobelin 'Roi des Déchets' 👑"
-      };
-    } else if (floor <= 15) {
-      return {
-        name: "Les Grottes de Soufre",
-        desc: "Des tunnels étroits imprégnés d'une forte odeur de soufre. Des bruits de grattement trahissent la présence d'araignées géantes.",
-        threat: "Modéré",
-        threatScore: 2,
-        color: "text-emerald-400 border-emerald-950/30 bg-emerald-950/20",
-        bestiary: [
-          { name: "Squelette Guerrier", emoji: "💀" },
-          { name: "Zombie Affamé", emoji: "🧟" },
-          { name: "Araignée Géante", emoji: "🕷️" },
-          { name: "Orc Pilleur", emoji: "🐗" }
-        ],
-        boss: "Chef de Meute Orc Blindé 👹"
-      };
-    } else if (floor <= 29) {
-      return {
-        name: "Les Ruines Magiques Elfiques",
-        desc: "D'anciens sanctuaires elfiques déformés par une magie résiduelle instable. Des pièges runiques et golems de pierre veillent encore.",
-        threat: "Élevé",
-        threatScore: 3,
-        color: "text-indigo-400 border-indigo-950/30 bg-indigo-950/20",
-        bestiary: [
-          { name: "Liche Reconstituée", emoji: "🧙" },
-          { name: "Golem de Pierre", emoji: "🗿" },
-          { name: "Minotaure Vagabond", emoji: "🐂" },
-          { name: "Démon du Soufre", emoji: "😈" }
-        ],
-        boss: "Gardien du Portail ⛓️"
-      };
-    } else if (floor <= 49) {
-      return {
-        name: "Le Temple Sacré Perdu",
-        desc: "Les vestiges d'un grandiose temple dédié aux divinités stellaires, désormais profané par de puissants Seigneurs Vampires.",
-        threat: "Très Élevé",
-        threatScore: 4,
-        color: "text-purple-400 border-purple-950/30 bg-purple-950/20",
-        bestiary: [
-          { name: "Dragon d'Émeraude", emoji: "🐉" },
-          { name: "Seigneur Vampire", emoji: "🧛" },
-          { name: "Titan Obscur", emoji: "🌌" }
-        ],
-        boss: "La Liche Éternelle 'Malakor' 🔮"
-      };
-    } else {
-      return {
-        name: "Le Noyau d'Obsidienne Primordial",
-        desc: "Le coeur ardent de la terre où le feu primordial coule sous forme de fleuves de lave pure. Le grand Dragon Rouge sommeille ici.",
-        threat: "Mortel",
-        threatScore: 5,
-        color: "text-red-400 border-red-950/30 bg-red-950/20",
-        bestiary: [
-          { name: "Titan Obscur", emoji: "🌌" },
-          { name: "Seigneur Vampire", emoji: "🧛" },
-          { name: "Dragon d'Émeraude", emoji: "🐉" }
-        ],
-        boss: "Dragon Rouge Primordial 🌋"
-      };
-    }
-  }, [activeDungeonFloor]);
-
-  // Keep the newest encounter at the top, then follow its transcript downward
-  // while the turn-by-turn playback grows inside the fixed-height registry.
+  // Keep the newest encounter and its latest revealed transcript line in view.
   useEffect(() => {
     const container = logContainerRef.current;
     if (!container) return;
-    if (!encounterPlayback) {
-      container.scrollTop = 0;
-      return;
-    }
-    const marker = container.querySelector<HTMLElement>("[data-playback-end]");
-    if (!marker) return;
-    const containerRect = container.getBoundingClientRect();
-    const markerRect = marker.getBoundingClientRect();
-    const overflow = markerRect.bottom - containerRect.bottom + 12;
-    if (overflow > 0) container.scrollTop += overflow;
+    container.scrollTop = 0;
   }, [encounterHistory, encounterPlayback, filteredBattleLogs]);
 
   const getLogColor = (type: string) => {
@@ -499,6 +393,8 @@ export default function DungeonPanel({
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
             {activeHeroes.map((hero) => {
               const hpPercent = (hero.currentHp / hero.calculatedStats.maxHp) * 100;
+              const maxMana = hero.calculatedStats.maxMana;
+              const manaPercent = maxMana > 0 ? (hero.currentMana / maxMana) * 100 : 0;
               const xpPercent = (hero.xp / hero.xpNeeded) * 100;
               const heroAtk = getDisplayedNormalAttackPower(hero);
               const heroDef = hero.calculatedStats.physicalDefense;
@@ -535,6 +431,22 @@ export default function DungeonPanel({
                         <div
                           className="h-full bg-gradient-to-r from-[#7a1d1d] to-[#b91c1c] transition-all duration-300"
                           style={{ width: `${Math.max(0, hpPercent)}%` }}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Mana gauge */}
+                    <div className="mb-2 bg-[#1c1109] rounded p-1.5 border border-[#5c402b]/30">
+                      <div className="flex justify-between text-[10px] font-serif text-[#a89078] mb-0.5 font-semibold">
+                        <span className="text-sky-400">Mana</span>
+                        <span>
+                          {Math.floor(hero.currentMana)}/{maxMana}
+                        </span>
+                      </div>
+                      <div className="w-full h-1.5 bg-[#140b06] rounded-full overflow-hidden border border-[#5c402b]/20">
+                        <div
+                          className="h-full bg-gradient-to-r from-[#1d4ed8] to-[#38bdf8] transition-all duration-300"
+                          style={{ width: `${Math.min(100, Math.max(0, manaPercent))}%` }}
                         />
                       </div>
                     </div>
@@ -588,135 +500,29 @@ export default function DungeonPanel({
         )}
       </div>
 
-      {/* 3. CANONICAL ENCOUNTER STATUS */}
-      <div className="bg-[#18110b] border-2 border-[#5c402b] p-4 rounded-xl flex flex-col md:flex-row gap-4 items-center justify-between shadow-2xl relative overflow-hidden">
-        {activeEncounter ? (
-          <div className="flex items-center gap-3.5 grow">
-            <div className="text-4xl p-3 bg-[#110b06] border-2 border-red-900/50 rounded-xl select-none">
-              ⚔️
-            </div>
-            <div>
-              <h4 className="text-sm font-bold text-[#dfdbc7] uppercase tracking-widest font-serif">
-                Rencontre autoritaire prête
-              </h4>
-              <p className="text-[10px] text-[#a89078] font-sans mt-1">
-                Étage {String(activeEncounter.floor ?? activeDungeonFloor)} · Salle {String(activeEncounter.room ?? activeDungeonRoom)}
-              </p>
-              <p className="text-[10px] text-[#caa050] font-mono mt-1">
-                Le serveur déterminera le combat et son résultat à la résolution.
-              </p>
-            </div>
+      {activeEncounter ? (
+        <div
+          className="bg-[#18110b] border-2 border-[#5c402b] p-4 rounded-xl flex items-center gap-3.5 shadow-2xl"
+          aria-label="Rencontre autoritaire active"
+        >
+          <div className="text-4xl p-3 bg-[#110b06] border-2 border-red-900/50 rounded-xl select-none">
+            ⚔️
           </div>
-        ) : (
-          <div className="w-full grid grid-cols-1 md:grid-cols-12 gap-5 p-2.5">
-            {/* Left side: Animated Compass Radar (CSS animation only, 0 JS re-render overhead) */}
-            <div className="md:col-span-4 flex flex-col items-center justify-center bg-[#110b06]/60 border border-[#5c402b]/30 p-4 rounded-xl text-center">
-              <div className="relative w-24 h-24 flex items-center justify-center">
-                {/* Concentric rotating glowing rings */}
-                <div className="absolute inset-0 rounded-full border border-[#ae8650]/20 animate-pulse" />
-                <div className="absolute inset-2 rounded-full border-2 border-dashed border-[#ae8650]/30 animate-[spin_20s_linear_infinite]" />
-                <div className="absolute inset-4 rounded-full border border-red-900/10" />
-                <Compass className="w-10 h-10 text-[#ae8650] animate-[spin_10s_linear_infinite]" />
-              </div>
-              <div className="mt-3.5">
-                <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[9px] font-bold font-mono tracking-widest uppercase border ${
-                  activeHeroes.length > 0 && autoExplore
-                    ? "text-emerald-400 border-emerald-900/40 bg-emerald-950/20"
-                    : "text-amber-500 border-amber-900/40 bg-amber-950/20"
-                }`}>
-                  <span className={`w-1.5 h-1.5 rounded-full ${activeHeroes.length > 0 && autoExplore ? "bg-emerald-500 animate-ping" : "bg-amber-500"}`} />
-                  {activeHeroes.length > 0 && autoExplore ? "Scanner actif" : "Exploration en pause"}
-                </span>
-                <p className="text-[10px] text-[#a89078] font-sans mt-2">
-                  {activeHeroes.length > 0 && autoExplore
-                    ? "L'escouade cartographie la zone..."
-                    : "En attente d'aventuriers ou de départ."}
-                </p>
-              </div>
-            </div>
-
-            {/* Right side: Biome & Expected Threats Information */}
-            <div className="md:col-span-8 flex flex-col justify-between gap-3">
-              <div>
-                <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-[#5c402b]/25">
-                  <div>
-                    <span className="text-[8.5px] uppercase font-mono tracking-widest text-[#ae8650] font-bold">
-                      PROFIL D'ÉCOUTEUR DE ZONE
-                    </span>
-                    <h4 className="text-sm font-bold text-[#dfdbc7] font-serif uppercase tracking-widest mt-0.5">
-                      {biomeDetails.name}
-                    </h4>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-[9px] text-[#a89078] font-sans">Danger :</span>
-                    <div className="flex gap-0.5" title={`Niveau de danger : ${biomeDetails.threat}`}>
-                      {Array.from({ length: 5 }).map((_, i) => (
-                        <div
-                          key={i}
-                          className={`w-2.5 h-2.5 rounded-sm border ${
-                            i < biomeDetails.threatScore
-                              ? "bg-red-700/80 border-red-500"
-                              : "bg-[#110b06] border-[#5c402b]/35"
-                          }`}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                </div>
-                
-                <p className="text-[10.5px] text-[#a89078] font-sans mt-2 italic leading-relaxed">
-                  "{biomeDetails.desc}"
-                </p>
-
-                {/* Expected monsters at this floor */}
-                <div className="mt-3.5">
-                  <span className="text-[8.5px] uppercase font-mono tracking-wider text-[#ae8650] font-bold block mb-1.5">
-                    ⚠️ Créatures recensées à cette profondeur :
-                  </span>
-                  <div className="flex flex-wrap gap-1.5">
-                    {biomeDetails.bestiary.map((m, idx) => (
-                      <span
-                        key={idx}
-                        className="inline-flex items-center gap-1 text-[9.5px] font-sans text-[#dfdbc7] bg-[#110b06] border border-[#5c402b]/40 px-2 py-0.5 rounded-md"
-                      >
-                        <span>{m.emoji}</span>
-                        <span>{m.name}</span>
-                      </span>
-                    ))}
-                    <span className="inline-flex items-center gap-1 text-[9.5px] font-serif text-red-400 bg-red-950/20 border border-red-900/40 px-2 py-0.5 rounded-md font-bold">
-                      👑 Boss : {biomeDetails.boss}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Party scouting metrics (if active heroes are present) */}
-              {scoutStats ? (
-                <div className="grid grid-cols-3 gap-2 bg-[#110b06]/40 p-2 rounded-lg border border-[#5c402b]/20 mt-1">
-                  <div className="text-center border-r border-[#5c402b]/15">
-                    <span className="block text-[8px] uppercase font-sans text-[#a89078]">FORCE D'ATTAQUE</span>
-                    <span className="text-xs font-bold text-red-400 font-mono">⚔️ {scoutStats.totalAtk}</span>
-                  </div>
-                  <div className="text-center border-r border-[#5c402b]/15">
-                    <span className="block text-[8px] uppercase font-sans text-[#a89078]">DÉFENSE MOYENNE</span>
-                    <span className="text-xs font-bold text-sky-400 font-mono">🛡️ {scoutStats.avgDef}</span>
-                  </div>
-                  <div className="text-center">
-                    <span className="block text-[8px] uppercase font-sans text-[#a89078]">NIVEAU MOYEN</span>
-                    <span className="text-xs font-bold text-amber-500 font-serif">⭐ {scoutStats.avgLvl}</span>
-                  </div>
-                </div>
-              ) : (
-                <div className="text-[10px] text-center text-[#ae8650] bg-[#1a110a]/30 p-2 rounded-lg border border-dashed border-[#5c402b]/25 mt-1 font-serif">
-                  ⚠️ Aucun éclaireur actif. Sélectionnez des compagnons pour entamer la reconnaissance !
-                </div>
-              )}
-            </div>
+          <div>
+            <h4 className="text-sm font-bold text-[#dfdbc7] uppercase tracking-widest font-serif">
+              Rencontre autoritaire prête
+            </h4>
+            <p className="text-[10px] text-[#a89078] font-sans mt-1">
+              Étage {activeEncounter.floor} · Salle {activeEncounter.room}
+            </p>
+            <p className="text-[10px] text-[#caa050] font-mono mt-1">
+              Le serveur déterminera le combat et son résultat à la résolution.
+            </p>
           </div>
-        )}
-      </div>
+        </div>
+      ) : null}
 
-      {/* 4. REAL-TIME MEDIEVAL LOGS TERMINAL - Medieval Theme */}
+      {/* 3. REAL-TIME MEDIEVAL LOGS TERMINAL - Medieval Theme */}
       <div className="bg-[#0f0a07] border-2 border-[#5c402b] rounded-xl p-4 flex flex-col flex-1 shadow-inner h-80 min-h-60 relative animate-fade-in">
         <div className="flex justify-between items-center mb-3 pb-2 border-b border-[#5c402b]/40 px-3 shrink-0">
           <div className="flex items-center gap-2">
@@ -813,7 +619,7 @@ export default function DungeonPanel({
                     <p className="text-amber-500 italic text-[10px] font-sans animate-pulse">
                       La rencontre commence…
                     </p>
-                  ) : visibleTranscript.map((event) => (
+                  ) : [...visibleTranscript].reverse().map((event) => (
                     <div
                       key={`${encounter.encounterId}-${event.sequence}`}
                       className="flex items-start gap-1.5 text-[11px] leading-relaxed break-words font-sans animate-fade-in"
@@ -843,7 +649,6 @@ export default function DungeonPanel({
                         : "Épreuve échouée · l'escouade poursuit sa route"}
                     </p>
                   ) : null}
-                  {playback ? <span data-playback-end className="block h-px" aria-hidden="true" /> : null}
                 </div>
               </div>
             );

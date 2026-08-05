@@ -8,6 +8,7 @@ import { seededRng } from "../src/domain/random";
 import { applyHeroExperienceLevels } from "../src/domain/hero";
 import { makeHero, makeResources } from "./fixtures/game";
 import { generateAuthoritativeNovice } from "../supabase/functions/game-api/novice-authority";
+import { initialTownState } from "../supabase/functions/game-api/town-authority";
 
 function tapeRng(values: number[]) {
   let index = 0;
@@ -26,6 +27,7 @@ function tapeRng(values: number[]) {
 
 function state(overrides: Partial<AuthoritativeDungeonState> = {}): AuthoritativeDungeonState {
   return {
+    ...initialTownState(42),
     activeDungeonFloor: 1,
     activeDungeonRoom: 1,
     highestFloorReached: 1,

@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import { initialTownState } from "../supabase/functions/game-api/town-authority";
 import {
   authorityChannelName,
   createCrossTabAccountDeletedMessage,
@@ -12,7 +13,7 @@ import {
 const snapshot: CrossTabAuthoritySnapshot = {
   revision: 12,
   state: {
-    gold: 42,
+    ...initialTownState(42),
     pendingClassTransitions: [{
       heroId: "hero-prayer",
       fromClass: "Novice",

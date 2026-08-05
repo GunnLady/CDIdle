@@ -72,7 +72,6 @@ describe("DungeonPanel authoritative encounter history", () => {
     view.rerender(
       <DungeonPanel
         {...props}
-        activeEncounter={{ encounterId: "encounter-active", floor: 2, room: 8 }}
         isExploring={false}
       />,
     );
@@ -82,12 +81,30 @@ describe("DungeonPanel authoritative encounter history", () => {
     view.rerender(
       <DungeonPanel
         {...props}
-        activeEncounter={{ encounterId: "encounter-active", floor: 2, room: 8 }}
         isExploring
       />,
     );
 
     expect(panel.getByRole("button", { name: "Repli au Campement" })).toBeEnabled();
+  });
+
+  it("shows the canonical active encounter while its resolution is pending", () => {
+    render(
+      <DungeonPanel
+        {...props}
+        activeEncounter={{
+          encounterId: "encounter-active",
+          kind: "pending",
+          status: "active",
+          floor: 2,
+          room: 8,
+          commandId: "command-active",
+        }}
+      />,
+    );
+
+    expect(screen.getByLabelText("Rencontre autoritaire active")).toHaveTextContent("Rencontre autoritaire prête");
+    expect(screen.getByLabelText("Rencontre autoritaire active")).toHaveTextContent("Étage 2 · Salle 8");
   });
 
   it("shows the weapon-resolved normal attack power and estimated DPS", () => {
@@ -109,5 +126,40 @@ describe("DungeonPanel authoritative encounter history", () => {
       .toHaveTextContent("123");
     expect(screen.getByTitle("DPS estimé de l'attaque normale par cycle, avant défense et résistances"))
       .toHaveTextContent("123.45");
+  });
+
+  it("shows current mana below health for each active hero", () => {
+    const hero = makeHero({ isActive: true, currentMana: 4 });
+    const view = render(<DungeonPanel {...props} heroes={[hero]} />);
+    const card = within(view.container).getByText(hero.name).closest(".rounded-xl");
+
+    expect(card).not.toBeNull();
+    const cardContent = within(card as HTMLElement);
+    const healthLabel = cardContent.getByText("Vie de l'aventurier");
+    const manaLabel = cardContent.getByText("Mana");
+    expect(healthLabel.compareDocumentPosition(manaLabel) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(cardContent.getByText(`4/${hero.calculatedStats.maxMana}`)).toBeInTheDocument();
+  });
+
+  it("shows the latest transcript message first", () => {
+    const orderedEncounter: CanonicalDungeonEncounterRecord = {
+      ...encounter,
+      transcript: [
+        { sequence: 0, type: "hero.hit", round: 1, heroId: "hero-1", heroName: "Ragnor", damage: 3, enemyHp: 9 },
+        { sequence: 1, type: "hero.hit", round: 1, heroId: "hero-1", heroName: "Ragnor", damage: 9, enemyHp: 0 },
+      ],
+    };
+    render(
+      <DungeonPanel
+        {...props}
+        encounterHistory={[orderedEncounter]}
+        encounterPlayback={{ encounterId: orderedEncounter.encounterId, visibleCount: 2, complete: true }}
+      />,
+    );
+
+    const latestMessage = screen.getByText("Tour 1 — Ragnor inflige 9 dégâts.");
+    const oldestMessage = screen.getByText("Tour 1 — Ragnor inflige 3 dégâts.");
+    expect(latestMessage.compareDocumentPosition(oldestMessage)
+      & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 });

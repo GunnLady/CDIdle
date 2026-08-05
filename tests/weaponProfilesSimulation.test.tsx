@@ -141,6 +141,7 @@ describe("weapon profile integration simulation", () => {
       0.99, // no material
     ]);
     const dungeonState: AuthoritativeDungeonState = {
+      ...initialTownState(42),
       activeDungeonFloor: 1,
       activeDungeonRoom: 1,
       highestFloorReached: 1,

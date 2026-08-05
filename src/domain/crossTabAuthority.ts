@@ -1,8 +1,10 @@
+import { isCanonicalGameState, type CanonicalGameState } from "../../shared/contracts/authoritative";
+
 export const AUTHORITY_CHANNEL_PREFIX = "cdidle:authority";
 
 export interface CrossTabAuthoritySnapshot {
   revision: number;
-  state: Record<string, unknown>;
+  state: CanonicalGameState;
   serverTime: string;
   lastProcessedAt: string;
 }
@@ -57,7 +59,7 @@ export function parseCrossTabAuthorityMessage(value: unknown): CrossTabAuthority
   const snapshot = snapshotCandidate.snapshot as Partial<CrossTabAuthoritySnapshot> | undefined;
   if (!snapshot || typeof snapshot !== "object") return null;
   if (!Number.isInteger(snapshot.revision) || Number(snapshot.revision) < 0) return null;
-  if (!snapshot.state || typeof snapshot.state !== "object" || Array.isArray(snapshot.state)) return null;
+  if (!isCanonicalGameState(snapshot.state)) return null;
   if (typeof snapshot.serverTime !== "string" || !snapshot.serverTime) return null;
   if (typeof snapshot.lastProcessedAt !== "string" || !snapshot.lastProcessedAt) return null;
   return snapshotCandidate as CrossTabAuthoritySnapshotMessage;

@@ -1,10 +1,15 @@
 import { describe, expect, it } from "vitest";
 import { applyIdleAuthority, MAX_IDLE_SECONDS } from "../supabase/functions/game-api/idle-authority";
 import { generateAuthoritativeNovice } from "../supabase/functions/game-api/novice-authority";
+import { initialTownState } from "../supabase/functions/game-api/town-authority";
+import type { CanonicalGameState } from "../shared/contracts/authoritative";
+import type { Hero } from "../src/types";
+import { makeHero } from "./fixtures/game";
 
-const base = {
-  resources: { food: 100, wood: 0, stone: 0, ore: 0 },
-  buildings: { habitation: 2, ferme: 1, maison_chef: 0 },
+const base: CanonicalGameState = {
+  ...initialTownState(42),
+  resources: { ...initialTownState(42).resources, food: 100, wood: 0, stone: 0, ore: 0 },
+  buildings: { ...initialTownState(42).buildings, habitation: 2, ferme: 1, maison_chef: 0 },
   citizens: { farmers: 1, woodcutters: 0, quarrymen: 0, miners: 0, unassigned: 3 },
   totalCitizensCount: 3,
   citizenGrowthProgress: 0,
@@ -37,7 +42,7 @@ describe("server idle authority", () => {
 
   it("preserves sub-second time across rapid authoritative treatments", () => {
     const origin = Date.parse("2026-07-18T00:00:00.000Z");
-    let state: Record<string, unknown> = structuredClone(base);
+    let state: CanonicalGameState = structuredClone(base);
     let lastProcessedAt = new Date(origin).toISOString();
     let appliedSeconds = 0;
 
@@ -66,8 +71,8 @@ describe("server idle authority", () => {
 
   it("counts only heroes whose resting gauges actually changed", () => {
     const result = applyIdleAuthority({ ...base, heroes: [
-      { status: "resting", currentHp: 2, currentMana: 0, calculatedStats: { maxHp: 20, maxMana: 10 } },
-      { status: "idle", currentHp: 2, currentMana: 0, calculatedStats: { maxHp: 20, maxMana: 10 } },
+      makeHero({ status: "resting", currentHp: 2, currentMana: 0, calculatedStats: { ...makeHero().calculatedStats, maxHp: 20, maxMana: 10 } }),
+      makeHero({ id: "idle-hero", status: "idle", currentHp: 2, currentMana: 0, calculatedStats: { ...makeHero().calculatedStats, maxHp: 20, maxMana: 10 } }),
     ] }, "2026-07-18T00:00:00.000Z", new Date("2026-07-18T00:00:02.000Z"));
     expect(result.report.heroesRecovered).toBe(1);
     expect((result.state.heroes as Array<{ currentHp: number }>)[0].currentHp).toBeCloseTo(2.8);
@@ -75,25 +80,23 @@ describe("server idle authority", () => {
 
   it("returns a fully restored hero to idle", () => {
     const result = applyIdleAuthority({ ...base, heroes: [
-      { status: "resting", currentHp: 19.8, currentMana: 9.8, calculatedStats: { maxHp: 20, maxMana: 10 } },
+      makeHero({ status: "resting", currentHp: 19.8, currentMana: 9.8, calculatedStats: { ...makeHero().calculatedStats, maxHp: 20, maxMana: 10 } }),
     ] }, "2026-07-18T00:00:00.000Z", new Date("2026-07-18T00:00:01.000Z"));
-    expect((result.state.heroes as Array<Record<string, unknown>>)[0]).toMatchObject({ status: "idle", currentHp: 20, currentMana: 10 });
+    expect(result.state.heroes[0]).toMatchObject({ status: "idle", currentHp: 20, currentMana: 10 });
     expect(result.report).toMatchObject({ heroesRecovered: 1, heroesFullyRecovered: 1 });
   });
 
   it("recovers a generated novice against persisted authoritative maxima", () => {
-    const novice = generateAuthoritativeNovice("idle-novice", "hero-idle") as Record<string, unknown> & {
-      calculatedStats: { maxHp: number; maxMana: number };
-    };
+    const novice = generateAuthoritativeNovice("idle-novice", "hero-idle") as unknown as Hero;
     const maxHp = novice.calculatedStats.maxHp;
     const maxMana = novice.calculatedStats.maxMana;
-    const injured = { ...novice, status: "resting", currentHp: 1, currentMana: 0 };
+    const injured: Hero = { ...novice, status: "resting", currentHp: 1, currentMana: 0 };
     const result = applyIdleAuthority(
       { ...base, heroes: [injured] },
       "2026-07-18T00:00:00.000Z",
       new Date("2026-07-18T00:01:00.000Z"),
     );
-    const recovered = (result.state.heroes as Array<Record<string, unknown>>)[0];
+    const recovered = result.state.heroes[0];
     expect(recovered.currentHp).toBe(maxHp);
     expect(recovered.currentMana).toBe(maxMana);
     expect(result.report.heroesRecovered).toBe(1);

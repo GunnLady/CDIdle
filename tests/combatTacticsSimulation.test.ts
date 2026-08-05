@@ -15,6 +15,7 @@ import type { ClassInfo, Hero, Monster } from "../src/types";
 import { getDungeonRoomCount } from "../shared/domain/dungeon-progression";
 import { calculateXpNeeded } from "../src/utils/gameCalculations";
 import { makeHero, makeResources } from "./fixtures/game";
+import { initialTownState } from "../supabase/functions/game-api/town-authority";
 
 const combatClasses = CLASS_INFO_LIST.filter((entry) => entry.tier === 1);
 
@@ -71,6 +72,7 @@ function authoritativeState(
   floor: number,
 ): AuthoritativeDungeonState {
   return {
+    ...initialTownState(42),
     activeDungeonFloor: floor,
     activeDungeonRoom: getDungeonRoomCount(floor),
     highestFloorReached: floor + 1,

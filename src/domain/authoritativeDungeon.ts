@@ -3,7 +3,6 @@ import type {
   DamageType,
   DungeonEncounterType,
   Hero,
-  ItemBlueprint,
   Monster,
   PendingClassTransition,
   Rarity,
@@ -11,6 +10,7 @@ import type {
   StoredForgeMaterialStack,
   StoredItemInstance,
 } from "../types.ts";
+import type { CanonicalDungeonLoot, CanonicalGameState } from "../../shared/contracts/authoritative.ts";
 import { BOSSES_LIBRARY, ITEM_LIBRARY, MONSTERS_LIBRARY, getSkillById } from "../data/gameData.ts";
 import { BOSS_LOOT_TABLES_REGISTRY } from "../../shared/domain/items/boss-loot-tables.ts";
 import {
@@ -101,23 +101,10 @@ export type AuthoritativeDungeonEncounter = {
   roundCount: number;
   enemy: { id?: string; name?: string; hp: number; maxHp: number; isBoss?: boolean } | null;
   transcript: AuthoritativeDungeonTranscriptEvent[];
-  rewards: { gold: number; loot: Array<Record<string, unknown>> };
+  rewards: { gold: number; loot: CanonicalDungeonLoot[] };
 };
 
-export type AuthoritativeDungeonState = Record<string, unknown> & {
-  activeDungeonFloor?: number;
-  activeDungeonRoom?: number;
-  highestFloorReached?: number;
-  heroes?: Hero[];
-  resources?: Resources;
-  buildings?: Record<string, number>;
-  storedItems?: StoredItemInstance[];
-  forgeMaterials?: StoredForgeMaterialStack[];
-  itemBlueprints?: ItemBlueprint[];
-  autoExplore?: boolean;
-  pendingClassTransitions?: PendingClassTransition[];
-  encounterHistory?: AuthoritativeDungeonEncounter[];
-};
+export type AuthoritativeDungeonState = CanonicalGameState;
 
 export type AuthoritativeDungeonResolution = {
   state: AuthoritativeDungeonState;
@@ -412,7 +399,7 @@ function resolveFight(
   let itemBlueprints = clone(source.itemBlueprints ?? []);
   const pendingClassTransitions = clone(source.pendingClassTransitions ?? []);
   const transcript: AuthoritativeDungeonTranscriptEvent[] = [];
-  const loot: Array<Record<string, unknown>> = [];
+  const loot: CanonicalDungeonLoot[] = [];
   let sequence = 0;
   let round = 0;
   let activeEffects: TemporaryCombatEffect[] = [];
@@ -923,7 +910,7 @@ function resolveNonFight(
   const itemBlueprints = clone(source.itemBlueprints ?? []);
   const pendingClassTransitions = clone(source.pendingClassTransitions ?? []);
   const transcript: AuthoritativeDungeonTranscriptEvent[] = [];
-  const loot: Array<Record<string, unknown>> = [];
+  const loot: CanonicalDungeonLoot[] = [];
   let sequence = 0;
   let victory = true;
   let goldReward = 0;

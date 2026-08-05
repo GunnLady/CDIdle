@@ -3,22 +3,16 @@ import {
   type AuthoritativeDungeonEncounter,
   type AuthoritativeDungeonState,
 } from "../../../src/domain/authoritativeDungeon.ts";
-import type { Hero, PendingClassTransition } from "../../../src/types.ts";
+import type { Hero } from "../../../src/types.ts";
+import type {
+  CanonicalGameState,
+  CanonicalStateTransition,
+} from "../../../shared/contracts/authoritative.ts";
 import { getDungeonRoomCount } from "../../../shared/domain/dungeon-progression.ts";
 
 export type DungeonHero = Hero;
 
-export type DungeonState = Record<string, unknown> & {
-  activeDungeonFloor?: number;
-  activeDungeonRoom?: number;
-  highestFloorReached?: number;
-  heroes?: DungeonHero[];
-  resources?: Record<string, number>;
-  currentEncounter?: Record<string, unknown> | null;
-  encounterHistory?: ResolvedDungeonEncounter[];
-  autoExplore?: boolean;
-  pendingClassTransitions?: PendingClassTransition[];
-};
+export type DungeonState = CanonicalGameState;
 
 export type DungeonCommand =
   | { type: "dungeon.explore"; floor: number; commandId?: string }
@@ -101,11 +95,11 @@ function resolveEncounter(state: DungeonState, rng: DungeonRng) {
 }
 
 export function applyDungeonCommand(
-  current: Record<string, unknown>,
+  current: CanonicalGameState,
   command: Record<string, unknown>,
   rng?: DungeonRng,
-): { state: DungeonState; events: unknown[] } {
-  const state = clone(current) as DungeonState;
+): CanonicalStateTransition {
+  const state = clone(current);
   const typed = command as DungeonCommand;
   const { floor, room, highest } = progress(state);
 
@@ -184,7 +178,7 @@ export function applyDungeonCommand(
     floor,
     room,
     commandId,
-  };
+  } as const;
   return {
     state: {
       ...state,

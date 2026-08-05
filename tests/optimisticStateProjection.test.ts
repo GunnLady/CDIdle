@@ -1,10 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { projectOptimisticCommands } from "../src/domain/optimisticStateProjection";
 import { makeHero } from "./fixtures/game";
+import { initialTownState } from "../supabase/functions/game-api/town-authority";
+import type { CanonicalGameState } from "../shared/contracts/authoritative";
 
 describe("projectOptimisticCommands", () => {
   it("projects allocations and final dungeon selection without mutating canonical state", () => {
-    const canonical = {
+    const canonical: CanonicalGameState = {
+      ...initialTownState(42),
       citizens: { farmers: 0, woodcutters: 0, quarrymen: 0, miners: 0, unassigned: 3 },
       activeDungeonFloor: 1,
       activeDungeonRoom: 20,
@@ -20,7 +23,8 @@ describe("projectOptimisticCommands", () => {
 
   it("projects building, hero, equipment and auto-dungeon mutations", () => {
     const hero = makeHero({ id: "hero-optimistic", isActive: true, status: "idle" });
-    const canonical = {
+    const canonical: CanonicalGameState = {
+      ...initialTownState(42),
       resources: { gold: 1_000, food: 1_000, wood: 1_000, stone: 1_000, ore: 1_000 },
       buildings: { ferme: 0 },
       heroes: [hero],
@@ -60,7 +64,8 @@ describe("projectOptimisticCommands", () => {
   });
 
   it("projects a building paid by resources accrued since the canonical snapshot", () => {
-    const canonical = {
+    const canonical: CanonicalGameState = {
+      ...initialTownState(42),
       resources: { gold: 390, food: 200, wood: 180, stone: 120, ore: 80 },
       buildings: { caserne: 0 },
     };

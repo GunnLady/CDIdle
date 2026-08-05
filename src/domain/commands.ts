@@ -1,6 +1,5 @@
-import type { GameState } from "../types";
 import type { CanonicalIdleReport } from "./idleReport";
-import type { CanonicalGameCommand } from "../../shared/contracts/authoritative";
+import type { CanonicalGameCommand, CanonicalGameState } from "../../shared/contracts/authoritative";
 
 export type { CanonicalCommandEnvelope, CanonicalGameCommand } from "../../shared/contracts/authoritative";
 
@@ -30,7 +29,7 @@ export interface CommandError {
   currentRevision?: number;
 }
 
-export interface CommandSuccess<T = GameState> {
+export interface CommandSuccess<T = CanonicalGameState> {
   ok: true;
   revision: number;
   state: T;
@@ -38,14 +37,14 @@ export interface CommandSuccess<T = GameState> {
   replayed: boolean;
 }
 
-export interface AuthoritativeCommandSuccess<T = GameState> extends CommandSuccess<T> {
+export interface AuthoritativeCommandSuccess<T = CanonicalGameState> extends CommandSuccess<T> {
   serverTime: string;
   lastProcessedAt: string;
   events?: Array<Record<string, unknown>>;
   idleReport?: CanonicalIdleReport;
 }
 
-export interface AuthoritativeGameEnvelope<T = GameState> {
+export interface AuthoritativeGameEnvelope<T = CanonicalGameState> {
   schemaVersion: 1;
   revision: number;
   serverTime: string;
@@ -60,7 +59,7 @@ export interface CommandFailure {
   commandId?: string;
 }
 
-export type CommandResult<T = GameState> = CommandSuccess<T> | CommandFailure;
+export type CommandResult<T = CanonicalGameState> = CommandSuccess<T> | CommandFailure;
 
 export function isCommandSuccess<T>(result: CommandResult<T>): result is CommandSuccess<T> {
   return result.ok;

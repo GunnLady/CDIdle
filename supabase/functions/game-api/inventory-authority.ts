@@ -1,29 +1,25 @@
 import {
   calculateAuthoritativeHeroStats,
-  type AuthoritativeNoviceStats,
 } from "./novice-stats-authority.ts";
 import {
   getItemById,
   getItemHandedness,
   getItemSlot,
 } from "../../../shared/domain/items/items.ts";
+import type {
+  CanonicalGameState,
+  CanonicalHero,
+  CanonicalStateTransition,
+  CanonicalStoredItemInstance,
+} from "../../../shared/contracts/authoritative.ts";
+import type { CanonicalStatModifier } from "../../../shared/domain/hero-stats.ts";
 
 export type InventoryRarity = "common" | "uncommon" | "rare" | "epic" | "legendary";
 export type InventorySlot = "mainHand" | "offHand" | "armor" | "accessory";
-export type InventoryModifier = { stat: string; type?: "flat" | "percent"; value: number };
-export type InventoryItemInstance = { instanceId: string; itemId: string; rarity: InventoryRarity; modifiers?: InventoryModifier[] };
+export type InventoryModifier = CanonicalStatModifier;
+export type InventoryItemInstance = CanonicalStoredItemInstance;
 export type InventoryEquipmentRef = InventoryItemInstance;
-export type InventoryHero = {
-  id: string;
-  level?: number;
-  classType?: string;
-  baseStats?: AuthoritativeNoviceStats;
-  passiveSkills?: string[];
-  currentHp?: number;
-  currentMana?: number;
-  calculatedStats?: Record<string, unknown>;
-  equipment?: Partial<Record<InventorySlot, InventoryEquipmentRef | null>>;
-};
+export type InventoryHero = CanonicalHero;
 
 type ItemDefinition = {
   slot: InventorySlot;
@@ -96,7 +92,6 @@ function preserveResourceRatio(
 }
 
 function withEquipment(hero: InventoryHero, equipment: InventoryHero["equipment"]): InventoryHero {
-  if (!hero.baseStats) return { ...hero, equipment };
   const calculatedStats = calculateAuthoritativeHeroStats(
     hero.baseStats,
     hero.passiveSkills,
@@ -121,9 +116,9 @@ function withEquipment(hero: InventoryHero, equipment: InventoryHero["equipment"
   };
 }
 
-export function applyInventoryCommand(current: Record<string, unknown>, command: Record<string, unknown>): { state: Record<string, unknown>; events: unknown[] } {
-  const storedItems = clone((current.storedItems as InventoryItemInstance[] | undefined) ?? []);
-  const heroes = clone((current.heroes as InventoryHero[] | undefined) ?? []);
+export function applyInventoryCommand(current: CanonicalGameState, command: Record<string, unknown>): CanonicalStateTransition {
+  const storedItems = clone(current.storedItems);
+  const heroes = clone(current.heroes);
   const typed = command as InventoryCommand;
 
   if (typed.type === "hero.equip") {

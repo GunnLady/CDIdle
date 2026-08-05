@@ -1,4 +1,5 @@
 import { recoverRestingGauge } from "../../../shared/domain/rest-recovery.ts";
+import type { CanonicalGameState } from "../../../shared/contracts/authoritative.ts";
 
 export const MAX_IDLE_SECONDS = 24 * 60 * 60;
 const IMMIGRATION_PROGRESS_PER_SECOND = 5;
@@ -22,9 +23,9 @@ const clone = <T>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
 const number = (value: unknown, fallback = 0): number => Number.isFinite(Number(value)) ? Number(value) : fallback;
 const zeroRates = () => ({ food: 0, wood: 0, stone: 0, ore: 0 });
 
-function rates(state: Record<string, unknown>) {
-  const citizens = (state.citizens as Record<string, unknown> | undefined) ?? {};
-  const buildings = (state.buildings as Record<string, unknown> | undefined) ?? {};
+function rates(state: CanonicalGameState) {
+  const citizens = state.citizens;
+  const buildings = state.buildings;
   const multiplier = 1 + number(buildings.maison_chef) * 0.03;
   return {
     food: number(citizens.farmers) * number(buildings.ferme) * multiplier,
@@ -36,10 +37,10 @@ function rates(state: Record<string, unknown>) {
 
 /** Server-side idle transition. Timestamps at the API boundary are ISO strings. */
 export function applyIdleAuthority(
-  current: Record<string, unknown>,
+  current: CanonicalGameState,
   lastProcessedAt: string,
   now = new Date(),
-): { state: Record<string, unknown>; lastProcessedAt: string; report: IdleReport } {
+): { state: CanonicalGameState; lastProcessedAt: string; report: IdleReport } {
   const previous = Date.parse(lastProcessedAt);
   const timestamp = now.getTime();
   if (!Number.isFinite(previous) || !Number.isFinite(timestamp)) throw new IdleCommandError("INVALID_IDLE_CLOCK", "idle timestamps are invalid");
@@ -49,7 +50,7 @@ export function applyIdleAuthority(
   const appliedSeconds = Math.min(elapsedSeconds, MAX_IDLE_SECONDS);
   const processedTimestamp = previous + elapsedSeconds * 1000;
   const next = clone(current);
-  const resources = { food: 0, wood: 0, stone: 0, ore: 0, ...((next.resources as Record<string, number> | undefined) ?? {}) };
+  const resources = { ...next.resources };
   const produced = elapsedSeconds === 0 ? zeroRates() : rates(next);
   const resourcesProduced = {
     food: produced.food * appliedSeconds,
@@ -62,8 +63,8 @@ export function applyIdleAuthority(
   resources.stone += resourcesProduced.stone;
   resources.ore += resourcesProduced.ore;
 
-  const citizens = { farmers: 0, woodcutters: 0, quarrymen: 0, miners: 0, unassigned: 0, ...((next.citizens as Record<string, number> | undefined) ?? {}) };
-  const buildings = (next.buildings as Record<string, number> | undefined) ?? {};
+  const citizens = { ...next.citizens };
+  const buildings = next.buildings;
   const maxCitizens = Math.max(0, number(buildings.habitation) * 3);
   let totalCitizens = number(next.totalCitizensCount);
   let progress = number(next.citizenGrowthProgress);
@@ -84,9 +85,9 @@ export function applyIdleAuthority(
 
   let heroesRecovered = 0;
   let heroesFullyRecovered = 0;
-  const heroes = ((next.heroes as Array<Record<string, unknown>> | undefined) ?? []).map((hero) => {
+  const heroes = next.heroes.map((hero) => {
     if (hero.status !== "resting" || appliedSeconds === 0) return hero;
-    const stats = (hero.calculatedStats as Record<string, number> | undefined) ?? {};
+    const stats = hero.calculatedStats;
     const maxHp = number(stats.maxHp, number(hero.currentHp));
     const maxMana = number(stats.maxMana, number(hero.currentMana));
     const currentHp = recoverRestingGauge(number(hero.currentHp), maxHp, appliedSeconds);
@@ -94,7 +95,7 @@ export function applyIdleAuthority(
     if (currentHp !== number(hero.currentHp) || currentMana !== number(hero.currentMana)) heroesRecovered += 1;
     const fullyRecovered = currentHp === maxHp && currentMana === maxMana;
     if (fullyRecovered) heroesFullyRecovered += 1;
-    return { ...hero, currentHp, currentMana, ...(fullyRecovered ? { status: "idle" } : {}) };
+    return { ...hero, currentHp, currentMana, ...(fullyRecovered ? { status: "idle" as const } : {}) };
   });
 
   next.resources = resources;

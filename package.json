@@ -55,6 +55,7 @@
     "test": "vitest",
     "test:dungeon-simulation": "vitest run tests/dungeonRulesSimulation.test.ts tests/dungeonEncounterRules.test.ts --reporter=verbose",
     "test:weapon-simulation": "vitest run tests/weaponProfilesSimulation.test.tsx --reporter=verbose",
+    "test:state-simulation": "vitest run tests/canonicalStateCompatibilitySimulation.test.ts --reporter=verbose",
     "test:watch": "vitest --watch",
     "test:coverage": "vitest --coverage --run",
     "check:coverage": "node scripts/check-coverage-thresholds.mjs",

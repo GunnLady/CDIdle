@@ -8,8 +8,18 @@ import type {
   CanonicalWeaponAttackProfile,
   CanonicalWeaponScaling,
 } from "../shared/domain/items/types.ts";
+import type {
+  CanonicalCalculatedStats,
+  CanonicalCitizenAllocation,
+  CanonicalForgeMaterialStack,
+  CanonicalHero,
+  CanonicalItemBlueprint,
+  CanonicalPendingClassTransition,
+  CanonicalResources,
+  CanonicalStoredItemInstance,
+} from "../shared/contracts/authoritative.ts";
 
-export interface Resources {
+export interface Resources extends CanonicalResources {
   gold: number;
   food: number;
   wood: number;
@@ -34,7 +44,7 @@ export interface Building {
   bonusPerLevel?: number;
 }
 
-export interface CitizenAllocation {
+export interface CitizenAllocation extends CanonicalCitizenAllocation {
   woodcutters: number;
   farmers: number;
   miners: number;
@@ -70,7 +80,7 @@ export interface HeroStats {
 export type ElementalDamageType = Exclude<DamageType, "physical">;
 export type DamageResistances = Record<ElementalDamageType, number>;
 
-export interface CalculatedStats {
+export interface CalculatedStats extends CanonicalCalculatedStats {
   maxHp: number;
   criticalChance: number;
   dodgeChance: number;
@@ -99,7 +109,7 @@ export interface ClassInfo {
   mainDerivedStats?: (keyof CalculatedStats)[];
 }
 
-export interface Hero {
+export interface Hero extends CanonicalHero {
   id: string;
   name: string;
   race: RaceType;
@@ -131,7 +141,7 @@ export interface PendingClassTransitionCandidate {
   affinity: number;
 }
 
-export interface PendingClassTransition {
+export interface PendingClassTransition extends CanonicalPendingClassTransition {
   heroId: string;
   fromClass: ClassType;
   fromTier: number;
@@ -206,7 +216,7 @@ export interface BattleLogEntry {
   category?: "dungeon" | "colony";
 }
 
-export interface StoredItemInstance {
+export interface StoredItemInstance extends CanonicalStoredItemInstance {
   instanceId: string;
   itemId: ItemInfo["id"];
   rarity: Rarity;
@@ -218,27 +228,6 @@ export interface EquippedItemRef {
   itemId: ItemInfo["id"];
   rarity: Rarity;
   modifiers?: Modifier[];
-}
-
-export interface GameState {
-  resources: Resources;
-  buildings: { [key: string]: number }; // level map
-  citizens: CitizenAllocation;
-  totalCitizensCount: number;
-  districts: { [key: string]: boolean }; // districtId: unlocked
-  heroes: Hero[];
-  activeDungeonFloor: number;
-  activeDungeonRoom: number; // 1 to getDungeonRoomCount(activeDungeonFloor)
-  combatTimer: number; // remaining ticks for combat log
-  battleLogs: BattleLogEntry[];
-  currentMonster: Monster | null;
-  autoExplore: boolean;
-  highestFloorReached: number;
-  soundEnabled: boolean;
-  storedItems: StoredItemInstance[];
-  forgeMaterials: StoredForgeMaterialStack[];
-  itemBlueprints: ItemBlueprint[];
-  pendingClassTransitions: PendingClassTransition[];
 }
 
 export type WeaponHandedness =
@@ -326,14 +315,14 @@ export interface ForgeMaterial {
   description: string;
 }
 
-export interface StoredForgeMaterialStack {
+export interface StoredForgeMaterialStack extends CanonicalForgeMaterialStack {
   materialId: ForgeMaterial["id"];
   rarity: Rarity;
   count: number;
 }
 
 
-export interface ItemBlueprint {
+export interface ItemBlueprint extends CanonicalItemBlueprint {
   itemId: string;
   unlocked: boolean;
 }

@@ -1,7 +1,7 @@
 ---
 id: CDI-078
 title: Unifier le contrat d etat canonique
-status: ToDo
+status: Done
 area: fullstack
 priority: P1
 size: M
@@ -10,7 +10,7 @@ source: Audit d architecture logiciel front et back du 2026-08-01
 depends_on: []
 blocks: ["CDI-079", "CDI-080", "CDI-081"]
 github_issue: null
-related_docs: ["shared/contracts/authoritative.ts", "src/types.ts", "src/domain/commands.ts", "supabase/functions/game-api/town-authority.ts"]
+related_docs: ["shared/contracts/authoritative.ts", "src/types.ts", "src/domain/commands.ts", "supabase/functions/game-api/town-authority.ts", "docs/development/canonical-state-simulation.md"]
 ---
 
 # CDI-078 - Unifier le contrat d etat canonique
@@ -71,16 +71,16 @@ Le ticket est autonome et fournit la fondation de CDI-079, CDI-080 et CDI-081.
 
 ## Criteres d'acceptation
 
-- [ ] `CanonicalGameState` est la source de verite typee du snapshot.
-- [ ] Heros, objets, rencontres et transitions ne sont plus des records
+- [x] `CanonicalGameState` est la source de verite typee du snapshot.
+- [x] Heros, objets, rencontres et transitions ne sont plus des records
       opaques dans le contrat principal.
-- [ ] L ancien `GameState` est supprime ou limite a un role distinct explicite.
-- [ ] `combatTimer`, `battleLogs` et `currentMonster` ne subsistent pas sans
+- [x] L ancien `GameState` est supprime ou limite a un role distinct explicite.
+- [x] `combatTimer`, `battleLogs` et `currentMonster` ne subsistent pas sans
       consommateur justifie.
-- [ ] Les enveloppes API, le cache et les projections UI utilisent des types
+- [x] Les enveloppes API, le cache et les projections UI utilisent des types
       compatibles et distincts lorsque necessaire.
-- [ ] Les validateurs signalent tout champ obligatoire absent ou invalide.
-- [ ] Aucun comportement de jeu ni format de sauvegarde n est modifie sans
+- [x] Les validateurs signalent tout champ obligatoire absent ou invalide.
+- [x] Aucun comportement de jeu ni format de sauvegarde n est modifie sans
       migration explicite.
 
 ## Tests
@@ -88,6 +88,7 @@ Le ticket est autonome et fournit la fondation de CDI-079, CDI-080 et CDI-081.
 - Tests de validation du contrat complet et de ses sous-objets.
 - Tests de projection canonique vers React et vers le cache.
 - Tests TypeScript prouvant les unions exhaustives utiles.
+- `npm.cmd run test:state-simulation`
 - `npm.cmd run typecheck`
 - `npm.cmd test -- --run`
 - `npm.cmd run build`
@@ -95,8 +96,16 @@ Le ticket est autonome et fournit la fondation de CDI-079, CDI-080 et CDI-081.
 
 ## Validation manuelle
 
-Charger une sauvegarde alpha representative, verifier ville, heros, donjon,
-coffre et forge, puis recharger la page et confirmer l identite du snapshot.
+La longue validation manuelle de sauvegarde est remplacee par la simulation
+documentee dans `docs/development/canonical-state-simulation.md` :
+
+```powershell
+npm.cmd run test:state-simulation
+```
+
+Elle traverse migration, validation runtime, projection React, commande
+autoritaire, cache IndexedDB et synchronisation inter-onglets sans demarrer
+Vite, Supabase ou un navigateur.
 
 ## Preservation
 
