@@ -23,6 +23,7 @@ import {
   applyMonsterDefenseOrResistance,
   applySplitDamageDefenseOrResistance,
   getHeroAttributes,
+  getHeroDefenseAgainstDamageType,
   getHeroMainHandWeapon,
   getWeaponDamageTypes,
   rollWeaponDamage,
@@ -657,9 +658,11 @@ function resolveFight(
       const targetIndex = heroes.findIndex((hero) => hero.id === target.id);
       const targetStats = getEffectiveHeroStats(target, activeEffects);
       const effectiveMonster = getEffectiveMonster(monster, activeEffects);
-      const defense = effectiveMonster.damageType === "physical"
-        ? targetStats.physicalDefense
-        : targetStats.magicDefense;
+      const defense = getHeroDefenseAgainstDamageType(
+        target.calculatedStats,
+        targetStats,
+        effectiveMonster.damageType,
+      );
       const damage = Math.max(1, effectiveMonster.atk - defense);
       const dodged = rng.next() < targetStats.dodgeChance / 100;
       if (dodged) {

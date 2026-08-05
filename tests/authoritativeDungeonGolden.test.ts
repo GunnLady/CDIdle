@@ -825,6 +825,41 @@ describe("authoritative dungeon golden behavior characterized from 640f89f", () 
     expect(enemyHits.some((event) => event.defense === 40)).toBe(true);
   });
 
+  it("uses the hero elemental resistance against magical enemy damage", () => {
+    const baseStats = makeHero().calculatedStats;
+    const defender = makeHero({
+      id: "elemental-defender",
+      name: "Elemental Defender",
+      currentHp: 100_000,
+      calculatedStats: {
+        ...baseStats,
+        maxHp: 100_000,
+        hp: 100_000,
+        physicalDamage: 200,
+        physicalDefense: 0,
+        magicDefense: 10,
+        speed: 0,
+        criticalChance: 0,
+        dodgeChance: 0,
+        resistances: { ...baseStats.resistances, arcane: 40 },
+      },
+    });
+    const result = resolveAuthoritativeDungeonEncounter(state({
+      activeDungeonFloor: 40,
+      activeDungeonRoom: 50,
+      highestFloorReached: 41,
+      heroes: [defender],
+    }), "golden-elemental-defense", seededRng(0x850084));
+    const enemyHit = result.encounter.transcript.find((event) => event.type === "enemy.hit");
+
+    expect(enemyHit).toMatchObject({
+      heroId: defender.id,
+      damageType: "arcane",
+      defense: 40,
+      damage: 50,
+    });
+  });
+
   it("applies and expires an offensive debuff during a complete boss fight", () => {
     const support = makeHero({
       id: "support",

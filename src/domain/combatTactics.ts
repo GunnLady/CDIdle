@@ -3,6 +3,7 @@ import { getSkillById } from "../data/gameData.ts";
 import {
   applyMonsterDefenseOrResistance,
   applySplitDamageDefenseOrResistance,
+  getHeroDefenseAgainstDamageType,
   getHeroMainHandWeapon,
   getWeaponDamageTypes,
 } from "../utils/gameCalculations.ts";
@@ -120,9 +121,11 @@ export function estimateNextEnemyDamage(
 ): number {
   const effectiveMonster = getEffectiveMonster(monster, effects);
   const stats = getEffectiveHeroStats(hero, effects);
-  const defense = effectiveMonster.damageType === "physical"
-    ? stats.physicalDefense
-    : stats.magicDefense;
+  const defense = getHeroDefenseAgainstDamageType(
+    hero.calculatedStats,
+    stats,
+    effectiveMonster.damageType,
+  );
   const hitChance = Math.max(0, 1 - stats.dodgeChance / 100);
   return Math.max(1, effectiveMonster.atk - defense) * Math.max(0, strikeCount) * hitChance;
 }
@@ -149,35 +152,46 @@ function expectedEnemyDamageForTarget(
   return estimateNextEnemyDamage(context.monster, target, effects, expectedHits);
 }
 
-export function deriveManaReserve(context: HeroActionContext): number {
+const PROTECTIVE_HERO_STATS = new Set([
+  "dodgeChance",
+  "forcedTarget",
+  "magicDefense",
+  "physicalDefense",
+]);
+
+const PROTECTIVE_MONSTER_STATS = new Set([
+  "magicDamage",
+  "physicalDamage",
+]);
+
+function isPriorityRecoveryOrProtection(skill: SkillInfo): boolean {
+  if (skill.effect.type === "heal") return true;
+  if (skill.effect.type === "buff") {
+    return skill.effect.modifiers.some((modifier) => PROTECTIVE_HERO_STATS.has(modifier.stat));
+  }
+  if (skill.effect.type === "debuff") {
+    return skill.effect.modifiers.some((modifier) => PROTECTIVE_MONSTER_STATS.has(modifier.stat));
+  }
+  return false;
+}
+
+export function deriveManaReserve(context: HeroActionContext, spendingSkillId?: string): number {
   if (context.room >= context.finalRoom || context.hero.calculatedStats.maxMana <= 0) return 0;
-  const skills = context.hero.activeSkills
+  const spendingSkill = spendingSkillId ? getSkillById(spendingSkillId) : undefined;
+  const excludeSpendingSkill = spendingSkill?.effect.type === "buff"
+    || spendingSkill?.effect.type === "debuff";
+  const priorityCosts = context.hero.activeSkills
+    .filter((skillId) => !excludeSpendingSkill || skillId !== spendingSkillId)
     .map(getSkillById)
-    .filter((skill): skill is SkillInfo => Boolean(skill && skill.type === "active"));
-  const healingCosts = skills
-    .filter((skill) => skill.effect.type === "heal")
+    .filter((skill): skill is SkillInfo => Boolean(
+      skill
+      && skill.type === "active"
+      && isPriorityRecoveryOrProtection(skill)
+      && (skill.manaCost ?? 0) > 0,
+    ))
     .map((skill) => skill.manaCost ?? 0);
-  const supportCosts = skills
-    .filter((skill) => skill.effect.type === "buff" || skill.effect.type === "debuff")
-    .map((skill) => skill.manaCost ?? 0);
-  const damageCosts = skills
-    .filter((skill) => skill.effect.type === "damage")
-    .map((skill) => skill.manaCost ?? 0);
-  const baseReserve = healingCosts.length > 0
-    ? Math.max(...healingCosts)
-    : supportCosts.length > 0
-      ? Math.max(...supportCosts)
-      : damageCosts.length > 0
-        ? Math.max(...damageCosts)
-        : 0;
-  const approach = Math.min(1, Math.max(
-    0,
-    (context.room - 1) / Math.max(1, context.finalRoom - 2),
-  ));
-  return Math.min(
-    context.hero.calculatedStats.maxMana,
-    Math.ceil(baseReserve * (0.5 + approach * 0.5)),
-  );
+  if (priorityCosts.length === 0) return 0;
+  return Math.min(context.hero.calculatedStats.maxMana, Math.min(...priorityCosts));
 }
 
 function action(
@@ -229,10 +243,18 @@ function estimateBestHeroDamage(
   return best;
 }
 
-function estimatePartyDamage(context: HeroActionContext, effects: TemporaryCombatEffect[]): number {
-  return context.heroes
+function estimateHeroesDamage(
+  heroes: Hero[],
+  monster: Monster,
+  effects: TemporaryCombatEffect[],
+): number {
+  return heroes
     .filter((hero) => hero.isActive && hero.currentHp > 0)
-    .reduce((total, hero) => total + estimateBestHeroDamage(hero, context.monster, effects), 0);
+    .reduce((total, hero) => total + estimateBestHeroDamage(hero, monster, effects), 0);
+}
+
+function estimatePartyDamage(context: HeroActionContext, effects: TemporaryCombatEffect[]): number {
+  return estimateHeroesDamage(context.heroes, context.monster, effects);
 }
 
 function temporaryEffect(
@@ -260,7 +282,15 @@ function scoreEffectChange(
   usefulRounds: number,
 ) {
   const living = context.heroes.filter((hero) => hero.isActive && hero.currentHp > 0);
-  const offenseGain = Math.max(0, estimatePartyDamage(context, after) - estimatePartyDamage(context, before));
+  const actorIndex = living.findIndex((hero) => hero.id === context.hero.id);
+  const heroesStillToAct = actorIndex >= 0 ? living.slice(actorIndex + 1) : [];
+  const currentRoundOffenseGain = Math.max(0,
+    estimateHeroesDamage(heroesStillToAct, context.monster, after)
+      - estimateHeroesDamage(heroesStillToAct, context.monster, before));
+  const futureRoundOffenseGain = Math.max(0,
+    estimatePartyDamage(context, after) - estimatePartyDamage(context, before));
+  const offenseGain = currentRoundOffenseGain
+    + futureRoundOffenseGain * Math.max(0, usefulRounds - 1);
   const beforeIncoming = living.reduce(
     (total, hero) => total + expectedEnemyDamageForTarget(context, hero, before),
     0,
@@ -275,7 +305,7 @@ function scoreEffectChange(
     && hero.currentHp > expectedEnemyDamageForTarget(context, hero, after)
   ));
   return {
-    value: (offenseGain + defenseGain) * usefulRounds,
+    value: offenseGain + defenseGain * usefulRounds,
     preventsDeath,
   };
 }
@@ -326,7 +356,6 @@ export function listLegalHeroActions(context: HeroActionContext): TacticalAction
     reason: normalDamage >= context.monster.hp ? "normal_attack_lethal" : "mana_preserved",
   })];
   const living = context.heroes.filter((hero) => hero.isActive && hero.currentHp > 0);
-  const reserve = deriveManaReserve(context);
 
   for (const skillId of [...context.hero.activeSkills].sort()) {
     const skill = getSkillById(skillId);
@@ -334,6 +363,7 @@ export function listLegalHeroActions(context: HeroActionContext): TacticalAction
     const manaCost = skill.manaCost ?? 0;
     if (context.hero.currentMana < manaCost || Number(context.hero.cooldowns?.[skillId] ?? 0) > 0) continue;
     const manaAfter = context.hero.currentMana - manaCost;
+    const reserve = deriveManaReserve(context, skillId);
 
     if (skill.effect.type === "damage") {
       const damage = estimateSkillDamage(context.hero, context.monster, skill, effects);
@@ -427,7 +457,6 @@ export function listLegalHeroActions(context: HeroActionContext): TacticalAction
         ));
         const score = scoreEffectChange(context, effects, candidateEffects, usefulRounds);
         if (!score.preventsDeath && manaAfter < reserve) continue;
-        if (!score.preventsDeath && score.value <= manaCost) continue;
         if (score.value <= 0) continue;
         actions.push(action({
           kind: "skill", skillId,
@@ -460,7 +489,6 @@ export function listLegalHeroActions(context: HeroActionContext): TacticalAction
           ? scoreTaunt(context, effects, candidateEffects, usefulRounds)
           : scoreEffectChange(context, effects, candidateEffects, usefulRounds);
         if (!score.preventsDeath && manaAfter < reserve) continue;
-        if (!score.preventsDeath && score.value <= manaCost) continue;
         if (score.value <= 0) continue;
         actions.push(action({
           kind: "skill", skillId, targetHeroId: targetId,

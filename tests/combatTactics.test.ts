@@ -63,9 +63,9 @@ describe("deterministic combat tactics", () => {
     expect(chosen).toMatchObject({ kind: "skill", skillId: "heavy_blow", reason: "skill_prevents_enemy_turn" });
   });
 
-  it("rejects wasteful damage and preserves the derived mana reserve", () => {
-    const actor = hero({ currentMana: 14 });
-    expect(deriveManaReserve(context(actor))).toBeGreaterThan(0);
+  it("preserves enough mana for a known recovery action", () => {
+    const actor = hero({ activeSkills: ["heavy_blow", "minor_heal"], currentMana: 37 });
+    expect(deriveManaReserve(context(actor))).toBe(24);
     expect(chooseHeroAction(context(actor, monster({ hp: 200 }))).kind).toBe("normal_attack");
   });
 
@@ -90,33 +90,40 @@ describe("deterministic combat tactics", () => {
     expect(chooseHeroAction(context(healer, monster(), [healer, lightlyInjured])).kind).toBe("normal_attack");
 
     const defender = hero({ activeSkills: ["guard_stance"] });
+    const effect = {
+      sourceSkillId: "guard_stance",
+      sourceHeroId: defender.id,
+      targetId: defender.id,
+      targetSide: "hero" as const,
+      remainingRounds: 2,
+      modifiers: [{ stat: "physicalDefense", type: "percent" as const, value: 25 }],
+    };
     const actions = listLegalHeroActions({
       ...context(defender, monster({ hp: 1_000, maxHp: 1_000, isBoss: true })),
-      activeEffects: [{
-        sourceSkillId: "guard_stance",
-        sourceHeroId: defender.id,
-        targetId: defender.id,
-        targetSide: "hero",
-        remainingRounds: 2,
-        modifiers: [{ stat: "physicalDefense", type: "percent", value: 25 }],
-      }],
+      activeEffects: [effect],
     });
     expect(actions.some((candidate) => candidate.skillId === "guard_stance")).toBe(false);
+    const expiringActions = listLegalHeroActions({
+      ...context(defender, monster({ hp: 1_000, maxHp: 1_000, isBoss: true })),
+      activeEffects: [{ ...effect, remainingRounds: 1 }],
+    });
+    expect(expiringActions.some((candidate) => candidate.skillId === "guard_stance")).toBe(false);
   });
 
-  it("uses the balanced reserve and releases it in the boss room", () => {
-    const actor = hero({ activeSkills: ["heavy_blow"] });
+  it("reserves one priority recovery action and releases it in the boss room", () => {
+    const actor = hero({ activeSkills: ["heavy_blow", "minor_heal"] });
     const firstRoom = deriveManaReserve(context(actor));
     const bossRoom = deriveManaReserve({ ...context(actor), room: 5 });
-    expect(firstRoom).toBe(7);
+    expect(firstRoom).toBe(24);
     expect(bossRoom).toBe(0);
   });
 
-  it("increases the reserve while approaching the boss", () => {
-    const actor = hero({ activeSkills: ["heavy_blow"] });
+  it("keeps the reserve tied to an action cost instead of room progress", () => {
+    const actor = hero({ activeSkills: ["minor_heal"] });
     const early = deriveManaReserve({ ...context(actor), room: 1, finalRoom: 10 });
     const late = deriveManaReserve({ ...context(actor), room: 9, finalRoom: 10 });
-    expect(late).toBeGreaterThan(early);
+    expect(early).toBe(24);
+    expect(late).toBe(24);
   });
 
   it("compares elemental skills after the monster resistances", () => {
@@ -124,7 +131,7 @@ describe("deterministic combat tactics", () => {
     const resistant = monster({
       hp: 500,
       maxHp: 500,
-      magicDef: 0,
+      magicDef: 20,
       resistances: { fire: 90, earth: 0 },
     });
     expect(chooseHeroAction({ ...context(actor, resistant), room: 5 })).toMatchObject({
@@ -229,6 +236,61 @@ describe("deterministic combat tactics", () => {
       room: 5,
     });
     expect(chosen.kind).toBe("normal_attack");
+  });
+
+  it("uses an ordinary debuff when its projected HP swing beats the skipped attack", () => {
+    const support = hero({ activeSkills: ["discordant_chord"], currentMana: 100 });
+    const chosen = chooseHeroAction(context(
+      support,
+      monster({ hp: 1_000, maxHp: 1_000, atk: 50, def: 100 }),
+    ));
+    expect(chosen).toMatchObject({
+      kind: "skill",
+      skillId: "discordant_chord",
+      reason: "useful_combat_debuff",
+    });
+    expect(chosen.value).toBeLessThan(chosen.manaCost);
+  });
+
+  it("uses an ordinary party buff early enough to benefit later turns", () => {
+    const support = hero({ id: "support", activeSkills: ["inspiring_song"], currentMana: 100 });
+    const allies = [1, 2, 3].map((index) => hero({
+      id: `ally-${index}`,
+      calculatedStats: { ...hero().calculatedStats, physicalDamage: 100 },
+    }));
+    expect(chooseHeroAction(context(
+      support,
+      monster({ hp: 2_000, maxHp: 2_000, def: 0 }),
+      [support, ...allies],
+    ))).toMatchObject({
+      kind: "skill",
+      skillId: "inspiring_song",
+      reason: "useful_combat_buff",
+    });
+  });
+
+  it("does not double-reserve a support spell but preserves a distinct heal", () => {
+    const allies = [1, 2, 3].map((index) => hero({
+      id: `ally-${index}`,
+      calculatedStats: { ...hero().calculatedStats, physicalDamage: 100 },
+    }));
+    const enough = hero({
+      id: "support",
+      activeSkills: ["inspiring_song", "minor_heal"],
+      currentMana: 80,
+    });
+    const tooLow = { ...enough, currentMana: 79 };
+    const enemy = monster({ hp: 2_000, maxHp: 2_000, def: 0 });
+
+    expect(deriveManaReserve(context(enough), "inspiring_song")).toBe(24);
+    expect(chooseHeroAction(context(enough, enemy, [enough, ...allies])).skillId).toBe("inspiring_song");
+    expect(chooseHeroAction(context(tooLow, enemy, [tooLow, ...allies])).kind).toBe("normal_attack");
+  });
+
+  it("rejects support when the fight ends in the current round", () => {
+    const support = hero({ activeSkills: ["discordant_chord"], currentMana: 100 });
+    expect(chooseHeroAction(context(support, monster({ hp: 1, maxHp: 1 }))))
+      .toMatchObject({ kind: "normal_attack", reason: "normal_attack_lethal" });
   });
 
   it("uses provocation only when the caster can protect a threatened ally", () => {

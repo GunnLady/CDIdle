@@ -1,7 +1,7 @@
 ---
 id: CDI-073
 title: Rendre immediatement disponible un citoyen immigre
-status: Doing
+status: Done
 area: fullstack
 priority: P2
 size: S
@@ -76,17 +76,17 @@ l optimisation generale CDI-071 et ne la bloque pas.
 
 ## Criteres d'acceptation
 
-- [ ] La fin d immigration declenche une reconciliation canonique sans attendre
+- [x] La fin d immigration declenche une reconciliation canonique sans attendre
       le heartbeat periodique suivant.
-- [ ] Le citoyen devient affectable immediatement apres la reponse serveur.
-- [ ] Aucun citoyen canonique n est cree ou affecte localement avant le commit.
-- [ ] Un seul appel utile est emis lorsqu un seuil est franchi.
-- [ ] Un bootstrap ou une commande concurrente ne provoque ni perte ni double
+- [x] Le citoyen devient affectable immediatement apres la reponse serveur.
+- [x] Aucun citoyen canonique n est cree ou affecte localement avant le commit.
+- [x] Un seul appel utile est emis lorsqu un seuil est franchi.
+- [x] Un bootstrap ou une commande concurrente ne provoque ni perte ni double
       immigration.
-- [ ] Seul l onglet maitre declenche ; les observateurs recoivent le meme etat.
-- [ ] Une coupure reseau conserve la projection puis reconcilie exactement au
+- [x] Seul l onglet maitre declenche ; les observateurs recoivent le meme etat.
+- [x] Une coupure reseau conserve la projection puis reconcilie exactement au
       retour.
-- [ ] Taux, capacite, progression residuelle, revision et invariants citoyens
+- [x] Taux, capacite, progression residuelle, revision et invariants citoyens
       restent inchanges.
 
 ## Tests
@@ -108,6 +108,9 @@ verifier que le citoyen devient affectable apres la reconciliation immediate
 sans attendre le prochain heartbeat. Refaire avec deux onglets et une courte
 coupure reseau.
 
+Validation alpha rapportee par l utilisateur le 2026-08-05 : le citoyen est
+devenu disponible correctement apres la fin de l immigration.
+
 ## Preservation
 
 - Preserver l autorite serveur et l absence de mutation canonique locale.
@@ -125,3 +128,6 @@ coupure reseau.
 
 Fournir la cause mesuree, le declencheur retenu, la preuve de deduplication et
 les validations seuil exact, multi-seuils, multi-onglets et reconnexion.
+
+Cloture : implementation publiee au commit `2a8044a`, frontend deploye et
+comportement alpha confirme par l utilisateur le 2026-08-05.

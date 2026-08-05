@@ -729,13 +729,21 @@ export function rollWeaponDamage(weapon: WeaponItemInfo | null, rng: Rng = syste
   return rng.nextInt(max - min + 1) + min;
 }
 
+function applyMonsterMitigation(
+  damage: number,
+  defense: number,
+): number {
+  return Math.max(1, damage - defense);
+}
+
+function getMonsterDefenseAgainstDamageType(damageType: DamageType, monster: Monster): number {
+  if (damageType === "physical") return monster.def;
+  const affinityPercent = monster.resistances?.[damageType as ElementalDamageType] ?? 0;
+  return Math.max(0, Math.round(monster.magicDef * (1 + affinityPercent / 100)));
+}
+
 export function applyMonsterDefenseOrResistance(damage: number, damageType: DamageType, monster: Monster): number {
-  if (damageType === "physical") {
-    return Math.max(1, damage - monster.def);
-  } else {
-    const resPercent = monster.resistances?.[damageType as ElementalDamageType] ?? 0;
-    return Math.max(1, Math.floor(damage * (1 - resPercent / 100)));
-  }
+  return applyMonsterMitigation(damage, getMonsterDefenseAgainstDamageType(damageType, monster));
 }
 
 export function applySplitDamageDefenseOrResistance(
@@ -751,11 +759,31 @@ export function applySplitDamageDefenseOrResistance(
   }
 
   const splitDamage = damage / damageTypes.length;
+  const physicalTypeCount = damageTypes.filter((damageType) => damageType === "physical").length;
+  const magicalTypeCount = damageTypes.length - physicalTypeCount;
   const totalDamage = damageTypes.reduce(
-    (total, damageType) => total + applyMonsterDefenseOrResistance(splitDamage, damageType, monster),
+    (total, damageType) => {
+      // A defense pool is shared by damage parts from the same family. This keeps
+      // adding a second elemental tag from applying magicDef twice to one strike.
+      const familyTypeCount = damageType === "physical" ? physicalTypeCount : magicalTypeCount;
+      const defense = getMonsterDefenseAgainstDamageType(damageType, monster) / familyTypeCount;
+      return total + applyMonsterMitigation(splitDamage, defense);
+    },
     0
   );
   return Math.max(1, Math.round(totalDamage));
+}
+
+export function getHeroDefenseAgainstDamageType(
+  baseStats: CalculatedStats,
+  effectiveStats: CalculatedStats,
+  damageType: DamageType,
+): number {
+  if (damageType === "physical") return effectiveStats.physicalDefense;
+  const elementalDefense = baseStats.resistances[damageType as ElementalDamageType]
+    ?? baseStats.magicDefense;
+  const temporaryMagicDefenseDelta = effectiveStats.magicDefense - baseStats.magicDefense;
+  return Math.max(0, elementalDefense + temporaryMagicDefenseDelta);
 }
 
 
