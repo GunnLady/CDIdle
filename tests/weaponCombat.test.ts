@@ -109,6 +109,45 @@ describe("weapon-specific scaling", () => {
     expect(experimentalSpear.attackProfile).toEqual(dualWieldProfile);
   });
 
+  it("defines magical instruments as WIZ two-handed weapons", () => {
+    for (const itemId of ["basic_lute", "resonant_harp"]) {
+      const instrument = ITEM_LIBRARY.find((item) => item.id === itemId);
+
+      expect(instrument).toMatchObject({
+        itemType: "weapon",
+        scaling: { category: "magic", stat: "wiz" },
+        attackProfile: twoHandedProfile,
+      });
+      expect(getItemHandedness(instrument!)).toBe("two_handed");
+    }
+  });
+
+  it("migrates a historical instrument off-hand back to storage", () => {
+    const hero = makeHero({
+      id: "legacy-aede",
+      level: 10,
+      equipment: {
+        mainHand: { instanceId: "legacy-lute", itemId: "basic_lute", rarity: "common" },
+        offHand: { instanceId: "legacy-shield", itemId: "wooden_shield", rarity: "common" },
+      },
+    });
+
+    const migrated = migrateTownState({ ...initialTownState(), heroes: [hero] });
+    const migratedHero = migrated.heroes[0];
+
+    expect(migratedHero.equipment?.mainHand?.itemId).toBe("basic_lute");
+    expect(migratedHero.equipment?.offHand).toBeUndefined();
+    expect(migrated.storedItems).toContainEqual(expect.objectContaining({
+      instanceId: "legacy-shield",
+      itemId: "wooden_shield",
+    }));
+    expect(migratedHero.calculatedStats).toEqual(calculateAuthoritativeHeroStats(
+      migratedHero.baseStats,
+      migratedHero.passiveSkills,
+      migratedHero.equipment,
+    ));
+  });
+
   it("resolves physical and magical hero power from the equipped weapon", () => {
     const finesse = calculateAuthoritativeHeroStats(attributes, [], {
       mainHand: { itemId: "quick_dagger", rarity: "common" },

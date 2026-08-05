@@ -20,6 +20,7 @@ const storedItems = [
   { instanceId: "simulation-sword", itemId: "basic_sword", rarity: "common" as const },
   { instanceId: "simulation-shield", itemId: "wooden_shield", rarity: "common" as const },
   { instanceId: "simulation-spear", itemId: "basic_spear", rarity: "common" as const },
+  { instanceId: "simulation-lute", itemId: "basic_lute", rarity: "common" as const },
   { instanceId: "simulation-gauntlets", itemId: "basic_gauntlets", rarity: "common" as const },
 ];
 
@@ -100,6 +101,17 @@ describe("weapon profile integration simulation", () => {
       expect.objectContaining({ instanceId: "simulation-shield" }),
     ]));
     expect(twoHanded.calculatedStats).toEqual(getHeroStats(twoHanded));
+
+    current = unequip(current, hero.id, "mainHand");
+    current = equip(current, hero.id, "simulation-shield");
+    current = equip(current, hero.id, "simulation-lute");
+    const instrument = heroFrom(current);
+    expect(instrument.equipment?.mainHand?.itemId).toBe("basic_lute");
+    expect(instrument.equipment?.offHand).toBeUndefined();
+    expect(instrument.calculatedStats).toEqual(getHeroStats(instrument));
+    expect(current.storedItems).toEqual(expect.arrayContaining([
+      expect.objectContaining({ instanceId: "simulation-shield" }),
+    ]));
 
     current = unequip(current, hero.id, "mainHand");
     current = equip(current, hero.id, "simulation-shield");

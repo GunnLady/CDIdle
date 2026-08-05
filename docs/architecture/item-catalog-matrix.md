@@ -44,8 +44,8 @@ Ne pas modifier manuellement. Nombre de modèles : **131**.
 | focused_wand | Baguette de focalisation | weapon | wand | mainHand | one_handed | magic | int | 20 | uncommon | chest, boss, forge | oui |
 | basic_spellbook | Grimoire simple | weapon | spellbook | mainHand | one_handed | magic | int | 10 | common | chest, boss, forge, vocation | oui |
 | arcane_spellbook | Grimoire arcanique | weapon | spellbook | mainHand | one_handed | magic | int | 20 | uncommon | chest, boss, forge | oui |
-| basic_lute | Luth | weapon | instrument | mainHand | one_handed | magic | wiz | 10 | common | chest, boss, forge, vocation | oui |
-| resonant_harp | Harpe résonante | weapon | instrument | mainHand | one_handed | magic | wiz | 20 | uncommon | chest, boss, forge | oui |
+| basic_lute | Luth | weapon | instrument | mainHand | two_handed | magic | wiz | 10 | common | chest, boss, forge, vocation | oui |
+| resonant_harp | Harpe résonante | weapon | instrument | mainHand | two_handed | magic | wiz | 20 | uncommon | chest, boss, forge | oui |
 | basic_bo | Bô | weapon | bo | mainHand | two_handed | power | str | 10 | common | chest, boss, forge, vocation | oui |
 | balanced_bo | Bô équilibré | weapon | bo | mainHand | two_handed | power | str | 20 | uncommon | chest, boss, forge | oui |
 | basic_gauntlets | Gantelets | weapon | gauntlets | mainHand | dual_wield | power | str | 10 | common | chest, boss, forge, vocation | oui |
@@ -180,8 +180,8 @@ Le DPS est normalisé par cycle d'attaque, avant défense et résistances.
 | focused_wand | magic | int | uncommon | 20 | one_handed | 14-23 | 1.3 | 1 | 1 | 37 | 48 | 9 | 103.20 |
 | basic_spellbook | magic | int | common | 10 | one_handed | 4-9 | 1 | 1 | 1 | 32 | 40 | 9 | 56.29 |
 | arcane_spellbook | magic | int | uncommon | 20 | one_handed | 15-27 | 1 | 1 | 1 | 39 | 40 | 15 | 90.25 |
-| basic_lute | magic | wiz | common | 10 | one_handed | 3-7 | 1.1 | 1 | 1 | 31 | 40 | 9 | 56.40 |
-| resonant_harp | magic | wiz | uncommon | 20 | one_handed | 12-21 | 1.15 | 1 | 1 | 36 | 46 | 9 | 88.29 |
+| basic_lute | magic | wiz | common | 10 | two_handed | 3-7 | 1.1 | 1 | 1.25 | 31 | 40 | 9 | 67.36 |
+| resonant_harp | magic | wiz | uncommon | 20 | two_handed | 12-21 | 1.15 | 1 | 1.25 | 36 | 46 | 9 | 103.43 |
 | basic_bo | power | str | common | 10 | two_handed | 5-9 | 1.1 | 1 | 1.25 | 28 | 43 | 9 | 67.12 |
 | balanced_bo | power | str | uncommon | 20 | two_handed | 15-26 | 1.15 | 1 | 1.25 | 36 | 48 | 9 | 111.53 |
 | basic_gauntlets | power | str | common | 10 | dual_wield | 7-12 | 1.9 | 2 | 0.65 | 32 | 40 | 9 | 70.85 |
@@ -206,11 +206,11 @@ Le DPS est normalisé par cycle d'attaque, avant défense et résistances.
 |---|---:|---|---:|---:|---:|---:|
 | common | 1 | one_handed | 3 | 45.33 | 44.81 | 49.31 |
 | common | 10 | dual_wield | 2 | 70.52 | 70.18 | 70.85 |
-| common | 10 | one_handed | 9 | 55.28 | 48.87 | 61.82 |
-| common | 10 | two_handed | 10 | 65.31 | 61.27 | 69.79 |
+| common | 10 | one_handed | 8 | 55.05 | 48.87 | 61.82 |
+| common | 10 | two_handed | 11 | 65.86 | 61.27 | 69.79 |
 | uncommon | 20 | dual_wield | 5 | 115.43 | 114.53 | 117.89 |
-| uncommon | 20 | one_handed | 8 | 90.19 | 83.57 | 103.20 |
-| uncommon | 20 | two_handed | 3 | 111.53 | 103.79 | 118.08 |
+| uncommon | 20 | one_handed | 7 | 90.25 | 83.57 | 103.20 |
+| uncommon | 20 | two_handed | 4 | 107.66 | 103.43 | 118.08 |
 | uncommon | 21 | dual_wield | 1 | 132.54 | 132.54 | 132.54 |
 | uncommon | 21 | two_handed | 3 | 108.76 | 103.70 | 112.83 |
 | uncommon | 22 | one_handed | 1 | 90.66 | 90.66 | 90.66 |

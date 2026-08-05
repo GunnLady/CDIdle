@@ -116,7 +116,7 @@ export const WEAPON_INFO_LIST: WeaponInfo[] = [
   {
     id: "instrument",
     name: "Instrument",
-    handedness: "one_handed",
+    handedness: "two_handed",
     description: "Arme de soutien sonore utilisée pour renforcer les alliés ou affaiblir les ennemis.",
     damageTypes: ["sound"]
   },

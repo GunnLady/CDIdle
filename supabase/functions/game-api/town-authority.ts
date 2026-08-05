@@ -443,6 +443,33 @@ function migrateHeroWithDerivedStats(input: unknown): unknown {
   };
 }
 
+function migrateInstrumentToTwoHands(input: unknown, storedItems: unknown): unknown {
+  if (!input || typeof input !== "object" || Array.isArray(input)) return input;
+  const hero = input as Record<string, unknown>;
+  if (!hero.equipment || typeof hero.equipment !== "object" || Array.isArray(hero.equipment)) return input;
+  const equipment = hero.equipment as Record<string, unknown>;
+  if (!equipment.mainHand || typeof equipment.mainHand !== "object" || Array.isArray(equipment.mainHand)) return input;
+  if (!equipment.offHand || typeof equipment.offHand !== "object" || Array.isArray(equipment.offHand)) return input;
+  const mainHandId = (equipment.mainHand as Record<string, unknown>).itemId;
+  const mainHand = typeof mainHandId === "string" ? getItemById(mainHandId) : undefined;
+  if (!mainHand || mainHand.itemType !== "weapon" || mainHand.weaponTypeId !== "instrument") return input;
+
+  const offHand = equipment.offHand as Record<string, unknown>;
+  if (Array.isArray(storedItems)) {
+    const instanceId = offHand.instanceId;
+    const alreadyStored = typeof instanceId === "string"
+      && storedItems.some((entry) => (
+        !!entry
+        && typeof entry === "object"
+        && !Array.isArray(entry)
+        && (entry as Record<string, unknown>).instanceId === instanceId
+      ));
+    if (!alreadyStored) storedItems.push({ ...offHand });
+  }
+  const { offHand: _displacedOffHand, ...remainingEquipment } = equipment;
+  return { ...hero, equipment: remainingEquipment };
+}
+
 export function migrateTownState(current: Record<string, unknown>, legacySeed?: number): TownState {
   const defaults = initialTownState();
   const mergeMap = <T extends object>(fallback: T, value: unknown): T | unknown =>
@@ -451,8 +478,14 @@ export function migrateTownState(current: Record<string, unknown>, legacySeed?: 
       : value !== null && typeof value === "object" && !Array.isArray(value)
         ? { ...fallback, ...(value as Record<string, unknown>) }
         : value;
+  const migratedStoredItems = Array.isArray(current.storedItems)
+    ? current.storedItems.map((entry) => entry && typeof entry === "object" && !Array.isArray(entry) ? { ...entry } : entry)
+    : current.storedItems ?? defaults.storedItems;
+  const migrateHero = (hero: unknown) => migrateHeroWithDerivedStats(
+    migrateInstrumentToTwoHands(hero, migratedStoredItems),
+  );
   const migratedHeroes = Array.isArray(current.heroes)
-    ? current.heroes.map(migrateHeroWithDerivedStats)
+    ? current.heroes.map(migrateHero)
     : current.heroes ?? defaults.heroes;
   const migrated = reconcileExistingVocations({
     ...defaults,
@@ -461,11 +494,12 @@ export function migrateTownState(current: Record<string, unknown>, legacySeed?: 
     buildings: mergeMap(defaults.buildings, current.buildings),
     citizens: mergeMap(defaults.citizens, current.citizens),
     heroes: migratedHeroes,
+    storedItems: migratedStoredItems,
     onboardingCandidates: Array.isArray(current.onboardingCandidates)
-      ? current.onboardingCandidates.map(migrateHeroWithDerivedStats)
+      ? current.onboardingCandidates.map(migrateHero)
       : current.onboardingCandidates,
     pendingRecruit: current.pendingRecruit
-      ? migrateHeroWithDerivedStats(current.pendingRecruit)
+      ? migrateHero(current.pendingRecruit)
       : current.pendingRecruit,
     itemBlueprints: Array.isArray(current.itemBlueprints) && current.itemBlueprints.length > 0
       ? current.itemBlueprints
