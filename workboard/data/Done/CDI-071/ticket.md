@@ -1,7 +1,7 @@
 ---
 id: CDI-071
 title: Reduire la latence du bootstrap canonique
-status: Doing
+status: Done
 area: fullstack
 priority: P1
 size: M
@@ -75,18 +75,18 @@ optimistes livrees par CDI-070.
 
 ## Criteres d'acceptation
 
-- [ ] Une baseline detaillee existe pour chaque phase du bootstrap.
-- [ ] Les declencheurs de bootstrap sont inventories et justifies.
-- [ ] Les appels redondants ou inutilement concurrents sont supprimes.
-- [ ] Le temps avant interface utilisable et la latence totale sont ameliores
+- [x] Une baseline detaillee existe pour chaque phase du bootstrap.
+- [x] Les declencheurs de bootstrap sont inventories et justifies.
+- [x] Les appels redondants ou inutilement concurrents sont supprimes.
+- [x] Le temps avant interface utilisable et la latence totale sont ameliores
       sur l alpha distante.
-- [ ] Un budget de latence est defini et verifie automatiquement lorsque cela
+- [x] Un budget de latence est defini et verifie automatiquement lorsque cela
       est reproductible.
-- [ ] F5, demarrage a froid, heartbeat, reconnexion, conflit et changement d
+- [x] F5, demarrage a froid, heartbeat, reconnexion, conflit et changement d
       onglet conservent un etat canonique exact.
-- [ ] Cache absent, cache disponible et backend lent possedent un comportement
+- [x] Cache absent, cache disponible et backend lent possedent un comportement
       explicite et teste.
-- [ ] Aucun affaiblissement de revision, idle, erreurs ou mode observateur n
+- [x] Aucun affaiblissement de revision, idle, erreurs ou mode observateur n
       est introduit.
 
 ## Tests
@@ -125,6 +125,11 @@ revision canonique courante.
 
 ## Handoff
 
-Fournir la decomposition des latences, les declencheurs inventories, les
-mesures avant/apres locales et distantes, le budget retenu et les preuves de
-non-regression de l autorite canonique.
+Validation alpha du 2026-08-05 : cache confirme utilisable en 21,5 ms pour un
+budget de 100 ms, attente de file 0,2 ms, application frontend 4,7 ms, reseau
+516,5 ms et traitement serveur 106,4 ms (chargement 54,7 ms, idle 0,7 ms,
+commit 50,9 ms). Le cache rend donc l interface consultable avant la fin du
+bootstrap sans deverrouiller les mutations. Les simulations, la suite complete
+de 535 tests, les seuils de couverture, le garde deterministe, le lint, le
+typecheck et le build utilisateur sont valides. Backend et frontend alpha ont
+ete deployes par l utilisateur.
