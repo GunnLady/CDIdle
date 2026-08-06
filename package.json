@@ -54,6 +54,7 @@
     "lint": "eslint src tests",
     "test": "vitest",
     "test:dungeon-simulation": "vitest run tests/dungeonRulesSimulation.test.ts tests/dungeonEncounterRules.test.ts --reporter=verbose",
+    "test:dungeon-challenge-simulation": "vitest run tests/dungeonChallengeRules.test.ts tests/dungeonChallengeSimulation.test.ts tests/dungeonChallengeAuthoritative.test.ts --reporter=verbose",
     "test:weapon-simulation": "vitest run tests/weaponProfilesSimulation.test.tsx --reporter=verbose",
     "test:state-simulation": "vitest run tests/canonicalStateCompatibilitySimulation.test.ts --reporter=verbose",
     "test:bootstrap-simulation": "vitest run tests/bootstrapLatencySimulation.test.ts --reporter=verbose",

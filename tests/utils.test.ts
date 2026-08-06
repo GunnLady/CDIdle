@@ -13,13 +13,9 @@ import {
   refreshHeroDerivedStats,
 } from "../src/utils/gameCalculations";
 import {
-  getEncounterDetails,
-  getEncounterStatPresentation,
   getRandomDungeonEncounterType,
   rollEncounterForgeMaterial,
-  selectBestHeroForEncounter,
 } from "../src/utils/dungeonHelpers";
-import type { Hero } from "../src/types";
 import { getBuildingMaxLevel } from "../src/data/buildings";
 import { CLASS_INFO_LIST } from "../src/data/heroes";
 import { makeCitizens, makeHero, makeStoredItem } from "./fixtures/game";
@@ -29,25 +25,6 @@ import { addHeroExperience, canActivateHero, dismissHero, growHeroStats, recruit
 import { assignTier1Skills } from "../src/domain/tier1ClassTransition";
 import { applyHeroProgression } from "../src/domain/heroProgression";
 import { applyClassTransition, resolveClassTransition } from "../src/domain/classTransition";
-
-const hero = (id: string, strength: number, agility: number): Hero => ({
-  id,
-  name: id,
-  race: "Humain",
-  isActive: true,
-  baseStats: {
-    str: strength,
-    agi: agility,
-    end: 1,
-    int: 1,
-    wiz: 1,
-    dex: 1,
-    luk: 1,
-  },
-  equipment: { mainHand: null, offHand: null, armor: null, accessory: null },
-  passiveSkills: [],
-  activeSkills: [],
-} as unknown as Hero);
 
 describe("gameCalculations", () => {
   it("respecte les niveaux maximums des batiments", () => {
@@ -405,29 +382,6 @@ describe("hero domain", () => {
 });
 
 describe("dungeonHelpers", () => {
-  it("derive les six presentations UI depuis les couples canoniques", () => {
-    const cases = [
-      ["trap", "agi", "dex", "AGI", "DEX"],
-      ["enigma", "int", "wiz", "INT", "SAG"],
-      ["ambush", "agi", "luk", "AGI", "CHA"],
-      ["ritual", "dex", "wiz", "DEX", "SAG"],
-      ["obstacle", "str", "agi", "FOR", "AGI"],
-      ["negotiation", "wiz", "luk", "SAG", "CHA"],
-    ] as const;
-    for (const [type, statA, statB, labelA, labelB] of cases) {
-      expect(getEncounterStatPresentation(type)).toMatchObject({ statA, statB, labelA, labelB });
-    }
-  });
-  it("retourne les statistiques attendues pour un piège", () => {
-    expect(getEncounterDetails("trap")).toMatchObject({ statA: "agi", statB: "dex" });
-  });
-
-  it("sélectionne le héros au meilleur score", () => {
-    const result = selectBestHeroForEncounter([hero("weak", 2, 2), hero("strong", 8, 7)], "str", "agi");
-    expect(result?.bestHero.id).toBe("strong");
-    expect(result?.bestScore).toBe(15);
-  });
-
   it("reste déterministe avec un aléatoire contrôlé", () => {
     vi.spyOn(Math, "random").mockReturnValue(0.1);
     expect(rollEncounterForgeMaterial(1)).toMatchObject({ materialId: "refined_metal", rarity: "uncommon" });

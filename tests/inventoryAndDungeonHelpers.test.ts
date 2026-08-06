@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getEncounterDetails, getEncounterStatPresentation, rollEncounterForgeMaterial, selectBestHeroForEncounter, applyLootModifiers } from "../src/utils/dungeonHelpers";
+import { rollEncounterForgeMaterial, applyLootModifiers } from "../src/utils/dungeonHelpers";
 import { SKILLS_LIBRARY } from "../src/data/skills";
 import { makeHero } from "./fixtures/game";
 
@@ -11,10 +11,6 @@ describe("inventory and dungeon helper edge cases", () => {
     expect(rollEncounterForgeMaterial(25, rng(0.1)).rarity).toBe("rare");
     expect(rollEncounterForgeMaterial(50, rng(0.1)).rarity).toBe("epic");
     expect(rollEncounterForgeMaterial(75, rng(0.1)).rarity).toBe("legendary");
-    expect(getEncounterDetails("trap")).not.toBeNull();
-    expect(getEncounterStatPresentation("trap")).toMatchObject({ statA: "agi", statB: "dex" });
-    expect(selectBestHeroForEncounter([], "str", "agi")).toBeNull();
-    expect(selectBestHeroForEncounter([makeHero({ id: "weak", baseStats: { str: 1, agi: 1, end: 1, int: 1, wiz: 1, dex: 1, luk: 1 } }), makeHero({ id: "strong", baseStats: { str: 9, agi: 9, end: 1, int: 1, wiz: 1, dex: 1, luk: 1 } })], "str", "agi")?.bestHero.id).toBe("strong");
   });
 
   it("applies only matching passive loot modifiers", () => {

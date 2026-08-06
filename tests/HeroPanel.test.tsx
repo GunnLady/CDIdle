@@ -33,6 +33,7 @@ describe("HeroPanel item instances", () => {
     />);
 
     expect(screen.getByText("DPS estimé")).toBeInTheDocument();
+    expect(screen.getByText("LUK")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: /équipement/i }));
     expect(screen.getByText("Scaling: Puissance (FOR)")).toBeInTheDocument();
     expect(screen.getByText("Profil: 1 coup × 100 % de puissance")).toBeInTheDocument();

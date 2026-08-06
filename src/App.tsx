@@ -47,6 +47,11 @@ import {
   type CanonicalGameState,
   type CanonicalPendingForge,
 } from "../shared/contracts/authoritative";
+import {
+  formatCanonicalHeroStatLabel,
+  isCanonicalHeroStat,
+  type CanonicalHeroStat,
+} from "../shared/domain/hero-stats.ts";
 import { formatCanonicalIdleReport } from "./domain/idleReport";
 import { projectCanonicalState } from "./domain/canonicalStateProjection";
 import { projectOptimisticCommands } from "./domain/optimisticStateProjection";
@@ -1939,19 +1944,11 @@ export default function App() {
       })()}
 
       {pendingRecruit && isAutomationLeader && (() => {
-        const STAT_LABELS: Record<string, string> = {
-          str: "Force (STR)",
-          wiz: "Sagesse (WIZ)",
-          agi: "Agilité (AGI)",
-          dex: "Dextérité (DEX)",
-          end: "Constitution (END)",
-          luk: "Chance (LUK)",
-          int: "Intelligence (INT)"
-        };
         const entries = Object.entries(pendingRecruit.baseStats || {}) as [string, number][];
-        const valid = entries.filter(([key]) => key in STAT_LABELS);
-        const bestEntry = valid.reduce((max, curr) => curr[1] > max[1] ? curr : max, valid[0] || ["str", 0]);
-        const worstEntry = valid.reduce((min, curr) => curr[1] < min[1] ? curr : min, valid[0] || ["str", 0]);
+        const valid = entries.filter((entry): entry is [CanonicalHeroStat, number] => isCanonicalHeroStat(entry[0]));
+        const fallback: [CanonicalHeroStat, number] = ["str", 0];
+        const bestEntry = valid.reduce((max, curr) => curr[1] > max[1] ? curr : max, valid[0] || fallback);
+        const worstEntry = valid.reduce((min, curr) => curr[1] < min[1] ? curr : min, valid[0] || fallback);
 
         return (
           <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-xs flex items-center justify-center p-4 font-sans select-none">
@@ -1998,7 +1995,7 @@ export default function App() {
                 <div className="flex justify-between items-center border-b border-[#302216]/40 pb-2">
                   <span className="uppercase text-[9px] tracking-wider font-bold text-[#8c5a2b]">Meilleur Attribut :</span>
                   <span className="font-extrabold text-emerald-400">
-                    {STAT_LABELS[bestEntry[0]]} ({bestEntry[1]})
+                    {formatCanonicalHeroStatLabel(bestEntry[0])} ({bestEntry[1]})
                   </span>
                 </div>
 
@@ -2006,7 +2003,7 @@ export default function App() {
                 <div className="flex justify-between items-center border-b border-[#302216]/40 pb-2">
                   <span className="uppercase text-[9px] tracking-wider font-bold text-[#8c5a2b]">Attribut Faible :</span>
                   <span className="font-extrabold text-red-400">
-                    {STAT_LABELS[worstEntry[0]]} ({worstEntry[1]})
+                    {formatCanonicalHeroStatLabel(worstEntry[0])} ({worstEntry[1]})
                   </span>
                 </div>
 

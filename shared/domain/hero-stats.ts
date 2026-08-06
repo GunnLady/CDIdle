@@ -16,6 +16,30 @@ export type CanonicalHeroBaseStats = {
   luk: number;
 };
 
+export type CanonicalHeroStat = keyof CanonicalHeroBaseStats;
+
+export const CANONICAL_HERO_STAT_PRESENTATION: Readonly<Record<CanonicalHeroStat, {
+  short: string;
+  name: string;
+}>> = {
+  str: { short: "FOR", name: "Force" },
+  agi: { short: "AGI", name: "Agilité" },
+  end: { short: "END", name: "Endurance" },
+  int: { short: "INT", name: "Intelligence" },
+  wiz: { short: "SAG", name: "Sagesse" },
+  dex: { short: "DEX", name: "Dextérité" },
+  luk: { short: "LUK", name: "Chance" },
+};
+
+export function isCanonicalHeroStat(value: string): value is CanonicalHeroStat {
+  return value in CANONICAL_HERO_STAT_PRESENTATION;
+}
+
+export function formatCanonicalHeroStatLabel(stat: CanonicalHeroStat): string {
+  const presentation = CANONICAL_HERO_STAT_PRESENTATION[stat];
+  return `${presentation.name} (${presentation.short})`;
+}
+
 export type CanonicalStatModifier = {
   stat: string;
   type: "flat" | "percent";

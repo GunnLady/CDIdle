@@ -162,4 +162,46 @@ describe("DungeonPanel authoritative encounter history", () => {
     expect(latestMessage.compareDocumentPosition(oldestMessage)
       & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
+
+  it("shows the authoritative non-combat calculation without recomputing it", () => {
+    const challengeEncounter: CanonicalDungeonEncounterRecord = {
+      ...encounter,
+      encounterId: "challenge-front",
+      kind: "trap",
+      enemy: null,
+      roundCount: 0,
+      transcript: [
+        {
+          sequence: 0,
+          type: "challenge.hero_selected",
+          message: "Probable est le héros le plus qualifié (AGI 44 + DEX 43 = 87, 80 % de réussite).",
+          heroId: "probable",
+          heroName: "Probable",
+          score: 87,
+          probabilityPercent: 80,
+        },
+        {
+          sequence: 1,
+          type: "challenge.attempted",
+          message: "Probable tente l'épreuve avec un jet de LUK compris entre 1 et 10.",
+          luck: 10,
+          difficulty: 90,
+        },
+      ],
+    };
+
+    render(
+      <DungeonPanel
+        {...props}
+        encounterHistory={[challengeEncounter]}
+        encounterPlayback={{ encounterId: challengeEncounter.encounterId, visibleCount: 2, complete: true }}
+        isExploring={false}
+      />,
+    );
+
+    expect(screen.getByText("Probable est le héros le plus qualifié (AGI 44 + DEX 43 = 87, 80 % de réussite)."))
+      .toBeInTheDocument();
+    expect(screen.getByText("Probable tente l'épreuve avec un jet de LUK compris entre 1 et 10."))
+      .toBeInTheDocument();
+  });
 });

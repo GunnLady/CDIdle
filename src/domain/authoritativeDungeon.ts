@@ -22,7 +22,6 @@ import {
   addItemToStorage,
   applyMonsterDefenseOrResistance,
   applySplitDamageDefenseOrResistance,
-  getHeroAttributes,
   getHeroDefenseAgainstDamageType,
   getHeroMainHandWeapon,
   getWeaponDamageTypes,
@@ -30,11 +29,17 @@ import {
 } from "../utils/gameCalculations.ts";
 import {
   applyLootModifiers,
-  getEncounterDetails,
   getRandomDungeonEncounterType,
   rollEncounterForgeMaterial,
-  selectBestHeroForEncounter,
 } from "../utils/dungeonHelpers.ts";
+import {
+  DUNGEON_CHALLENGE_DEFINITIONS,
+  getDungeonChallengeDifficulty,
+  rollDungeonChallenge,
+  selectBestDungeonChallengeCandidate,
+  type DungeonChallengeKind,
+} from "../../shared/domain/dungeon-challenges.ts";
+import { CANONICAL_HERO_STAT_PRESENTATION } from "../../shared/domain/hero-stats.ts";
 import type { Rng } from "./random.ts";
 import {
   applyHeroProgression,
@@ -159,20 +164,11 @@ function logExperienceAward(
     },
   );
   if (award.levels.length > 0) {
-    const statLabels: Record<keyof Hero["baseStats"], string> = {
-      str: "FOR",
-      agi: "AGI",
-      end: "END",
-      int: "INT",
-      wiz: "SAG",
-      dex: "DEX",
-      luk: "CHA",
-    };
-    const statGains = (Object.keys(statLabels) as (keyof Hero["baseStats"])[])
+    const statGains = (Object.keys(CANONICAL_HERO_STAT_PRESENTATION) as (keyof Hero["baseStats"])[])
       .map((stat) => ({ stat, amount: award.hero.baseStats[stat] - original.baseStats[stat] }))
       .filter(({ amount }) => amount > 0);
     const statSummary = statGains
-      .map(({ stat, amount }) => `${statLabels[stat]} +${amount}`)
+      .map(({ stat, amount }) => `${CANONICAL_HERO_STAT_PRESENTATION[stat].short} +${amount}`)
       .join(", ");
     const levelSummary = award.levels.length === 1
       ? `passe niveau ${award.hero.level}`
@@ -1035,47 +1031,62 @@ function resolveNonFight(
       return award.hero;
     });
   } else {
-    const details = getEncounterDetails(kind);
-    if (!details) throw new Error("UNSUPPORTED_DUNGEON_ENCOUNTER");
-    const selected = selectBestHeroForEncounter(active(), details.statA, details.statB);
+    if (!(kind in DUNGEON_CHALLENGE_DEFINITIONS)) throw new Error("UNSUPPORTED_DUNGEON_ENCOUNTER");
+    const details = DUNGEON_CHALLENGE_DEFINITIONS[kind as DungeonChallengeKind];
+    const difficulty = getDungeonChallengeDifficulty(floor, details.difficultyProfile);
+    const selected = selectBestDungeonChallengeCandidate(active(), details.statA, details.statB, difficulty);
     if (!selected) throw new Error("NO_ACTIVE_HERO");
-    const attributes = getHeroAttributes(selected.bestHero);
     const challengeHeroesBefore = clone(heroes);
-    const luck = Math.max(1, attributes.luk);
-    const luckRoll = rng.nextInt(Math.max(1, luck)) + 1;
-    const difficulty = 10 + floor * 2;
-    victory = luckRoll + selected.bestScore >= difficulty;
+    const challenge = rollDungeonChallenge(selected, difficulty, rng);
+    const luckRoll = challenge.luckRoll;
+    victory = challenge.success;
+    const statAValue = selected.hero.baseStats[details.statA];
+    const statBValue = selected.hero.baseStats[details.statB];
+    const probabilityPercent = Number((selected.successProbability * 100).toFixed(1));
     log(
       "encounter.started",
-      `La chambre ${room} impose l'épreuve « ${details.name} ». ${details.desc}`,
+      `La chambre ${room} impose l'épreuve « ${details.name} ». ${details.description}`,
       "info",
       {
         encounterName: details.name,
-        description: details.desc,
+        description: details.description,
       },
     );
     log(
       "challenge.hero_selected",
-      `${selected.bestHero.name} est le héros le plus qualifié (score ${selected.bestScore}).`,
+      `${selected.hero.name} est le héros le plus qualifié (`
+        + `${CANONICAL_HERO_STAT_PRESENTATION[details.statA].short} ${statAValue} + `
+        + `${CANONICAL_HERO_STAT_PRESENTATION[details.statB].short} ${statBValue} = ${selected.score}, `
+        + `${probabilityPercent} % de réussite).`,
       "info",
       {
-        heroId: selected.bestHero.id,
-        heroName: selected.bestHero.name,
-        score: selected.bestScore,
+        heroId: selected.hero.id,
+        heroName: selected.hero.name,
+        score: selected.score,
         primaryStat: details.statA,
         secondaryStat: details.statB,
+        primaryLabel: CANONICAL_HERO_STAT_PRESENTATION[details.statA].short,
+        secondaryLabel: CANONICAL_HERO_STAT_PRESENTATION[details.statB].short,
+        primaryValue: statAValue,
+        secondaryValue: statBValue,
+        luck: selected.luck,
+        successProbability: selected.successProbability,
+        probabilityPercent,
       },
     );
     log(
       "challenge.attempted",
-      `${selected.bestHero.name} prend les devants et tente de surmonter l'épreuve.`,
+      `${selected.hero.name} tente l'épreuve avec un jet de LUK compris entre 1 et ${selected.luck}.`,
       "info",
       {
-        heroId: selected.bestHero.id,
-        heroName: selected.bestHero.name,
-        score: selected.bestScore,
+        heroId: selected.hero.id,
+        heroName: selected.hero.name,
+        score: selected.score,
+        luck: selected.luck,
         luckRoll,
         difficulty,
+        successProbability: selected.successProbability,
+        probabilityPercent,
       },
     );
 
@@ -1107,28 +1118,29 @@ function resolveNonFight(
       }
       goldReward = applyLootModifiers("goldGain", goldReward, heroes);
       resources.gold = Number(resources.gold ?? 0) + goldReward;
-      log("challenge.succeeded", `Réussite : ${luckRoll} + ${selected.bestScore} ≥ ${difficulty}.`, "victory", {
-        heroId: selected.bestHero.id,
-        heroName: selected.bestHero.name,
+      log("challenge.succeeded", `Réussite : ${luckRoll} + ${selected.score} ≥ ${difficulty}.`, "victory", {
+        heroId: selected.hero.id,
+        heroName: selected.hero.name,
         luckRoll,
-        score: selected.bestScore,
+        score: selected.score,
         difficulty,
+        probabilityPercent,
       });
       const successMessages: Record<Exclude<DungeonEncounterType, "fight" | "treasure" | "rest">, string> = {
-        trap: `${selected.bestHero.name} désamorce le piège et sécurise la voie.`,
-        enigma: `${selected.bestHero.name} décrypte l'énigme et restaure l'énergie du groupe.`,
-        ambush: `${selected.bestHero.name} évente l'embuscade et contourne le danger.`,
-        ritual: `${selected.bestHero.name} harmonise le rituel runique.`,
-        obstacle: `${selected.bestHero.name} détruit l'obstacle et ouvre la voie.`,
-        negotiation: `${selected.bestHero.name} négocie un accord pacifique.`,
+        trap: `${selected.hero.name} désamorce le piège et sécurise la voie.`,
+        enigma: `${selected.hero.name} décrypte l'énigme et restaure l'énergie du groupe.`,
+        ambush: `${selected.hero.name} évente l'embuscade et contourne le danger.`,
+        ritual: `${selected.hero.name} harmonise le rituel runique.`,
+        obstacle: `${selected.hero.name} détruit l'obstacle et ouvre la voie.`,
+        negotiation: `${selected.hero.name} négocie un accord pacifique.`,
       };
       log(
         `challenge.${kind}.resolved`,
         successMessages[kind],
         "victory",
         {
-          heroId: selected.bestHero.id,
-          heroName: selected.bestHero.name,
+          heroId: selected.hero.id,
+          heroName: selected.hero.name,
           goldGained: goldReward,
           manaRestored: kind === "enigma" ? 15 : kind === "ritual" ? "20%-minimum-15" : 0,
           heroChanges: summarizeHeroChanges(challengeHeroesBefore, heroes),
@@ -1152,7 +1164,7 @@ function resolveNonFight(
       }
       const xp = Math.round(20 * (1 + (floor - 1) * 0.15));
       heroes = heroes.map((hero) => {
-        if (hero.id !== selected.bestHero.id) return hero;
+        if (hero.id !== selected.hero.id) return hero;
         const award = awardExperience(hero, xp, rng, source.buildings ?? {}, storedItems);
         storedItems = award.storedItems;
         appendPendingTransition(pendingClassTransitions, award);
@@ -1192,12 +1204,13 @@ function resolveNonFight(
             }
           : hero);
       }
-      log("challenge.failed", `Échec : ${luckRoll} + ${selected.bestScore} < ${difficulty}.`, "defeat", {
-        heroId: selected.bestHero.id,
-        heroName: selected.bestHero.name,
+      log("challenge.failed", `Échec : ${luckRoll} + ${selected.score} < ${difficulty}.`, "defeat", {
+        heroId: selected.hero.id,
+        heroName: selected.hero.name,
         luckRoll,
-        score: selected.bestScore,
+        score: selected.score,
         difficulty,
+        probabilityPercent,
       });
       const failureMessages: Record<Exclude<DungeonEncounterType, "fight" | "treasure" | "rest">, string> = {
         trap: "Le piège s'active : l'escouade perd jusqu'à 45 % de ses PV.",

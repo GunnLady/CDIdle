@@ -1,7 +1,7 @@
 ---
 id: CDI-075
 title: Reequilibrer les rencontres non-combat et le jet de chance
-status: Later
+status: Done
 area: domain
 priority: P1
 size: M
@@ -10,7 +10,7 @@ source: Audit du deroule et du calcul des rencontres non-combat du 2026-08-01
 depends_on: []
 blocks: []
 github_issue: null
-related_docs: ["docs/architecture/authoritative-dungeon-parity-audit.md", "src/domain/authoritativeDungeon.ts", "src/utils/dungeonHelpers.ts", "tests/authoritativeDungeonGolden.test.ts", "tests/utils.test.ts"]
+related_docs: ["docs/development/dungeon-challenge-simulation.md", "shared/domain/dungeon-challenges.ts", "shared/domain/hero-stats.ts", "src/domain/authoritativeDungeon.ts", "tests/dungeonChallengeRules.test.ts", "tests/dungeonChallengeSimulation.test.ts", "tests/dungeonChallengeAuthoritative.test.ts", "tests/DungeonPanel.test.tsx"]
 ---
 
 # CDI-075 - Reequilibrer les rencontres non-combat et le jet de chance
@@ -30,22 +30,54 @@ clairement pourquoi elle reussit ou echoue.
 
 ## Contexte
 
-Le calcul actuel additionne les deux attributs de l epreuve, choisit le heros
-au meilleur total, tire un entier entre `1` et sa valeur de `LUK`, puis compare
-le resultat a `10 + etage * 2`. Un heros avec `LUK 1` obtient donc toujours
-`+1` et un heros avec `LUK 2` seulement `+1` ou `+2`.
+L audit a confirme que la formule historique pouvait etre conservee a condition
+de corriger la courbe de difficulte et la selection du heros. Les decisions
+produit et leur implementation sont consolidees ci-dessous.
 
-A l etage 1, la difficulte vaut 12. Les scores 13 et 20 constates en jeu
-garantissent deja la reussite et rendent le jet sans effet. La difficulte ne
-depend pas de la salle. Pour Embuscade et Negociation, `LUK` entre dans le
-score puis determine aussi l amplitude du jet. Pour les autres epreuves, le
-choix du heros ignore sa chance reelle de reussite. Les bonus d attributs
-issus de l equipement ne participent pas au score, car seuls les attributs de
-base sont lus.
+## Decision produit consolidee
 
-La formule provient du prototype historique et a ete preservee pour la parite.
-Les tests actuels forcent une reussite et un echec, mais ne prouvent ni la
-courbe par etage, ni les distributions selon niveau, classe et `LUK`.
+La formule conserve le principe historique valide :
+
+```text
+score = attribut A + attribut B
+jet = entier uniforme entre 1 et LUK
+reussite si score + jet >= difficulte
+```
+
+Le double usage de `LUK` pour Embuscade et Negociation est intentionnel : la
+statistique participe a leur couple d attributs et fixe aussi l amplitude du
+jet. Les six rencontres declarent explicitement leur couple et leur profil de
+difficulte dans le domaine partage.
+
+Seuls les `baseStats` participent au calcul. Les bonus d equipement et les
+statistiques calculees restent exclus. La salle ne modifie pas le seuil.
+
+Jusqu a l etage 10, la difficulte vaut `10 + etage * 2`. Au-dela, elle est
+interpolee puis extrapolee selon les paliers valides :
+
+| Etage | Profil standard | Profil LUK |
+|---:|---:|---:|
+| 10 | 30 | 30 |
+| 20 | 90 | 65 |
+| 30 | 155 | 103 |
+| 40 | 220 | 141 |
+| 50 | 285 | 180 |
+
+Le heros retenu maximise sa probabilite exacte de reussite. Les egalites sont
+departagees par score, puis par `LUK`, puis par l ordre stable du groupe.
+
+## Realisation
+
+- Catalogue et calcul centralises dans `shared/domain/dungeon-challenges.ts`.
+- Libelles canoniques centralises dans `shared/domain/hero-stats.ts` :
+  `FOR`, `AGI`, `END`, `INT`, `SAG`, `DEX`, `LUK`.
+- Moteur autoritaire raccorde sans duplication de formule dans le front.
+- Transcript enrichi avec heros, attributs, score, `LUK`, probabilite, jet et
+  difficulte.
+- Un seul appel a `nextInt` est consomme pour la part aleatoire de l epreuve.
+- Anciens helpers de selection et de presentation devenus inutiles supprimes.
+- Simulation reutilisant directement le domaine de production et documentee
+  dans `docs/development/dungeon-challenge-simulation.md`.
 
 ## Perimetre autorise
 
@@ -97,22 +129,22 @@ doit rester coherent avec le catalogue autoritaire et les travaux objets.
 
 ## Criteres d'acceptation
 
-- [ ] Les six rencontres possedent un couple d attributs et une consequence
+- [x] Les six rencontres possedent un couple d attributs et une consequence
       explicitement valides.
-- [ ] Le role de `LUK` est unique, comprehensible et documente.
-- [ ] Aucun type de rencontre ne double-compte involontairement `LUK`.
-- [ ] Le meilleur heros est choisi selon le calcul reel de reussite.
-- [ ] Les sources d attributs retenues sont identiques entre calcul et UI.
-- [ ] La courbe de difficulte est validee aux etages bas, moyens et hauts.
-- [ ] Les probabilites restent interessantes pour plusieurs niveaux, classes
+- [x] Le role de `LUK` est unique, comprehensible et documente.
+- [x] Aucun type de rencontre ne double-compte involontairement `LUK`.
+- [x] Le meilleur heros est choisi selon le calcul reel de reussite.
+- [x] Les sources d attributs retenues sont identiques entre calcul et UI.
+- [x] La courbe de difficulte est validee aux etages bas, moyens et hauts.
+- [x] Les probabilites restent interessantes pour plusieurs niveaux, classes
       et compositions de groupe representatifs.
-- [ ] Les cas de reussite garantie et d echec impossible sont intentionnels
+- [x] Les cas de reussite garantie et d echec impossible sont intentionnels
       et bornes.
-- [ ] Le transcript explique chaque terme du calcul sans libelle `CHA`
+- [x] Le transcript explique chaque terme du calcul sans libelle `CHA`
       errone pour `LUK`.
-- [ ] Recompenses, consequences, XP et avancement apres echec correspondent
+- [x] Recompenses, consequences, XP et avancement apres echec correspondent
       aux decisions validees.
-- [ ] RNG, idempotence, F5 et replay restent canoniques.
+- [x] RNG, idempotence, F5 et replay restent canoniques.
 
 ## Tests
 
@@ -137,6 +169,22 @@ Avec une sauvegarde controlee, jouer chaque rencontre avec un groupe faible,
 adapte et surdimensionne sur plusieurs etages. Comparer les attributs visibles,
 le heros choisi, le jet, le seuil, la consequence et la recompense. Confirmer
 ensuite l etat apres F5 et le replay autoritaire de la commande.
+
+Cette manipulation longue est remplacee pour ce ticket par la simulation
+deterministe, les golden tests autoritaires et les tests d integration front.
+
+## Preuves de validation
+
+- `npm.cmd run typecheck` : succes.
+- `npm.cmd run lint` : succes.
+- `npm.cmd run check:determinism` : succes.
+- `npm.cmd run board:validate` : succes.
+- `npm.cmd test -- --run` : 66 fichiers et 572 tests reussis.
+- `npm.cmd run build` : succes rapporte par l utilisateur le 2026-08-06.
+- `git diff --check` : succes.
+- Simulation : six rencontres, neuf classes Tier 1, groupes faibles, adaptes
+  et avances, etages 10/20/30/40/50, bornes garanties et impossibles,
+  selection par probabilite et consommation d un unique jet RNG.
 
 ## Preservation
 

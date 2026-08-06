@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import LoginPage from "../src/components/LoginPage";
+import { makeHero } from "./fixtures/game";
 
 const authMocks = vi.hoisted(() => ({
   getAuthSnapshot: vi.fn(),
@@ -37,5 +38,22 @@ describe("LoginPage smoke", () => {
       "☁️ Connexion établie via Google avec succès !",
       "victory",
     );
+  });
+
+  it("shows canonical French stat abbreviations for novice selection", async () => {
+    render(
+      <LoginPage
+        authoritativeNovices={[makeHero({
+          baseStats: { str: 10, agi: 8, end: 7, int: 6, wiz: 1, dex: 5, luk: 4 },
+        })]}
+        pendingCityName="Test"
+        onGenerateStartingNovices={vi.fn().mockResolvedValue(true)}
+        onLoginSuccess={vi.fn().mockResolvedValue(true)}
+        addLog={vi.fn()}
+      />,
+    );
+
+    expect(await screen.findByText("▲ FOR (10)")).toBeInTheDocument();
+    expect(screen.getByText("▼ SAG (1)")).toBeInTheDocument();
   });
 });

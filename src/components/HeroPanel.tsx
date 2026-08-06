@@ -14,6 +14,10 @@ import { Hero, Resources, HeroEquipment, StoredItemInstance, Rarity, ItemInfo, M
 import { CLASS_INFO_LIST, RACE_INFO_LIST } from "../data/gameData";
 import { getSkillById } from "../data/skills";
 import { getItemById } from "../../shared/domain/items/items.ts";
+import {
+  CANONICAL_HERO_STAT_PRESENTATION,
+  type CanonicalHeroStat,
+} from "../../shared/domain/hero-stats.ts";
 import { getHeroAttributes, resolveEquippedItem, isMainHandTwoHanded, resolveWeaponDamageTypes, applyItemRarityScaling } from "../utils/gameCalculations";
 import HeroPortrait from "./HeroPortrait";
 import {
@@ -21,6 +25,13 @@ import {
   getWeaponAttackProfileLabel,
   getWeaponScalingLabel,
 } from "../domain/weaponPresentation";
+
+const PRIMARY_STAT_KEYS: readonly CanonicalHeroStat[] = ["str", "agi", "end", "int", "wiz", "dex", "luk"];
+const PRIMARY_STATS = PRIMARY_STAT_KEYS.map((key) => ({
+  key,
+  label: CANONICAL_HERO_STAT_PRESENTATION[key].short,
+  fullLabel: CANONICAL_HERO_STAT_PRESENTATION[key].name,
+}));
 
 function getTargetLabel(target?: string): string {
   if (!target) return "";
@@ -574,17 +585,6 @@ export default function HeroPanel({
               const xpPercent = Math.min(100, (hero.xp / hero.xpNeeded) * 100);
               const activeTab = heroActiveTabs[hero.id] || "overview";
 
-              // Setup 7 primary stats list
-              const primaryStats: { key: "str" | "agi" | "end" | "int" | "wiz" | "dex" | "luk"; label: string; fullLabel: string }[] = [
-                { key: "str", label: "FOR", fullLabel: "Force" },
-                { key: "agi", label: "AGI", fullLabel: "Agilité" },
-                { key: "end", label: "END", fullLabel: "Endurance" },
-                { key: "int", label: "INT", fullLabel: "Intelligence" },
-                { key: "wiz", label: "SAG", fullLabel: "Sagesse" },
-                { key: "dex", label: "DEX", fullLabel: "Dextérité" },
-                { key: "luk", label: "CHA", fullLabel: "Chance" }
-              ];
-
               return (
                 <div
                   key={hero.id}
@@ -762,7 +762,7 @@ export default function HeroPanel({
                             
                             {/* 7-Column Grid of Attributes */}
                             <div className="grid grid-cols-7 gap-1">
-                              {primaryStats.map(({ key, label, fullLabel }) => {
+                              {PRIMARY_STATS.map(({ key, label, fullLabel }) => {
                                 const val = attributes[key] || 0;
                                 const isMainStat = classBonus?.mainStats?.includes(key);
 

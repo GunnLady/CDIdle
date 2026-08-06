@@ -10,6 +10,11 @@ import {
   Edit2
 } from "lucide-react";
 import { Hero } from "../types";
+import {
+  CANONICAL_HERO_STAT_PRESENTATION,
+  isCanonicalHeroStat,
+  type CanonicalHeroStat,
+} from "../../shared/domain/hero-stats.ts";
 
 interface LoginPageProps {
   authoritativeNovices: Hero[];
@@ -198,19 +203,11 @@ export default function LoginPage({
                 ? "border-[#d4af37] bg-[#5c402b]/15 shadow-[0_0_15px_rgba(212,175,55,0.15)]" 
                 : "border-[#45301f] hover:border-[#ae8650]/65 bg-[#0f0a06]";
               
-              const STAT_LABELS: Record<string, string> = {
-                str: "Force (STR)",
-                wiz: "Sagesse (WIZ)",
-                agi: "Agilité (AGI)",
-                dex: "Dextérité (DEX)",
-                end: "Constitution (END)",
-                luk: "Chance (LUK)",
-                int: "Intelligence (INT)"
-              };
               const entries = Object.entries(hero.baseStats || {}) as [string, number][];
-              const valid = entries.filter(([key]) => key in STAT_LABELS);
-              const bestEntry = valid.reduce((max, curr) => curr[1] > max[1] ? curr : max, valid[0] || ["str", 0]);
-              const worstEntry = valid.reduce((min, curr) => curr[1] < min[1] ? curr : min, valid[0] || ["str", 0]);
+              const valid = entries.filter((entry): entry is [CanonicalHeroStat, number] => isCanonicalHeroStat(entry[0]));
+              const fallback: [CanonicalHeroStat, number] = ["str", 0];
+              const bestEntry = valid.reduce((max, curr) => curr[1] > max[1] ? curr : max, valid[0] || fallback);
+              const worstEntry = valid.reduce((min, curr) => curr[1] < min[1] ? curr : min, valid[0] || fallback);
 
               return (
                 <div 
@@ -273,13 +270,13 @@ export default function LoginPage({
                         <div className="text-center">
                           <span className="block text-[8px] text-stone-500 uppercase tracking-wider font-bold mb-0.5">Meilleur</span>
                           <span className="font-extrabold text-emerald-400 text-[11px]">
-                            ▲ {bestEntry[0].toUpperCase()} ({bestEntry[1]})
+                            ▲ {CANONICAL_HERO_STAT_PRESENTATION[bestEntry[0]].short} ({bestEntry[1]})
                           </span>
                         </div>
                         <div className="text-center border-l border-[#302216]/40">
                           <span className="block text-[8px] text-stone-500 uppercase tracking-wider font-bold mb-0.5">Faible</span>
                           <span className="font-extrabold text-rose-400 text-[11px]">
-                            ▼ {worstEntry[0].toUpperCase()} ({worstEntry[1]})
+                            ▼ {CANONICAL_HERO_STAT_PRESENTATION[worstEntry[0]].short} ({worstEntry[1]})
                           </span>
                         </div>
                       </div>

@@ -1,6 +1,5 @@
 import { Hero, DungeonEncounterType, Rarity, SkillInfo } from "../types.ts";
 import { SKILLS_LIBRARY } from "../data/gameData.ts";
-import { getHeroAttributes } from "./gameCalculations.ts";
 import type { Rng } from "../domain/random.ts";
 import { systemRng } from "../domain/random.ts";
 
@@ -102,100 +101,6 @@ export function getRandomDungeonEncounterType(
     }
   }
   return "fight";
-}
-
-export function getEncounterDetails(type: DungeonEncounterType) {
-  switch (type) {
-    case "trap":
-      return {
-        statA: "agi" as const,
-        statB: "dex" as const,
-        name: "Salle Piégée",
-        desc: "La pièce est truffée de plaques de pression, de fléchettes dissimulées et de dalles instables."
-      };
-    case "enigma":
-      return {
-        statA: "int" as const,
-        statB: "wiz" as const,
-        name: "Chambre des Énigmes",
-        desc: "Une porte scellée par un ancien mécanisme d'inscription runique magique bloque la voie."
-      };
-    case "ambush":
-      return {
-        statA: "agi" as const,
-        statB: "luk" as const,
-        name: "Embuscade Impromptue",
-        desc: "Des créatures rôdent dans l'ombre et s'apprêtent à surprendre l'escouade."
-      };
-    case "ritual":
-      return {
-        statA: "dex" as const,
-        statB: "wiz" as const,
-        name: "Autel de Rituel",
-        desc: "Un cercle runique et un cristal de mana instable vibrent d'une énergie occulte."
-      };
-    case "obstacle":
-      return {
-        statA: "str" as const,
-        statB: "agi" as const,
-        name: "Obstacle de Taille",
-        desc: "Un éboulement de pierres massives et une grille en fer rouillé bloquent le passage."
-      };
-    case "negotiation":
-      return {
-        statA: "wiz" as const,
-        statB: "luk" as const,
-        name: "Négociation Mystique",
-        desc: "Un esprit errant et un marchand suspect proposent un pacte mystérieux."
-      };
-    default:
-      return null;
-  }
-}
-
-const ENCOUNTER_STAT_LABELS = {
-  str: { short: "FOR", icon: "⚔️" },
-  agi: { short: "AGI", icon: "⚡" },
-  end: { short: "END", icon: "🛡️" },
-  int: { short: "INT", icon: "🧠" },
-  wiz: { short: "SAG", icon: "🔮" },
-  dex: { short: "DEX", icon: "🎯" },
-  luk: { short: "CHA", icon: "🍀" },
-} as const;
-
-export function getEncounterStatPresentation(type: DungeonEncounterType) {
-  const details = getEncounterDetails(type);
-  if (!details) return null;
-  const first = ENCOUNTER_STAT_LABELS[details.statA];
-  const second = ENCOUNTER_STAT_LABELS[details.statB];
-  return {
-    statA: details.statA,
-    statB: details.statB,
-    labelA: first.short,
-    labelB: second.short,
-    stats: `${first.icon} ${first.short} + ${second.icon} ${second.short}`,
-  };
-}
-
-export function selectBestHeroForEncounter(
-  slayers: Hero[],
-  statA: "str" | "agi" | "end" | "int" | "wiz" | "dex" | "luk",
-  statB: "str" | "agi" | "end" | "int" | "wiz" | "dex" | "luk"
-) {
-  if (slayers.length === 0) return null;
-  let bestHero = slayers[0];
-  let bestScore = -1;
-
-  slayers.forEach((hero) => {
-    const attrs = getHeroAttributes(hero);
-    const score = (attrs[statA] || 0) + (attrs[statB] || 0);
-    if (score > bestScore) {
-      bestScore = score;
-      bestHero = hero;
-    }
-  });
-
-  return { bestHero, bestScore };
 }
 
 export function applyLootModifiers(statKey: string, baseValue: number, partyHeroes: Hero[]): number {
