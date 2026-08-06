@@ -2,9 +2,9 @@ import {
   resolveAuthoritativeDungeonEncounter,
   type AuthoritativeDungeonEncounter,
   type AuthoritativeDungeonState,
-} from "../../../src/domain/authoritativeDungeon.ts";
-import type { Hero } from "../../../src/types.ts";
+} from "../../../shared/domain/authoritative-dungeon.ts";
 import type {
+  CanonicalHero as Hero,
   CanonicalGameState,
   CanonicalStateTransition,
 } from "../../../shared/contracts/authoritative.ts";

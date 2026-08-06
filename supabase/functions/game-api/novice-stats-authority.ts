@@ -3,7 +3,7 @@ import {
   type CanonicalHeroBaseStats,
   type CanonicalStatModifier,
 } from "../../../shared/domain/hero-stats.ts";
-import { getSkillById } from "../../../src/data/gameData.ts";
+import { getSkillById } from "../../../shared/data/game-data.ts";
 import { getItemById } from "../../../shared/domain/items/items.ts";
 import { applyItemRarityScaling, resolveItemModifiers } from "../../../shared/domain/items/scaling.ts";
 import type { WeaponOffensiveContext } from "../../../shared/domain/weapon-combat.ts";

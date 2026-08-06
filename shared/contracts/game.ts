@@ -1,0 +1,389 @@
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+import type { CanonicalHeroClass } from "../domain/hero-classes.ts";
+import type {
+  CanonicalWeaponAttackProfile,
+  CanonicalWeaponScaling,
+} from "../domain/items/types.ts";
+import type {
+  CanonicalCalculatedStats,
+  CanonicalCitizenAllocation,
+  CanonicalForgeMaterialStack,
+  CanonicalHero,
+  CanonicalItemBlueprint,
+  CanonicalPendingClassTransition,
+  CanonicalResources,
+  CanonicalStoredItemInstance,
+} from "./authoritative.ts";
+
+export type Resources = CanonicalResources;
+
+export interface ResourceRates {
+  food: number;
+  wood: number;
+  stone: number;
+  ore: number;
+}
+
+export interface Building {
+  id: string;
+  name: string;
+  description: string;
+  level: number;
+  category: "production" | "housing" | "military" | "social";
+  icon: string;
+  bonusPerLevel?: number;
+}
+
+export type CitizenAllocation = CanonicalCitizenAllocation;
+
+export type RaceType =
+ | "Humain" | "Elfe" | "Nain" | "Orc" | "Gobelin" | "Homme-Lézard" | "Tieffelin" | "Homme-Bête";
+
+export interface RaceInfo {
+  id: string;
+  name: RaceType;
+  description: string;
+}
+
+export type ClassTier = 0 | 1 | 2 | 3 | 4;
+
+export type ClassType = CanonicalHeroClass;
+
+
+
+export interface HeroStats {
+  str: number;
+  agi: number;
+  end: number;
+  int: number;
+  wiz: number;
+  dex: number;
+  luk: number;
+}
+
+export type ElementalDamageType = Exclude<DamageType, "physical">;
+export type DamageResistances = Record<ElementalDamageType, number>;
+
+export type CalculatedStats = CanonicalCalculatedStats;
+
+export interface ClassInfo {
+  type: ClassType;
+  name: string;
+  description: string;
+  tier: ClassTier;
+  color: string;
+  mainStats: ("str" | "agi" | "end" | "int" | "wiz" | "dex" | "luk")[];
+  activeSkills: string[];
+  passiveSkills: string[];
+  jobChangeBuildingId?: string;
+  mainDerivedStats?: (keyof CalculatedStats)[];
+}
+
+export type Hero = CanonicalHero;
+
+export interface PendingClassTransitionCandidate {
+  classType: ClassType;
+  affinity: number;
+}
+
+export type PendingClassTransition = CanonicalPendingClassTransition;
+
+export type MonsterSkillEffect =
+  | {
+      kind: "damage";
+      damageType: DamageType;
+      power: number;
+      hitCount?: number;
+    }
+  | {
+      kind: "debuff";
+      modifiers: Modifier[];
+      durationRounds: number;
+    }
+  | {
+      kind: "heal";
+      power: number;
+    };
+
+export interface MonsterSkill {
+  id: string;
+  name: string;
+  description: string;
+  target: SkillTarget;
+  manaCost?: number;
+  cooldownRounds?: number;
+  effect: MonsterSkillEffect;
+}
+
+export interface Monster {
+  id: string;
+  name: string;
+  hp: number;
+  maxHp: number;
+  atk: number;
+  damageType: DamageType;
+  def: number;
+  magicDef: number;
+  resistances?: Partial<Record<ElementalDamageType, number>>;
+  skills?: MonsterSkill[];
+  xpYield: number;
+  goldYield: number;
+  image: string;
+  isBoss: boolean;
+}
+
+export type DungeonEncounterType =
+  | "fight"
+  | "trap"
+  | "enigma"
+  | "ambush"
+  | "ritual"
+  | "obstacle"
+  | "negotiation"
+  | "treasure"
+  | "rest";
+
+export interface BattleLogEntry {
+  id: string;
+  timestamp: string;
+  message: string;
+  type: "info" | "combat-hero" | "combat-enemy" | "loot" | "victory" | "defeat";
+  category?: "dungeon" | "colony";
+}
+
+export type StoredItemInstance = CanonicalStoredItemInstance;
+
+export interface EquippedItemRef {
+  instanceId: string;
+  itemId: ItemInfo["id"];
+  rarity: Rarity;
+  modifiers?: Modifier[];
+}
+
+export type WeaponHandedness =
+  | "one_handed"
+  | "two_handed"
+  | "dual_wield";
+
+export interface WeaponInfo {
+  id: string;
+  name: string;
+  handedness: WeaponHandedness;
+  description: string;
+  damageRange?: {
+    min: number;
+    max: number;
+  };
+  attackSpeed?: number;
+  damageTypes?: DamageType[];
+  modifiers?: Modifier[];
+}
+
+
+export type OffHandCategory =
+  "shield" | "magic_focus" | "holy_focus" | "nature_focus";
+
+export interface OffHandInfo {
+  id: string;
+  name: string;
+  category: OffHandCategory;
+  description: string;
+  modifiers?: Modifier[];
+}
+
+
+export type ArmorCategory =
+  | "cloth_armor"
+  | "light_armor"
+  | "medium_armor"
+  | "heavy_armor"
+  | "magic_armor";
+
+export interface ArmorInfo {
+  id: string;
+  name: string;
+  category: ArmorCategory;
+  description: string;
+  modifiers: Modifier[];
+}
+
+
+export type AccessoryCategory =
+  | "ring"
+  | "amulet"
+  | "bracelet"
+  | "belt"
+  | "cloak"
+  | "charm";
+
+export interface AccessoryInfo {
+  id: string;
+  name: string;
+  category: AccessoryCategory;
+  description: string;
+  modifiers?: Modifier[];
+}
+
+
+export type ItemType =
+  | "weapon"
+  | "offhand"
+  | "armor"
+  | "accessory";
+
+export type Rarity =
+  | "common"
+  | "uncommon"
+  | "rare"
+  | "epic"
+  | "legendary";
+
+export interface ForgeMaterial {
+  id: string;
+  name: string;
+  rarity: Rarity;
+  description: string;
+}
+
+export type StoredForgeMaterialStack = CanonicalForgeMaterialStack;
+
+
+export type ItemBlueprint = CanonicalItemBlueprint;
+
+export interface DamageRange {
+  min: number;
+  max: number;
+}
+
+export interface BaseItemInfo {
+  id: string;
+  name: string;
+  itemType: ItemType;
+  rarity: Rarity;
+  minimumRarity: Rarity;
+  requiredLevel: number;
+  description: string;
+  modifiers?: Modifier[];
+  provenances: Array<"vocation" | "chest" | "boss" | "forge">;
+  blueprintAvailable: boolean;
+}
+
+export interface WeaponItemInfo extends BaseItemInfo {
+  itemType: "weapon";
+  weaponTypeId: WeaponInfo["id"];
+  scaling: CanonicalWeaponScaling;
+  attackProfile: CanonicalWeaponAttackProfile;
+  damageRange?: DamageRange;
+  attackSpeed?: number;
+  damageTypes?: DamageType[];
+}
+
+export interface OffHandItemInfo extends BaseItemInfo {
+  itemType: "offhand";
+  offHandTypeId: OffHandInfo["id"];
+}
+
+export interface ArmorItemInfo extends BaseItemInfo {
+  itemType: "armor";
+  armorTypeId: ArmorInfo["id"];
+}
+
+export interface AccessoryItemInfo extends BaseItemInfo {
+  itemType: "accessory";
+  accessoryTypeId: AccessoryInfo["id"];
+}
+
+export type ItemInfo =
+  | WeaponItemInfo
+  | OffHandItemInfo
+  | ArmorItemInfo
+  | AccessoryItemInfo;
+
+
+export interface HeroEquipment {
+  mainHand?: EquippedItemRef | null;
+  offHand?: EquippedItemRef | null;
+  armor?: EquippedItemRef | null;
+  accessory?: EquippedItemRef | null;
+}
+
+export type SkillTarget =
+  | "self"
+  | "single_enemy"
+  | "all_enemies"
+  | "single_ally"
+  | "all_allies";
+
+export type DamageType =
+  | "physical"
+  | "arcane"
+  | "fire"
+  | "ice"
+  | "water"
+  | "earth"
+  | "wind"
+  | "lightning"
+  | "holy"
+  | "dark"
+  | "nature"
+  | "sound"
+  | "poison"
+  | "blood"
+  | "radiant";
+
+export type ModifierType = "flat" | "percent";
+
+export interface Modifier {
+  stat: string;
+  type: ModifierType;
+  value: number;
+}
+
+export type SkillEffect =
+  | {
+      type: "damage";
+      damageType: DamageType;
+      scalingStat: string;
+      power: number;
+      hitCount: number;
+    }
+  | {
+      type: "buff";
+      durationRounds: number;
+      modifiers: Modifier[];
+    }
+  | {
+      type: "debuff";
+      durationRounds: number;
+      modifiers: Modifier[];
+    }
+  | {
+      type: "heal";
+      scalingStat: string;
+      power: number;
+    }
+  | {
+      type: "stat_modifier";
+      modifiers: Modifier[];
+    }
+  | {
+      type: "loot_modifier";
+      modifiers: Modifier[];
+    };
+
+export interface SkillInfo {
+  id: string;
+  name: string;
+  description: string;
+  type: "active" | "passive";
+  effect: SkillEffect;
+
+  // Only used by active skills
+  target?: SkillTarget;
+  manaCost?: number;
+  cooldownRounds?: number;
+}

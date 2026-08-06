@@ -1,10 +1,13 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
 
-const domainRoot = path.resolve("src/domain");
+const domainRoots = [
+  path.resolve("src/domain"),
+  path.resolve("shared/domain"),
+];
 const gameApiRoot = path.resolve("supabase/functions/game-api");
 const forbidden = [/\bMath\.random\s*\(/, /\bDate\.now\s*\(/, /\bnew\s+Date\s*\(/];
-const allowed = new Set([path.join(domainRoot, "random.ts")]);
+const allowed = new Set([path.resolve("src/domain/random.ts")]);
 const failures = [];
 
 async function visit(directory, patterns = forbidden) {
@@ -20,7 +23,7 @@ async function visit(directory, patterns = forbidden) {
   }
 }
 
-await visit(domainRoot);
+for (const domainRoot of domainRoots) await visit(domainRoot);
 for (const entry of await fs.readdir(gameApiRoot, { withFileTypes: true })) {
   if (
     entry.isFile()
@@ -40,5 +43,5 @@ if (failures.length) {
   console.error(failures.join("\n"));
   process.exitCode = 1;
 } else {
-  console.log("Determinism guard passed: domain and server authorities have no forbidden direct RNG access.");
+  console.log("Determinism guard passed: frontend adapters, shared domain and server authorities have no forbidden direct time/RNG access.");
 }

@@ -17,19 +17,22 @@ import {
 } from "./authoritative-rng.ts";
 import {
   validateCanonicalGameState,
+  type CanonicalHero as Hero,
   type CanonicalGameState,
   type CanonicalGameCommand,
+  type CanonicalPendingClassTransition as PendingClassTransition,
   type CanonicalStateTransition,
+  type CanonicalStoredItemInstance as StoredItemInstance,
 } from "../../../shared/contracts/authoritative.ts";
 import {
   migrateAuthoritativeHeroProgression,
   validateAuthoritativeHero,
   validateAuthoritativeHeroes,
-} from "../../../src/domain/authoritativeHeroValidation.ts";
+} from "../../../shared/domain/authoritative-hero-validation.ts";
 import {
   ALLOCATABLE_CITIZEN_ROLES,
   validateAuthoritativeTownState,
-} from "../../../src/domain/authoritativeTownValidation.ts";
+} from "../../../shared/domain/authoritative-town-validation.ts";
 import {
   RARITY_ORDER,
   getItemById,
@@ -43,17 +46,12 @@ import {
   createInitialBuildingLevels,
   getBuildingMaxLevel,
   getBuildingUpgradeCost,
-} from "../../../src/data/buildings.ts";
-import type {
-  ClassType,
-  Hero,
-  PendingClassTransition,
-  StoredItemInstance,
-} from "../../../src/types.ts";
+} from "../../../shared/data/buildings.ts";
+import type { CanonicalHeroClass as ClassType } from "../../../shared/domain/hero-classes.ts";
 import {
   applyClassTransition,
   createExistingHeroPendingTransition,
-} from "../../../src/domain/classTransition.ts";
+} from "../../../shared/domain/class-transition.ts";
 import { getDungeonRoomCount } from "../../../shared/domain/dungeon-progression.ts";
 
 export type TownResources = { gold: number; food: number; wood: number; stone: number; ore: number };

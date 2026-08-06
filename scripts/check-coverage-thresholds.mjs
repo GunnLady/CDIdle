@@ -6,7 +6,7 @@ const summary = JSON.parse(await readFile(summaryPath, "utf8"));
 const groups = [
   {
     name: "domain",
-    match: /[/\\]src[/\\](domain|dispatch|repositories)[/\\]/,
+    match: /[/\\](?:src[/\\](?:domain|dispatch|repositories)|shared[/\\](?:contracts|data|domain))[/\\]/,
     minimum: { statements: 78, branches: 70, functions: 85, lines: 88 },
   },
   {
@@ -27,7 +27,12 @@ function aggregate(group) {
       totals[metric].covered += report[metric].covered;
     }
   }
-  return Object.fromEntries(metrics.map((metric) => [metric, (totals[metric].covered / totals[metric].total) * 100]));
+  return Object.fromEntries(metrics.map((metric) => [
+    metric,
+    totals[metric].total === 0
+      ? 0
+      : (totals[metric].covered / totals[metric].total) * 100,
+  ]));
 }
 
 let failed = false;
