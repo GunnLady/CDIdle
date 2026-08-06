@@ -1,8 +1,8 @@
-import { act, renderHook, waitFor } from "@testing-library/react";
+import { renderHook, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { createAuthoritativeTimeAnchor } from "../src/domain/authoritativeTimeProjection";
 import { useImmigrationReconciliation } from "../src/hooks/useImmigrationReconciliation";
-import { useTownSystem } from "../src/hooks/useTownSystem";
+import { INITIAL_TOWN_BUILDINGS, useTownSystem } from "../src/hooks/useTownSystem";
 import { makeResources } from "./fixtures/game";
 
 describe("immigration frontend integration", () => {
@@ -32,22 +32,51 @@ describe("immigration frontend integration", () => {
       "2026-08-05T20:00:00.000Z",
       receivedAt - 20_000,
     );
+    const initialCitizens = {
+      farmers: 0,
+      woodcutters: 0,
+      quarrymen: 0,
+      miners: 0,
+      unassigned: 3,
+    };
     const { result, rerender } = renderHook(
-      (props: { online: boolean; anchor: ReturnType<typeof createAuthoritativeTimeAnchor> }) =>
-        useTownSystem({ id: "user-1" }, props.online, props.anchor),
-      { initialProps: { online: true, anchor: pendingAnchor } },
+      (props: {
+        online: boolean;
+        anchor: ReturnType<typeof createAuthoritativeTimeAnchor>;
+        totalCitizens: number;
+        citizens: typeof initialCitizens;
+        citizenGrowthProgress: number;
+      }) => useTownSystem({
+        currentUser: { id: "user-1" },
+        isOnline: props.online,
+        timeAnchor: props.anchor,
+        buildings: { ...INITIAL_TOWN_BUILDINGS, habitation: 2 },
+        resources: makeResources({ food: 100 }),
+        citizens: props.citizens,
+        totalCitizens: props.totalCitizens,
+        citizenGrowthProgress: props.citizenGrowthProgress,
+      }),
+      { initialProps: {
+        online: true,
+        anchor: pendingAnchor,
+        totalCitizens: 3,
+        citizens: initialCitizens,
+        citizenGrowthProgress: 0,
+      } },
     );
-    act(() => {
-      result.current.setBuildings({ ...result.current.buildings, habitation: 2 });
-      result.current.setResources(makeResources({ food: 100 }));
-    });
     expect(result.current).toMatchObject({
       displayTotalCitizens: 3,
       displayCitizenGrowthProgress: 100,
       hasPendingImmigration: true,
     });
 
-    rerender({ online: false, anchor: pendingAnchor });
+    rerender({
+      online: false,
+      anchor: pendingAnchor,
+      totalCitizens: 3,
+      citizens: initialCitizens,
+      citizenGrowthProgress: 0,
+    });
     expect(result.current).toMatchObject({
       displayTotalCitizens: 3,
       displayCitizenGrowthProgress: 100,
@@ -59,18 +88,19 @@ describe("immigration frontend integration", () => {
       "2026-08-05T20:00:20.000Z",
       globalThis.performance.now(),
     );
-    act(() => {
-      result.current.setTotalCitizens(4);
-      result.current.setCitizens({
+    rerender({
+      online: true,
+      anchor: reconciledAnchor,
+      totalCitizens: 4,
+      citizens: {
         farmers: 0,
         woodcutters: 0,
         quarrymen: 0,
         miners: 0,
         unassigned: 4,
-      });
-      result.current.setCitizenGrowthProgress(0);
+      },
+      citizenGrowthProgress: 0,
     });
-    rerender({ online: true, anchor: reconciledAnchor });
     expect(result.current).toMatchObject({
       displayTotalCitizens: 4,
       displayCitizenGrowthProgress: 0,

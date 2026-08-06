@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Resources,
   CitizenAllocation,
@@ -12,7 +12,15 @@ import {
   type AuthoritativeTimeAnchor,
 } from "../domain/authoritativeTimeProjection";
 
-const INITIAL_RESOURCES: Resources = {
+export const EMPTY_TOWN_RESOURCES: Resources = {
+  gold: 0,
+  food: 0,
+  wood: 0,
+  stone: 0,
+  ore: 0,
+};
+
+export const INITIAL_TOWN_RESOURCES: Resources = {
   gold: 75,
   food: 50,
   wood: 20,
@@ -20,7 +28,7 @@ const INITIAL_RESOURCES: Resources = {
   ore: 0
 };
 
-const INITIAL_CITIZENS: CitizenAllocation = {
+export const INITIAL_TOWN_CITIZENS: CitizenAllocation = {
   farmers: 0,
   woodcutters: 0,
   quarrymen: 0,
@@ -28,22 +36,29 @@ const INITIAL_CITIZENS: CitizenAllocation = {
   unassigned: 3
 };
 
-const INITIAL_BUILDINGS = createInitialBuildingLevels();
+export const INITIAL_TOWN_BUILDINGS = createInitialBuildingLevels();
 
-export function useTownSystem(
-  currentUser: unknown,
-  isOnline: boolean,
-  timeAnchor: AuthoritativeTimeAnchor | null,
-) {
-  const [resources, setCanonicalResources] = useState<Resources>(INITIAL_RESOURCES);
-  const [buildings, setBuildings] = useState<{ [key: string]: number }>(INITIAL_BUILDINGS);
-  const [citizens, setCitizens] = useState<CitizenAllocation>(INITIAL_CITIZENS);
-  const [totalCitizens, setTotalCitizens] = useState<number>(3);
-  const [citizenGrowthProgress, setCitizenGrowthProgress] = useState<number>(0);
+export function useTownSystem(options: {
+  currentUser: unknown;
+  isOnline: boolean;
+  timeAnchor: AuthoritativeTimeAnchor | null;
+  resources: Resources;
+  buildings: { [key: string]: number };
+  citizens: CitizenAllocation;
+  totalCitizens: number;
+  citizenGrowthProgress: number;
+}) {
+  const {
+    buildings,
+    citizenGrowthProgress,
+    citizens,
+    currentUser,
+    isOnline,
+    resources,
+    timeAnchor,
+    totalCitizens,
+  } = options;
   const [projectionNow, setProjectionNow] = useState(() => globalThis.performance?.now() ?? 0);
-  const setResources = useCallback((next: Resources) => {
-    setCanonicalResources(next);
-  }, []);
   const getRates = useCallback((): ResourceRates => {
     return calculateRates(citizens, buildings, !!currentUser);
   }, [citizens, buildings, currentUser]);
@@ -73,30 +88,16 @@ export function useTownSystem(
     totalCitizens,
   ]);
 
-  const resetTownSystem = useCallback(() => {
-    setResources({ gold: 75, food: 50, wood: 20, stone: 0, ore: 0 });
-    setBuildings(createInitialBuildingLevels());
-    setCitizens(INITIAL_CITIZENS);
-    setTotalCitizens(3);
-    setCitizenGrowthProgress(0);
-  }, [setResources]);
-
   return {
     resources,
     displayResources: displayProjection.resources,
     displayTotalCitizens: displayProjection.totalCitizens,
     displayCitizenGrowthProgress: displayProjection.citizenGrowthProgress,
     hasPendingImmigration: displayProjection.hasPendingImmigration,
-    setResources,
     buildings,
-    setBuildings,
     citizens,
-    setCitizens,
     totalCitizens,
-    setTotalCitizens,
     citizenGrowthProgress,
-    setCitizenGrowthProgress,
     getRates,
-    resetTownSystem
   };
 }

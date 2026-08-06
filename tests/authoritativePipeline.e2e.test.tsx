@@ -1,13 +1,13 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import { useEffect, useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { validateCanonicalGameState, type CanonicalGameState } from "../shared/contracts/authoritative";
+import {
+  CANONICAL_GAME_STATE_REQUIRED_FIELDS,
+  validateCanonicalGameState,
+  type CanonicalGameState,
+} from "../shared/contracts/authoritative";
 import { createGameApiHandler, type ApiServices } from "../supabase/functions/game-api/index";
 import { initialTownState } from "../supabase/functions/game-api/town-authority";
-import {
-  canonicalReactMappingErrors,
-  projectCanonicalState,
-} from "../src/domain/canonicalStateProjection";
 import { deleteGameCache, readGameCache, writeGameCache } from "../src/lib/gameCache";
 import { callGameApi, supabase } from "../src/lib/supabase";
 import { createIndexedDbMock } from "./helpers/indexedDbMock";
@@ -30,10 +30,8 @@ function BootstrapProbe() {
     void callGameApi<GameEnvelope>("/bootstrap", { method: "POST" }).then(async (envelope) => {
       const contractErrors = validateCanonicalGameState(envelope.state);
       if (contractErrors.length > 0) throw new Error(contractErrors.join("; "));
-      const projected = projectCanonicalState(envelope.state);
       await writeGameCache(USER_ID, { ...envelope.state, revision: envelope.revision });
-      const resources = projected.resources as { gold: number };
-      setSummary(`${String(projected.cityName)}:${resources.gold}:${envelope.revision}`);
+      setSummary(`${envelope.state.cityName}:${envelope.state.resources.gold}:${envelope.revision}`);
     });
   }, []);
 
@@ -112,10 +110,8 @@ describe("authoritative React to persistence pipeline", () => {
     await expect(readGameCache(USER_ID)).resolves.toBeNull();
   });
 
-  it("fails when a required canonical field has no React or cache classification", () => {
-    expect(canonicalReactMappingErrors()).toEqual([]);
-    expect(canonicalReactMappingErrors(["resources", "newServerField"])).toEqual([
-      "canonical field newServerField is not mapped or explicitly cache-only",
-    ]);
+  it("projects the complete canonical contract directly without a field mapping", () => {
+    const state = initialTownState(42);
+    expect(CANONICAL_GAME_STATE_REQUIRED_FIELDS.every((field) => field in state)).toBe(true);
   });
 });

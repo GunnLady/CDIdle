@@ -8,7 +8,6 @@ import {
   initialTownState,
   migrateTownState,
 } from "../supabase/functions/game-api/town-authority";
-import { projectCanonicalState } from "../src/domain/canonicalStateProjection";
 import { makeHero } from "./fixtures/game";
 import { readGameCache, writeGameCache } from "../src/lib/gameCache";
 import { createIndexedDbMock } from "./helpers/indexedDbMock";
@@ -37,18 +36,17 @@ describe("canonical state compatibility simulation", () => {
     expect(CANONICAL_GAME_STATE_REQUIRED_FIELDS.every((field) => field in migrated)).toBe(true);
   });
 
-  it("preserves the snapshot through JSON, projection and a command", () => {
+  it("preserves the snapshot through JSON, direct client projection and a command", () => {
     const snapshot = { ...initialTownState(84), cityName: "Compatibilité" };
     const roundTrip = JSON.parse(JSON.stringify(snapshot)) as unknown;
     const migrated = migrateTownState(roundTrip as Record<string, unknown>, 84);
-    const projected = projectCanonicalState(migrated);
     const result = applyTownCommand(migrated, {
       type: "cheat.grant_resources",
       amounts: { gold: 1 },
     }, { allowCheats: true });
 
     expect(validateCanonicalGameState(roundTrip)).toEqual([]);
-    expect(projected.cityName).toBe("Compatibilité");
+    expect(migrated.cityName).toBe("Compatibilité");
     expect(result.state.resources).toMatchObject({ gold: snapshot.resources.gold + 1 });
     expect(result.state).not.toHaveProperty("combatTimer");
     expect(result.state).not.toHaveProperty("currentMonster");
@@ -102,7 +100,7 @@ describe("canonical state compatibility simulation", () => {
     await writeGameCache("complete-user", { ...state, revision: 9 });
     const cached = await readGameCache("complete-user");
     expect(validateCanonicalGameState(cached)).toEqual([]);
-    expect(projectCanonicalState(cached as typeof state)).toMatchObject({
+    expect(cached).toMatchObject({
       pendingForge: state.pendingForge,
       pendingRecruit: { id: pendingRecruit.id },
       currentEncounter: state.currentEncounter,
