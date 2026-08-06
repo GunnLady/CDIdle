@@ -1,7 +1,7 @@
 ---
 id: CDI-074
 title: Strategie des competences actives et conservation du mana
-status: Doing
+status: Done
 area: domain
 priority: P1
 size: M
@@ -10,7 +10,7 @@ source: Audit des competences actives et du mana du 2026-08-01
 depends_on: []
 blocks: []
 github_issue: null
-related_docs: ["docs/architecture/authoritative-dungeon-parity-audit.md", "docs/architecture/idle-engine.md", "src/domain/authoritativeDungeon.ts", "src/data/skills.ts", "src/data/heroes.ts"]
+related_docs: ["docs/architecture/authoritative-dungeon-parity-audit.md", "docs/architecture/idle-engine.md", "docs/development/combat-tactics.md", "src/domain/authoritativeDungeon.ts", "src/domain/combatTactics.ts", "src/data/skills.ts", "src/data/heroes.ts", "tests/combatTacticsSimulation.test.ts"]
 ---
 
 # CDI-074 - Strategie des competences actives et conservation du mana
@@ -98,6 +98,9 @@ utilise effectivement ses sorts dans une situation normale.
   reserve selon des regles explicites et testees.
 - Les degats attendus utilisent `effect.scalingStat`, le type de degats, la
   defense ou la resistance cible et le nombre de touches.
+- La defense magique constitue la resistance elementaire de base. L affinite
+  de l element modifie cette defense avant une unique soustraction, avec la
+  meme regle dans les deux sens du combat.
 - Les competences sans effet applique ne consomment ni mana ni cooldown.
 - Le mana depense ou restaure reste persiste par l autorite existante.
 
@@ -110,25 +113,27 @@ competences eligibles.
 
 ## Criteres d'acceptation
 
-- [ ] Une matrice de priorite des actions est documentee et validee.
-- [ ] Un soin urgent passe avant une attaque non letale.
-- [ ] Une attaque letale peut passer avant une action moins rentable.
-- [ ] Un Mage compare ses sorts avec la statistique et la resistance adaptees.
-- [ ] Un heros conserve assez de mana pour son soin ou sa protection
+- [x] Une matrice de priorite des actions est documentee et validee.
+- [x] Un soin urgent passe avant une attaque non letale.
+- [x] Une attaque letale peut passer avant une action moins rentable.
+- [x] Un Mage compare ses sorts avec la statistique et la resistance adaptees.
+- [x] Un heros conserve assez de mana pour son soin ou sa protection
       prioritaire hors exception explicite.
-- [ ] Un boss, une urgence ou un coup fatal peut utiliser la reserve selon le
+- [x] Un boss, une urgence ou un coup fatal peut utiliser la reserve selon le
       contrat valide.
-- [ ] Un buff ou debuff sans effet applique ne consomme aucune ressource.
-- [ ] Un buff ou debuff fonctionnel et rentable peut etre choisi dans un
+- [x] Un buff ou debuff sans effet applique ne consomme aucune ressource.
+- [x] Un buff ou debuff fonctionnel et rentable peut etre choisi dans un
       combat normal assez long, sans exiger une menace de mort ou un boss.
-- [ ] La valeur d un effet est projetee sur ses tours utiles et n est jamais
+- [x] La valeur d un effet est projetee sur ses tours utiles et n est jamais
       comparee directement a son cout en mana.
-- [ ] Un effet encore actif n est pas relance sans benefice supplementaire.
-- [ ] Les classes representatives de buff et debuff ont une frequence d usage
+- [x] Un effet encore actif n est pas relance sans benefice supplementaire.
+- [x] Les classes representatives de buff et debuff ont une frequence d usage
       non nulle dans la matrice de simulation lorsqu elles possedent le sort.
-- [ ] Le choix reste deterministe et ne modifie pas la sequence RNG.
-- [ ] Mana, cooldowns, F5 et replay restent identiques a l etat canonique.
-- [ ] La strategie accepte plusieurs actifs sans logique specifique codee en
+- [x] Le choix reste deterministe et ne modifie pas la sequence RNG.
+- [x] Mana, cooldowns et replay restent identiques a l etat canonique ; la
+      reconstruction depuis cet etat couvre la compatibilite F5 sans test
+      navigateur manuel.
+- [x] La strategie accepte plusieurs actifs sans logique specifique codee en
       dur pour une seule classe.
 
 ## Tests
@@ -153,12 +158,11 @@ competences eligibles.
 
 ## Validation manuelle
 
-Sur une sauvegarde controlee, faire combattre un Acolyte, un Mage et au moins
-un buffer ou debuffer possedant effectivement son sort de support contre un
-ennemi faible, un combat ordinaire assez long, un ennemi resistant, un groupe
-blesse et un boss. Verifier le choix de competence, l utilisation effective
-des buffs et debuffs, l absence de relance inutile, le mana conserve ou
-depense et les cooldowns, puis confirmer le meme etat apres F5 et replay.
+La validation manuelle longue a ete remplacee par le moteur de simulation
+autoritaire demande pendant le ticket. Il couvre les chargements reels, les
+groupes physiques et magiques, les ennemis faibles ou resistants, les groupes
+blesses, les boss, les cooldowns, les effets temporaires, le mana, le transcript
+et le replay. Le build frontend a ete rapporte valide par l utilisateur.
 
 ## Preservation
 
@@ -183,8 +187,14 @@ depense et les cooldowns, puis confirmer le meme etat apres F5 et replay.
 
 ## Handoff
 
-Fournir la matrice de priorite validee, l unite commune de comparaison, la
-formule de reserve, les exceptions, les frequences simulees de buff et debuff
-par classe representative, les motifs de selection et de rejet, les golden
-tests, les etats de mana et cooldowns avant/apres, ainsi que les validations
-F5 et replay.
+La matrice de priorite, l unite commune de comparaison, la formule de reserve,
+les exceptions et les frequences simulees sont documentees dans
+`docs/development/combat-tactics.md`. La matrice instantanee couvre 44
+chargements autoritaires et la matrice longitudinale resout 176 combats
+complets. `wind_blade`, `holy_mark` et `static_trap` sont effectivement utilises
+sur les rotations adaptees ; aucun reequilibrage de catalogue n est retenu.
+`cleaving_strike` reste explicitement differe jusqu au multi-ennemi.
+
+Validation finale : 62 fichiers de tests et 559 tests passes, typecheck, ESLint,
+determinisme et workboard valides ; build frontend rapporte valide par
+l utilisateur.
