@@ -3,29 +3,22 @@ import { applyForgeCommand, DEFAULT_NOVICE_ITEM_BLUEPRINTS } from "./forge-autho
 import { applyDungeonCommand } from "./dungeon-authority.ts";
 import { generateAuthoritativeNovice } from "./novice-authority.ts";
 import {
-  calculateAuthoritativeHeroStats,
-  type AuthoritativeEquipment,
-  type AuthoritativeNoviceStats,
-} from "./novice-stats-authority.ts";
-import {
   initialCanonicalRngState,
   forkCanonicalRng,
-  migrateCanonicalRngState,
   nextCanonicalSubseed,
   restoreCanonicalRng,
   type CanonicalRng,
 } from "./authoritative-rng.ts";
 import {
+  CURRENT_CANONICAL_STATE_VERSION,
   validateCanonicalGameState,
   type CanonicalHero as Hero,
   type CanonicalGameState,
   type CanonicalGameCommand,
-  type CanonicalPendingClassTransition as PendingClassTransition,
   type CanonicalStateTransition,
   type CanonicalStoredItemInstance as StoredItemInstance,
 } from "../../../shared/contracts/authoritative.ts";
 import {
-  migrateAuthoritativeHeroProgression,
   validateAuthoritativeHero,
   validateAuthoritativeHeroes,
 } from "../../../shared/domain/authoritative-hero-validation.ts";
@@ -50,9 +43,11 @@ import {
 import type { CanonicalHeroClass as ClassType } from "../../../shared/domain/hero-classes.ts";
 import {
   applyClassTransition,
-  createExistingHeroPendingTransition,
 } from "../../../shared/domain/class-transition.ts";
-import { getDungeonRoomCount } from "../../../shared/domain/dungeon-progression.ts";
+import {
+  migrateCanonicalState,
+} from "./state-migrations.ts";
+import { reconcileExistingVocations } from "./vocation-reconciliation.ts";
 
 export type TownResources = { gold: number; food: number; wood: number; stone: number; ore: number };
 export type TownState = CanonicalGameState;
@@ -60,6 +55,7 @@ export type TownState = CanonicalGameState;
 type TownCommand = CanonicalGameCommand & { commandId?: string };
 
 export const initialTownState = (rngSeed?: number): TownState => ({
+  stateVersion: CURRENT_CANONICAL_STATE_VERSION,
   resources: { gold: 75, food: 50, wood: 20, stone: 0, ore: 0 },
   buildings: createInitialBuildingLevels(),
   citizens: { farmers: 0, woodcutters: 0, quarrymen: 0, miners: 0, unassigned: 3 },
@@ -413,109 +409,21 @@ function validateCatalogReferences(state: Record<string, unknown>): string[] {
   return errors;
 }
 
-function migrateHeroWithDerivedStats(input: unknown): unknown {
-  const progressed = migrateAuthoritativeHeroProgression(input);
-  if (!progressed || typeof progressed !== "object" || Array.isArray(progressed)) return progressed;
-  const hero = progressed as Record<string, unknown>;
-  const existingCalculatedStats = hero.calculatedStats;
-  if (!existingCalculatedStats || typeof existingCalculatedStats !== "object" || Array.isArray(existingCalculatedStats)) {
-    return progressed;
-  }
-  if (!hero.baseStats || typeof hero.baseStats !== "object" || Array.isArray(hero.baseStats)) return progressed;
-  const calculatedStats = calculateAuthoritativeHeroStats(
-    hero.baseStats as AuthoritativeNoviceStats,
-    Array.isArray(hero.passiveSkills) ? hero.passiveSkills.filter((id): id is string => typeof id === "string") : [],
-    hero.equipment && typeof hero.equipment === "object" && !Array.isArray(hero.equipment)
-      ? hero.equipment as AuthoritativeEquipment
-      : {},
-  );
-  return {
-    ...hero,
-    currentHp: typeof hero.currentHp === "number"
-      ? Math.min(hero.currentHp, calculatedStats.maxHp)
-      : calculatedStats.maxHp,
-    currentMana: typeof hero.currentMana === "number"
-      ? Math.min(hero.currentMana, calculatedStats.maxMana)
-      : calculatedStats.maxMana,
-    calculatedStats,
-  };
-}
-
-function migrateInstrumentToTwoHands(input: unknown, storedItems: unknown): unknown {
-  if (!input || typeof input !== "object" || Array.isArray(input)) return input;
-  const hero = input as Record<string, unknown>;
-  if (!hero.equipment || typeof hero.equipment !== "object" || Array.isArray(hero.equipment)) return input;
-  const equipment = hero.equipment as Record<string, unknown>;
-  if (!equipment.mainHand || typeof equipment.mainHand !== "object" || Array.isArray(equipment.mainHand)) return input;
-  if (!equipment.offHand || typeof equipment.offHand !== "object" || Array.isArray(equipment.offHand)) return input;
-  const mainHandId = (equipment.mainHand as Record<string, unknown>).itemId;
-  const mainHand = typeof mainHandId === "string" ? getItemById(mainHandId) : undefined;
-  if (!mainHand || mainHand.itemType !== "weapon" || mainHand.weaponTypeId !== "instrument") return input;
-
-  const offHand = equipment.offHand as Record<string, unknown>;
-  if (Array.isArray(storedItems)) {
-    const instanceId = offHand.instanceId;
-    const alreadyStored = typeof instanceId === "string"
-      && storedItems.some((entry) => (
-        !!entry
-        && typeof entry === "object"
-        && !Array.isArray(entry)
-        && (entry as Record<string, unknown>).instanceId === instanceId
-      ));
-    if (!alreadyStored) storedItems.push({ ...offHand });
-  }
-  const { offHand: _displacedOffHand, ...remainingEquipment } = equipment;
-  return { ...hero, equipment: remainingEquipment };
-}
-
 export function migrateTownState(current: Record<string, unknown>, legacySeed?: number): TownState {
-  const defaults = initialTownState();
-  const mergeMap = <T extends object>(fallback: T, value: unknown): T | unknown =>
-    value === undefined
-      ? { ...fallback }
-      : value !== null && typeof value === "object" && !Array.isArray(value)
-        ? { ...fallback, ...(value as Record<string, unknown>) }
-        : value;
-  const migratedStoredItems = Array.isArray(current.storedItems)
-    ? current.storedItems.map((entry) => entry && typeof entry === "object" && !Array.isArray(entry) ? { ...entry } : entry)
-    : current.storedItems ?? defaults.storedItems;
-  const migrateHero = (hero: unknown) => migrateHeroWithDerivedStats(
-    migrateInstrumentToTwoHands(hero, migratedStoredItems),
-  );
-  const migratedHeroes = Array.isArray(current.heroes)
-    ? current.heroes.map(migrateHero)
-    : current.heroes ?? defaults.heroes;
-  const migrated = reconcileExistingVocations({
-    ...defaults,
-    ...current,
-    resources: mergeMap(defaults.resources, current.resources),
-    buildings: mergeMap(defaults.buildings, current.buildings),
-    citizens: mergeMap(defaults.citizens, current.citizens),
-    heroes: migratedHeroes,
-    storedItems: migratedStoredItems,
-    onboardingCandidates: Array.isArray(current.onboardingCandidates)
-      ? current.onboardingCandidates.map(migrateHero)
-      : current.onboardingCandidates,
-    pendingRecruit: current.pendingRecruit
-      ? migrateHero(current.pendingRecruit)
-      : current.pendingRecruit,
-    itemBlueprints: Array.isArray(current.itemBlueprints) && current.itemBlueprints.length > 0
-      ? current.itemBlueprints
-      : DEFAULT_NOVICE_ITEM_BLUEPRINTS.map((entry) => ({ ...entry })),
-    pendingClassTransitions: Array.isArray(current.pendingClassTransitions)
-      ? current.pendingClassTransitions as PendingClassTransition[]
-      : [],
-    rngState: migrateCanonicalRngState(current.rngState, legacySeed),
-  } as TownState);
-  if (!migrated.currentEncounter) {
-    const floor = Number(migrated.activeDungeonFloor ?? 1);
-    const room = Number(migrated.activeDungeonRoom ?? 1);
-    if (Number.isInteger(floor) && floor >= 1 && Number.isInteger(room) && room >= 1) {
-      migrated.activeDungeonRoom = Math.min(room, getDungeonRoomCount(floor));
-    }
+  const migrated = migrateCanonicalState(current, {
+    defaults: initialTownState(),
+    legacySeed,
+  });
+  const canonicalErrors = validateCanonicalGameState(migrated);
+  if (canonicalErrors.length > 0) {
+    const reason = canonicalErrors.join("; ");
+    throw new TownCommandError(
+      "INVALID_GAME_STATE",
+      `canonical game state is invalid: ${reason}`,
+      reason,
+    );
   }
   const errors = [
-    ...validateCanonicalGameState(migrated),
     ...validateAuthoritativeTownState(migrated as unknown as Record<string, unknown>),
     ...validateAuthoritativeHeroes(migrated.heroes),
     ...validateAuthoritativeHeroes(migrated.onboardingCandidates ?? [], "onboardingCandidates"),
@@ -533,28 +441,6 @@ export function migrateTownState(current: Record<string, unknown>, legacySeed?: 
     );
   }
   return migrated;
-}
-
-function reconcileExistingVocations(state: TownState): TownState {
-  const heroes = (state.heroes ?? []) as unknown as Hero[];
-  const previousById = new Map(state.pendingClassTransitions.map((entry) => [entry.heroId, entry]));
-  const pending: PendingClassTransition[] = [];
-  for (const hero of heroes) {
-    if (hero.classType !== "Novice" || hero.level < 10) continue;
-    const created = createExistingHeroPendingTransition(hero, state.buildings);
-    if (!created) continue;
-    const previous = previousById.get(hero.id);
-    pending.push(previous ? {
-      ...created,
-      originLevel: previous.originLevel,
-      wasActive: previous.wasActive,
-      previousStatus: previous.previousStatus,
-    } : created);
-  }
-  return {
-    ...state,
-    pendingClassTransitions: pending,
-  };
 }
 
 export { TownCommandError };

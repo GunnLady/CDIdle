@@ -13,6 +13,7 @@ import {
 } from "../src/data/buildings";
 import { validateAuthoritativeTownState } from "../src/domain/authoritativeTownValidation";
 import { makeHero } from "./fixtures/game";
+import { asLegacyUnversionedState } from "./fixtures/stateMigrations";
 
 const richState = () => {
   const state = initialTownState();
@@ -118,7 +119,7 @@ describe("authoritative town parity", () => {
   });
 
   it("fills missing legacy map entries without hiding malformed values", () => {
-    const legacy = initialTownState();
+    const legacy = asLegacyUnversionedState(initialTownState());
     legacy.buildings = { habitation: 1 };
     legacy.resources = { gold: 75 } as typeof legacy.resources;
     legacy.citizens = { unassigned: 3 } as typeof legacy.citizens;

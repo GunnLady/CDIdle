@@ -15,6 +15,7 @@ import {
   migrateTownState,
 } from "../supabase/functions/game-api/town-authority";
 import { makeHero } from "./fixtures/game";
+import { asLegacyUnversionedState } from "./fixtures/stateMigrations";
 
 const activeDungeonState = () => ({
   ...initialTownState(),
@@ -34,7 +35,7 @@ const activeDungeonState = () => ({
 
 describe("canonical authoritative RNG", () => {
   it("migrates an old save to the deterministic versioned initial state", () => {
-    const legacy = initialTownState() as Record<string, unknown>;
+    const legacy = asLegacyUnversionedState(initialTownState()) as Record<string, unknown>;
     delete legacy.rngState;
     const userSeed = canonicalRngSeedFromUserId("50505050-5050-4050-8050-505050505050");
     expect(migrateTownState(legacy, userSeed).rngState).toEqual({
@@ -61,7 +62,7 @@ describe("canonical authoritative RNG", () => {
     expect(() => migrateTownState({
       ...initialTownState(),
       rngState: { algorithm: "xorshift32", version: 2, seed: 42, state: 42, draws: 0 },
-    })).toThrow(CanonicalRngStateError);
+    })).toThrow("canonical game state is invalid: rngState.version must be 1");
     expect(() => restoreCanonicalRng(null)).toThrow(CanonicalRngStateError);
   });
 

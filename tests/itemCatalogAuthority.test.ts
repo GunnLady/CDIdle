@@ -102,7 +102,13 @@ describe("authoritative item catalog", () => {
       storedItems: [{ instanceId: "unknown-instance", itemId: "unknown-model", rarity: "common" }],
     })).toThrow(/unknown-model/);
     expect(() => migrateTownState({
-      pendingForge: { previewId: "legacy-preview", itemId: "unknown-pending-model" },
+      pendingForge: {
+        previewId: "legacy-preview",
+        recipeId: "unknown-pending-model",
+        itemId: "unknown-pending-model",
+        itemType: "weapon",
+        upgradeProc: "none",
+      },
     })).toThrow(/unknown-pending-model/);
   });
 

@@ -170,9 +170,10 @@ export interface CanonicalRngState {
 }
 
 export const MAX_CANONICAL_RNG_DRAWS = Number.MAX_SAFE_INTEGER;
+export const CURRENT_CANONICAL_STATE_VERSION = 1 as const;
 
 export const CANONICAL_GAME_STATE_REQUIRED_FIELDS = [
-  "resources", "buildings", "citizens", "districts", "heroes", "storedItems",
+  "stateVersion", "resources", "buildings", "citizens", "districts", "heroes", "storedItems",
   "forgeMaterials", "itemBlueprints", "encounterHistory", "rngState",
   "totalCitizensCount", "activeDungeonFloor", "activeDungeonRoom",
   "highestFloorReached", "citizenGrowthProgress", "autoExplore", "currentEncounter",
@@ -180,6 +181,7 @@ export const CANONICAL_GAME_STATE_REQUIRED_FIELDS = [
 ] as const;
 
 export interface CanonicalGameStateFields {
+  stateVersion: typeof CURRENT_CANONICAL_STATE_VERSION;
   cityName?: string;
   resources: CanonicalResources;
   buildings: Record<string, number>;
@@ -536,6 +538,9 @@ export function validateCanonicalGameState(input: unknown): string[] {
   const errors: string[] = [];
   for (const field of CANONICAL_GAME_STATE_REQUIRED_FIELDS) {
     if (!(field in value)) errors.push(`${field} is required`);
+  }
+  if ("stateVersion" in value && value.stateVersion !== CURRENT_CANONICAL_STATE_VERSION) {
+    errors.push(`stateVersion must be ${CURRENT_CANONICAL_STATE_VERSION}`);
   }
   const validateNumberMap = (field: "resources" | "buildings", options: { integer?: boolean; allowed?: readonly string[] } = {}) => {
     if (!(field in value)) return;

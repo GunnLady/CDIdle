@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { CANONICAL_COMMAND_TYPES, validateCanonicalCommandEnvelope, validateCanonicalGameState } from "../shared/contracts/authoritative";
+import { CANONICAL_COMMAND_TYPES, CURRENT_CANONICAL_STATE_VERSION, validateCanonicalCommandEnvelope, validateCanonicalGameState } from "../shared/contracts/authoritative";
 import { validateAuthoritativeHero } from "../src/domain/authoritativeHeroValidation";
 import { makeHero } from "./fixtures/game";
 import { initialTownState } from "../supabase/functions/game-api/town-authority";
@@ -65,11 +65,12 @@ describe("authoritative shared contracts", () => {
 
   it("requires canonical state fields and names", () => {
     const errors = validateCanonicalGameState({ totalCitizens: 3, unlockedDistricts: {} });
-    expect(errors).toEqual(expect.arrayContaining(["totalCitizensCount is required", "districts is required", "forgeMaterials is required", "itemBlueprints is required", "encounterHistory is required", "rngState is required"]));
+    expect(errors).toEqual(expect.arrayContaining(["stateVersion is required", "totalCitizensCount is required", "districts is required", "forgeMaterials is required", "itemBlueprints is required", "encounterHistory is required", "rngState is required"]));
   });
 
   it("keeps runtime resources, hero options and active encounters aligned with TypeScript", () => {
     const errors = validateCanonicalGameState({
+      stateVersion: CURRENT_CANONICAL_STATE_VERSION,
       ...initialTownState(42),
       resources: { gold: 1, food: 1, wood: 1, stone: 1, gems: 1 },
       heroes: [{
@@ -111,6 +112,7 @@ describe("authoritative shared contracts", () => {
 
   it("validates encounter history unions and transcript fields", () => {
     const errors = validateCanonicalGameState({
+      stateVersion: CURRENT_CANONICAL_STATE_VERSION,
       ...initialTownState(42),
       encounterHistory: [{
         encounterId: "invalid-history",
@@ -139,6 +141,7 @@ describe("authoritative shared contracts", () => {
 
   it("validates persisted item, material, blueprint and forge preview shapes", () => {
     const errors = validateCanonicalGameState({
+      stateVersion: CURRENT_CANONICAL_STATE_VERSION,
       resources: {}, buildings: {}, citizens: {}, districts: {}, heroes: [], encounterHistory: [],
       storedItems: [{ itemId: "starter_sword", rarity: "mythic", count: 0, modifiers: [{ stat: "speed", value: Number.NaN }] }],
       forgeMaterials: [{ materialId: "metal_scrap", rarity: "common", count: -1 }],
@@ -285,6 +288,7 @@ describe("authoritative shared contracts", () => {
 
   it("uses the same inclusive safe-integer draw boundary as the RNG runtime", () => {
     const errors = validateCanonicalGameState({
+      stateVersion: CURRENT_CANONICAL_STATE_VERSION,
       resources: { gold: 0, food: 0, wood: 0, stone: 0, ore: 0 }, buildings: {}, citizens: { farmers: 0, woodcutters: 0, quarrymen: 0, miners: 0, unassigned: 3 }, districts: {}, heroes: [],
       storedItems: [], forgeMaterials: [], itemBlueprints: [], encounterHistory: [],
       totalCitizensCount: 3, activeDungeonFloor: 1, activeDungeonRoom: 1,
@@ -312,6 +316,7 @@ describe("authoritative shared contracts", () => {
     })).toContain("command.classType must be a known non-Novice class");
 
     const errors = validateCanonicalGameState({
+      stateVersion: CURRENT_CANONICAL_STATE_VERSION,
       resources: { gold: 0, food: 0, wood: 0, stone: 0, ore: 0 }, buildings: {}, citizens: { farmers: 0, woodcutters: 0, quarrymen: 0, miners: 0, unassigned: 3 }, districts: {}, heroes: [],
       storedItems: [], forgeMaterials: [], itemBlueprints: [], encounterHistory: [],
       totalCitizensCount: 3, activeDungeonFloor: 1, activeDungeonRoom: 1,

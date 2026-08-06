@@ -8,6 +8,7 @@ import { CLASS_INFO_LIST } from "../src/data/heroes";
 import type { Hero } from "../src/types";
 import type { CanonicalHero } from "../shared/contracts/authoritative";
 import { makeHero } from "./fixtures/game";
+import { asLegacyUnversionedState } from "./fixtures/stateMigrations";
 
 const withoutIdentity = (hero: CanonicalHero) => {
   const { id: _id, name: _name, ...profile } = hero;
@@ -18,16 +19,16 @@ describe("authoritative town commands", () => {
   it("initializes and migrates the six historical novice blueprints", () => {
     expect(initialTownState().itemBlueprints).toHaveLength(6);
     expect(initialTownState().itemBlueprints).not.toContainEqual({ itemId: "novice_mystic_robe", unlocked: true });
-    expect(migrateTownState({ ...initialTownState(), itemBlueprints: [] }).itemBlueprints).toEqual(initialTownState().itemBlueprints);
+    expect(migrateTownState(asLegacyUnversionedState({ ...initialTownState(), itemBlueprints: [] })).itemBlueprints).toEqual(initialTownState().itemBlueprints);
   });
 
   it("migrates a derived XP threshold without consuming gameplay RNG", () => {
-    const current = {
+    const current = asLegacyUnversionedState({
       ...initialTownState(),
       heroes: [makeHero({ xpNeeded: 120 })],
       onboardingCandidates: [makeHero({ id: "candidate", xpNeeded: 120 })],
       pendingRecruit: makeHero({ id: "pending", xpNeeded: 120 }),
-    };
+    });
     const migrated = migrateTownState(current);
     expect((migrated.heroes as unknown as Hero[])[0].xpNeeded).toBe(100);
     expect((migrated.onboardingCandidates as unknown as Hero[])[0].xpNeeded).toBe(100);
@@ -36,14 +37,14 @@ describe("authoritative town commands", () => {
   });
 
   it("normalizes legacy dungeon rooms only when no encounter is active", () => {
-    const idle = migrateTownState({
+    const idle = migrateTownState(asLegacyUnversionedState({
       ...initialTownState(),
       activeDungeonFloor: 1,
       activeDungeonRoom: 50,
-    });
+    }));
     expect(idle.activeDungeonRoom).toBe(5);
 
-    const active = migrateTownState({
+    const active = migrateTownState(asLegacyUnversionedState({
       ...initialTownState(),
       activeDungeonFloor: 1,
       activeDungeonRoom: 50,
@@ -54,7 +55,7 @@ describe("authoritative town commands", () => {
         floor: 1,
         room: 50,
       },
-    });
+    }));
     expect(active.activeDungeonRoom).toBe(50);
   });
 
@@ -300,11 +301,11 @@ describe("authoritative town commands", () => {
       activeSkills: ["heavy_blow"],
       passiveSkills: ["survival_instinct"],
     }));
-    const migrated = migrateTownState({
+    const migrated = migrateTownState(asLegacyUnversionedState({
       ...base,
       heroes: [novice],
       buildings: { ...base.buildings, caserne: 1 },
-    });
+    }));
 
     expect(migrated.rngState).toEqual(base.rngState);
     expect(migrated.autoExplore).toBe(false);
@@ -356,15 +357,16 @@ describe("authoritative town commands", () => {
         isActive: true,
         status: "idle",
       });
-      const initial = migrateTownState({
+      const initial = migrateTownState(asLegacyUnversionedState({
         ...base,
         heroes: [hero],
-        buildings: { ...base.buildings, caserne: 1 },
-      });
-      const refreshed = migrateTownState({
+        buildings: { ...base.buildings, caserne: 1, guilde: 1, mine: 1 },
+        highestFloorReached: 3,
+      }));
+      const refreshed = applyTownCommand({
         ...initial,
-        buildings: { ...initial.buildings, caserne: 1, temple: 1 },
-      });
+        resources: { gold: 1_000_000, food: 1_000_000, wood: 1_000_000, stone: 1_000_000, ore: 1_000_000 },
+      }, { type: "building.upgrade", buildingId: "temple" }).state;
       if (JSON.stringify(initial.pendingClassTransitions[0]?.candidates)
         !== JSON.stringify(refreshed.pendingClassTransitions[0]?.candidates)) {
         before = initial;
@@ -392,7 +394,7 @@ describe("authoritative town commands", () => {
       classType: "Guerrier",
       xpNeeded: calculateXpNeeded(11, "Guerrier"),
     }));
-    const migrated = migrateTownState({
+    const migrated = migrateTownState(asLegacyUnversionedState({
       ...base,
       heroes: [warrior],
       pendingClassTransitions: [{
@@ -406,7 +408,7 @@ describe("authoritative town commands", () => {
         reason: "stale",
         candidates: [{ classType: "Guerrier", affinity: 0.9 }],
       }],
-    });
+    }));
 
     expect(migrated.pendingClassTransitions).toEqual([]);
     expect(migrated.heroes?.[0]).toMatchObject({ classType: "Guerrier" });
@@ -431,11 +433,11 @@ describe("authoritative town commands", () => {
       activeSkills: ["heavy_blow"],
       passiveSkills: ["survival_instinct"],
     }));
-    const migrated = migrateTownState({
+    const migrated = migrateTownState(asLegacyUnversionedState({
       ...base,
       heroes: [warrior, mage],
       buildings: { ...base.buildings, caserne: 1, academie: 1 },
-    });
+    }));
     expect(migrated.pendingClassTransitions).toHaveLength(2);
     expect(() => applyTownCommand(migrated as unknown as Record<string, unknown>, {
       type: "hero.choose_vocation",
@@ -462,7 +464,7 @@ describe("authoritative town commands", () => {
       isActive: true,
       status: "idle",
     }));
-    const migrated = migrateTownState({
+    const migrated = migrateTownState(asLegacyUnversionedState({
       ...base,
       heroes: [
         pendingHero,
@@ -472,7 +474,7 @@ describe("authoritative town commands", () => {
         makeHero({ id: "waiting", isActive: false, status: "resting" }),
       ],
       buildings: { ...base.buildings, caserne: 1 },
-    });
+    }));
 
     expect(() => applyTownCommand(migrated as unknown as Record<string, unknown>, {
       type: "hero.activity",
@@ -589,7 +591,13 @@ describe("authoritative town commands", () => {
   });
 
   it("allows equipment independently from the vocation reward pools", () => {
-    const mage = makeHero({ id: "hero-mage", level: 10, classType: "Mage", equipment: {} });
+    const mage = makeHero({
+      id: "hero-mage",
+      level: 10,
+      classType: "Mage",
+      xpNeeded: calculateXpNeeded(11, "Mage"),
+      equipment: {},
+    });
     const current = {
       ...initialTownState(),
       heroes: [mage],
@@ -612,6 +620,7 @@ describe("authoritative town commands", () => {
       id: "hero-warrior",
       level: 10,
       classType: "Guerrier",
+      xpNeeded: calculateXpNeeded(11, "Guerrier"),
       equipment: {
         offHand: { instanceId: "shield", itemId: "wooden_shield", rarity: "common" },
       },
@@ -662,10 +671,13 @@ describe("authoritative town commands", () => {
   });
 
   it("recalculates Tier 1 stats with persisted rarity and forge modifiers", () => {
-    const warrior = generateAuthoritativeNovice("tier-one-equipment", "hero-warrior");
-    warrior.classType = "Guerrier";
-    warrior.passiveSkills = ["weapon_training"];
-    warrior.equipment = {};
+    const warrior = refreshHeroDerivedStats({
+      ...generateAuthoritativeNovice("tier-one-equipment", "hero-warrior"),
+      classType: "Guerrier",
+      xpNeeded: calculateXpNeeded(2, "Guerrier"),
+      passiveSkills: ["weapon_training"],
+      equipment: {},
+    });
     const started = applyTownCommand({
       ...initialTownState(),
       buildings: { ...initialTownState().buildings, forge: 1 },

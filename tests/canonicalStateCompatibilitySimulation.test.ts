@@ -12,6 +12,7 @@ import { projectCanonicalState } from "../src/domain/canonicalStateProjection";
 import { makeHero } from "./fixtures/game";
 import { readGameCache, writeGameCache } from "../src/lib/gameCache";
 import { createIndexedDbMock } from "./helpers/indexedDbMock";
+import { asLegacyUnversionedState } from "./fixtures/stateMigrations";
 import {
   createCrossTabAuthorityMessage,
   parseCrossTabAuthorityMessage,
@@ -22,10 +23,10 @@ describe("canonical state compatibility simulation", () => {
   it("migrates a pre-RNG, pre-DPS snapshot into the complete typed contract", () => {
     const legacyHero = structuredClone(makeHero({ id: "legacy-hero" })) as unknown as Record<string, unknown>;
     delete (legacyHero.calculatedStats as Record<string, unknown>).estimatedDps;
-    const legacy = {
+    const legacy = asLegacyUnversionedState({
       ...initialTownState(42),
       heroes: [legacyHero],
-    } as unknown as Record<string, unknown>;
+    }) as unknown as Record<string, unknown>;
     delete legacy.rngState;
 
     const migrated = migrateTownState(structuredClone(legacy), 42);

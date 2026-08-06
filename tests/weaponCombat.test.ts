@@ -11,6 +11,7 @@ import {
 } from "../shared/domain/weapon-combat";
 import { calculateAuthoritativeHeroStats } from "../supabase/functions/game-api/novice-stats-authority";
 import { initialTownState, migrateTownState } from "../supabase/functions/game-api/town-authority";
+import { asLegacyUnversionedState } from "./fixtures/stateMigrations";
 import { makeHero } from "./fixtures/game";
 
 const attributes = { str: 5, agi: 11, end: 5, int: 13, wiz: 17, dex: 19, luk: 7 };
@@ -132,7 +133,7 @@ describe("weapon-specific scaling", () => {
       },
     });
 
-    const migrated = migrateTownState({ ...initialTownState(), heroes: [hero] });
+    const migrated = migrateTownState(asLegacyUnversionedState({ ...initialTownState(), heroes: [hero] }));
     const migratedHero = migrated.heroes[0];
 
     expect(migratedHero.equipment?.mainHand?.itemId).toBe("basic_lute");
@@ -178,10 +179,10 @@ describe("weapon-specific scaling", () => {
     const hero = makeHero();
     const legacyCalculatedStats = { ...hero.calculatedStats } as Partial<typeof hero.calculatedStats>;
     delete legacyCalculatedStats.estimatedDps;
-    const migrated = migrateTownState({
+    const migrated = migrateTownState(asLegacyUnversionedState({
       ...initialTownState(),
       heroes: [{ ...hero, calculatedStats: legacyCalculatedStats }],
-    });
+    }));
     const migratedHero = migrated.heroes?.[0] as unknown as typeof hero;
     expect(migratedHero.calculatedStats.estimatedDps).toBeGreaterThan(0);
   });
@@ -192,7 +193,7 @@ describe("weapon-specific scaling", () => {
     });
     expect(validateCanonicalHero(hero)).toContain("hero.calculatedStats.estimatedDps must be > 0");
 
-    const migrated = migrateTownState({ ...initialTownState(), heroes: [hero] });
+    const migrated = migrateTownState(asLegacyUnversionedState({ ...initialTownState(), heroes: [hero] }));
     const migratedHero = migrated.heroes?.[0] as unknown as typeof hero;
     expect(migratedHero.calculatedStats.estimatedDps).toBeGreaterThan(0);
   });
@@ -201,7 +202,7 @@ describe("weapon-specific scaling", () => {
     const hero = makeHero({
       calculatedStats: { ...makeHero().calculatedStats, estimatedDps: 999_999 },
     });
-    const migrated = migrateTownState({ ...initialTownState(), heroes: [hero] });
+    const migrated = migrateTownState(asLegacyUnversionedState({ ...initialTownState(), heroes: [hero] }));
     const migratedHero = migrated.heroes?.[0] as unknown as typeof hero;
 
     expect(migratedHero.calculatedStats.estimatedDps).not.toBe(999_999);

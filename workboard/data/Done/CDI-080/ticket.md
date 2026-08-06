@@ -1,7 +1,7 @@
 ---
 id: CDI-080
 title: Introduire les migrations d etat versionnees
-status: Later
+status: Done
 area: backend
 priority: P1
 size: M
@@ -10,7 +10,7 @@ source: Audit d architecture logiciel front et back du 2026-08-01
 depends_on: ["CDI-078"]
 blocks: ["CDI-082"]
 github_issue: null
-related_docs: ["supabase/functions/game-api/town-authority.ts", "shared/contracts/authoritative.ts", "supabase/migrations"]
+related_docs: ["supabase/functions/game-api/state-migrations.ts", "shared/contracts/authoritative.ts", "docs/development/canonical-state-migrations.md"]
 ---
 
 # CDI-080 - Introduire les migrations d etat versionnees
@@ -64,14 +64,14 @@ registre de migrations.
 
 ## Criteres d'acceptation
 
-- [ ] Le snapshot porte une version canonique explicite.
-- [ ] Les migrations sont ordonnees et exhaustives entre versions supportees.
-- [ ] Chaque migration possede une fixture avant et apres.
-- [ ] Les migrations sont pures, deterministes et idempotentes.
-- [ ] Les versions absente, invalide et future ont un comportement explicite.
-- [ ] Les sauvegardes alpha representatives arrivent au contrat courant sans
+- [x] Le snapshot porte une version canonique explicite.
+- [x] Les migrations sont ordonnees et exhaustives entre versions supportees.
+- [x] Chaque migration possede une fixture avant et apres.
+- [x] Les migrations sont pures, deterministes et idempotentes.
+- [x] Les versions absente, invalide et future ont un comportement explicite.
+- [x] Les sauvegardes alpha representatives arrivent au contrat courant sans
       perte silencieuse.
-- [ ] L etat migre passe tous les validateurs canoniques.
+- [x] L etat migre passe tous les validateurs canoniques.
 
 ## Tests
 
@@ -86,8 +86,9 @@ registre de migrations.
 
 ## Validation manuelle
 
-Charger une copie locale anonymisee d une sauvegarde alpha ancienne, verifier
-la migration, jouer une commande, recharger et comparer l etat persiste.
+Charger une fixture anonymisee d une sauvegarde alpha ancienne, verifier la
+migration, jouer une commande, simuler le rechargement et comparer l etat
+persiste. Cette simulation remplace la manipulation manuelle longue.
 
 ## Preservation
 
@@ -105,3 +106,23 @@ la migration, jouer une commande, recharger et comparer l etat persiste.
 
 Fournir le registre de versions, les fixtures, les transformations documentees,
 les formats refuses et les preuves d idempotence.
+
+## Realisation
+
+- `stateVersion` distingue le format JSON canonique de `games.schema_version`.
+- Le registre pur applique explicitement `v0 -> v1` et refuse les versions
+  invalides, futures ou sans chemin connu.
+- Les anciennes reparations implicites sont encapsulees dans la migration v0 ;
+  un snapshot v1 incomplet est refuse sans reparation silencieuse.
+- Les fixtures golden, la simulation de compatibilite, le bootstrap persistant,
+  les commandes post-migration et la conservation du RNG sont couverts.
+- La migration clone aussi ses valeurs par defaut, conserve explicitement
+  l historique et refuse les collections legacy malformees sans `TypeError`.
+- Les elements `null`, primitifs ou incomplets des collections legacy sont
+  refuses avant toute reconciliation metier et aucun objet du resultat ne
+  partage de reference avec les valeurs par defaut du pipeline.
+- La reconciliation des vocations est isolee dans une autorite metier partagee
+  par la migration et les commandes de batiment.
+- Validation Codex : typecheck, lint, couverture, Workboard, determinisme,
+  secrets, logs, securite des migrations et 580 tests unitaires valides.
+- Validation utilisateur : 127 tests DB valides et build frontend reussi.

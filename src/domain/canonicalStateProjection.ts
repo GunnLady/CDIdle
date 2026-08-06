@@ -29,8 +29,9 @@ export const CANONICAL_REACT_STATE_FIELDS = [
 ] as const;
 
 // These canonical fields are deliberately persisted in the read-only cache but
-// currently have no React setter: districts are disabled and RNG is server-only.
-export const CANONICAL_CACHE_ONLY_STATE_FIELDS = ["districts", "rngState"] as const;
+// have no React setter: the format version and RNG are server-owned, while
+// districts are disabled.
+export const CANONICAL_CACHE_ONLY_STATE_FIELDS = ["stateVersion", "districts", "rngState"] as const;
 
 type CanonicalReactStateField = (typeof CANONICAL_REACT_STATE_FIELDS)[number];
 export type CanonicalReactState = Partial<Pick<CanonicalGameStateFields, CanonicalReactStateField>>;
