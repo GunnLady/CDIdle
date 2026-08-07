@@ -24,11 +24,14 @@ import { deleteGameCache, purgeLegacyGameCache } from "./lib/gameCache";
 import type { CanonicalOperationContext } from "./lib/canonicalOperationQueue";
 import {
   OptimisticCommandBuffer,
-  keepLatestCommand,
-  mergeBuildingLevels,
-  mergeSummedAmount,
   shouldRetryOptimisticConflict,
 } from "./lib/optimisticCommandBuffer";
+import {
+  applyAuthoritativeCommandSuccess,
+  getAuthoritativeFailurePresentation,
+  type AuthoritativeDispatchOptions,
+} from "./lib/authoritativeCommandDispatch";
+import { sendOptimisticCommandWithConflictRetry } from "./lib/optimisticCommandDispatch";
 import type { AuthoritativeCommandSuccess, AuthoritativeGameEnvelope, GameCommand } from "./domain/commands";
 import { createCommandEnvelope } from "./domain/commandEnvelope";
 import { BUILD_VERSION, DISPLAY_BUILD_VERSION } from "./lib/buildVersion";
@@ -403,13 +406,7 @@ export default function App() {
 
   const dispatchAuthoritativeCommand = useCallback((
     command: GameCommand,
-    options: {
-      interactive?: boolean;
-      silentConflict?: boolean;
-      silentSuccess?: boolean;
-      beforeApplyAuthoritativeState?: () => void;
-      onConflictResolved?: () => void;
-    } = {},
+    options: AuthoritativeDispatchOptions = {},
   ): Promise<boolean> => {
     const interactive = options.interactive ?? true;
     if (canonicalStateFailureDetails) {
@@ -443,14 +440,17 @@ export default function App() {
         const resolvedEncounter = (result?.events ?? [])
           .find((event) => event.type === "dungeon.encounter_resolved")
           ?.encounter as CanonicalDungeonEncounterRecord | undefined;
-        options.beforeApplyAuthoritativeState?.();
-        await measureApplication(() => applyAuthoritativeState(
-          result?.state,
-          result?.revision,
-          String(currentUser.id),
-          result?.serverTime,
-          result?.lastProcessedAt,
-        ));
+        await applyAuthoritativeCommandSuccess(
+          result,
+          options.beforeApplyAuthoritativeState,
+          () => measureApplication(() => applyAuthoritativeState(
+            result?.state,
+            result?.revision,
+            String(currentUser.id),
+            result?.serverTime,
+            result?.lastProcessedAt,
+          )),
+        );
         publishAuthoritativeSnapshot(result);
         for (const event of result?.events ?? []) {
           const townLog = formatCanonicalTownEvent(event);
@@ -506,13 +506,12 @@ export default function App() {
           } else if (!(error instanceof GameApiError) || error.status >= 500) {
             setApiAvailable(false);
           }
-          const message = error instanceof GameApiError ? error.message : "Mutation autoritaire indisponible";
-          addLog(`❌ ${message}.`, "defeat");
-          showCrossTabNotice(
-            error instanceof GameApiError && error.status < 500
-              ? `Action refusée : ${message}. L’état précédent a été restauré.`
-              : "Service indisponible : l’action a été annulée et le dernier état confirmé a été restauré.",
-          );
+          const presentation = getAuthoritativeFailurePresentation({
+            isBusinessRefusal: error instanceof GameApiError && error.status < 500,
+            ...(error instanceof GameApiError ? { message: error.message } : {}),
+          });
+          addLog(presentation.logMessage, "defeat");
+          showCrossTabNotice(presentation.notice);
         }
         return { ok: false };
       }
@@ -546,20 +545,11 @@ export default function App() {
     },
     send: async (bufferedCommand, acknowledge) => {
       if (bufferedCommand.type === "dungeon.select_floor") await dungeonAutomation.waitUntilIdle();
-      let conflictResolved = false;
-      const commandOptions = {
-        interactive: false,
-        silentConflict: true,
-        silentSuccess: true,
-        beforeApplyAuthoritativeState: acknowledge,
-        onConflictResolved: () => { conflictResolved = true; },
-      };
-      const firstAttempt = await dispatchAuthoritativeCommand(bufferedCommand, commandOptions);
-      if (firstAttempt || !conflictResolved) return firstAttempt;
-      return dispatchAuthoritativeCommand(bufferedCommand, {
-        ...commandOptions,
-        onConflictResolved: undefined,
-      });
+      return sendOptimisticCommandWithConflictRetry(
+        bufferedCommand,
+        acknowledge,
+        dispatchAuthoritativeCommand,
+      );
     },
     onDisabled: () => {
       restoreConfirmedProjection();
@@ -1236,10 +1226,10 @@ export default function App() {
                 citizens={town.citizens}
                 totalCitizensCount={town.displayTotalCitizens}
                 onUpgradeBuilding={(buildingId) => {
-                  enqueueOptimisticCommand(`building:${buildingId}`, { type: "building.upgrade", buildingId }, mergeBuildingLevels);
+                  enqueueOptimisticCommand(`building:${buildingId}`, { type: "building.upgrade", buildingId });
                 }}
                 onAllocateCitizen={(role, amount) => {
-                  enqueueOptimisticCommand(`citizens:${role}`, { type: "citizens.allocate", role, amount }, mergeSummedAmount);
+                  enqueueOptimisticCommand(`citizens:${role}`, { type: "citizens.allocate", role, amount });
                 }}
                 citizenGrowthProgress={town.displayCitizenGrowthProgress}
                 highestFloorReached={dungeon.highestFloorReached}
@@ -1266,14 +1256,14 @@ export default function App() {
                 onDismissHero={(heroId) => { void dispatchAuthoritativeCommand({ type: "hero.dismiss", heroId }); }}
                 onToggleHeroActive={(heroId) => {
                   const hero = dungeon.heroes.find((entry) => entry.id === heroId);
-                  if (hero) enqueueOptimisticCommand(`hero-activity:${heroId}`, { type: "hero.activity", heroId, active: !hero.isActive }, keepLatestCommand);
+                  if (hero) enqueueOptimisticCommand(`hero-activity:${heroId}`, { type: "hero.activity", heroId, active: !hero.isActive });
                 }}
                 onRecruitHero={() => { void dispatchAuthoritativeCommand({ type: "hero.recruit_offer" }); }}
                 onUnequipItem={(heroId, slot) => {
-                  enqueueOptimisticCommand(`equipment:${heroId}:${slot}`, { type: "hero.unequip", heroId, slot }, keepLatestCommand);
+                  enqueueOptimisticCommand(`equipment:${heroId}:${slot}`, { type: "hero.unequip", heroId, slot });
                 }}
                 onEquipItem={(heroId, instanceId) => {
-                  enqueueOptimisticCommand(`equipment:${heroId}`, { type: "hero.equip", heroId, instanceId }, keepLatestCommand);
+                  enqueueOptimisticCommand(`equipment:${heroId}`, { type: "hero.equip", heroId, instanceId });
                 }}
                 storedItems={dungeon.storedItems}
                 onGoToTab={setActiveTab}
@@ -1294,7 +1284,7 @@ export default function App() {
                 onToggleAutoExplore={() => {
                   const enabled = !dungeon.autoExplore;
                   dungeonAutomation.setBlocked(!enabled);
-                  enqueueOptimisticCommand("dungeon:auto", { type: "dungeon.auto_explore", enabled }, keepLatestCommand);
+                  enqueueOptimisticCommand("dungeon:auto", { type: "dungeon.auto_explore", enabled });
                 }}
                 activeEncounter={currentEncounter}
                 encounterHistory={encounterHistory}
@@ -1314,7 +1304,7 @@ export default function App() {
                     void dungeonAutomation.exploreAndResolve(false);
                   }
                   dungeonAutomation.setBlocked(true);
-                  enqueueOptimisticCommand("dungeon:floor", { type: "dungeon.select_floor", floor }, keepLatestCommand);
+                  enqueueOptimisticCommand("dungeon:floor", { type: "dungeon.select_floor", floor });
                 }}
                 onRetreatParty={() => { void dungeonAutomation.retreat(); }}
                 onClearBattleLogs={clearBattleLogs}
@@ -1371,7 +1361,7 @@ export default function App() {
                 storedItems={dungeon.storedItems}
                 heroes={dungeon.heroes}
                 onEquipItem={(heroId, instanceId) => {
-                  enqueueOptimisticCommand(`equipment:${heroId}`, { type: "hero.equip", heroId, instanceId }, keepLatestCommand);
+                  enqueueOptimisticCommand(`equipment:${heroId}`, { type: "hero.equip", heroId, instanceId });
                 }}
                 isForgeUnlocked={(town.buildings["forge"] || 0) >= 1}
                 onScrapItem={(instanceId) => { void dispatchAuthoritativeCommand({ type: "inventory.recycle", instanceId }); }}

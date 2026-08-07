@@ -1,6 +1,6 @@
 import { useCallback, useRef, useState } from "react";
 import type { CanonicalGameState } from "../../shared/contracts/authoritative";
-import type { GameCommand } from "../domain/commands";
+import type { OptimisticGameCommand } from "../domain/optimisticStateProjection";
 import { createAuthoritativeTimeAnchor, type AuthoritativeTimeAnchor } from "../domain/authoritativeTimeProjection";
 import type { CrossTabAuthoritySnapshot } from "../domain/crossTabAuthority";
 import { projectOptimisticCommands } from "../domain/optimisticStateProjection";
@@ -20,7 +20,7 @@ const EMPTY_RUNTIME_STATE: CanonicalSnapshotRuntimeState = {
 };
 
 export function useCanonicalSnapshot(options: {
-  getOptimisticCommands(): GameCommand[];
+  getOptimisticCommands(): OptimisticGameCommand[];
 }) {
   const optionsRef = useRef(options);
   optionsRef.current = options;
@@ -79,7 +79,7 @@ export function useCanonicalSnapshot(options: {
     return true;
   }, [authorityGeneration, commitRuntimeState]);
 
-  const renderOptimisticCommands = useCallback((commands: GameCommand[]) => {
+  const renderOptimisticCommands = useCallback((commands: OptimisticGameCommand[]) => {
     const base = runtimeStateRef.current.confirmed?.state;
     if (!base) return;
     commitRuntimeState({

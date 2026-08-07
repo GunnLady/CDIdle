@@ -1,15 +1,12 @@
 import { useCallback, useEffect, useRef, type MutableRefObject } from "react";
-import type { GameCommand } from "../domain/commands";
-import {
-  OptimisticCommandBuffer,
-  type OptimisticMerge,
-} from "../lib/optimisticCommandBuffer";
+import type { OptimisticGameCommand } from "../domain/optimisticStateProjection";
+import { OptimisticCommandBuffer } from "../lib/optimisticCommandBuffer";
 
 export function useOptimisticCommands(options: {
   enabled: boolean;
   bufferRef: MutableRefObject<OptimisticCommandBuffer | null>;
-  onChange(commands: GameCommand[]): void;
-  send(command: GameCommand, acknowledge: () => void): Promise<boolean>;
+  onChange(commands: OptimisticGameCommand[]): void;
+  send(command: OptimisticGameCommand, acknowledge: () => void): Promise<boolean>;
   onDisabled(): void;
 }) {
   const optionsRef = useRef(options);
@@ -22,7 +19,7 @@ export function useOptimisticCommands(options: {
     current.onDisabled();
   }, []);
 
-  const enqueue = useCallback((key: string, command: GameCommand, merge: OptimisticMerge) => {
+  const enqueue = useCallback((key: string, command: OptimisticGameCommand) => {
     const current = optionsRef.current;
     if (!current.enabled) return false;
     if (!current.bufferRef.current) {
@@ -31,7 +28,7 @@ export function useOptimisticCommands(options: {
         send: (bufferedCommand, acknowledge) => optionsRef.current.send(bufferedCommand, acknowledge),
       });
     }
-    return current.bufferRef.current.enqueue(key, command, merge);
+    return current.bufferRef.current.enqueue(key, command);
   }, []);
 
   useEffect(() => {

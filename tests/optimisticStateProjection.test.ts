@@ -57,7 +57,7 @@ describe("projectOptimisticCommands", () => {
     const unequipped = projectOptimisticCommands(projected, [
       { type: "hero.unequip", heroId: hero.id, slot: "mainHand" },
     ]);
-    expect(unequipped.heroes[0].equipment.mainHand).toBeNull();
+    expect(unequipped.heroes[0].equipment.mainHand).toBeUndefined();
     expect(unequipped.storedItems).toEqual([
       expect.objectContaining({ instanceId: "item-optimistic", itemId: "starter_sword" }),
     ]);

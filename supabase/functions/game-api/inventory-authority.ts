@@ -12,7 +12,10 @@ import type {
   CanonicalStateTransition,
   CanonicalStoredItemInstance,
 } from "../../../shared/contracts/authoritative.ts";
-import type { CanonicalStatModifier } from "../../../shared/domain/hero-stats.ts";
+import {
+  preserveResourceRatio,
+  type CanonicalStatModifier,
+} from "../../../shared/domain/hero-stats.ts";
 
 export type InventoryRarity = "common" | "uncommon" | "rare" | "epic" | "legendary";
 export type InventorySlot = "mainHand" | "offHand" | "armor" | "accessory";
@@ -73,22 +76,6 @@ function ensureItem(itemId: string): ItemDefinition {
     requiredLevel: item.requiredLevel,
     twoHanded: handedness === "two_handed" || handedness === "dual_wield",
   };
-}
-
-function preserveResourceRatio(
-  current: number | undefined,
-  previousMax: unknown,
-  nextMax: number,
-  keepAlive: boolean,
-): number {
-  if (typeof current !== "number" || !Number.isFinite(current)) return nextMax;
-  if (typeof previousMax !== "number" || !Number.isFinite(previousMax) || previousMax <= 0) {
-    return Math.min(Math.max(0, current), nextMax);
-  }
-  if (current <= 0) return 0;
-  const ratio = Math.min(1, current / previousMax);
-  const scaled = Math.floor(nextMax * ratio);
-  return keepAlive ? Math.max(1, scaled) : scaled;
 }
 
 function withEquipment(hero: InventoryHero, equipment: InventoryHero["equipment"]): InventoryHero {

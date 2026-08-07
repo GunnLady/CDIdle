@@ -1,15 +1,21 @@
-import type { GameCommand } from "../domain/commands";
+import {
+  type OptimisticCommandType,
+  type OptimisticGameCommand,
+} from "../domain/optimisticStateProjection";
 
-export type OptimisticMerge = (current: GameCommand, incoming: GameCommand) => GameCommand | null;
+export type OptimisticMerge = (
+  current: OptimisticGameCommand,
+  incoming: OptimisticGameCommand,
+) => OptimisticGameCommand | null;
 
 interface PendingBatch {
-  command: GameCommand;
+  command: OptimisticGameCommand;
   timer: ReturnType<typeof setTimeout> | null;
 }
 
 interface OptimisticCommandBufferOptions {
-  send: (command: GameCommand, acknowledge: () => void) => Promise<boolean>;
-  onChange: (commands: GameCommand[]) => void;
+  send: (command: OptimisticGameCommand, acknowledge: () => void) => Promise<boolean>;
+  onChange: (commands: OptimisticGameCommand[]) => void;
   debounceMs?: number;
   maxClicksPerSecond?: number;
   now?: () => number;
@@ -22,7 +28,7 @@ interface OptimisticCommandBufferOptions {
 export class OptimisticCommandBuffer {
   private disposed = false;
   private readonly drafts = new Map<string, PendingBatch>();
-  private readonly inFlight = new Map<string, GameCommand>();
+  private readonly inFlight = new Map<string, OptimisticGameCommand>();
   private readonly clickHistory = new Map<string, number[]>();
   private readonly debounceMs: number;
   private readonly maxClicksPerSecond: number;
@@ -34,7 +40,7 @@ export class OptimisticCommandBuffer {
     this.now = options.now ?? Date.now;
   }
 
-  get commands(): GameCommand[] {
+  get commands(): OptimisticGameCommand[] {
     return [...this.inFlight.values(), ...[...this.drafts.values()].map((entry) => entry.command)];
   }
 
@@ -42,7 +48,7 @@ export class OptimisticCommandBuffer {
     return this.inFlight.size + this.drafts.size;
   }
 
-  enqueue(key: string, command: GameCommand, merge: OptimisticMerge): boolean {
+  enqueue(key: string, command: OptimisticGameCommand): boolean {
     if (this.disposed) return false;
     const now = this.now();
     const recent = (this.clickHistory.get(key) ?? []).filter((timestamp) => now - timestamp < 1_000);
@@ -54,7 +60,7 @@ export class OptimisticCommandBuffer {
     this.clickHistory.set(key, recent);
 
     const current = this.drafts.get(key);
-    const merged = current ? merge(current.command, command) : command;
+    const merged = current ? mergeOptimisticCommands(current.command, command) : command;
     // A merge function may return the existing object to reject a click that
     // would overflow the current batch. Keep its original flush deadline.
     if (current && merged === current.command) return false;
@@ -127,6 +133,23 @@ export const mergeBuildingLevels: OptimisticMerge = (current, incoming) => {
 };
 
 export const keepLatestCommand: OptimisticMerge = (_current, incoming) => incoming;
+
+export const OPTIMISTIC_MERGE_STRATEGIES = {
+  "citizens.allocate": mergeSummedAmount,
+  "building.upgrade": mergeBuildingLevels,
+  "hero.activity": keepLatestCommand,
+  "hero.equip": keepLatestCommand,
+  "hero.unequip": keepLatestCommand,
+  "dungeon.select_floor": keepLatestCommand,
+  "dungeon.auto_explore": keepLatestCommand,
+} satisfies Record<OptimisticCommandType, OptimisticMerge>;
+
+export function mergeOptimisticCommands(
+  current: OptimisticGameCommand,
+  incoming: OptimisticGameCommand,
+): OptimisticGameCommand | null {
+  return OPTIMISTIC_MERGE_STRATEGIES[incoming.type](current, incoming);
+}
 
 export function shouldRetryOptimisticConflict(code: string | undefined): boolean {
   return code === "REVISION_CONFLICT";

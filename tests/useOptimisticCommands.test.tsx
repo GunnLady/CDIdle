@@ -1,6 +1,6 @@
 import { act, renderHook } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { keepLatestCommand, type OptimisticCommandBuffer } from "../src/lib/optimisticCommandBuffer";
+import type { OptimisticCommandBuffer } from "../src/lib/optimisticCommandBuffer";
 import { useOptimisticCommands } from "../src/hooks/useOptimisticCommands";
 
 describe("optimistic commands hook", () => {
@@ -24,7 +24,6 @@ describe("optimistic commands hook", () => {
       expect(result.current.enqueue(
         "auto",
         { type: "dungeon.auto_explore", enabled: true },
-        keepLatestCommand,
       )).toBe(true);
     });
     expect(bufferRef.current).not.toBeNull();
@@ -39,7 +38,6 @@ describe("optimistic commands hook", () => {
     expect(result.current.enqueue(
       "auto",
       { type: "dungeon.auto_explore", enabled: false },
-      keepLatestCommand,
     )).toBe(false);
   });
 });

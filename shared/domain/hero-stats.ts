@@ -63,6 +63,22 @@ export function isCanonicalItemModifierField(stat: string): boolean {
   return CANONICAL_ITEM_MODIFIER_FIELD_SET.has(stat);
 }
 
+export function preserveResourceRatio(
+  current: number | undefined,
+  previousMax: unknown,
+  nextMax: number,
+  keepAlive: boolean,
+): number {
+  if (typeof current !== "number" || !Number.isFinite(current)) return nextMax;
+  if (typeof previousMax !== "number" || !Number.isFinite(previousMax) || previousMax <= 0) {
+    return Math.min(Math.max(0, current), nextMax);
+  }
+  if (current <= 0) return 0;
+  const ratio = Math.min(1, current / previousMax);
+  const scaled = Math.floor(nextMax * ratio);
+  return keepAlive ? Math.max(1, scaled) : scaled;
+}
+
 /**
  * Canonical pure core behind the historical global getHeroStats function.
  * Both the client adapter and server authorities must use this implementation.
