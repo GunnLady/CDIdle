@@ -8,7 +8,7 @@ import { migrateAuthoritativeHeroProgression } from "../../../shared/domain/auth
 import { getDungeonRoomCount } from "../../../shared/domain/dungeon-progression.ts";
 import { getItemById } from "../../../shared/domain/items/items.ts";
 import { migrateCanonicalRngState } from "./authoritative-rng.ts";
-import { DEFAULT_NOVICE_ITEM_BLUEPRINTS } from "./forge-authority.ts";
+import { DEFAULT_NOVICE_ITEM_BLUEPRINTS } from "./forge-blueprints.ts";
 import {
   calculateAuthoritativeHeroStats,
   type AuthoritativeEquipment,

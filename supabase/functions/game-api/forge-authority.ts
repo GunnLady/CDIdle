@@ -4,18 +4,17 @@ import { ITEM_LIBRARY, rarityRank } from "../../../shared/domain/items/items.ts"
 import type {
   CanonicalForgeMaterialStack,
   CanonicalGameState,
-  CanonicalItemBlueprint,
   CanonicalPendingForge,
   CanonicalStateTransition,
   CanonicalStoredItemInstance,
 } from "../../../shared/contracts/authoritative.ts";
 import type { CanonicalStatModifier } from "../../../shared/domain/hero-stats.ts";
+export { DEFAULT_NOVICE_ITEM_BLUEPRINTS } from "./forge-blueprints.ts";
 
 export type ForgeRarity = "common" | "uncommon" | "rare" | "epic" | "legendary";
 export type ForgeUpgradeProc = "none" | "uncommon" | "rare";
 export type ForgeMaterialStack = CanonicalForgeMaterialStack;
 type ItemInstance = CanonicalStoredItemInstance;
-type ItemBlueprint = CanonicalItemBlueprint;
 type Recipe = {
   itemId: string;
   itemType: "weapon" | "offhand" | "armor" | "accessory";
@@ -34,15 +33,6 @@ export class ForgeCommandError extends Error {
 
 const clone = <T>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
 const RARITIES = new Set<ForgeRarity>(["common", "uncommon", "rare", "epic", "legendary"]);
-
-export const DEFAULT_NOVICE_ITEM_BLUEPRINTS: ItemBlueprint[] = [
-  { itemId: "starter_sword", unlocked: true },
-  { itemId: "quick_dagger", unlocked: true },
-  { itemId: "woodcutter_axe", unlocked: true },
-  { itemId: "wooden_shield", unlocked: true },
-  { itemId: "traveler_clothes", unlocked: true },
-  { itemId: "simple_leather_armor", unlocked: true },
-];
 
 const CRAFT_COST: ForgeMaterialStack[] = [
   { materialId: "metal_scrap", rarity: "common", count: 6 },
