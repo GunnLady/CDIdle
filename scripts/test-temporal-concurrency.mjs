@@ -1,50 +1,9 @@
-import { createHmac } from 'node:crypto';
-import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
-
-const TEST_USER_ID = '46464646-4646-4646-8646-464646464646';
-
-function parseEnvironment(output) {
-  return Object.fromEntries(output.split(/\r?\n/).flatMap((line) => {
-    const match = /^([A-Z0-9_]+)=(?:"(.*)"|'(.*)'|(.*))$/.exec(line.trim());
-    return match ? [[match[1], match[2] ?? match[3] ?? match[4] ?? '']] : [];
-  }));
-}
-
-function readLocalSupabaseEnvironment() {
-  let output;
-  try {
-    const executable = process.platform === 'win32' ? (process.env.ComSpec ?? 'cmd.exe') : 'npm';
-    const args = process.platform === 'win32'
-      ? ['/d', '/s', '/c', 'npm.cmd exec --offline -- supabase status -o env']
-      : ['exec', '--offline', '--', 'supabase', 'status', '-o', 'env'];
-    output = execFileSync(executable, args, {
-      encoding: 'utf8',
-      stdio: ['ignore', 'pipe', 'ignore'],
-    });
-  } catch {
-    throw new Error('local Supabase status unavailable; start Supabase before running test:integration');
-  }
-  return parseEnvironment(output);
-}
-
-function base64url(value) {
-  return Buffer.from(value).toString('base64url');
-}
-
-function createLocalTestToken(jwtSecret, expectedIssuer) {
-  const header = base64url(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
-  const payload = base64url(JSON.stringify({
-    sub: TEST_USER_ID,
-    aud: 'authenticated',
-    role: 'authenticated',
-    iss: expectedIssuer,
-    iat: Math.floor(Date.now() / 1000),
-    exp: Math.floor(Date.now() / 1000) + 10 * 60,
-  }));
-  const signature = createHmac('sha256', jwtSecret).update(`${header}.${payload}`).digest('base64url');
-  return `${header}.${payload}.${signature}`;
-}
+import {
+  createLocalTestToken,
+  parseEnvironment,
+  readLocalSupabaseEnvironment,
+} from './local-supabase-test-runtime.mjs';
 
 const localEnvironment = readLocalSupabaseEnvironment();
 const functionEnvironment = parseEnvironment(readFileSync(

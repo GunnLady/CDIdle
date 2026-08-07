@@ -1070,7 +1070,11 @@ export default function App() {
 
       {/* 2. DYNAMIC NAMING POPUP STAGE (BLOCKED IF USER DID NOT CHOOSE A NAME YET) */}
       {currentUser && !canonicalStateFailureDetails && !cityName && isInitialGameLoadDone && (
-        <div className={`flex-1 bg-[#150D08]/90 flex items-center justify-center p-4 ${canMutate ? "" : "pointer-events-none opacity-80"}`}>
+        <div
+          data-testid="onboarding-stage"
+          aria-disabled={!canMutate}
+          className={`flex-1 bg-[#150D08]/90 flex items-center justify-center p-4 ${canMutate ? "" : "pointer-events-none opacity-80"}`}
+        >
           <LoginPage
             authoritativeNovices={onboardingCandidates}
             pendingCityName={pendingOnboardingCityName}

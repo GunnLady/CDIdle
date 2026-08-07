@@ -545,6 +545,7 @@ export default function TownPanel({
             return (
               <div
                 key={building.id}
+                data-testid={`building-${building.id}`}
                 className={`p-4 rounded-xl border-2 transition duration-150 flex flex-col justify-between ${
                   !unlocked
                     ? "bg-[#100a06]/40 border-[#301c0f]/50 opacity-40 select-none"

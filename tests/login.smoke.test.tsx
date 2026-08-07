@@ -55,5 +55,6 @@ describe("LoginPage smoke", () => {
 
     expect(await screen.findByText("▲ FOR (10)")).toBeInTheDocument();
     expect(screen.getByText("▼ SAG (1)")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^Sélectionner / })).toHaveAttribute("aria-pressed", "false");
   });
 });

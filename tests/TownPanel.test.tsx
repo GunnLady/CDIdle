@@ -49,6 +49,7 @@ describe("TownPanel city controls", () => {
     expect(screen.queryByRole("button", { name: /district/i })).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: /infrastructures/i }));
     expect(screen.getByText(/ajoute 1 emplacement de héros par niveau/i)).toBeInTheDocument();
+    expect(screen.getByTestId("building-ferme")).toBeInTheDocument();
   });
   it("finalizes a standard forge preview without treating it as cancellation", async () => {
     const props = baseProps();

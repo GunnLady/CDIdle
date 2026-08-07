@@ -66,6 +66,17 @@ jobs:
           if-no-files-found: warn
       - name: Database tests
         run: npm run test:db
+      - name: Install browser smoke runtime
+        run: npx playwright install --with-deps chromium
+      - name: Browser smoke
+        run: npm run test:browser
+      - name: Upload browser smoke diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: browser-smoke-diagnostics
+          path: test-results/browser
+          if-no-files-found: warn
       - name: Build
         run: npm run build
       - name: Bundle budget

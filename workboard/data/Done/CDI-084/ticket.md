@@ -1,7 +1,7 @@
 ---
 id: CDI-084
 title: Ajouter un smoke E2E navigateur reel
-status: Later
+status: Done
 area: quality
 priority: P2
 size: M
@@ -10,7 +10,7 @@ source: Audit d architecture logiciel front et back du 2026-08-01
 depends_on: ["CDI-083"]
 blocks: []
 github_issue: null
-related_docs: ["tests/authoritativePipeline.e2e.test.tsx", "scripts/test-temporal-concurrency.mjs", "supabase/functions/game-api"]
+related_docs: ["tests/authoritativePipeline.e2e.test.tsx", "tests/browser/canonicalPipeline.browser.spec.ts", "playwright.config.ts", "scripts/local-supabase-test-runtime.mjs", "docs/development/browser-smoke.md"]
 ---
 
 # CDI-084 - Ajouter un smoke E2E navigateur reel
@@ -66,14 +66,14 @@ dans le smoke navigateur.
 
 ## Criteres d'acceptation
 
-- [ ] Un navigateur reel charge le frontend contre Supabase local.
-- [ ] L authentification de test ne demande aucun bearer personnel.
-- [ ] Bootstrap, commande, F5 et persistance sont verifies.
-- [ ] Une erreur backend produit le feedback utilisateur attendu.
-- [ ] Les donnees de test sont isolees et nettoyables.
-- [ ] Le test fournit captures ou traces diagnostiques en cas d echec.
-- [ ] Le test est documente et executable localement puis en CI.
-- [ ] Les suites Vitest, DB et integration existantes restent conservees.
+- [x] Un navigateur reel charge le frontend contre Supabase local.
+- [x] L authentification de test ne demande aucun bearer personnel.
+- [x] Bootstrap, commande, F5 et persistance sont verifies.
+- [x] Une erreur backend produit le feedback utilisateur attendu.
+- [x] Les donnees de test sont isolees et nettoyables.
+- [x] Le test fournit captures ou traces diagnostiques en cas d echec.
+- [x] Le test est documente et executable localement puis en CI.
+- [x] Les suites Vitest, DB et integration existantes restent conservees.
 
 ## Tests
 
@@ -86,6 +86,16 @@ dans le smoke navigateur.
 - `npm.cmd run test:db`
 - `npm.cmd run build`
 - `npm.cmd run board:validate`
+
+Preuves du 2026-08-07 :
+
+- `npm.cmd run check` : 80 fichiers et 638 tests Vitest, couverture, 127 tests
+  DB, smoke navigateur, build et budget bundle valides.
+- `npm.cmd run test:browser` final : 1 test passe en 9,1 s avec identite
+  ephemere et nettoyage confirme.
+- `npm.cmd run test:integration` : concurrence, idempotence et limite 60/min
+  validees apres isolation des identites.
+- `npm.cmd audit --omit=dev --audit-level=high` : 0 vulnerabilite production.
 
 ## Validation manuelle
 
@@ -106,5 +116,13 @@ et confirmer que le test ne demande ni connexion Google ni token personnel.
 
 ## Handoff
 
-Fournir la commande, les prerequis, le parcours, la strategie d auth locale,
-les diagnostics, la duree et le comportement de nettoyage.
+Playwright Chromium traverse Vite, Supabase local, `game-api` et la
+persistance. Le parcours realise l onboarding, construit une ferme, recharge
+la page, verifie la persistance puis injecte un 503 pour prouver le feedback et
+le rollback. Une identite Auth Google ephemere utilise la fixture allowlistee
+`local@example.test`; seule l identite creee par le test est supprimee, avec
+ses donnees et evenements de quota par cascade. La cle `service_role` locale
+reste dans le processus Node et les traces sont desactivees pour ne pas
+conserver d en-tete d autorisation. Les diagnostics nettoyes et la capture ne
+sont archives par la CI qu en cas d echec. Procedure complete dans
+`docs/development/browser-smoke.md`.

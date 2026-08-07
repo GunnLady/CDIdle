@@ -28,6 +28,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite --port=3000 --host=0.0.0.0",
+    "dev:browser": "vite --port=3000 --host=127.0.0.1 --strictPort",
     "build": "vite build",
     "build:alpha": "vite build --mode alpha --sourcemap hidden",
     "check:bundle": "node scripts/check-bundle-budget.mjs",
@@ -35,6 +36,7 @@
     "smoke:game-api": "node scripts/smoke-game-api.mjs",
     "test:integration": "node scripts/test-temporal-concurrency.mjs",
     "test:e2e": "vitest run tests/authoritativePipeline.e2e.test.tsx",
+    "test:browser": "playwright test",
     "check:migrations": "node scripts/check-migrations.mjs",
     "check:logs": "node scripts/check-log-safety.mjs",
     "preview": "vite preview",
@@ -62,7 +64,7 @@
     "test:watch": "vitest --watch",
     "test:coverage": "vitest --coverage --run",
     "check:coverage": "node scripts/check-coverage-thresholds.mjs",
-    "check": "npm run board:validate && npm run check:secrets && npm run check:logs && npm run check:migrations && npm run typecheck && npm run lint && npm test -- --run && npm run test:coverage && npm run check:coverage && npm run test:db && npm run build && npm run check:bundle"
+    "check": "npm run board:validate && npm run check:secrets && npm run check:logs && npm run check:migrations && npm run typecheck && npm run lint && npm test -- --run && npm run test:coverage && npm run check:coverage && npm run test:db && npm run test:browser && npm run build && npm run check:bundle"
   },
   "dependencies": {
     "@supabase/supabase-js": "2.110.8",
@@ -73,6 +75,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.62.1",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.1",

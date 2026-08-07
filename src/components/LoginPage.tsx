@@ -219,6 +219,8 @@ export default function LoginPage({
                   <div className="absolute top-3 right-3 z-10" onClick={(e) => e.stopPropagation()}>
                     <button
                       type="button"
+                      aria-label={`${isSelected ? "Désélectionner" : "Sélectionner"} ${hero.name}`}
+                      aria-pressed={isSelected}
                       onClick={() => toggleSelectNovice(hero.id)}
                       className={`w-5 h-5 rounded-md flex items-center justify-center transition-all border ${
                         isSelected 
@@ -363,12 +365,13 @@ export default function LoginPage({
             )}
 
             <div>
-              <label className="text-[10px] text-[#a89078] font-bold font-serif uppercase tracking-widest block mb-2">
+              <label htmlFor="onboarding-city-name" className="text-[10px] text-[#a89078] font-bold font-serif uppercase tracking-widest block mb-2">
                 Nom de la Cité ralliée
               </label>
               <div className="flex gap-2">
                 <div className="relative flex-grow">
                   <input
+                    id="onboarding-city-name"
                     type="text"
                     required
                     value={tempCityName}
