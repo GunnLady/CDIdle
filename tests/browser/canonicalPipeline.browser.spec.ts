@@ -154,17 +154,16 @@ test("persists one real browser command and restores state after a visible backe
     );
 
     await page.getByRole("button", { name: /Cité$/ }).click();
-    await page.getByRole("button", { name: /Infrastructures/ }).click();
     let farm = page.getByTestId("building-ferme");
     await expect(farm.getByText("Non bâti")).toBeVisible();
-    await executeCommandThroughUi(page, () => farm.getByRole("button", { name: "Bâtir" }).click());
-    await expect(farm.getByText(/Niveau 1\//)).toBeVisible();
+    await farm.click();
+    await executeCommandThroughUi(page, () => page.getByTestId("selected-building-panel").getByRole("button", { name: "Bâtir" }).click());
+    await expect(farm.getByText(/Niv\. 1\//)).toBeVisible();
 
     await page.reload();
     await page.getByRole("button", { name: /Cité$/ }).click();
-    await page.getByRole("button", { name: /Infrastructures/ }).click();
     farm = page.getByTestId("building-ferme");
-    await expect(farm.getByText(/Niveau 1\//)).toBeVisible();
+    await expect(farm.getByText(/Niv\. 1\//)).toBeVisible();
 
     await page.route("**/functions/v1/game-api/commands", async (route) => {
       await route.fulfill({
@@ -176,11 +175,12 @@ test("persists one real browser command and restores state after a visible backe
       });
     }, { times: 1 });
     expectedBackendFailure = true;
-    await farm.getByRole("button", { name: "Améliorer" }).click();
+    await farm.click();
+    await page.getByTestId("selected-building-panel").getByRole("button", { name: "Améliorer" }).click();
     await expect(page.getByRole("status").filter({ hasText: "Service indisponible" })).toContainText(
       "l’action a été annulée et le dernier état confirmé a été restauré.",
     );
-    await expect(farm.getByText(/Niveau 1\//)).toBeVisible();
+    await expect(farm.getByText(/Niv\. 1\//)).toBeVisible();
 
     expect(unexpectedConsole).toEqual([]);
     expect(unexpectedResponses).toEqual([]);

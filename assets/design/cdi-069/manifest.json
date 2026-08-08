@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "coordinateSystem": {
+    "terrainSizePx": [1448, 1086],
+    "origin": "top-left",
+    "purpose": "art-direction-reference-only"
+  },
+  "references": [
+    "references/header-reference.png",
+    "references/city-dashboard-reference.png",
+    "references/village-complete-reference.png"
+  ],
+  "assets": [
+    {
+      "id": "header-reference",
+      "kind": "ui-reference",
+      "status": "context-approved",
+      "path": "references/header-reference.png",
+      "dimensionsPx": [3065, 334],
+      "sha256": "17412e1f7028d1f430a6305706454a16568a38cf9dc0e36e005330ac2d8d9705"
+    },
+    {
+      "id": "city-dashboard-reference",
+      "kind": "ui-reference",
+      "status": "context-approved",
+      "path": "references/city-dashboard-reference.png",
+      "dimensionsPx": [1672, 941],
+      "sha256": "b22c02035b917146df9b70a356bd0721bef9b40dbaf0eff18a305371e5a05d46",
+      "invariants": [
+        "single-primary-navigation",
+        "three-persistent-city-panels",
+        "dom-rendered-resource-values",
+        "no-interactive-town-map"
+      ]
+    },
+    {
+      "id": "village-complete-scene",
+      "kind": "art-direction-reference",
+      "status": "context-approved",
+      "path": "references/village-complete-reference.png",
+      "dimensionsPx": [1448, 1086],
+      "sha256": "d04a897d448be7ec5f355e002399be34e04b6e866c1a4c2234bcc229406047b3",
+      "invariants": [
+        "reference-only",
+        "not-an-interactive-surface",
+        "no-runtime-mask-contract"
+      ]
+    }
+  ]
+}

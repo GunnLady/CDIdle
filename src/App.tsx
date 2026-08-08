@@ -5,12 +5,17 @@
 
 import React, { lazy, Suspense, useState, useEffect, useCallback, useRef } from "react";
 import type { User } from "@supabase/supabase-js";
-const TownPanel = lazy(() => import("./components/TownPanel"));
+const CityDashboard = lazy(() => import("./components/city/CityDashboard"));
 const DungeonPanel = lazy(() => import("./components/DungeonPanel"));
 const HeroPanel = lazy(() => import("./components/HeroPanel"));
 const AccountPanel = lazy(() => import("./components/AccountPanel"));
 import LoginPage from "./components/LoginPage";
-import CanonicalStateAlert from "./components/CanonicalStateAlert";
+import ResourceHeader from "./components/app-shell/ResourceHeader";
+import PrimaryNavigation from "./components/app-shell/PrimaryNavigation";
+import DeveloperCheatPanel from "./components/app-shell/DeveloperCheatPanel";
+import CanonicalStatusLayer from "./components/app-shell/CanonicalStatusLayer";
+import AppShell, { AppFooter } from "./components/app-shell/AppShell";
+import DungeonProgressBanner, { shouldShowDungeonProgressBanner } from "./components/app-shell/DungeonProgressBanner";
 const StoragePanel = lazy(() => import("./components/StoragePanel"));
 const VocationPrayerPrompt = lazy(() => import("./components/VocationPrayerPrompt"));
 import {
@@ -34,7 +39,6 @@ import {
 import { sendOptimisticCommandWithConflictRetry } from "./lib/optimisticCommandDispatch";
 import type { AuthoritativeCommandSuccess, AuthoritativeGameEnvelope, GameCommand } from "./domain/commands";
 import { createCommandEnvelope } from "./domain/commandEnvelope";
-import { BUILD_VERSION, DISPLAY_BUILD_VERSION } from "./lib/buildVersion";
 import type { CanonicalDungeonEncounterRecord } from "../shared/contracts/authoritative";
 import {
   formatCanonicalHeroStatLabel,
@@ -74,15 +78,6 @@ import { DEFAULT_UNLOCKED_ITEM_BLUEPRINTS } from "./utils/gameCalculations";
 const cheatsEnabled = import.meta.env.MODE === "development" || import.meta.env.MODE === "staging";
 import { useDungeonSystem } from "./hooks/useDungeonSystem";
 
-import {
-  CrestBadge,
-  GoldIconDetail,
-  FoodIconDetail,
-  WoodIconDetail,
-  StoneIconDetail,
-  OreIconDetail,
-  formatResourceValue
-} from "./components/IconDetails";
 
 export default function App() {
   // Layout active tab controller (City, Heroes, Dungeon, Storage or Account)
@@ -902,172 +897,22 @@ export default function App() {
 
   const activeRates = town.getRates();
   return (
-    <div className="min-h-screen bg-[#110905] text-[#fbf7f0] flex flex-col font-sans selection:bg-[#ae8650] selection:text-white">
-
-      {/* 1. PRIMARY GAME HEADBOARD HEADER */}
-      <header className="relative bg-[#1d120a] border-b-[3px] border-[#5a3a1a] shadow-[0_4px_12px_rgba(0,0,0,0.9)] shrink-0 sticky top-0 z-40 select-none overflow-hidden py-3 px-4">
-        {/* Subtle internal horizontal double groove borders mimicking the wood panel cuts */}
-        <div className="absolute inset-x-0 top-0 h-[2px] bg-[#3a2211] opacity-60" />
-        <div className="absolute inset-x-0 bottom-0 h-[2px] bg-[#110904]" />
-
-        {/* Diamond metallic rivets at top and bottom center */}
-        <div className="absolute top-[1px] left-1/2 -translate-x-1/2 z-10">
-          <svg width="10" height="10" viewBox="0 0 10 10">
-            <polygon points="5,0 10,5 5,10 0,5" fill="#4d535e" stroke="#2a2e35" strokeWidth="1" />
-            <circle cx="5" cy="5" r="1.5" fill="#caa050" />
-          </svg>
-        </div>
-        <div className="absolute bottom-[1px] left-1/2 -translate-x-1/2 z-10">
-          <svg width="10" height="10" viewBox="0 0 10 10">
-            <polygon points="5,0 10,5 5,10 0,5" fill="#4d535e" stroke="#2a2e35" strokeWidth="1" />
-            <circle cx="5" cy="5" r="1.5" fill="#caa050" />
-          </svg>
-        </div>
-
-        {/* Outer Banner Flags (Gothic Royal Fleur-de-lis banners on far left and right ends) */}
-        <div className="absolute left-2 top-0 bottom-0 w-3 hidden lg:flex flex-col items-center justify-between pointer-events-none opacity-80 z-20">
-          <div className="h-full w-full bg-gradient-to-b from-[#4a1205] to-[#240600] border-x border-[#803a11] px-[1px] flex flex-col justify-between">
-            <div className="text-[6px] text-[#caa050] text-center font-bold">⚜</div>
-            <div className="text-[6px] text-[#caa050] text-center font-bold">⚜</div>
-          </div>
-        </div>
-        <div className="absolute right-2 top-0 bottom-0 w-3 hidden lg:flex flex-col items-center justify-between pointer-events-none opacity-80 z-20">
-          <div className="h-full w-full bg-gradient-to-b from-[#4a1205] to-[#240600] border-x border-[#803a11] px-[1px] flex flex-col justify-between">
-            <div className="text-[6px] text-[#caa050] text-center font-bold">⚜</div>
-            <div className="text-[6px] text-[#caa050] text-center font-bold">⚜</div>
-          </div>
-        </div>
-
-        <div className="max-w-[1440px] mx-auto flex flex-col lg:flex-row lg:items-center justify-between gap-4 animate-fade-in">
-          <div className="flex items-center gap-3">
-            <CrestBadge />
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-xl sm:text-2xl font-serif font-bold tracking-wide text-[#caa050] drop-shadow-[0_2px_3px_rgba(0,0,0,0.9)]">
-                  {cityName || "Colonie"}
-                </h1>
-              </div>
-            </div>
-          </div>
-
-          {/* DYNAMIC TOP RESOURCE BANNER */}
-          {currentUser && cityName && (
-            <div className="flex flex-wrap lg:flex-nowrap items-center justify-center gap-2 sm:gap-4 max-w-2xl bg-[#140b07]/80 rounded-lg p-2 border border-[#442c19]/50 shadow-inner">
-              
-              {/* Gold Slot */}
-              <div className="flex items-center gap-2 px-1">
-                <GoldIconDetail />
-                <div className="flex flex-col justify-center leading-none">
-                  <span className="font-serif font-black text-sm sm:text-base text-[#fbbf24] tracking-wider drop-shadow-[0_1.5px_1px_rgba(0,0,0,0.9)]">
-                    {formatResourceValue(town.displayResources.gold)}
-                  </span>
-                </div>
-              </div>
-
-              {/* Divider */}
-              <div className="hidden sm:block w-[1px] h-6 bg-[#3a2211]" />
-
-              {/* Food Slot */}
-              <div className="flex items-center gap-2 px-1">
-                <FoodIconDetail />
-                <div className="flex flex-col justify-center leading-none">
-                  <span className="font-serif font-black text-sm sm:text-base text-[#59ba59] tracking-wider drop-shadow-[0_1.5px_1px_rgba(0,0,0,0.9)]">
-                    {formatResourceValue(town.displayResources.food)}
-                  </span>
-                  <span className="text-[10px] font-mono text-[#8f8376] font-semibold mt-0.5">
-                    +{activeRates.food.toFixed(0)}/s
-                  </span>
-                </div>
-              </div>
-
-              {/* Divider */}
-              <div className="hidden sm:block w-[1px] h-6 bg-[#3a2211]" />
-
-              {/* Wood Slot */}
-              <div className="flex items-center gap-2 px-1">
-                <WoodIconDetail />
-                <div className="flex flex-col justify-center leading-none">
-                  <span className="font-serif font-black text-sm sm:text-base text-[#d26d36] tracking-wider drop-shadow-[0_1.5px_1px_rgba(0,0,0,0.9)]">
-                    {formatResourceValue(town.displayResources.wood)}
-                  </span>
-                  <span className="text-[10px] font-mono text-[#8f8376] font-semibold mt-0.5">
-                    +{activeRates.wood.toFixed(0)}/s
-                  </span>
-                </div>
-              </div>
-
-              {/* Divider */}
-              <div className="hidden sm:block w-[1px] h-6 bg-[#3a2211]" />
-
-              {/* Stone Slot */}
-              <div className="flex items-center gap-2 px-1">
-                <StoneIconDetail />
-                <div className="flex flex-col justify-center leading-none">
-                  <span className="font-serif font-black text-sm sm:text-base text-[#cdcdcd] tracking-wider drop-shadow-[0_1.5px_1px_rgba(0,0,0,0.9)]">
-                    {formatResourceValue(town.displayResources.stone)}
-                  </span>
-                  <span className="text-[10px] font-mono text-[#8f8376] font-semibold mt-0.5">
-                    +{activeRates.stone.toFixed(0)}/s
-                  </span>
-                </div>
-              </div>
-
-              {/* Divider */}
-              <div className="hidden sm:block w-[1px] h-6 bg-[#3a2211]" />
-
-              {/* Ore Slot */}
-              <div className="flex items-center gap-2 px-1">
-                <OreIconDetail />
-                <div className="flex flex-col justify-center leading-none">
-                  <span className="font-serif font-black text-sm sm:text-base text-[#9653ec] tracking-wider drop-shadow-[0_1.5px_1px_rgba(0,0,0,0.9)]">
-                    {formatResourceValue(town.displayResources.ore)}
-                  </span>
-                  <span className="text-[10px] font-mono text-[#8f8376] font-semibold mt-0.5">
-                    +{activeRates.ore.toFixed(0)}/s
-                  </span>
-                </div>
-              </div>
-
-            </div>
-          )}
-        </div>
-      </header>
-
-      {canonicalStateFailureDetails && currentUser && (
-        <CanonicalStateAlert
-          requestId={canonicalStateFailureDetails.requestId}
+    <>
+      <AppShell
+        header={<ResourceHeader cityName={cityName} authenticated={Boolean(currentUser)} resources={town.displayResources} rates={activeRates} accountActive={activeTab === "account"} onOpenAccount={() => setActiveTab("account")} />}
+        statusLayer={<CanonicalStatusLayer
+          authenticated={Boolean(currentUser)}
+          failure={canonicalStateFailureDetails}
+          transportOnline={transportOnline}
+          online={isOnline}
+          ready={isInitialGameLoadDone}
+          automationLeader={isAutomationLeader}
+          controlTransferPending={isControlTransferPending}
+          notice={crossTabNotice?.message ?? null}
           onOpenAccount={() => setActiveTab("account")}
-        />
-      )}
-
-      {!transportOnline && currentUser && (
-        <div role="status" className="sticky top-0 z-30 border-b border-amber-700/60 bg-amber-950/95 px-4 py-2 text-center text-sm text-amber-100">
-          📡 Mode hors connexion — cache en lecture seule. Les mutations reprendront après reconnexion.
-        </div>
-      )}
-
-      {isOnline && currentUser && isInitialGameLoadDone && !isAutomationLeader && (
-        <div role="status" className="sticky top-0 z-30 flex flex-wrap items-center justify-center gap-3 border-b border-violet-700/60 bg-violet-950/95 px-4 py-2 text-center text-sm text-violet-100">
-          <span>{isControlTransferPending
-            ? "Transfert du contrôle en cours…"
-            : "Mode observateur — la partie est contrôlée dans un autre onglet."}</span>
-          <button
-            type="button"
-            onClick={requestGameControl}
-            disabled={isControlTransferPending}
-            className="rounded border border-violet-400/70 bg-violet-800 px-3 py-1 text-xs font-bold uppercase tracking-wide text-white transition hover:bg-violet-700 disabled:cursor-wait disabled:opacity-60"
-          >
-            {isControlTransferPending ? "Transfert…" : "Prendre le contrôle"}
-          </button>
-        </div>
-      )}
-
-      {crossTabNotice && currentUser && (
-        <div role="status" aria-live="polite" className="sticky top-0 z-30 border-b border-sky-700/60 bg-sky-950/95 px-4 py-2 text-center text-sm text-sky-100">
-          {crossTabNotice.message}
-        </div>
-      )}
-
+          onRequestControl={requestGameControl}
+        />}
+        beforeViewport={<>
       {/* 2. DYNAMIC NAMING POPUP STAGE (BLOCKED IF USER DID NOT CHOOSE A NAME YET) */}
       {currentUser && !canonicalStateFailureDetails && !cityName && isInitialGameLoadDone && (
         <div
@@ -1093,129 +938,32 @@ export default function App() {
           />
         </div>
       )}
-
-      {/* 3. CORE VIEW APPLICATION LAYOUT CONTAINER */}
-      <main className="flex-1 p-3 sm:p-6 overflow-y-auto max-w-[1440px] mx-auto w-full flex flex-col gap-4 select-none text-[15px] sm:text-base leading-relaxed">
-        
-        {/* CHEAT CODES ZONE */}
-        {cheatsAllowedForUser && cityName && (
-          <div className={`bg-[#1e130b] border border-[#523520] rounded-xl p-3.5 shadow-md flex flex-col md:flex-row gap-3 items-center justify-between animate-fade-in shrink-0 ${canMutate ? "" : "pointer-events-none opacity-60"}`}>
-            <div className="flex items-center gap-3">
-              <span className="text-[#caa050] text-xl drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]">🔑</span>
-              <div>
-                <h2 className="text-sm font-serif font-bold text-[#caa050] tracking-wide">
-                  Grimoire de Triche (Cheat Codes)
-                </h2>
-                <div className="text-[11px] text-[#a39080] flex flex-wrap gap-x-2 mt-0.5">
-                  <span>Format : <code className="text-[#fbbf24] font-mono font-bold">G X</code> (Or)</span>
-                  <span className="text-[#523520]">•</span>
-                  <span><code className="text-[#59ba59] font-mono font-bold">N X</code> (Nourriture)</span>
-                  <span className="text-[#523520]">•</span>
-                  <span><code className="text-[#d26d36] font-mono font-bold">B X</code> (Bois)</span>
-                  <span className="text-[#523520]">•</span>
-                  <span><code className="text-[#cdcdcd] font-mono font-bold">P X</code> (Pierre)</span>
-                  <span className="text-[#523520]">•</span>
-                  <span><code className="text-[#9653ec] font-mono font-bold">M X</code> (Minerai)</span>
-                  <span className="text-[#523520]">•</span>
-                  <span><code className="text-[#ffd043] font-mono font-bold">A X</code> (Toutes les ressources)</span>
-                  <span className="text-[#523520]">•</span>
-                  <span><code className="text-[#cba374] font-mono font-bold">D X</code> (Donjon Étage Max)</span>
-                </div>
-              </div>
-            </div>
-            <div className="flex items-center gap-2 w-full md:w-auto">
-              <input
-                type="text"
-                value={cheatInput}
-                onChange={(e) => setCheatInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    handleApplyCheat();
-                  }
-                }}
-                placeholder="Exemple: G 10000"
-                className="flex-1 md:w-48 bg-[#100805] text-[#fbf7f0] border border-[#523520] rounded-lg px-3 py-1.5 text-xs font-mono focus:outline-none focus:border-[#caa050] focus:ring-1 focus:ring-[#caa050] placeholder-[#5a483a]"
-              />
-              <button
-                onClick={handleApplyCheat}
-                className="bg-gradient-to-b from-[#caa050] to-[#ab813a] text-[#110905] hover:from-[#d9b363] hover:to-[#be9348] active:from-[#ab813a] active:to-[#8c6523] px-4 py-1.5 rounded-lg text-xs font-bold transition-all border border-[#ebd7a0]/45 shadow-[0_2px_4px_rgba(0,0,0,0.5)] cursor-pointer shrink-0"
-              >
-                Invoquer
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* NAV ROUTE TABS BAR */}
-        <div className="bg-[#20150d] p-1.5 rounded-xl border border-[#2c1d12] select-none shrink-0">
-          <div className="flex flex-row gap-1">
-            <button
-              onClick={() => currentUser && setActiveTab("city")}
-              disabled={!currentUser}
-              className={`flex-1 py-2.5 sm:py-3 px-2 sm:px-4 rounded-lg font-bold text-center flex items-center justify-center gap-1.5 sm:gap-2 transition-all duration-200 ${
-                !currentUser
-                  ? "opacity-35 cursor-not-allowed text-[#a39080]/60"
-                  : activeTab === "city"
-                    ? "bg-gradient-to-r from-[#944415] to-[#ae561c] text-[#fbf7f0] shadow-[0_0_12px_rgba(174,86,28,0.35)] border border-[#a15124] cursor-pointer"
-                    : "text-[#a39080] hover:text-[#fdf9f2] hover:bg-[#2c1d12]/50 cursor-pointer"
-              }`}
-            >
-              <span className="text-sm">{!currentUser ? "🔒" : "🏰"}</span> Cité
-            </button>
-            <button
-              onClick={() => currentUser && setActiveTab("heroes")}
-              disabled={!currentUser}
-              className={`flex-1 py-2.5 sm:py-3 px-2 sm:px-4 rounded-lg font-bold text-center flex items-center justify-center gap-1.5 sm:gap-2 transition-all duration-200 ${
-                !currentUser
-                  ? "opacity-35 cursor-not-allowed text-[#a39080]/60"
-                  : activeTab === "heroes"
-                    ? "bg-gradient-to-r from-[#ae8650] to-[#cba374] text-[#fbf7f0] shadow-[0_0_12px_rgba(203,163,116,0.35)] border border-[#d4af37] cursor-pointer"
-                    : "text-[#a39080] hover:text-[#fdf9f2] hover:bg-[#2c1d12]/50 cursor-pointer"
-              }`}
-              title={!currentUser ? "Connexion requise pour inspecter vos forces" : ""}
-            >
-              <span className="text-sm">{!currentUser ? "🔒" : "⚔️"}</span> Aventuriers
-            </button>
-            <button
-              onClick={() => currentUser && setActiveTab("dungeon")}
-              disabled={!currentUser}
-              className={`flex-1 py-2.5 sm:py-3 px-2 sm:px-4 rounded-lg font-bold text-center flex items-center justify-center gap-1.5 sm:gap-2 transition-all duration-200 ${
-                !currentUser
-                  ? "opacity-35 cursor-not-allowed text-[#a39080]/60"
-                  : activeTab === "dungeon"
-                    ? "bg-gradient-to-r from-[#701a1a] to-[#991b1b] text-[#fbf7f0] shadow-[0_0_12px_rgba(153,27,27,0.45)] border border-[#b91c1c] cursor-pointer"
-                    : "text-[#a39080] hover:text-[#fdf9f2] hover:bg-[#2c1d12]/50 cursor-pointer"
-              }`}
-              title={!currentUser ? "Connexion requise pour braver les abysses" : ""}
-            >
-              <span className="text-sm">{!currentUser ? "🔒" : "🛡️"}</span> Donjon
-            </button>
-            <button
-              onClick={() => currentUser && setActiveTab("storage")}
-              disabled={!currentUser}
-              className={`flex-1 py-2.5 sm:py-3 px-2 sm:px-4 rounded-lg font-bold text-center flex items-center justify-center gap-1.5 sm:gap-2 transition-all duration-200 ${
-                !currentUser
-                  ? "opacity-35 cursor-not-allowed text-[#a39080]/60"
-                  : activeTab === "storage"
-                    ? "bg-gradient-to-r from-[#5c402b] to-[#785437] text-[#fbf7f0] shadow-[0_0_12px_rgba(120,84,55,0.45)] border border-[#caa050] cursor-pointer"
-                    : "text-[#a39080] hover:text-[#fdf9f2] hover:bg-[#2c1d12]/50 cursor-pointer"
-              }`}
-              title={!currentUser ? "Connexion requise pour inspecter le coffre" : ""}
-            >
-              <span className="text-sm">{!currentUser ? "🔒" : "📦"}</span> Coffre
-            </button>
-            <button
-              onClick={() => setActiveTab("account")}
-              className={`flex-1 py-2.5 sm:py-3 px-2 sm:px-4 rounded-lg font-bold text-center flex items-center justify-center gap-1.5 sm:gap-2 transition-all duration-200 cursor-pointer ${
-                activeTab === "account"
-                  ? "bg-gradient-to-r from-[#20150d] to-[#45301f] text-[#fbf7f0] shadow-[0_0_12px_rgba(92,64,43,0.45)] border border-[#d4af37]"
-                  : "text-[#a39080] hover:text-[#fdf9f2] hover:bg-[#2c1d12]/50"
-              }`}
-            >
-              <span className="text-sm">☁️</span> Compte
-            </button>
-          </div>
-        </div>
+        </>}
+        developerTools={cheatsAllowedForUser && cityName ? <DeveloperCheatPanel value={cheatInput} canMutate={canMutate} onChange={setCheatInput} onApply={handleApplyCheat} /> : null}
+        navigation={<PrimaryNavigation activeTab={activeTab} authenticated={Boolean(currentUser)} onChange={setActiveTab} />}
+        progress={shouldShowDungeonProgressBanner(Boolean(currentUser), activeTab) ? (
+          <DungeonProgressBanner
+            heroes={dungeon.displayHeroes}
+            floor={dungeon.activeDungeonFloor}
+            room={dungeon.activeDungeonRoom}
+            autoExplore={dungeon.autoExplore}
+            encounter={currentEncounter}
+            isExploring={dungeonAutomation.isRunning}
+            canMutate={canMutate}
+            onNavigate={setActiveTab}
+            onToggleAutoExplore={() => {
+              const enabled = !dungeon.autoExplore;
+              dungeonAutomation.setBlocked(!enabled);
+              enqueueOptimisticCommand("dungeon:auto", { type: "dungeon.auto_explore", enabled });
+            }}
+          />
+        ) : null}
+        footer={<AppFooter
+          totalCitizens={town.totalCitizens}
+          heroesCount={dungeon.heroes.length}
+          highestFloor={dungeon.highestFloorReached}
+        />}
+      >
 
         {/* TAB MAIN CONTENT CONTAINER */}
         <div className="h-full">
@@ -1223,8 +971,8 @@ export default function App() {
           
           {/* A. CITY TAB VIEW (TOWN INTERFACE) */}
           {activeTab === "city" && (
-            <div className={`w-full ${canMutate ? "" : "pointer-events-none opacity-80"}`} aria-disabled={!canMutate}>
-              <TownPanel
+            <div className="w-full" aria-disabled={!canMutate}>
+              <CityDashboard
                 resources={town.displayResources}
                 buildings={town.buildings}
                 citizens={town.citizens}
@@ -1237,11 +985,9 @@ export default function App() {
                 }}
                 citizenGrowthProgress={town.displayCitizenGrowthProgress}
                 highestFloorReached={dungeon.highestFloorReached}
-                heroes={dungeon.heroes}
                 forgeMaterials={dungeon.forgeMaterials}
                 itemBlueprints={dungeon.itemBlueprints}
-                addLog={addLog}
-                isOnline={isOnline}
+                canMutate={canMutate}
                 pendingForge={pendingForge}
                 onStartForge={(recipeId) => { void dispatchAuthoritativeCommand({ type: "forge.start", recipeId }); }}
                 onFinalizeForge={(previewId, acceptUpgrade, chosenModifierStat) => { void dispatchAuthoritativeCommand({ type: "forge.finalize", previewId, acceptUpgrade, chosenModifierStat }); }}
@@ -1375,21 +1121,7 @@ export default function App() {
           )}
           </Suspense>
         </div>
-      </main>
-
-      {/* 4. FOOTER CREDITS */}
-      <footer className="bg-slate-900 border-t border-slate-800 py-4 px-4 text-center text-xs text-gray-500 font-mono mt-auto shrink-0 select-none">
-        <p>© 2026 Colonie & Donjon Idle. Tous droits réservés. Bâti sur les sables fins d'Antigravity.</p>
-        <p className="text-[10px] text-indigo-400 mt-1">
-          Taux globaux : {town.totalCitizens} Citoyens • {dungeon.heroes.length} Champions • Étage record : {dungeon.highestFloorReached}
-        </p>
-        <p
-          className="text-[10px] text-slate-500 mt-1 select-text"
-          title={`Version complète : ${BUILD_VERSION}`}
-        >
-          Build {DISPLAY_BUILD_VERSION}
-        </p>
-      </footer>
+      </AppShell>
 
       {/* 5. GORGEOUS CUSTOM RECRUITMENT MODAL */}
       {pendingClassTransitions.length > 0 && (() => {
@@ -1519,6 +1251,6 @@ export default function App() {
         );
       })()}
 
-    </div>
+    </>
   );
 }

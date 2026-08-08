@@ -29,6 +29,7 @@
   "scripts": {
     "dev": "vite --port=3000 --host=0.0.0.0",
     "dev:browser": "vite --port=3000 --host=127.0.0.1 --strictPort",
+    "dev:city-browser": "vite --port=3001 --host=127.0.0.1 --strictPort",
     "build": "vite build",
     "build:alpha": "vite build --mode alpha --sourcemap hidden",
     "check:bundle": "node scripts/check-bundle-budget.mjs",
@@ -37,6 +38,7 @@
     "test:integration": "node scripts/test-temporal-concurrency.mjs",
     "test:e2e": "vitest run tests/authoritativePipeline.e2e.test.tsx",
     "test:browser": "playwright test",
+    "test:city-browser": "playwright test --config=playwright.city.config.ts",
     "check:migrations": "node scripts/check-migrations.mjs",
     "check:logs": "node scripts/check-log-safety.mjs",
     "preview": "vite preview",
@@ -64,7 +66,7 @@
     "test:watch": "vitest --watch",
     "test:coverage": "vitest --coverage --run",
     "check:coverage": "node scripts/check-coverage-thresholds.mjs",
-    "check": "npm run board:validate && npm run check:secrets && npm run check:logs && npm run check:migrations && npm run typecheck && npm run lint && npm test -- --run && npm run test:coverage && npm run check:coverage && npm run test:db && npm run test:browser && npm run build && npm run check:bundle"
+    "check": "npm run board:validate && npm run check:secrets && npm run check:logs && npm run check:migrations && npm run typecheck && npm run lint && npm test -- --run && npm run test:coverage && npm run check:coverage && npm run test:db && npm run test:city-browser && npm run test:browser && npm run build && npm run check:bundle"
   },
   "dependencies": {
     "@supabase/supabase-js": "2.110.8",
