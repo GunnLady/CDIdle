@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Hero } from "../types";
+import type { HeroPortraitView } from "../domain/heroPortrait";
 import maleSpritesheet from "../assets/images/human-novice-male.jpg";
 import femaleSpritesheet from "../assets/images/human-novice-female.jpg";
 
@@ -154,7 +154,7 @@ function processAllSpritesheets() {
 }
 
 interface HeroPortraitProps {
-  hero: Hero;
+  hero: HeroPortraitView;
   size?: "xs" | "sm" | "md" | "lg" | "xl";
   className?: string;
   noBorder?: boolean;

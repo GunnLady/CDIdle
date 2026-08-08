@@ -27,7 +27,7 @@ moteur de combat ou d’équipement alternatif :
 - `getHeroStats` vérifie le recalcul client des statistiques dérivées contre
   l’état produit par l’autorité ;
 - `resolveAuthoritativeDungeonEncounter` résout le vrai combat de donjon ;
-- `HeroPanel` est rendu avec Testing Library, puis rerendu avec l’état produit
+- `HeroesPage` est rendu avec Testing Library, puis rerendu avec l’état produit
   par la commande autoritaire.
 
 Une régression dans le domaine, l’autorité serveur ou le front provoque donc

@@ -6,7 +6,7 @@ const localSupabase = requireLocalSupabaseRuntime();
 export default defineConfig({
   testDir: "./tests/browser",
   testMatch: "**/*.browser.spec.ts",
-  testIgnore: "**/cityDashboard.responsive.browser.spec.ts",
+  testIgnore: "**/*.responsive.browser.spec.ts",
   fullyParallel: false,
   workers: 1,
   retries: process.env.CI ? 1 : 0,

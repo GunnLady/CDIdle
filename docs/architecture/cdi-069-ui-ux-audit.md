@@ -84,6 +84,12 @@ canoniques et prière de vocation.
   est différée aux migrations des autres écrans afin d'éviter un refactor sans
   consommateur réel.
 
+Le sous-lot Aventuriers poursuit cette migration : `HeroPanel` est remplacé par
+`HeroesPage`, `DungeonPartyManager`, `HeroRosterPanel`, `SelectedHeroPanel`,
+`HeroEquipmentPanel` et `HeroSkillsPanel`. La sélection du héros devient locale
+et les règles de recrutement ou de capacité du groupe restent projetées depuis
+le domaine partagé.
+
 La cible n’est pas un nouveau « gros composant générique ». `AppShell`, les
 écrans et leurs compositions doivent dépendre de composants UI sans logique
 autoritaire ; les hooks existants restent la frontière de comportement.
@@ -355,8 +361,9 @@ qu’après leur première migration réelle.
   constituent la frontière correcte ;
 - extraire le shell et les modales de présentation d’`App.tsx` pendant leur
   lot visuel, sans déplacer les commandes ;
-- scinder `TownPanel` et `HeroPanel` par compositions d’écran, pas en helpers
-  génériques sans contrat ;
+- poursuivre la migration des écrans restants par compositions d’écran ;
+  `TownPanel` et `HeroPanel` sont désormais remplacés par leurs compositions
+  Cité et Aventuriers ;
 - remplacer progressivement les classes répétées par les tokens et composants
   validés ; ne pas lancer de réécriture mécanique globale ;
 - vérifier `VocationPrayerDialog` et `VocationPrayerPrompt` pendant la création

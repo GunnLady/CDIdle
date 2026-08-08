@@ -393,12 +393,13 @@ export function equipItem(
     }
   }
 
-  // If slot is occupied, player must unequip manually (except for 2h/dual-wield weapon automatic offHand unequip)
-  if (hero.equipment[targetSlot]) {
-    return hero;
-  }
-
   let tempHero: Hero = { ...hero, equipment: { ...hero.equipment } };
+
+  // Replacing equipment is one atomic operation: the displaced instance is
+  // returned to storage before the new instance occupies the slot.
+  if (tempHero.equipment[targetSlot]) {
+    tempHero = unequipItem(tempHero, storedItems, targetSlot);
+  }
 
   if (targetSlot === "mainHand") {
     const weaponInfo = WEAPON_INFO_LIST.find(w => w.id === (resolvedItem as WeaponItemInfo).weaponTypeId);

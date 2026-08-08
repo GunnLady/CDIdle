@@ -93,13 +93,14 @@ La page conserve quatre zones fonctionnelles sans onglet par héros :
 | Héros sélectionné | identité, classe, niveau, synthèse combat, attributs et action de renvoi |
 | Compétences | compétences actives et passives avec leurs effets |
 | Équipement | quatre emplacements, objet équipé, sélection et retrait |
-| Expédition | quatre places, héros disponibles, étage/salle et accès au Donjon |
+| Expédition | quatre places actives, PV, étage/salle et accès au Donjon |
 
 `selectedHeroId` est un état local de présentation. La sélection initiale est
 le premier héros actif, sinon le premier héros du roster. `DungeonPartyManager`
-affiche le groupe complet et les réservistes, avec ajout/retrait, santé, statut,
-équipement synthétique et raison d'indisponibilité. Le changement actif/inactif,
-le recrutement, le renvoi et l'équipement restent des commandes canoniques.
+affiche les quatre places actives et leur santé. `HeroRosterPanel` porte les
+réservistes, les raisons d'indisponibilité et les actions d'ajout/retrait. Le
+changement actif/inactif, le recrutement, le renvoi et l'équipement restent des
+commandes canoniques.
 
 Sur desktop, roster et expédition occupent la colonne gauche, la synthèse du
 héros le centre, et Compétences/Équipement la colonne droite ou deux panneaux
@@ -292,14 +293,16 @@ les états de session et synchronisation sans projection maître/détail forcée
 
 ### Patterns transverses prouvés
 
-`DungeonPartyManager` possède deux consommateurs réels : Aventuriers et Donjon.
-Il reçoit les quatre places, les héros disponibles, les raisons de blocage et
-les callbacks `hero.activity`. Il ne possède pas la règle de capacité.
+`DungeonPartyManager` possède actuellement un consommateur migré : Aventuriers.
+Il reçoit la projection des quatre places actives et ne possède pas la règle de
+capacité. Le lot Donjon réutilisera la même projection ; ses réservistes, raisons
+de blocage et callbacks `hero.activity` resteront dans son panneau de roster.
 
-`EquipmentDecisionPanel` possède deux consommateurs réels : Coffre et
-Équipement du héros. Une projection pure calcule l'emplacement, l'éligibilité,
-les objets déplacés et les différences avant/après avec les mêmes règles que la
-transition autoritaire. Le composant ne simule pas lui-même l'équipement.
+`EquipmentDecisionPanel` possède actuellement un consommateur migré :
+Équipement du héros. Le lot Coffre le réutilisera. Une projection pure calcule
+l'emplacement, l'éligibilité, les objets déplacés et les différences avant/après
+avec les mêmes règles que la transition autoritaire. Le composant ne simule pas
+lui-même l'équipement.
 
 `DungeonProgressBanner` consomme la même projection que Donjon et n'est rendu
 que lorsque la destination active n'est pas Donjon. Il n'exécute que la
@@ -354,12 +357,14 @@ ni valeur ni libellé indispensable.
 La preuve responsive autonome du lot Cité s'exécute sans Supabase :
 
 ```powershell
-npm.cmd run test:city-browser
+npm.cmd run test:layout-browser
 ```
 
-Elle monte uniquement `CityDashboard` et contrôle 360, 768, 1024 et 1440 px,
-le débordement horizontal, le maître/détail desktop, les 14 bâtiments, la
-lecture seule, l'absence de commande sur sélection et les états Forge 0/1.
+Elle monte les pages migrées sans Supabase et contrôle 360, 768, 1024 et
+1440 px. La Cité vérifie le débordement horizontal, le maître/détail desktop,
+les 14 bâtiments, la lecture seule, l'absence de commande sur sélection et les
+états Forge 0/1. Aventuriers vérifie ses cinq zones, leur ordre responsive, la
+sélection locale et le verrouillage des commandes en lecture seule.
 
 ## 11. Hors périmètre du premier lot
 

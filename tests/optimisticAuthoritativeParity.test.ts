@@ -156,4 +156,18 @@ describe("optimistic and authoritative parity matrix", () => {
       instanceId: greatsword.instanceId,
     });
   });
+
+  it("keeps optimistic and authoritative occupied-slot replacement aligned", () => {
+    const oldSword = { instanceId: "item-parity-old", itemId: "starter_sword", rarity: "common" as const };
+    const dagger = { instanceId: "item-parity-new", itemId: "quick_dagger", rarity: "common" as const };
+    const hero = refreshHeroDerivedStats(makeHero({
+      id: "hero-replacement-parity",
+      equipment: { mainHand: oldSword, offHand: null, armor: null, accessory: null },
+    }));
+    expectEquipmentParity({ ...initialTownState(42), heroes: [hero], storedItems: [dagger] }, {
+      type: "hero.equip",
+      heroId: hero.id,
+      instanceId: dagger.instanceId,
+    });
+  });
 });

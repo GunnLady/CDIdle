@@ -183,8 +183,9 @@ structure détaillée est normative dans
   sans duplication.
 - La comparaison d'équipement utilise une projection pure alignée sur la
   transition autoritaire, jamais un calcul divergent dans le composant.
-- `DungeonPartyManager` réutilise `hero.activity` et affiche les raisons de
-  refus sans posséder la limite canonique de quatre héros.
+- `DungeonPartyManager` affiche la projection des quatre places actives sans
+  posséder la limite canonique ; le roster porte `hero.activity` et les raisons
+  de refus.
 - `DungeonProgressBanner` projette l'état existant sans polling, minuterie ou
   progression locale indépendante et n'est pas rendu sur la page Donjon.
 - La Forge conserve son flux séquentiel et ses confirmations existantes ; seul
@@ -230,6 +231,10 @@ première migration.
 - [x] Le premier lot Cité est implémenté et couvert par des tests ciblés.
 - [x] La preuve utilisateur desktop et mobile confirme la hiérarchie et l'absence de
       navigation imbriquée.
+- [x] Le sous-lot Aventuriers remplace les fiches répétées et leurs sous-onglets
+      par Expédition, Roster, Héros sélectionné, Équipement et Compétences.
+- [x] La preuve utilisateur desktop et mobile valide la hiérarchie du sous-lot
+      Aventuriers et l'accès aux actions de groupe.
 
 ## Tests
 
@@ -250,12 +255,24 @@ Pendant le premier lot :
 - tests composants des actions amélioration, affectation et forge ;
 - test du flux autoritaire avec restauration après échec ;
 - contrôle clavier et responsive à 360, 768, 1024 et 1440 px ;
-- simulation autonome sans Supabase : `npm.cmd run test:city-browser` ;
+- simulation autonome sans Supabase : `npm.cmd run test:layout-browser` ;
 - `npm.cmd run typecheck`, `npm.cmd run lint`, tests ciblés, build et budget
   bundle selon les règles du projet.
 
+Preuve rapportée par l'utilisateur le 2026-08-08 : le script alors nommé
+`test:city-browser` (désormais généralisé en `test:layout-browser`) passe avec
+5 tests sur 5 en 4,8 s.
+
 Preuve rapportée par l'utilisateur le 2026-08-08 :
-`test:city-browser` passe avec 5 tests sur 5 en 4,8 s.
+`test:layout-browser` passe avec 10 tests sur 10 en 7,8 s après l'ajout du
+sous-lot Aventuriers.
+
+Contrôle structurel Codex du 2026-08-08 : remplacement occupé atomique aligné
+entre projection optimiste et autorité serveur, comparaison avant/après,
+restitution de la main gauche, projections React externalisées et cycle clavier
+de la modale couverts par 73 tests ciblés. La suite complète passe ensuite avec
+88 fichiers et 674 tests ; TypeScript, ESLint et le validateur Workboard sont
+également conformes.
 
 ## Validation manuelle
 

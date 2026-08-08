@@ -117,20 +117,32 @@ export function applyInventoryCommand(current: CanonicalGameState, command: Reco
     const definition = ensureItem(instance.itemId);
     if ((hero.level ?? 1) < definition.requiredLevel) throw new InventoryCommandError("EQUIP_BLOCKED", "hero level is too low");
     const equipment = { ...(hero.equipment ?? {}) };
-    if (equipment[definition.slot]) throw new InventoryCommandError("EQUIP_BLOCKED", "equipment slot is occupied");
     if (definition.slot === "offHand" && equipment.mainHand && ensureItem(equipment.mainHand.itemId).twoHanded) {
       throw new InventoryCommandError("EQUIP_BLOCKED", "off-hand is blocked by the main-hand item");
+    }
+    const events: Array<Record<string, unknown>> = [];
+    const displaced = equipment[definition.slot];
+    if (displaced) {
+      if (storedItems.some((entry) => entry.instanceId === displaced.instanceId)) {
+        throw new InventoryCommandError("INVALID_GAME_STATE", "displaced item instance is duplicated");
+      }
+      storedItems.push(displaced);
+      equipment[definition.slot] = undefined;
+      events.push({ type: "hero.unequipped", heroId: typed.heroId, instanceId: displaced.instanceId, itemId: displaced.itemId, slot: definition.slot });
     }
     if (definition.slot === "mainHand" && definition.twoHanded && equipment.offHand) {
       if (storedItems.some((entry) => entry.instanceId === equipment.offHand?.instanceId)) {
         throw new InventoryCommandError("INVALID_GAME_STATE", "off-hand item instance is duplicated");
       }
+      const displacedOffHand = equipment.offHand;
       storedItems.push(equipment.offHand);
       equipment.offHand = undefined;
+      events.push({ type: "hero.unequipped", heroId: typed.heroId, instanceId: displacedOffHand.instanceId, itemId: displacedOffHand.itemId, slot: "offHand" });
     }
     storedItems.splice(index, 1);
     equipment[definition.slot] = instance;
-    return { state: { ...current, heroes: heroes.map((entry) => entry.id === typed.heroId ? withEquipment(entry, equipment) : entry), storedItems }, events: [{ type: "hero.equipped", heroId: typed.heroId, instanceId: instance.instanceId, itemId: instance.itemId, slot: definition.slot }] };
+    events.push({ type: "hero.equipped", heroId: typed.heroId, instanceId: instance.instanceId, itemId: instance.itemId, slot: definition.slot });
+    return { state: { ...current, heroes: heroes.map((entry) => entry.id === typed.heroId ? withEquipment(entry, equipment) : entry), storedItems }, events };
   }
 
   if (typed.type === "hero.unequip") {

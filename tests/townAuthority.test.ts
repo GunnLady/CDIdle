@@ -537,6 +537,29 @@ describe("authoritative town commands", () => {
     expect(() => applyTownCommand({ ...current, storedItems: [{ instanceId: "item-unknown", itemId: "unknown-item", rarity: "common" }] }, { type: "hero.equip", heroId: "hero-1", instanceId: "item-unknown" })).toThrow("unknown item");
   });
 
+  it("atomically replaces occupied equipment and returns the displaced instance", () => {
+    const hero = makeHero({
+      id: "hero-replace",
+      equipment: {
+        mainHand: { instanceId: "old-sword", itemId: "starter_sword", rarity: "common" },
+        offHand: null,
+        armor: null,
+        accessory: null,
+      },
+    });
+    const replaced = applyTownCommand({
+      ...initialTownState(),
+      heroes: [hero],
+      storedItems: [{ instanceId: "new-dagger", itemId: "quick_dagger", rarity: "common" }],
+    }, { type: "hero.equip", heroId: hero.id, instanceId: "new-dagger" });
+
+    expect(replaced.state).toMatchObject({
+      storedItems: [{ instanceId: "old-sword", itemId: "starter_sword" }],
+      heroes: [{ equipment: { mainHand: { instanceId: "new-dagger", itemId: "quick_dagger" } } }],
+    });
+    expect(replaced.events.map((event) => event.type)).toEqual(["hero.unequipped", "hero.equipped"]);
+  });
+
   it("preserves health and mana percentages across equipment mutations", () => {
     const baseline = refreshHeroDerivedStats(makeHero({
       id: "hero-resource-ratio",
@@ -622,6 +645,7 @@ describe("authoritative town commands", () => {
       classType: "Guerrier",
       xpNeeded: calculateXpNeeded(11, "Guerrier"),
       equipment: {
+        mainHand: { instanceId: "old-sword", itemId: "starter_sword", rarity: "common" },
         offHand: { instanceId: "shield", itemId: "wooden_shield", rarity: "common" },
       },
     });
@@ -636,7 +660,10 @@ describe("authoritative town commands", () => {
     });
 
     expect(equipped.state).toMatchObject({
-      storedItems: [{ instanceId: "shield", itemId: "wooden_shield" }],
+      storedItems: [
+        { instanceId: "old-sword", itemId: "starter_sword" },
+        { instanceId: "shield", itemId: "wooden_shield" },
+      ],
       heroes: [{
         equipment: {
           mainHand: { instanceId: "spear", itemId: "basic_spear" },

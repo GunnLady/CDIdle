@@ -7,7 +7,7 @@ import React, { lazy, Suspense, useState, useEffect, useCallback, useRef } from 
 import type { User } from "@supabase/supabase-js";
 const CityDashboard = lazy(() => import("./components/city/CityDashboard"));
 const DungeonPanel = lazy(() => import("./components/DungeonPanel"));
-const HeroPanel = lazy(() => import("./components/HeroPanel"));
+const HeroesPage = lazy(() => import("./components/heroes/HeroesPage"));
 const AccountPanel = lazy(() => import("./components/AccountPanel"));
 import LoginPage from "./components/LoginPage";
 import ResourceHeader from "./components/app-shell/ResourceHeader";
@@ -998,11 +998,14 @@ export default function App() {
 
           {/* B. HEROES TAB VIEW (HERO GUILD MANAGEMENT) */}
           {activeTab === "heroes" && (
-            <div className={`w-full ${canMutate ? "" : "pointer-events-none opacity-80"}`} aria-disabled={!canMutate}>
-              <HeroPanel
+            <div className="w-full" aria-disabled={!canMutate}>
+              <HeroesPage
                 heroes={dungeon.displayHeroes}
                 resources={town.resources}
                 buildings={town.buildings}
+                activeDungeonFloor={dungeon.activeDungeonFloor}
+                activeDungeonRoom={dungeon.activeDungeonRoom}
+                canMutate={canMutate}
                 onDismissHero={(heroId) => { void dispatchAuthoritativeCommand({ type: "hero.dismiss", heroId }); }}
                 onToggleHeroActive={(heroId) => {
                   const hero = dungeon.heroes.find((entry) => entry.id === heroId);

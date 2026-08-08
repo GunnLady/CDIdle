@@ -1,6 +1,6 @@
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import HeroPanel from "../src/components/HeroPanel";
+import HeroesPage from "../src/components/heroes/HeroesPage";
 import {
   resolveAuthoritativeDungeonEncounter,
   type AuthoritativeDungeonState,
@@ -193,20 +193,22 @@ describe("weapon profile integration simulation", () => {
     const commonProps = {
       resources: makeResources(),
       buildings: { guilde: 1 },
+      activeDungeonFloor: 1,
+      activeDungeonRoom: 1,
+      canMutate: true,
       onDismissHero: vi.fn(),
       onToggleHeroActive: vi.fn(),
       onRecruitHero: vi.fn(),
     };
-    const view = render(<HeroPanel heroes={[hero]} {...commonProps} />);
+    const view = render(<HeroesPage heroes={[hero]} {...commonProps} />);
     const dpsRow = () => screen.getByText("DPS estimé").parentElement;
 
     expect(dpsRow()).toHaveTextContent(hero.calculatedStats.estimatedDps.toFixed(2));
-    view.rerender(<HeroPanel heroes={[equippedHero]} {...commonProps} />);
+    view.rerender(<HeroesPage heroes={[equippedHero]} {...commonProps} />);
     expect(dpsRow()).toHaveTextContent(equippedHero.calculatedStats.estimatedDps.toFixed(2));
     expect(equippedHero.calculatedStats.estimatedDps).not.toBe(hero.calculatedStats.estimatedDps);
 
-    fireEvent.click(screen.getByRole("button", { name: /équipement/i }));
-    expect(screen.getByText("Profil: 2 coups × 65 % de puissance")).toBeInTheDocument();
-    expect(screen.getByText("Scaling: Puissance (FOR)")).toBeInTheDocument();
+    expect(screen.getByText(/Profil: 2 coups × 65 % de puissance/)).toBeInTheDocument();
+    expect(screen.getByText(/Scaling: Puissance \(FOR\)/)).toBeInTheDocument();
   });
 });
