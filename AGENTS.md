@@ -12,8 +12,15 @@ Avant une commande potentiellement privilégiée, Codex doit :
 2. demander une élévation ciblée si le sandbox la refuse ;
 3. ne jamais demander une élévation globale ou utiliser une cible non vérifiée.
 
-Le PowerShell utilisateur reste la référence pour les processus interactifs,
-Vite, Vitest, Supabase local et Docker.
+Dans une session Codex CLI, Codex exécute de manière autonome toutes les
+commandes nécessaires au périmètre demandé : Git, GitHub CLI, tests, builds,
+Vite, Vitest, Supabase local, Docker et déploiements. Les contraintes du
+sandbox et les élévations ciblées restent applicables.
+
+Le PowerShell utilisateur devient le recours lorsque l'action exige une session
+interactive, une interface graphique, un périphérique ou une capacité
+indisponible dans Codex CLI. Dans ce cas, Codex fournit la commande, le terminal
+et l'objectif exacts, puis attend le résultat.
 
 ## Collaboration et contrôles
 
@@ -60,67 +67,43 @@ Vite, Vitest, Supabase local et Docker.
 
 ## Git et publication
 
-Ces règles projet sont plus strictes que les éventuelles permissions Git
-génériques.
-
-1. L'utilisateur exécute toutes les commandes Git qui modifient le dépôt,
-   l'index, les références, les branches ou les remotes.
-
-2. Codex ne doit notamment jamais exécuter :
-   - `git add`, `git rm`, `git mv` ;
-   - `git restore`, `git checkout`, `git switch`, `git reset`, `git clean` ;
-   - `git stash` ;
-   - `git commit`, `git merge`, `git rebase`, `git cherry-pick`,
-     `git revert` ;
-   - création, suppression ou modification de branche ou de tag ;
-   - `git fetch`, `git pull`, `git push` ;
-   - création ou modification de pull request ;
-   - toute commande Git équivalente qui modifie l'état local ou distant.
-
-3. Codex peut exécuter uniquement les commandes Git en lecture seule nécessaires
-   à ses contrôles et audits :
-   - `git status` ;
-   - `git diff` et `git diff --check` ;
-   - consultation de l'historique avec `git log`, `git show`, `git blame` et
-     `git reflog` ;
-   - comparaison de commits, branches ou références avec `git diff <ref>` ;
-   - consultation de la branche, des tags, des remotes et des références sans
-     modification.
-
-4. L'historique Git peut être utilisé pour retrouver l'origine d'une
-   régression, contrôler le périmètre d'un commit, comparer une implémentation
-   antérieure ou vérifier ce qui a réellement été publié.
-
-5. Lorsque le sous-lot est prêt, Codex fournit à l'utilisateur les commandes
-   PowerShell exactes, dans leur ordre d'exécution, avec le périmètre attendu.
-   Codex attend ensuite le résultat rapporté par l'utilisateur.
-
-6. Codex ne doit jamais interpréter `go`, `next`, `continue` ou une validation
-   fonctionnelle comme une autorisation d'exécuter Git.
-
-7. Une autorisation explicite de préparer, terminer ou publier un sous-lot
-   signifie que Codex doit fournir les commandes Git ; elle ne l'autorise pas à
-   les exécuter.
-
-8. Codex ne doit pas déclarer un commit, un push, une branche ou une publication
-   réussis sans résultat explicite fourni par l'utilisateur.
-
-9. La CLI GitHub `gh` est considérée comme indisponible tant que l'utilisateur
-   n'a pas explicitement confirmé son installation.
-
-Les modifications normales des fichiers avec les outils d'édition restent
-autorisées ; cette restriction concerne Git et la publication.
+1. Dans Codex CLI, Codex peut exécuter en autonomie toutes les commandes Git et
+   `gh` nécessaires au travail demandé, y compris `add`, `commit`, `push`,
+   gestion de branches, consultation ou création de pull requests et
+   déclenchement de workflows.
+2. Cette autonomie couvre le flux normal d'un sous-lot demandé : inspection,
+   édition, validation, audit pré-push, commit, push et contrôle post-push.
+   `go`, `next` ou `continue` autorisent la poursuite de ce flux dans le
+   périmètre actif.
+3. Avant une mutation Git, Codex contrôle le statut, le diff et le périmètre
+   afin de préserver les changements utilisateur sans rapport avec la tâche.
+4. Les opérations destructrices, la réécriture d'historique, les suppressions
+   de branches ou de tags et les modifications de remotes exigent une demande
+   explicite et une cible vérifiée.
+5. Codex ne déclare un commit, un push, une branche, une pull request ou une
+   publication réussis qu'après avoir vérifié le résultat de la commande ou de
+   l'API correspondante.
+6. La CLI GitHub `gh` est installée, authentifiée et disponible dans
+   l'environnement Codex CLI.
+7. Si Git ou `gh` est indisponible dans la session courante, Codex le signale et
+   fournit les commandes PowerShell exactes à exécuter manuellement.
 
 ## Déploiements CDIdle
 
-1. Le frontend est déployé manuellement par l'utilisateur depuis GitHub.
-2. Ne jamais affirmer qu'un push déclenche automatiquement le déploiement du
-   frontend.
+1. Dans Codex CLI, Codex peut déclencher et surveiller en autonomie les
+   déploiements GitHub Actions, Cloudflare Pages et Supabase nécessaires au
+   périmètre demandé.
+2. Le frontend est déployé par le workflow manuel
+   `.github/workflows/deploy-frontend.yml`. Un push ne déclenche pas
+   automatiquement ce déploiement.
 3. La commande connue de déploiement backend est :
 
    ```powershell
    npm.cmd exec --offline -- supabase functions deploy game-api --project-ref tohujvjxcfarciotsnbp
    ```
+4. Après un déploiement, Codex vérifie son état terminal et distingue le
+   déclenchement, la réussite du workflow et la validation visuelle ou
+   fonctionnelle de l'application.
 
 ## Replay autoritaire local
 
