@@ -2,6 +2,7 @@ import { useEffect, useRef, type Dispatch, type MutableRefObject, type SetStateA
 import type { User } from "@supabase/supabase-js";
 import type { CanonicalGameState } from "../../shared/contracts/authoritative";
 import type { AuthoritativeGameEnvelope } from "../domain/commands";
+import type { CanonicalStateFailure } from "../domain/canonicalStateFailure";
 import { formatCanonicalIdleReport } from "../domain/idleReport";
 import { hydrateCanonicalBootstrapCache } from "../lib/bootstrapCacheHydration";
 import { canonicalBootstrapOperationKey, requestCanonicalBootstrap } from "../lib/canonicalBootstrap";
@@ -12,7 +13,6 @@ import {
   GameApiError,
   getAuthSnapshot,
   onAuthStateChange,
-  type CanonicalStateFailure,
 } from "../lib/supabase";
 
 type LogKind = "info" | "victory" | "defeat";

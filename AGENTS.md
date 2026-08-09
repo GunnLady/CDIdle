@@ -71,37 +71,43 @@ et l'objectif exacts, puis attend le résultat.
    `gh` nécessaires au travail demandé, y compris `add`, `commit`, `push`,
    gestion de branches, consultation ou création de pull requests et
    déclenchement de workflows.
-2. Cette autonomie couvre le flux normal d'un sous-lot demandé : inspection,
-   édition, validation, audit pré-push, commit, push et contrôle post-push.
-   `go`, `next` ou `continue` autorisent la poursuite de ce flux dans le
-   périmètre actif.
-3. Avant une mutation Git, Codex contrôle le statut, le diff et le périmètre
+2. Cette autonomie couvre l'inspection, l'édition, les tests, l'audit pré-push
+   et, après confirmation explicite de l'utilisateur, le commit, le push et le
+   contrôle post-push. Une confirmation peut autoriser une séquence précisément
+   annoncée de commit et push.
+3. Codex demande toujours une confirmation explicite immédiatement avant un
+   commit ou un push. `go`, `next`, `continue` ou une validation
+   fonctionnelle ne constituent jamais cette confirmation.
+4. Avant une mutation Git, Codex contrôle le statut, le diff et le périmètre
    afin de préserver les changements utilisateur sans rapport avec la tâche.
-4. Les opérations destructrices, la réécriture d'historique, les suppressions
+5. Les opérations destructrices, la réécriture d'historique, les suppressions
    de branches ou de tags et les modifications de remotes exigent une demande
    explicite et une cible vérifiée.
-5. Codex ne déclare un commit, un push, une branche, une pull request ou une
+6. Codex ne déclare un commit, un push, une branche, une pull request ou une
    publication réussis qu'après avoir vérifié le résultat de la commande ou de
    l'API correspondante.
-6. La CLI GitHub `gh` est installée, authentifiée et disponible dans
+7. La CLI GitHub `gh` est installée, authentifiée et disponible dans
    l'environnement Codex CLI.
-7. Si Git ou `gh` est indisponible dans la session courante, Codex le signale et
+8. Si Git ou `gh` est indisponible dans la session courante, Codex le signale et
    fournit les commandes PowerShell exactes à exécuter manuellement.
 
 ## Déploiements CDIdle
 
 1. Dans Codex CLI, Codex peut déclencher et surveiller en autonomie les
    déploiements GitHub Actions, Cloudflare Pages et Supabase nécessaires au
-   périmètre demandé.
-2. Le frontend est déployé par le workflow manuel
+   périmètre demandé, après confirmation explicite de l'utilisateur.
+2. Codex demande cette confirmation immédiatement avant de déclencher le
+   déploiement. `go`, `next`, `continue`, un commit ou un push ne
+   constituent jamais une confirmation de déploiement.
+3. Le frontend est déployé par le workflow manuel
    `.github/workflows/deploy-frontend.yml`. Un push ne déclenche pas
    automatiquement ce déploiement.
-3. La commande connue de déploiement backend est :
+4. La commande connue de déploiement backend est :
 
    ```powershell
    npm.cmd exec --offline -- supabase functions deploy game-api --project-ref tohujvjxcfarciotsnbp
    ```
-4. Après un déploiement, Codex vérifie son état terminal et distingue le
+5. Après un déploiement, Codex vérifie son état terminal et distingue le
    déclenchement, la réussite du workflow et la validation visuelle ou
    fonctionnelle de l'application.
 

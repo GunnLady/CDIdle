@@ -1,5 +1,6 @@
 import { createClient, type Session, type SupabaseClient, type User } from "@supabase/supabase-js";
 import type { ErrorReportPayload } from "../../shared/contracts/error-report";
+import type { CanonicalStateFailure } from "../domain/canonicalStateFailure";
 import { reportUnexpectedError } from "./errorReporting";
 
 const url = import.meta.env.VITE_SUPABASE_URL as string | undefined;
@@ -25,7 +26,6 @@ export class GameApiError extends Error {
   }
 }
 
-export type CanonicalStateFailure = { requestId?: string };
 export const GAME_API_REQUEST_TIMEOUT_MS = 10_000;
 export const ERROR_REPORT_TIMEOUT_MS = 3_000;
 

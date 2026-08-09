@@ -1,4 +1,4 @@
-import type { CanonicalStateFailure } from "../../lib/supabase";
+import type { CanonicalStateFailure } from "../../domain/canonicalStateFailure";
 import CanonicalStateAlert from "../CanonicalStateAlert";
 
 interface CanonicalStatusLayerProps {

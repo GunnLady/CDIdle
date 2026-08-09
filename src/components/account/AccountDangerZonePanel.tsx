@@ -28,7 +28,7 @@ export default function AccountDangerZonePanel(props: { interactionLocked: boole
   return <AccountPanelFrame title="Zone dangereuse" subtitle="Actions irréversibles sur le royaume et le compte" testId="account-danger-zone">
     {props.interactionLocked && props.blockReason && <p className="mb-3 rounded-lg border border-amber-800/50 bg-amber-950/20 p-3 text-[10px] text-amber-300">{props.blockReason}</p>}
     <div className="grid gap-3 xl:grid-cols-2">
-    <DangerAction id="reset" label="Réinitialiser totalement le Royaume (Reset)" warning="Les données locales et la sauvegarde cloud seront détruites. Le compte restera actif." confirmLabel="Oui, TOUT supprimer !" disabled={props.interactionLocked} active={confirmation === "reset"} onOpen={() => setConfirmation("reset")} onCancel={() => setConfirmation(null)} onConfirm={() => execute(props.onHardReset)} />
+    <DangerAction id="reset" label="Réinitialiser totalement le Royaume (Reset)" warning="Les données locales et l’état serveur du royaume seront détruits. Le compte restera actif." confirmLabel="Oui, TOUT supprimer !" disabled={props.interactionLocked} active={confirmation === "reset"} onOpen={() => setConfirmation("reset")} onCancel={() => setConfirmation(null)} onConfirm={() => execute(props.onHardReset)} />
     <DangerAction id="delete" label="Supprimer définitivement le compte" warning="Le compte Auth, la partie, les commandes et les données associées seront supprimés sans retour." confirmLabel="Supprimer le compte" disabled={props.interactionLocked} active={confirmation === "delete"} onOpen={() => setConfirmation("delete")} onCancel={() => setConfirmation(null)} onConfirm={() => execute(props.onDeleteAccount)} />
     </div>
   </AccountPanelFrame>;

@@ -22,7 +22,7 @@ function Harness() {
       totalCitizensCount={20}
       heroesCount={4}
       highestFloorReached={8}
-      onSaveCloud={recordMutation}
+      onRefreshServerState={recordMutation}
       onHardReset={recordMutation}
       onDeleteAccount={recordMutation}
       onSignOut={recordMutation}

@@ -1,7 +1,7 @@
 ---
 id: CDI-089
 title: Extraire les cas d usage applicatifs restants de App
-status: Later
+status: Done
 area: frontend
 priority: P2
 size: L
@@ -10,7 +10,7 @@ source: Audit fonctionnel et architectural pré-push de CDI-069 du 2026-08-09
 depends_on: ["CDI-069", "CDI-081"]
 blocks: []
 github_issue: null
-related_docs: ["src/App.tsx", "src/hooks/useCanonicalOperations.ts", "src/hooks/useCanonicalSessionBootstrap.ts", "src/hooks/useAutomationLeadership.ts", "src/lib/authoritativeCommandDispatch.ts", "workboard/data/Done/CDI-069/ticket.md", "workboard/data/Done/CDI-081/ticket.md", "workboard/data/Later/CDI-077/ticket.md", "docs/architecture/cdi-069-interface-architecture.md"]
+related_docs: ["src/App.tsx", "src/hooks/useCanonicalOperations.ts", "src/hooks/useCanonicalSessionBootstrap.ts", "src/hooks/useAutomationLeadership.ts", "src/lib/authoritativeCommandDispatch.ts", "workboard/data/Done/CDI-069/ticket.md", "workboard/data/Done/CDI-081/ticket.md", "workboard/data/Later/CDI-077/ticket.md", "docs/architecture/cdi-069-interface-architecture.md", "docs/architecture/cdi-089-app-use-case-extraction.md"]
 ---
 
 # CDI-089 - Extraire les cas d usage applicatifs restants de App
@@ -107,29 +107,29 @@ usage encore assemblés dans `App.tsx`.
 
 ## Criteres d'acceptation
 
-- [ ] Une cartographie initiale inventorie chaque responsabilité résiduelle de
+- [x] Une cartographie initiale inventorie chaque responsabilité résiduelle de
       `App.tsx` et sa frontière cible.
-- [ ] Le dispatch canonique et ses chemins conflit, rejeu, échec et restauration
+- [x] Le dispatch canonique et ses chemins conflit, rejeu, échec et restauration
       sont testables hors de la fonction `App`.
-- [ ] La réconciliation temporelle et ses conditions de déclenchement sont
+- [x] La réconciliation temporelle et ses conditions de déclenchement sont
       isolées sans nouvelle minuterie concurrente.
-- [ ] Les actions d authentification, onboarding et recrutement sont regroupées
+- [x] Les actions d authentification, onboarding et recrutement sont regroupées
       derrière des callbacks applicatifs typés.
-- [ ] Reset, suppression du compte, cache et fermeture de session conservent
+- [x] Reset, suppression du compte, cache et fermeture de session conservent
       leur ordre de sécurité et leurs messages d erreur.
-- [ ] La composition des cinq destinations et des dialogues globaux est lisible
+- [x] La composition des cinq destinations et des dialogues globaux est lisible
       sans réintroduire de logique métier dans les composants.
-- [ ] Aucun hook extrait ne possède une copie du snapshot ou de la révision.
-- [ ] Optimisme, rollback, conflit, mode observateur et reprise de leadership
+- [x] Aucun hook extrait ne possède une copie du snapshot ou de la révision.
+- [x] Optimisme, rollback, conflit, mode observateur et reprise de leadership
       restent conformes.
-- [ ] Aucun appel Supabase n est ajouté dans les composants ou projections.
-- [ ] Chaque ancien bloc est supprimé après preuve que son remplacement est le
+- [x] Aucun appel Supabase n est ajouté dans les composants ou projections.
+- [x] Chaque ancien bloc est supprimé après preuve que son remplacement est le
       seul consommateur actif.
-- [ ] `App.tsx` ne conserve que la composition, la navigation et les adaptations
+- [x] `App.tsx` ne conserve que la composition, la navigation et les adaptations
       minces nécessaires entre runtimes et pages.
-- [ ] Les changements de taille et de dépendances sont documentés sans seuil
+- [x] Les changements de taille et de dépendances sont documentés sans seuil
       artificiel de lignes.
-- [ ] Aucun changement visible ou de gameplay non prévu n est introduit.
+- [x] Aucun changement visible ou de gameplay non prévu n est introduit.
 
 ## Tests
 

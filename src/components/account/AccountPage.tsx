@@ -20,7 +20,7 @@ export interface AccountPageProps {
   totalCitizensCount: number;
   heroesCount: number;
   highestFloorReached: number;
-  onSaveCloud: () => Promise<void>;
+  onRefreshServerState: () => Promise<void>;
   onHardReset: () => Promise<void>;
   onDeleteAccount: () => Promise<void>;
   onSignOut: () => Promise<void>;
@@ -49,7 +49,7 @@ export default function AccountPage(props: AccountPageProps) {
   return <section aria-labelledby="account-page-title" className="space-y-4 animate-fade-in motion-reduce:animate-none">
     <h2 id="account-page-title" className="sr-only">Compte</h2>
     <div data-testid="account-page-layout" className="grid items-stretch gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(24rem,1fr)]">
-      <div className="space-y-4"><AccountIdentityPanel email={props.currentUser.email || "Utilisateur anonyme"} interactionLocked={sessionInteractionLocked} error={sessionError} onSignOut={() => { void closeSession(); }} /><SyncStatusPanel isSyncing={props.isSyncing} isCommandPending={Boolean(props.isCommandPending)} canRefresh={props.canMutate} blockReason={props.mutationBlockReason} onSaveCloud={props.onSaveCloud} /></div>
+      <div className="space-y-4"><AccountIdentityPanel email={props.currentUser.email || "Utilisateur anonyme"} interactionLocked={sessionInteractionLocked} error={sessionError} onSignOut={() => { void closeSession(); }} /><SyncStatusPanel isSyncing={props.isSyncing} isCommandPending={Boolean(props.isCommandPending)} canRefresh={props.canMutate} blockReason={props.mutationBlockReason} onRefreshServerState={props.onRefreshServerState} /></div>
       <RealmSummaryPanel view={summary} />
     </div>
     {history}
