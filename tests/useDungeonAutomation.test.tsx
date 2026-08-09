@@ -1,4 +1,4 @@
-import { act, renderHook } from "@testing-library/react";
+import { act, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { useDungeonAutomation } from "../src/hooks/useDungeonAutomation";
 import type { GameCommand } from "../src/domain/commands";
@@ -96,7 +96,7 @@ describe("dungeon automation hook", () => {
       dispatchCommand,
     }));
 
-    await vi.waitFor(() => expect(dispatchCommand).toHaveBeenCalledWith(
+    await waitFor(() => expect(dispatchCommand).toHaveBeenCalledWith(
       { type: "dungeon.resolve" },
       { interactive: false },
     ));
@@ -122,16 +122,24 @@ describe("dungeon automation hook", () => {
       dispatchCommand,
     }));
 
-    const sequence = result.current.exploreAndResolve();
-    await vi.waitFor(() => expect(dispatchCommand).toHaveBeenCalledWith(
+    let sequence!: Promise<boolean>;
+    act(() => {
+      sequence = result.current.exploreAndResolve();
+    });
+    await waitFor(() => expect(dispatchCommand).toHaveBeenCalledWith(
       { type: "dungeon.explore", floor: 1 },
       { interactive: true },
     ));
-    const retreating = result.current.retreat();
-    await vi.waitFor(() => expect(dispatchCommand).toHaveBeenCalledWith({ type: "dungeon.retreat" }));
-    releaseExplore(true);
-    releaseRetreat(true);
-    await Promise.all([sequence, retreating]);
+    let retreating!: Promise<boolean>;
+    act(() => {
+      retreating = result.current.retreat();
+    });
+    await waitFor(() => expect(dispatchCommand).toHaveBeenCalledWith({ type: "dungeon.retreat" }));
+    await act(async () => {
+      releaseExplore(true);
+      releaseRetreat(true);
+      await Promise.all([sequence, retreating]);
+    });
     expect(dispatchCommand).not.toHaveBeenCalledWith(
       { type: "dungeon.resolve" },
       expect.anything(),
