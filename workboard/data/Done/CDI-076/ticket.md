@@ -1,7 +1,7 @@
 ---
 id: CDI-076
 title: Etablir le design system interne et le catalogue UI CDIdle
-status: Doing
+status: Done
 area: frontend
 priority: P1
 size: L
@@ -10,7 +10,7 @@ source: Cadrage du refactor visuel CDIdle du 2026-08-01
 depends_on: ["CDI-069"]
 blocks: ["CDI-077"]
 github_issue: null
-related_docs: ["workboard/data/Done/CDI-069/ticket.md", "src/index.css", "src/App.tsx", "src/components"]
+related_docs: ["workboard/data/Done/CDI-069/ticket.md", "docs/development/design-system.md", "assets/design/cdi-076/manifest.json", "src/ui", "src/index.css"]
 ---
 
 # CDI-076 - Etablir le design system interne et le catalogue UI CDIdle
@@ -95,22 +95,22 @@ direction visuelle avant implementation.
 
 ## Criteres d'acceptation
 
-- [ ] Les tokens valides possedent une source unique et documentee.
-- [ ] Les principes CDIdle et le vocabulaire semantique sont relies aux tokens
+- [x] Les tokens valides possedent une source unique et documentee.
+- [x] Les principes CDIdle et le vocabulaire semantique sont relies aux tokens
       et composants implementes.
-- [ ] L architecture CSS cible est appliquee aux fondations sans duplication.
-- [ ] Les premiers composants issus de l audit sont disponibles.
-- [ ] L organisation distingue clairement primitives, composants et patterns.
-- [ ] Chaque composant couvre ses etats fonctionnels pertinents.
-- [ ] Chaque composant documente intention, usages, anti-usages et
+- [x] L architecture CSS cible est appliquee aux fondations sans duplication.
+- [x] Les premiers composants issus de l audit sont disponibles.
+- [x] L organisation distingue clairement primitives, composants et patterns.
+- [x] Chaque composant couvre ses etats fonctionnels pertinents.
+- [x] Chaque composant documente intention, usages, anti-usages et
       depreciation.
-- [ ] La gouvernance legere du design system est disponible dans le depot.
-- [ ] Focus clavier, contrastes et reduction des animations sont verifies.
-- [ ] Les composants fonctionnent sur les largeurs cibles validees.
-- [ ] Le catalogue affiche les variantes avec des donnees representatives.
-- [ ] Le catalogue reutilise les composants reels et reste absent de l alpha
+- [x] La gouvernance legere du design system est disponible dans le depot.
+- [x] Focus clavier, contrastes et reduction des animations sont verifies.
+- [x] Les composants fonctionnent sur les largeurs cibles validees.
+- [x] Le catalogue affiche les variantes avec des donnees representatives.
+- [x] Le catalogue reutilise les composants reels et reste absent de l alpha
       publique selon la decision de build retenue.
-- [ ] Aucun comportement de jeu ne change.
+- [x] Aucun comportement de jeu ne change.
 
 ## Tests
 
@@ -130,6 +130,33 @@ direction visuelle avant implementation.
 Ouvrir le catalogue sur desktop et mobile, parcourir toutes les variantes au
 clavier et a la souris, comparer les fondations a la direction validee, puis
 confirmer que le build alpha n expose pas une surface non prevue.
+
+## Avancement du 2026-08-09
+
+- Source unique ajoutee dans src/ui/foundations/tokens.css.
+- Primitives Button, IconButton et TextField; composants Panel, Card, Alert,
+  Progress, Dialog et Tooltip; adaptateurs historiques de panneaux conserves.
+- Catalogue prive limite au developpement avec ui-catalog=1; son marqueur est
+  refuse par check:bundle.
+- Validation locale apres audit global: 100 fichiers et 737 tests, typecheck,
+  lint, builds production et alpha, budgets bundle, Workboard et
+  git diff --check reussis.
+- Validation utilisateur: variantes, focus clavier, champs, panneaux, alertes,
+  progression et absence de debordement desktop/mobile conformes.
+- Ecart de validation corrige: curseur main ajoute aux boutons actifs, avec
+  tests cibles, typecheck et lint reussis apres correction.
+- Ecarts d audit global corriges: texte des controles a 14 px, tokens et
+  contrastes relies a leur source, annonces live explicites, titres
+  hierarchisables, interactions clavier testees et reports documentes.
+- Revalidation utilisateur apres audit global reussie en desktop et a 360 px:
+  typographie, cartes, alertes, tooltip, dialogue, focus et absence de
+  debordement conformes.
+- Captures desktop 1440 et mobile 360 conservees sous assets/design/cdi-076,
+  referencees par manifest.json et inspectees par Codex apres validation
+  utilisateur.
+- Audit global post-capture: duplication nom/description de Tooltip corrigee.
+- Validation Playwright responsive rapportee par l utilisateur: 53 tests sur
+  53 reussis en 27,7 s avec un worker.
 
 ## Preservation
 

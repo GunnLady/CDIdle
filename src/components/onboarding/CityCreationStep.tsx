@@ -3,6 +3,7 @@ import { Castle, ChevronRight, Sparkles, Sword } from "lucide-react";
 import { suggestCityName } from "../../domain/onboardingPresentation";
 import EntryScreenFrame from "./EntryScreenFrame";
 import OnboardingAccessNotice from "./OnboardingAccessNotice";
+import IconButton from "../../ui/primitives/IconButton";
 
 export default function CityCreationStep(props: {
   initialName: string;
@@ -54,7 +55,7 @@ export default function CityCreationStep(props: {
         <label htmlFor="onboarding-city-name" className="mb-2 block font-serif text-[10px] font-bold uppercase tracking-widest text-[#a89078]">Nom de la Cité ralliée</label>
         <div className="flex gap-2">
           <div className="relative flex-1"><Sword className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8c5a2b]" /><input id="onboarding-city-name" type="text" required maxLength={25} value={cityName} onChange={(event) => setCityName(event.target.value)} className="w-full rounded-xl border-2 border-[#45301f] bg-[#0f0a06] py-3 pl-11 pr-4 text-sm text-[#fbf7f0] outline-none focus:border-[#d4af37]" placeholder="Ex. Val-Ombré" /></div>
-          <button type="button" aria-label="Générer un nom de cité" onClick={() => { setCityName(suggestCityName()); setError(null); }} className="min-h-11 shrink-0 rounded-xl border-2 border-[#5c402b] bg-[#20150d] px-3.5 text-[#d4af37] hover:border-[#d4af37]"><Sparkles className="h-4 w-4" /></button>
+          <IconButton type="button" label="Générer un nom de cité" onClick={() => { setCityName(suggestCityName()); setError(null); }} className="shrink-0"><Sparkles className="h-4 w-4" /></IconButton>
         </div>
         <p className="ml-1 mt-1.5 text-[10px] text-[#8c5a2b]">La cité commencera avec une Cabane de niveau 1 et des provisions de survie.</p>
       </div>

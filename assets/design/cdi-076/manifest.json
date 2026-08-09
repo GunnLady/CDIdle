@@ -1,0 +1,24 @@
+{
+  "ticket": "CDI-076",
+  "capturedAt": "2026-08-09",
+  "catalogUrl": "http://127.0.0.1:3000/?ui-catalog=1",
+  "backendRequired": false,
+  "captures": [
+    {
+      "file": "catalog-desktop-1440.png",
+      "validatedCssWidth": 1440,
+      "pixelDimensions": "1998x1536",
+      "result": "all catalog sections visible without horizontal overflow"
+    },
+    {
+      "file": "catalog-mobile-360.png",
+      "validatedCssWidth": 360,
+      "pixelDimensions": "1442x7739",
+      "result": "single-column catalog visible without horizontal overflow"
+    }
+  ],
+  "evidence": {
+    "user": "desktop and 360px visual, hover, tooltip and keyboard dialog checks passed",
+    "codex": "both stored captures inspected after the user validation"
+  }
+}

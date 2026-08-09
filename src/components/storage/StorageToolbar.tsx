@@ -11,6 +11,7 @@ import {
   type StorageSortKey,
 } from "../../domain/storagePresentation";
 import StoragePanelFrame from "./StoragePanelFrame";
+import TextField from "../../ui/primitives/TextField";
 
 const itemTypes = [["weapon", "Armes"], ["offhand", "Mains gauches"], ["armor", "Armures"], ["accessory", "Accessoires"]] as const;
 const rarities: Rarity[] = ["common", "uncommon", "rare", "epic", "legendary"];
@@ -21,10 +22,7 @@ export default function StorageToolbar(props: { filters: StorageFilters; onChang
   const activeAdvancedCount = countActiveAdvancedStorageFilters(props.filters);
   return <StoragePanelFrame title="Recherche et filtres" subtitle={`${props.resultCount} résultat(s)`} testId="storage-toolbar">
     <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] gap-2 xl:grid-cols-[minmax(10rem,1.4fr)_repeat(5,minmax(0,1fr))_auto]">
-      <div className="relative">
-        <Search className="absolute left-3 top-3.5 h-4 w-4 text-[#8c7460]" />
-        <input aria-label="Rechercher un objet" type="search" placeholder="Rechercher un objet..." value={props.filters.searchTerm} onChange={(event) => update("searchTerm", event.target.value)} className="min-h-11 w-full rounded-lg border border-[#5c402b] bg-[#100805] py-2 pl-9 pr-3 text-xs text-[#fbf7f0] placeholder:text-[#756353] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#caa050]" />
-      </div>
+      <TextField aria-label="Rechercher un objet" type="search" placeholder="Rechercher un objet..." value={props.filters.searchTerm} onChange={(event) => update("searchTerm", event.target.value)} leading={<Search className="h-4 w-4" />} />
       <button type="button" aria-expanded={advancedOpen} aria-controls="storage-advanced-filters" onClick={() => setAdvancedOpen((open) => !open)} className="min-h-11 rounded-lg border border-[#5c402b] px-3 text-[10px] font-bold uppercase text-[#caa050] xl:hidden">Filtres{activeAdvancedCount > 0 ? ` · ${activeAdvancedCount}` : ""}</button>
       <div id="storage-advanced-filters" className={`${advancedOpen ? "grid" : "hidden"} col-span-full grid-cols-1 gap-2 sm:grid-cols-2 xl:contents`}>
         <select aria-label="Type d’objet" value={props.filters.itemType} onChange={(event) => update("itemType", event.target.value)} className="min-h-11 min-w-0 w-full rounded-lg border border-[#5c402b] bg-[#100805] px-2 text-xs text-[#fbf7f0]"><option value="all">Tous les types</option>{itemTypes.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select>

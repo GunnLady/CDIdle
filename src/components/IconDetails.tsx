@@ -1,5 +1,6 @@
 import React from "react";
 import { Coins, Grape, Trees, Hammer, Pickaxe, Castle } from "lucide-react";
+import Tooltip from "../ui/components/Tooltip";
 
 export function formatResourceValue(val: number): string {
   if (val === undefined || val === null || isNaN(val)) return "0";
@@ -22,40 +23,40 @@ export function CrestBadge() {
 
 export function GoldIconDetail() {
   return (
-    <div className="w-7 h-7 rounded-lg bg-[#fbbf24]/10 border border-[#fbbf24]/30 flex items-center justify-center" title="Or">
+    <Tooltip label="Détail de ressource" content="Or"><span aria-hidden="true" className="flex h-7 w-7 items-center justify-center rounded-lg border border-[#fbbf24]/30 bg-[#fbbf24]/10">
       <Coins className="w-4 h-4 text-[#fbbf24]" />
-    </div>
+    </span></Tooltip>
   );
 }
 
 export function FoodIconDetail() {
   return (
-    <div className="w-7 h-7 rounded-lg bg-[#59ba59]/10 border border-[#59ba59]/30 flex items-center justify-center" title="Nourriture">
+    <Tooltip label="Détail de ressource" content="Nourriture"><span aria-hidden="true" className="flex h-7 w-7 items-center justify-center rounded-lg border border-[#59ba59]/30 bg-[#59ba59]/10">
       <Grape className="w-4 h-4 text-[#59ba59]" />
-    </div>
+    </span></Tooltip>
   );
 }
 
 export function WoodIconDetail() {
   return (
-    <div className="w-7 h-7 rounded-lg bg-[#d26d36]/10 border border-[#d26d36]/30 flex items-center justify-center" title="Bois">
+    <Tooltip label="Détail de ressource" content="Bois"><span aria-hidden="true" className="flex h-7 w-7 items-center justify-center rounded-lg border border-[#d26d36]/30 bg-[#d26d36]/10">
       <Trees className="w-4 h-4 text-[#d26d36]" />
-    </div>
+    </span></Tooltip>
   );
 }
 
 export function StoneIconDetail() {
   return (
-    <div className="w-7 h-7 rounded-lg bg-[#cdcdcd]/10 border border-[#cdcdcd]/30 flex items-center justify-center" title="Pierre">
+    <Tooltip label="Détail de ressource" content="Pierre"><span aria-hidden="true" className="flex h-7 w-7 items-center justify-center rounded-lg border border-[#cdcdcd]/30 bg-[#cdcdcd]/10">
       <Hammer className="w-4 h-4 text-[#cdcdcd]" />
-    </div>
+    </span></Tooltip>
   );
 }
 
 export function OreIconDetail() {
   return (
-    <div className="w-7 h-7 rounded-lg bg-[#9653ec]/10 border border-[#9653ec]/30 flex items-center justify-center" title="Minerai">
+    <Tooltip label="Détail de ressource" content="Minerai"><span aria-hidden="true" className="flex h-7 w-7 items-center justify-center rounded-lg border border-[#9653ec]/30 bg-[#9653ec]/10">
       <Pickaxe className="w-4 h-4 text-[#9653ec]" />
-    </div>
+    </span></Tooltip>
   );
 }

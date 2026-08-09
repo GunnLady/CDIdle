@@ -1,3 +1,6 @@
+import Alert from "../ui/components/Alert";
+import Button from "../ui/primitives/Button";
+
 type CanonicalStateAlertProps = {
   requestId?: string;
   onOpenAccount: () => void;
@@ -8,22 +11,25 @@ export default function CanonicalStateAlert({
   onOpenAccount,
 }: CanonicalStateAlertProps) {
   return (
-    <div
+    <Alert
+      variant="error"
       role="alert"
-      className="sticky top-0 z-30 border-b border-red-700/70 bg-red-950/95 px-4 py-2 text-center text-sm text-red-100"
+      className="sticky top-0 z-[var(--ui-layer-status)] rounded-none border-x-0 border-t-0 py-2 text-center"
     >
       <span>
         Sauvegarde incompatible — mutations verrouillées. Réinitialisez la
         partie ou contactez l’assistance.
         {requestId ? ` Référence : ${requestId}.` : ""}
       </span>
-      <button
+      <Button
         type="button"
+        variant="danger"
+        size="sm"
         onClick={onOpenAccount}
-        className="ml-3 rounded border border-red-300/60 px-2 py-1 font-semibold hover:bg-red-900"
+        className="ml-3 py-1 normal-case tracking-normal"
       >
         Ouvrir le compte
-      </button>
-    </div>
+      </Button>
+    </Alert>
   );
 }
