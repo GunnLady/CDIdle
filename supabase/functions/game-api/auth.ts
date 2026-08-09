@@ -45,9 +45,13 @@ async function verifyJwt(token: string, secret: string | undefined, serviceRoleK
     if (claims.iss !== options.expectedIssuer || claims.aud !== options.expectedAudience) return null;
     let valid = false;
     if (header.alg === "HS256") {
-      if (!secret) return null;
-      const key = await crypto.subtle.importKey("raw", encoder.encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["verify"]);
-      valid = await crypto.subtle.verify("HMAC", key, decodePart(parts[2]), encoder.encode(`${parts[0]}.${parts[1]}`));
+      if (secret) {
+        const key = await crypto.subtle.importKey("raw", encoder.encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["verify"]);
+        valid = await crypto.subtle.verify("HMAC", key, decodePart(parts[2]), encoder.encode(`${parts[0]}.${parts[1]}`));
+      } else {
+        const authResponse = await fetcher(`${supabaseUrl.replace(/\/$/, "")}/auth/v1/user`, { headers: { apikey: serviceRoleKey, authorization: `Bearer ${token}` } });
+        valid = authResponse.ok;
+      }
     } else if (header.alg === "ES256") {
       const authResponse = await fetcher(`${supabaseUrl.replace(/\/$/, "")}/auth/v1/user`, { headers: { apikey: serviceRoleKey, authorization: `Bearer ${token}` } });
       valid = authResponse.ok;

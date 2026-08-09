@@ -42,12 +42,29 @@ describe("Supabase game-api authenticator", () => {
       headers: { authorization: `Bearer ${asymmetricToken(claims)}` },
     }))).toBe("user-1");
   });
-  it("rejects HS256 when the legacy JWT secret is absent", async () => {
+  it("accepts HS256 through Supabase Auth when the legacy JWT secret is absent", async () => {
+    let index = 0;
+    const responses = [
+      {},
+      { id: "user-1", email: "player@example.test", app_metadata: { provider: "google" } },
+      [{ email: "player@example.test" }],
+    ];
     const auth = createSupabaseAuthenticator({
       supabaseUrl: "http://supabase.test",
       serviceRoleKey: "service-only",
       now: () => 1000,
-      fetcher: async () => new Response(null, { status: 500 }),
+      fetcher: async () => new Response(JSON.stringify(responses[index++]), { status: 200 }),
+    });
+    expect(await auth(new Request("https://api.test", {
+      headers: { authorization: `Bearer ${await token(claims)}` },
+    }))).toBe("user-1");
+  });
+  it("rejects HS256 when Supabase Auth rejects it and the legacy JWT secret is absent", async () => {
+    const auth = createSupabaseAuthenticator({
+      supabaseUrl: "http://supabase.test",
+      serviceRoleKey: "service-only",
+      now: () => 1000,
+      fetcher: async () => new Response(null, { status: 401 }),
     });
     expect(await auth(new Request("https://api.test", {
       headers: { authorization: `Bearer ${await token(claims)}` },
