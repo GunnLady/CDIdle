@@ -54,10 +54,23 @@ describe("DungeonProgressBanner", () => {
     />);
 
     expect(screen.getByText(/Étage 4 · Salle 2\//)).toBeInTheDocument();
-    expect(screen.getAllByText("Ariane").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("PV 10/20").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("PM 5/10").length).toBeGreaterThan(0);
-    expect(screen.getByText("Voir le groupe")).toHaveClass("min-h-11", "focus-visible:outline-2");
+    expect(screen.getAllByText("Ariane - Lv 1").length).toBeGreaterThan(0);
+    expect(screen.getAllByLabelText("Afficher Ariane - Lv 1")[0]).toHaveAttribute("aria-describedby");
+    expect(screen.queryByText("PV 10/20")).not.toBeInTheDocument();
+    expect(screen.queryByText("PM 5/10")).not.toBeInTheDocument();
+    expect(screen.getAllByRole("progressbar", { name: "Points de vie de Ariane" })[0]).toHaveAttribute("aria-valuenow", "10");
+    expect(screen.getAllByRole("progressbar", { name: "Mana de Ariane" })[0]).toHaveAttribute("aria-valuenow", "5");
+    expect(screen.getAllByTestId(/^dungeon-banner-vitals-/)[0]).toHaveClass("grid-cols-1");
+    expect(screen.queryByText("10/20")).not.toBeInTheDocument();
+    expect(screen.queryByText("5/10")).not.toBeInTheDocument();
+    expect(screen.getAllByText("10").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("5").length).toBeGreaterThan(0);
+    expect(screen.getByRole("complementary", { name: "Progression du groupe dans le donjon" }).firstElementChild).toHaveClass("justify-center", "text-center", "md:text-left", "xl:h-full");
+    expect(screen.getByRole("button", { name: "Pause" }).parentElement).toHaveClass("justify-center", "flex-nowrap", "w-full", "md:w-auto");
+    expect(screen.getByRole("button", { name: "Pause" }).parentElement).not.toHaveClass("ml-auto");
+    const groupSummary = screen.getByLabelText("Voir le groupe");
+    expect(groupSummary).toHaveClass("min-h-11", "focus-visible:outline-ui-focus");
+    expect(groupSummary.closest("details")?.parentElement).toBe(screen.getByRole("button", { name: "Pause" }).parentElement);
     fireEvent.click(screen.getByRole("button", { name: "Pause" }));
     expect(onToggleAutoExplore).toHaveBeenCalledOnce();
   });

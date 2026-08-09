@@ -11,10 +11,11 @@ export type DialogProps = {
   onDismiss?: () => void;
   dismissDisabled?: boolean;
   initialFocusRef?: RefObject<HTMLElement | null>;
+  dismissOnBackdrop?: boolean;
   className?: string;
 };
 
-export default function Dialog({ title, description, children, footer, onDismiss, dismissDisabled = false, initialFocusRef, className }: DialogProps) {
+export default function Dialog({ title, description, children, footer, onDismiss, dismissDisabled = false, initialFocusRef, dismissOnBackdrop = false, className }: DialogProps) {
   const dialogRef = useRef<HTMLElement>(null);
   const onDismissRef = useRef(onDismiss);
   const dismissDisabledRef = useRef(dismissDisabled);
@@ -65,7 +66,12 @@ export default function Dialog({ title, description, children, footer, onDismiss
   }, [initialFocusRef]);
 
   return (
-    <div className="fixed inset-0 z-[var(--ui-layer-dialog)] flex items-center justify-center overflow-y-auto bg-black/85 p-4 backdrop-blur-sm">
+    <div
+      className="fixed inset-0 z-[var(--ui-layer-dialog)] flex items-center justify-center overflow-y-auto bg-black/85 p-4 backdrop-blur-sm"
+      onMouseDown={(event) => {
+        if (dismissOnBackdrop && !dismissDisabled && event.target === event.currentTarget) onDismiss?.();
+      }}
+    >
       <section
         ref={dialogRef}
         tabIndex={-1}

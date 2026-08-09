@@ -1,7 +1,7 @@
 ---
 id: CDI-077
 title: Migrer les ecrans et faire murir le design system CDIdle
-status: Later
+status: Done
 area: frontend
 priority: P1
 size: L
@@ -10,7 +10,7 @@ source: Cadrage du refactor visuel CDIdle du 2026-08-01
 depends_on: ["CDI-076", "CDI-081"]
 blocks: []
 github_issue: null
-related_docs: ["workboard/data/Done/CDI-069/ticket.md", "workboard/data/Doing/CDI-076/ticket.md", "src/App.tsx", "src/components", "src/index.css"]
+related_docs: ["workboard/data/Done/CDI-069/ticket.md", "workboard/data/Doing/CDI-076/ticket.md", "workboard/data/Done/CDI-090/ticket.md", "docs/development/design-system.md", "src/App.tsx", "src/components", "src/ui", "src/index.css"]
 ---
 
 # CDI-077 - Migrer les ecrans et faire murir le design system CDIdle
@@ -94,25 +94,60 @@ canonique de `App.tsx` afin que la migration visuelle ne renforce pas son
 orchestration monolithique. L ordre exact des lots depend des conclusions de
 CDI-069.
 
+## Avancement consolide du 2026-08-09
+
+Le travail realise et valide couvre les surfaces suivantes :
+
+- catalogue UI et compositions produit, y compris la correction des
+  debordements desktop et mobile ;
+- shell applicatif, ressources, navigation et bandeau de progression Donjon ;
+- Cite, Aventuriers, Donjon, Coffre et Compte ;
+- authentification, onboarding, fondateurs et recrutement ;
+- historique partage, dialogues et prompts transversaux.
+
+Les validations visuelles et responsive ont ete rapportees par l utilisateur
+au fil des sous-lots. Les resultats rapportes incluent notamment 6 tests
+responsive passes pour Aventuriers et Donjon, 23 pour l onboarding, 2 pour le
+shell applicatif et 2 pour le catalogue final. La validation du rendu du
+Compte est visuelle ; son resultat browser dedie n est pas affirme ici faute de
+sortie terminale complete conservee.
+
+Les preuves techniques executees par Codex comprennent :
+
+- suite Vitest complete : 108 fichiers et 779 tests passes avant les derniers
+  ajustements limites au catalogue et aux preuves clavier ;
+- tests cibles finaux UI/Cite : 27 tests passes ;
+- typecheck et lint passes apres les derniers changements de code ;
+- build de production passe avec 1902 modules transformes ;
+- budget bundle passe avec 217371 octets gzip JavaScript et un plus gros chunk
+  de 121477 octets ;
+- navigation clavier des cartes de batiments couverte par un test dedie ;
+- CDI-090, migration de la Cite, cloture en `Done` avec ses preuves propres.
+
+L audit transversal final a depuis mesure l adoption, documente les couleurs
+locales et leurs exceptions, verifie les derniers consommateurs, supprime les
+quatre anciennes frames de panneaux et confirme les criteres de maturite du
+design system.
+
 ## Criteres d'acceptation
 
-- [ ] La migration est decoupee en lots ordonnes et de taille auditable.
-- [ ] Chaque lot conserve les comportements et contrats existants.
-- [ ] Les composants reutilisables remplacent les duplications confirmees.
-- [ ] Toute nouvelle variante apparait aussi dans le catalogue.
-- [ ] Les patterns metier issus des ecrans migres sont documentes avec leurs
+- [x] La migration est decoupee en lots ordonnes et de taille auditable.
+- [x] Chaque lot conserve les comportements et contrats existants.
+- [x] Les composants reutilisables remplacent les duplications confirmees.
+- [x] Toute nouvelle variante apparait aussi dans le catalogue.
+- [x] Les patterns metier issus des ecrans migres sont documentes avec leurs
       usages et limites.
-- [ ] Chaque lot fournit son adoption, ses exceptions et les styles restants.
-- [ ] Les exceptions locales sont justifiees plutot que masquees.
-- [ ] Les etats actifs, verrouilles, desactives, chargement et erreur restent
+- [x] Chaque lot fournit son adoption, ses exceptions et les styles restants.
+- [x] Les exceptions locales sont justifiees plutot que masquees.
+- [x] Les etats actifs, verrouilles, desactives, chargement et erreur restent
       comprehensibles.
-- [ ] Desktop, mobile et clavier sont verifies apres chaque lot.
-- [ ] Les regressions visuelles ou fonctionnelles bloquent le lot suivant.
-- [ ] Les styles et composants morts sont retires avec une preuve de
+- [x] Desktop, mobile et clavier sont verifies apres chaque lot.
+- [x] Les regressions visuelles ou fonctionnelles bloquent le lot suivant.
+- [x] Les styles et composants morts sont retires avec une preuve de
       non-utilisation.
-- [ ] Le bundle et les performances restent dans les budgets valides.
-- [ ] Aucun changement de gameplay n est introduit pour compenser l UI.
-- [ ] Le passage v0.2 puis v1 repose sur des criteres mesurables et non sur la
+- [x] Le bundle et les performances restent dans les budgets valides.
+- [x] Aucun changement de gameplay n est introduit pour compenser l UI.
+- [x] Le passage v0.2 puis v1 repose sur des criteres mesurables et non sur la
       seule quantite de composants disponibles.
 
 ## Tests
@@ -130,6 +165,29 @@ CDI-069.
 - `npm.cmd run build`
 - `npm.cmd run check:bundle`
 - `npm.cmd run board:validate`
+
+## Validation finale du 2026-08-09
+
+Preuves executees par Codex :
+
+- typecheck et lint passes ;
+- 108 fichiers de tests et 780 tests passes ;
+- pipeline autoritaire local : 3 tests passes ;
+- seuils de couverture respectes pour le domaine et `game-api` ;
+- build de production passe avec 1898 modules transformes ;
+- budget bundle passe avec 217201 octets gzip JavaScript et un plus gros chunk
+  de 121477 octets ;
+- controles de determinisme, secrets, logs, migrations et Workboard passes ;
+- aucune reference aux quatre anciennes `PanelFrame` et aucun second piege de
+  focus manuel dans les composants produit ;
+- `git diff --check` passe, hors avertissements de normalisation CRLF.
+
+Preuves rapportees par l utilisateur :
+
+- suite responsive Playwright globale : 57 tests passes en 34,2 s ;
+- pipeline navigateur canonique : 1 test passe en 9,2 s ;
+- validation visuelle desktop et portable realisee au fil des lots, avec les
+  ecarts constates corriges avant la poursuite.
 
 ## Validation manuelle
 

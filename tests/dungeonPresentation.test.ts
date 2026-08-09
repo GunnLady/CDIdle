@@ -31,6 +31,7 @@ describe("dungeon presentation projections", () => {
   it("shares room progression and prepares expedition banner slots outside React", () => {
     const hero = makeHero({
       id: "banner-hero",
+      level: 1,
       name: "Ariane",
       isActive: true,
       currentHp: 10,

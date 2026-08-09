@@ -11,6 +11,7 @@ import {
 import EntryScreenFrame from "./EntryScreenFrame";
 import FounderCandidateCard from "./FounderCandidateCard";
 import OnboardingAccessNotice from "./OnboardingAccessNotice";
+import Button from "../../ui/primitives/Button";
 
 export default function FounderSelectionStep(props: {
   cityName: string;
@@ -70,7 +71,7 @@ export default function FounderSelectionStep(props: {
       {views.map((candidate) => <div key={candidate.id}><FounderCandidateCard candidate={candidate} selected={selectedIds.includes(candidate.id)} onToggle={() => { setSelectedIds((current) => toggleStartingFounder(current, candidate.id)); setError(null); }} onRename={(name) => setEditedNames((current) => ({ ...current, [candidate.id]: name }))} /></div>)}
     </div>
     <div className="mx-auto mt-6 w-full max-w-sm">
-      <button type="button" onClick={() => { void confirm(); }} disabled={!props.canMutate || pending || !ready} className="flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border-2 border-[#d4af37] bg-gradient-to-r from-[#8c5a2b] to-[#b3844a] px-4 py-3 text-sm font-bold text-[#fbf7f0] disabled:cursor-not-allowed disabled:opacity-50">{pending ? "Création du fief…" : <><span>Fonder la Cité et commencer</span><ChevronRight className="h-4 w-4" /></>}</button>
+      <Button type="button" variant="primary" block busy={pending} onClick={() => { void confirm(); }} disabled={!props.canMutate || !ready}>{pending ? "Création du fief…" : <><span>Fonder la Cité et commencer</span><ChevronRight className="h-4 w-4" /></>}</Button>
       <p className="mt-3 text-center font-mono text-[10px] text-stone-500">Sélectionné : {selectedIds.length} / {STARTING_FOUNDER_COUNT}</p>
     </div>
   </EntryScreenFrame>;

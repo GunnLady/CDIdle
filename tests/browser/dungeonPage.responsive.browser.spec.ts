@@ -17,20 +17,28 @@ for (const viewport of viewports) {
     const progression = page.getByTestId("dungeon-progression-panel");
     const encounter = page.getByTestId("dungeon-current-encounter");
     const party = page.getByTestId("dungeon-party-panel");
+    const roster = page.getByTestId("dungeon-party-roster");
+    const heroSheet = page.getByTestId("dungeon-hero-sheet");
     const history = page.getByTestId("dungeon-history-panel");
     const boxes = await Promise.all([progression, encounter, party, history].map((locator) => locator.boundingBox()));
     boxes.forEach((box) => expect(box).not.toBeNull());
+    expect(Math.round(boxes[1]!.height)).toBe(675);
+    expect(await page.getByTestId("dungeon-encounter-transcript").evaluate((element) => getComputedStyle(element).overflowY)).toBe("auto");
     expect(boxes[0]!.y).toBeLessThan(boxes[1]!.y);
+    expect(boxes[1]!.y).toBeLessThan(boxes[2]!.y);
     if (viewport.width >= 1280) {
-      expect(boxes[1]!.x).toBeLessThan(boxes[2]!.x);
-      expect(Math.abs(boxes[1]!.y - boxes[2]!.y)).toBeLessThanOrEqual(2);
-      expect(Math.abs(boxes[1]!.height - boxes[2]!.height)).toBeLessThanOrEqual(2);
-      expect(boxes[1]!.width).toBeLessThan(boxes[2]!.width);
+      expect(Math.abs(boxes[1]!.x - boxes[2]!.x)).toBeLessThanOrEqual(2);
+      expect(Math.abs(boxes[1]!.width - boxes[2]!.width)).toBeLessThanOrEqual(2);
       const slotBoxes = await page.getByTestId("dungeon-party-slot").evaluateAll((slots) => slots.map((slot) => slot.getBoundingClientRect().height));
       expect(new Set(slotBoxes.map((height) => Math.round(height))).size).toBe(1);
       expect(await page.getByTestId("dungeon-reserves-list").evaluate((element) => getComputedStyle(element).overflowY)).toBe("visible");
+      const [rosterBox, sheetBox] = await Promise.all([roster.boundingBox(), heroSheet.boundingBox()]);
+      expect(rosterBox!.x).toBeLessThan(sheetBox!.x);
+      expect(Math.abs(rosterBox!.y - sheetBox!.y)).toBeLessThanOrEqual(2);
+      expect(Math.abs(rosterBox!.height - sheetBox!.height)).toBeLessThanOrEqual(2);
     } else {
-      expect(boxes[1]!.y).toBeLessThan(boxes[2]!.y);
+      const [rosterBox, sheetBox] = await Promise.all([roster.boundingBox(), heroSheet.boundingBox()]);
+      expect(rosterBox!.y).toBeLessThan(sheetBox!.y);
     }
     expect(boxes[2]!.y).toBeLessThan(boxes[3]!.y);
 
@@ -49,9 +57,16 @@ test("keeps Dungeon consultation local in read-only mode", async ({ page }) => {
   await page.setViewportSize({ width: 360, height: 800 });
   await page.goto("/tests/browser/fixtures/dungeon-harness.html?readonly=1");
   await page.getByRole("button", { name: /^Borin/ }).click();
-  await expect(page.getByTestId("dungeon-party-panel")).toContainText("Fiche & équipement");
+  const heroSheet = page.getByTestId("dungeon-hero-sheet");
+  await expect(heroSheet).not.toContainText("Humain · Novice");
+  await expect(heroSheet.locator('[id^="hero-portrait-"]')).toBeVisible();
+  await expect(heroSheet).toContainText("Défense magique");
+  await page.getByRole("button", { name: "Compétences" }).click();
+  await expect(page.getByTestId("dungeon-hero-skills")).toBeVisible();
+  await page.getByRole("button", { name: "Équipement" }).click();
+  await expect(page.getByTestId("dungeon-hero-equipment")).toBeVisible();
   await expect(page.getByRole("button", { name: "Déployer Borin" })).toBeDisabled();
   await expect(page.getByText("Récolte terminée")).toHaveCount(0);
-  await expect(page.getByTestId("dungeon-history-panel").getByText("Donjon", { exact: true })).toBeVisible();
+  await expect(page.getByTestId("dungeon-history-panel").getByRole("button", { name: "Effacer les notes" })).toBeVisible();
   await expect(page.getByTestId("mutation-count")).toHaveText("0");
 });

@@ -9,14 +9,16 @@ import Tooltip from "../components/Tooltip";
 import Button from "../primitives/Button";
 import IconButton from "../primitives/IconButton";
 import TextField from "../primitives/TextField";
+import CatalogExtendedSections from "./CatalogExtendedSections";
+import CatalogProductSections from "./CatalogProductSections";
 
 const privateUiCatalogMarker = "CDIDLE_PRIVATE_UI_CATALOG";
 
 export default function UiCatalog() {
   const [dialogOpen, setDialogOpen] = useState(false);
   return (
-    <main data-testid="ui-catalog-root" data-private-marker={privateUiCatalogMarker} className="min-h-screen bg-ui-canvas p-4 text-ui-text sm:p-8">
-      <div className="mx-auto grid max-w-5xl gap-6">
+    <main data-testid="ui-catalog-root" data-private-marker={privateUiCatalogMarker} className="min-h-screen min-w-0 bg-ui-canvas p-4 text-ui-text sm:p-8">
+      <div className="mx-auto grid w-full min-w-0 max-w-5xl gap-6">
         <header>
           <p className="font-mono text-[10px] uppercase tracking-widest text-ui-text-muted">Catalogue prive de developpement</p>
           <h1 className="font-serif text-3xl font-bold text-ui-accent">CDIdle UI Catalog</h1>
@@ -70,6 +72,8 @@ export default function UiCatalog() {
         <Panel title="Dialogue" subtitle="Focus contraint, fermeture Escape et restauration" testId="catalog-dialog" titleAs="h2">
           <Button onClick={() => setDialogOpen(true)}>Ouvrir le dialogue</Button>
         </Panel>
+        <CatalogExtendedSections />
+        <CatalogProductSections />
       </div>
       {dialogOpen && <Dialog title="Confirmer l'action" description="Exemple transversal sans regle metier." onDismiss={() => setDialogOpen(false)} footer={<><Button onClick={() => setDialogOpen(false)}>Annuler</Button><Button variant="primary" onClick={() => setDialogOpen(false)}>Confirmer</Button></>}><p className="text-sm text-ui-text">Le focus reste dans cette fenetre tant qu'elle est ouverte.</p></Dialog>}
     </main>

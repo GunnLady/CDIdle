@@ -8,7 +8,7 @@ size: L
 risk: medium
 source: Cadrage du refactor visuel CDIdle du 2026-08-01
 depends_on: ["CDI-069"]
-blocks: ["CDI-077"]
+blocks: ["CDI-077", "CDI-090"]
 github_issue: null
 related_docs: ["workboard/data/Done/CDI-069/ticket.md", "docs/development/design-system.md", "assets/design/cdi-076/manifest.json", "src/ui", "src/index.css"]
 ---

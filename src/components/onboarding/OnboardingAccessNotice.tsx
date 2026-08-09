@@ -1,4 +1,6 @@
 import { ShieldAlert } from "lucide-react";
+import Alert from "../../ui/components/Alert";
+import Button from "../../ui/primitives/Button";
 
 export default function OnboardingAccessNotice(props: {
   message?: string;
@@ -8,8 +10,8 @@ export default function OnboardingAccessNotice(props: {
 }) {
   const text = props.error ?? props.message;
   if (!text) return null;
-  return <div role={props.error ? "alert" : "status"} className="mb-4 flex flex-wrap items-center justify-center gap-3 rounded-xl border border-amber-900/50 bg-amber-950/30 p-3 text-xs text-amber-200">
+  return <Alert variant={props.error ? "error" : "locked"} live={props.error ? "assertive" : "polite"} className="mb-4 flex flex-wrap items-center justify-center gap-3">
     <span className="flex min-w-0 items-center gap-2"><ShieldAlert className="h-4 w-4 shrink-0" />{text}</span>
-    {!props.error && props.onRequestControl && <button type="button" onClick={props.onRequestControl} disabled={props.controlTransferPending} className="min-h-11 rounded-lg border border-violet-400/70 bg-violet-800 px-3 text-[10px] font-bold uppercase text-white disabled:cursor-wait disabled:opacity-60">{props.controlTransferPending ? "Transfert…" : "Prendre le contrôle"}</button>}
-  </div>;
+    {!props.error && props.onRequestControl && <Button type="button" size="sm" busy={props.controlTransferPending} onClick={props.onRequestControl} className="uppercase">{props.controlTransferPending ? "Transfert…" : "Prendre le contrôle"}</Button>}
+  </Alert>;
 }

@@ -1,4 +1,5 @@
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import CityDashboard from "../src/components/city/CityDashboard";
 
@@ -25,6 +26,45 @@ const baseProps = () => ({
 });
 
 describe("CityDashboard city controls", () => {
+  it("allows keyboard users to select a building without triggering a mutation", async () => {
+    const user = userEvent.setup();
+    const props = baseProps();
+    render(<CityDashboard {...props} />);
+
+    const habitation = screen.getByTestId("building-habitation");
+    const farm = screen.getByTestId("building-ferme");
+    habitation.focus();
+    await user.tab();
+
+    expect(farm).toHaveFocus();
+    await user.keyboard("{Enter}");
+    expect(farm).toHaveAttribute("aria-pressed", "true");
+    expect(props.onUpgradeBuilding).not.toHaveBeenCalled();
+  });
+
+  it("exposes the shared panel and control semantics across the city", () => {
+    const props = baseProps();
+    render(<CityDashboard {...props} />);
+
+    for (const testId of ["selected-building-panel", "building-list-panel", "assignment-panel"]) {
+      const panel = screen.getByTestId(testId);
+      const titleId = panel.getAttribute("aria-labelledby");
+      expect(titleId).toBeTruthy();
+      expect(document.getElementById(String(titleId))).toBeInTheDocument();
+    }
+
+    const assignmentPanel = screen.getByTestId("assignment-panel");
+    expect(within(assignmentPanel).getByRole("progressbar", { name: /immigration/i })).toBeInTheDocument();
+    expect(within(assignmentPanel).getByRole("status")).toHaveTextContent(/citoyen.*disponible/i);
+    expect(within(assignmentPanel).getByRole("button", { name: /ajouter un fermier/i })).toHaveAttribute("data-state", "ready");
+
+    expect(within(screen.getByTestId("selected-building-panel")).getByRole("button", { name: /améliorer/i })).toHaveAttribute("data-state", "ready");
+
+    fireEvent.click(screen.getByTestId("building-forge"));
+    expect(screen.getByTestId("selected-building-panel")).toHaveAttribute("aria-labelledby");
+    expect(within(screen.getByTestId("selected-building-panel")).getByRole("button", { name: /forger/i })).toHaveAttribute("data-state", "ready");
+  });
+
   it("keeps the selected building, assignments and building list visible without nested tabs", () => {
     const onUpgradeBuilding = vi.fn();
     render(<CityDashboard

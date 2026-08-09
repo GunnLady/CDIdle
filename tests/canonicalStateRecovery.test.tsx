@@ -34,6 +34,11 @@ describe("canonical save recovery UI", () => {
     expect(screen.getByTestId("realm-summary-panel")).toHaveTextContent("3 niv.");
     expect(screen.getByTestId("system-history-panel")).toBeInTheDocument();
     expect(screen.getByTestId("account-danger-zone")).toBeInTheDocument();
+    expect(screen.getByText("Compte connecté")).toHaveClass("text-ui-success-text");
+    expect(screen.getByLabelText("Afficher l’adresse du compte")).toHaveAttribute("aria-describedby");
+    expect(screen.getByRole("button", { name: /Fermer la session/i })).toHaveAttribute("data-state", "ready");
+    expect(screen.getByRole("button", { name: /Actualiser l’état serveur/i })).toHaveAttribute("data-state", "ready");
+    expect(screen.getByRole("button", { name: /Réinitialiser totalement/i })).toHaveAttribute("data-state", "ready");
     expect(screen.queryByRole("tablist")).not.toBeInTheDocument();
   });
 

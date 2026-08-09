@@ -1,4 +1,5 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import HeroesPage from "../src/components/heroes/HeroesPage";
 import { makeHero, makeResources } from "./fixtures/game";
@@ -30,6 +31,13 @@ describe("HeroesPage", () => {
     expect(screen.getByTestId("selected-hero-panel")).toHaveTextContent("Ariane");
     expect(screen.getByTestId("hero-equipment-panel")).toBeInTheDocument();
     expect(screen.getByTestId("hero-skills-panel")).toBeInTheDocument();
+    expect(within(screen.getByTestId("selected-hero-panel")).getByRole("progressbar", { name: "Expérience" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Recruter/ })).toHaveAttribute("data-state", "disabled");
+    expect(screen.getByRole("button", { name: "Voir le Donjon" })).toHaveAttribute("data-state", "ready");
+    expect(within(screen.getByTestId("dungeon-party-manager")).getByRole("button", { name: "Ariane, PV 20 sur 20" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByTestId("hero-skills-panel")).toHaveClass("xl:min-h-64");
+    expect(screen.getByTestId("selected-hero-panel").lastElementChild).not.toHaveClass("xl:overflow-y-auto");
+    expect(screen.getByTestId("hero-roster-active").closest("article")).toHaveAttribute("data-selected", "true");
     fireEvent.click(screen.getByTestId("hero-roster-reserve"));
     expect(screen.getByTestId("selected-hero-panel")).toHaveTextContent("Borin");
   });
@@ -50,6 +58,7 @@ describe("HeroesPage", () => {
     fireEvent.click(screen.getByTestId("hero-roster-reserve"));
     expect(screen.getByTestId("selected-hero-panel")).toHaveTextContent("Borin");
     expect(screen.getByRole("button", { name: "Déployer Borin" })).toBeDisabled();
+    expect(screen.getByLabelText("Pourquoi Borin ne peut pas être déployé")).toHaveAccessibleDescription("Lecture seule");
     expect(onToggle).not.toHaveBeenCalled();
   });
 
@@ -122,6 +131,7 @@ describe("HeroesPage", () => {
       onToggleHeroActive={vi.fn()}
       onRecruitHero={vi.fn()}
       onEquipItem={onEquipItem}
+      onUnequipItem={vi.fn()}
       storedItems={[
         { instanceId: "item-first", itemId: "starter_sword", rarity: "common" },
         { instanceId: "item-second", itemId: "starter_sword", rarity: "common" },
@@ -153,17 +163,23 @@ describe("HeroesPage", () => {
       onToggleHeroActive={vi.fn()}
       onRecruitHero={vi.fn()}
       onEquipItem={onEquipItem}
+      onUnequipItem={vi.fn()}
       storedItems={[{ instanceId: "new-dagger", itemId: "quick_dagger", rarity: "common" }]}
       {...navigationProps}
     />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Changer" }));
+    const changeButton = screen.getByRole("button", { name: "Changer" });
+    const removeButton = within(screen.getByTestId("hero-equipment-panel")).getByRole("button", { name: "Retirer" });
+    expect(changeButton.compareDocumentPosition(removeButton) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(changeButton.parentElement).toHaveClass("self-stretch", "justify-center");
+    fireEvent.click(changeButton);
     expect(screen.getByText("Objets restitués au Coffre : Épée de départ")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Remplacer" }));
     expect(onEquipItem).toHaveBeenCalledWith(hero.id, "new-dagger");
   });
 
   it("closes the equipment dialog with Escape and restores the trigger focus", async () => {
+    const user = userEvent.setup();
     render(<HeroesPage
       heroes={[makeHero({ equipment: {} })]}
       resources={makeResources()}
@@ -178,8 +194,11 @@ describe("HeroesPage", () => {
 
     const trigger = screen.getAllByRole("button", { name: "Équiper" })[0];
     fireEvent.click(trigger);
-    expect(screen.getByRole("dialog")).toHaveFocus();
-    fireEvent.keyDown(document, { key: "Escape" });
+    const closeButton = screen.getByRole("button", { name: "Fermer la sélection d’équipement" });
+    expect(closeButton).toHaveFocus();
+    await user.keyboard("{Shift>}{Tab}{/Shift}");
+    expect(closeButton).toHaveFocus();
+    await user.keyboard("{Escape}");
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     await waitFor(() => expect(trigger).toHaveFocus());
   });

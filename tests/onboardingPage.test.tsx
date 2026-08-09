@@ -29,6 +29,7 @@ describe("OnboardingPage", () => {
     fireEvent.change(input, { target: { value: "Valbois" } });
     expect(input).toHaveValue("Valbois");
     expect(screen.getByRole("button", { name: "Fonder la Cité" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Fonder la Cité" })).toHaveAttribute("data-state", "disabled");
     fireEvent.click(screen.getByRole("button", { name: "Prendre le contrôle" }));
     expect(onRequestControl).toHaveBeenCalledOnce();
     expect(onRequestCandidates).not.toHaveBeenCalled();
@@ -56,6 +57,7 @@ describe("OnboardingPage", () => {
     fireEvent.click(screen.getByLabelText("Nom de Novice 1"));
     expect(screen.getByText("Sélectionné : 2 / 2")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Désélectionner Novice 1" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: "Désélectionner Novice 1" }).closest("article")).toHaveAttribute("data-selected", "true");
     fireEvent.change(screen.getByLabelText("Nom de Novice 1"), { target: { value: "Ariane" } });
     expect(screen.getByRole("button", { name: "Désélectionner Ariane" })).toHaveAttribute("aria-pressed", "true");
     rerender(<OnboardingPage candidates={candidates.map((hero) => ({ ...hero }))} pendingCityName="Valbois" canMutate onRequestCandidates={vi.fn()} onConfirmFounders={onConfirmFounders} />);

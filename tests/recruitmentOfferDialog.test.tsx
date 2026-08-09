@@ -30,8 +30,9 @@ describe("RecruitmentOfferDialog", () => {
   it("renders the projected offer and delegates local and canonical actions", () => {
     const props = renderDialog();
     expect(screen.getByRole("dialog", { name: "Nouveau Pacte de Recrutement" })).toBeInTheDocument();
-    expect(screen.getByText("FOR (9)")).toBeInTheDocument();
+    expect(screen.getByText("▲ FOR (9)")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /SCELLER.*400/ })).toBeEnabled();
+    expect(screen.getByRole("button", { name: /SCELLER.*400/ })).toHaveAttribute("data-state", "ready");
 
     fireEvent.change(screen.getByLabelText("Prénom de l'aventurier"), { target: { value: "Brune" } });
     fireEvent.click(screen.getByRole("button", { name: /SCELLER/ }));

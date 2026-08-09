@@ -6,6 +6,15 @@ import { makeHero } from "./fixtures/game";
 afterEach(cleanup);
 
 describe("StoragePanel modifier stacks", () => {
+  it("exposes shared panel and control semantics", () => {
+    render(<StoragePanel storedItems={[{ instanceId: "shared-control", itemId: "starter_sword", rarity: "common" }]} />);
+    for (const testId of ["storage-summary", "storage-toolbar", "item-inventory-panel", "storage-equipment-decision"]) {
+      expect(screen.getByTestId(testId)).toHaveAttribute("aria-labelledby");
+    }
+    expect(screen.getByRole("button", { name: "Réinitialiser" })).toHaveAttribute("data-state", "disabled");
+    expect(within(screen.getByTestId("storage-item-shared-control")).getByRole("button", { name: "Équiper" })).toHaveAttribute("data-state", "ready");
+  });
+
   it("displays the guaranteed dual-wield profile from the catalog", () => {
     render(<StoragePanel
       storedItems={[{ instanceId: "dual-profile", itemId: "basic_gauntlets", rarity: "common" }]}
@@ -159,6 +168,9 @@ describe("StoragePanel modifier stacks", () => {
     fireEvent.click(within(screen.getByTestId("storage-item-item-readonly")).getByRole("button", { name: /Épée de départ/ }));
     const decision = screen.getByTestId("storage-equipment-decision");
     expect(within(decision).getByText("Observatrice")).toBeInTheDocument();
+    for (const label of ["Héros cible", "Équipement actuel", "Équipement sélectionné", "Gains et pertes", "Action"]) {
+      expect(within(decision).getByText(label)).toBeInTheDocument();
+    }
     expect(within(decision).getByRole("button", { name: "Équiper" })).toBeDisabled();
     expect(onEquipItem).not.toHaveBeenCalled();
   });

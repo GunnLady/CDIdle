@@ -42,6 +42,18 @@ for (const viewport of viewports) {
 
     await page.getByTestId("storage-item-lute").getByRole("button", { name: /Luth/ }).click();
     await expect(decision).toContainText("Luth");
+    const itemCard = page.getByTestId("storage-item-lute");
+    const actionsOverflow = () => itemCard.evaluate((card) => {
+      const bounds = card.getBoundingClientRect();
+      return [...card.querySelectorAll("button")].some((button) => {
+        const box = button.getBoundingClientRect();
+        return box.left < bounds.left - 1 || box.right > bounds.right + 1;
+      });
+    });
+    expect(await actionsOverflow()).toBe(false);
+    await itemCard.getByRole("button", { name: "Recycler" }).click();
+    expect(await actionsOverflow()).toBe(false);
+    await itemCard.getByRole("button", { name: "Annuler" }).click();
     await expect(page.getByTestId("mutation-count")).toHaveText("0");
   });
 }

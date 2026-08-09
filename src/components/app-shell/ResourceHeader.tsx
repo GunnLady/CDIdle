@@ -20,7 +20,7 @@ function ResourceValue({ label, icon, value, rate, color }: { label: string; ico
 }
 
 export default function ResourceHeader({ cityName, authenticated, resources, rates, accountActive, onOpenAccount }: ResourceHeaderProps) {
-  return <header className="relative bg-[#1d120a] border-b-[3px] border-[#5a3a1a] shadow-[0_4px_12px_rgba(0,0,0,0.9)] shrink-0 sticky top-0 z-40 select-none overflow-hidden py-3 px-4">
+  return <header className="relative z-40 shrink-0 select-none overflow-hidden border-b-[3px] border-[#5a3a1a] bg-[#1d120a] px-4 py-3 shadow-[0_4px_12px_rgba(0,0,0,0.9)]">
     <div className="absolute inset-x-0 top-0 h-[2px] bg-[#3a2211] opacity-60" /><div className="absolute inset-x-0 bottom-0 h-[2px] bg-[#110904]" />
     <div data-testid="resource-header-content" className="max-w-[1440px] mx-auto grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 lg:grid-cols-[auto_minmax(0,1fr)_auto] animate-fade-in motion-reduce:animate-none">
       <div className="col-start-1 row-start-1 flex items-center gap-3"><CrestBadge /><h1 className="text-xl sm:text-2xl font-serif font-bold tracking-wide text-[#caa050] drop-shadow-[0_2px_3px_rgba(0,0,0,0.9)]">{cityName || "Colonie"}</h1></div>

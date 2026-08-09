@@ -2,6 +2,7 @@ import { act, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { useDungeonAutomation } from "../src/hooks/useDungeonAutomation";
 import type { GameCommand } from "../src/domain/commands";
+import type { CanonicalActiveDungeonEncounter } from "../shared/contracts/authoritative";
 
 describe("dungeon automation hook", () => {
   afterEach(() => vi.useRealTimers());
@@ -86,11 +87,17 @@ describe("dungeon automation hook", () => {
   });
 
   it("automatically resolves an encounter already present", async () => {
-    const dispatchCommand = vi.fn(async () => true);
+    let currentEncounter: CanonicalActiveDungeonEncounter | null = {
+      encounterId: "encounter-1",
+    } as CanonicalActiveDungeonEncounter;
+    const dispatchCommand = vi.fn(async () => {
+      currentEncounter = null;
+      return true;
+    });
     renderHook(() => useDungeonAutomation({
       activeFloor: 2,
       autoExplore: false,
-      currentEncounter: { encounterId: "encounter-1" } as never,
+      currentEncounter,
       enabled: true,
       leaderRef: { current: true },
       dispatchCommand,

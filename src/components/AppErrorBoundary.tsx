@@ -1,5 +1,8 @@
 import { Component, type ErrorInfo, type ReactNode } from "react";
 import { reportUnexpectedError } from "../lib/errorReporting";
+import Alert from "../ui/components/Alert";
+import EntryScreen from "../ui/patterns/EntryScreen";
+import Button from "../ui/primitives/Button";
 
 type Props = {
   children: ReactNode;
@@ -39,13 +42,10 @@ export default class AppErrorBoundary extends Component<Props, State> {
   public render(): ReactNode {
     if (!this.state.hasError) return this.children;
     return (
-      <main role="alert" className="min-h-screen bg-[#060403] text-[#e3dbc8] flex items-center justify-center p-6 text-center">
-        <section className="max-w-md space-y-4">
-          <h1 className="text-xl font-serif font-bold">La partie doit être rechargée</h1>
-          <p className="text-sm text-[#c5ad94]">Une erreur d’affichage est survenue. Vos sauvegardes serveur restent inchangées.</p>
-          <button type="button" onClick={() => window.location.reload()} className="rounded-lg border border-[#caa050] px-4 py-2 text-sm">Recharger</button>
-        </section>
-      </main>
+      <EntryScreen>
+        <Alert role="alert" variant="error" title="La partie doit être rechargée"><p>Une erreur d’affichage est survenue. Vos sauvegardes serveur restent inchangées.</p></Alert>
+        <Button type="button" variant="primary" block onClick={() => window.location.reload()} className="mt-4">Recharger</Button>
+      </EntryScreen>
     );
   }
 }

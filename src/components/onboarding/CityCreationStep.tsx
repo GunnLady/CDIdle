@@ -3,7 +3,9 @@ import { Castle, ChevronRight, Sparkles, Sword } from "lucide-react";
 import { suggestCityName } from "../../domain/onboardingPresentation";
 import EntryScreenFrame from "./EntryScreenFrame";
 import OnboardingAccessNotice from "./OnboardingAccessNotice";
+import Button from "../../ui/primitives/Button";
 import IconButton from "../../ui/primitives/IconButton";
+import TextField from "../../ui/primitives/TextField";
 
 export default function CityCreationStep(props: {
   initialName: string;
@@ -52,16 +54,15 @@ export default function CityCreationStep(props: {
     <OnboardingAccessNotice error={error} message={!props.canMutate ? props.blockReason : undefined} controlTransferPending={props.controlTransferPending} onRequestControl={props.onRequestControl} />
     <form onSubmit={submit} className="space-y-5">
       <div>
-        <label htmlFor="onboarding-city-name" className="mb-2 block font-serif text-[10px] font-bold uppercase tracking-widest text-[#a89078]">Nom de la Cité ralliée</label>
-        <div className="flex gap-2">
-          <div className="relative flex-1"><Sword className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8c5a2b]" /><input id="onboarding-city-name" type="text" required maxLength={25} value={cityName} onChange={(event) => setCityName(event.target.value)} className="w-full rounded-xl border-2 border-[#45301f] bg-[#0f0a06] py-3 pl-11 pr-4 text-sm text-[#fbf7f0] outline-none focus:border-[#d4af37]" placeholder="Ex. Val-Ombré" /></div>
+        <div className="flex items-end gap-2">
+          <TextField id="onboarding-city-name" label="Nom de la Cité ralliée" type="text" required maxLength={25} value={cityName} onChange={(event) => setCityName(event.target.value)} wrapperClassName="flex-1" leading={<Sword className="h-4 w-4" />} placeholder="Ex. Val-Ombré" />
           <IconButton type="button" label="Générer un nom de cité" onClick={() => { setCityName(suggestCityName()); setError(null); }} className="shrink-0"><Sparkles className="h-4 w-4" /></IconButton>
         </div>
-        <p className="ml-1 mt-1.5 text-[10px] text-[#8c5a2b]">La cité commencera avec une Cabane de niveau 1 et des provisions de survie.</p>
+        <p className="ml-1 mt-1.5 text-xs text-ui-text-muted">La cité commencera avec une Cabane de niveau 1 et des provisions de survie.</p>
       </div>
-      <button type="submit" disabled={!props.canMutate || pending} className="flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border-2 border-[#d4af37] bg-gradient-to-r from-[#8c5a2b] to-[#b3844a] px-4 py-3 text-sm font-bold text-[#fbf7f0] disabled:cursor-not-allowed disabled:opacity-50">
+      <Button type="submit" variant="primary" block busy={pending} disabled={!props.canMutate}>
         {pending ? "Préparation des fondateurs…" : <><span>Fonder la Cité</span><ChevronRight className="h-4 w-4" /></>}
-      </button>
+      </Button>
     </form>
   </EntryScreenFrame>;
 }

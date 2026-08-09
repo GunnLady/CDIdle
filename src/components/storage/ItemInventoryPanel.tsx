@@ -1,6 +1,8 @@
 import { useState } from "react";
 import type { StorageInventoryItemView } from "../../domain/storagePresentation";
-import StoragePanelFrame from "./StoragePanelFrame";
+import EmptySlot from "../../ui/components/EmptySlot";
+import Panel from "../../ui/components/Panel";
+import Button from "../../ui/primitives/Button";
 import Card from "../../ui/components/Card";
 
 export default function ItemInventoryPanel(props: {
@@ -14,8 +16,8 @@ export default function ItemInventoryPanel(props: {
   onResetFilters: () => void;
 }) {
   const [pendingRecycleId, setPendingRecycleId] = useState<string | null>(null);
-  return <StoragePanelFrame title="Inventaire" subtitle="Sélectionnez un objet pour préparer son équipement" testId="item-inventory-panel" className="xl:flex xl:min-h-0 xl:flex-1 xl:flex-col" contentClassName="xl:min-h-0 xl:flex-1">
-    {props.items.length === 0 ? <div className="rounded-lg border border-dashed border-[#4a321f] p-8 text-center">{props.totalItemCount === 0 ? <p className="text-xs text-[#8f7a67]">Votre coffre est vide.</p> : <><p className="text-xs text-[#8f7a67]">Aucun objet ne correspond aux filtres.</p><button type="button" onClick={props.onResetFilters} className="mt-3 min-h-11 text-xs font-bold text-[#caa050]">Réinitialiser les filtres</button></>}</div> : <div className="grid gap-3 md:grid-cols-2 xl:max-h-full xl:overflow-y-auto xl:pr-1 2xl:grid-cols-3">
+  return <Panel title="Inventaire" subtitle="Sélectionnez un objet pour préparer son équipement" testId="item-inventory-panel" className="xl:flex xl:min-h-0 xl:flex-1 xl:flex-col" contentClassName="xl:min-h-0 xl:flex-1">
+    {props.items.length === 0 ? <EmptySlot className="min-h-32 text-center">{props.totalItemCount === 0 ? "Votre coffre est vide." : <div className="flex flex-col items-center gap-3"><p>Aucun objet ne correspond aux filtres.</p><Button type="button" size="sm" onClick={props.onResetFilters}>Réinitialiser les filtres</Button></div>}</EmptySlot> : <div className="grid gap-3 md:grid-cols-2 xl:max-h-full xl:overflow-y-auto xl:pr-1 2xl:grid-cols-3">
       {props.items.map(({ instanceId, itemTypeLabel, item }) => {
         const selected = props.selectedItemInstanceId === instanceId;
         const pendingRecycle = pendingRecycleId === instanceId;
@@ -25,12 +27,12 @@ export default function ItemInventoryPanel(props: {
             {item.facts.length > 0 && <span className="mt-2 flex flex-wrap gap-x-2 gap-y-1 text-[9px] text-[#9f8872]">{item.facts.map((fact) => <span key={fact}>{fact}</span>)}</span>}
             {item.modifiers.length > 0 && <span className="mt-2 flex flex-wrap gap-1">{item.modifiers.map((modifier) => <span key={modifier.id} className="rounded border border-[#63451f] px-1.5 py-0.5 text-[9px] text-amber-400">{modifier.label}</span>)}</span>}
           </button>
-          <div className="mt-3 flex gap-2 border-t border-[#3e2b1f] pt-2">
-            <button type="button" onClick={() => props.onSelect(instanceId)} className="min-h-11 flex-1 rounded border border-[#6e4b2b] text-[10px] font-bold text-[#caa050]">{selected ? "Sélectionné" : "Équiper"}</button>
-            {props.canRecycle && props.onRecycle && (pendingRecycle ? <><button type="button" disabled={!props.canMutate} onClick={() => { props.onRecycle?.(instanceId); setPendingRecycleId(null); }} className="min-h-11 rounded border border-red-700 px-2 text-[9px] font-bold text-red-300 disabled:opacity-35">Confirmer</button><button type="button" onClick={() => setPendingRecycleId(null)} className="min-h-11 rounded px-2 text-[9px] text-[#a89078]">Annuler</button></> : <button type="button" disabled={!props.canMutate} onClick={() => setPendingRecycleId(instanceId)} className="min-h-11 rounded border border-red-900/60 px-2 text-[9px] text-red-400 disabled:opacity-35">Recycler</button>)}
+          <div className="mt-3 grid grid-cols-2 gap-2 border-t border-[#3e2b1f] pt-2">
+            <Button type="button" size="sm" variant={selected ? "secondary" : "primary"} className={`min-w-0 whitespace-normal px-2 text-xs ${pendingRecycle ? "col-span-2" : ""}`} onClick={() => props.onSelect(instanceId)}>{selected ? "Sélectionné" : "Équiper"}</Button>
+            {props.canRecycle && props.onRecycle && (pendingRecycle ? <><Button type="button" size="sm" variant="danger" disabled={!props.canMutate} className="min-w-0 whitespace-normal px-2 text-xs" onClick={() => { props.onRecycle?.(instanceId); setPendingRecycleId(null); }}>Confirmer</Button><Button type="button" size="sm" variant="ghost" className="min-w-0 whitespace-normal px-2 text-xs" onClick={() => setPendingRecycleId(null)}>Annuler</Button></> : <Button type="button" size="sm" variant="danger" disabled={!props.canMutate} className="min-w-0 whitespace-normal px-2 text-xs" onClick={() => setPendingRecycleId(instanceId)}>Recycler</Button>)}
           </div>
         </Card>;
       })}
     </div>}
-  </StoragePanelFrame>;
+  </Panel>;
 }

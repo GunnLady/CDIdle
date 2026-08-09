@@ -53,6 +53,11 @@ describe("DungeonPanel authoritative structure", () => {
     expect(screen.getByTestId("dungeon-current-encounter")).toBeInTheDocument();
     expect(screen.getByTestId("dungeon-party-panel")).toBeInTheDocument();
     expect(screen.getByTestId("dungeon-history-panel")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Exploration auto" })).toHaveAttribute("data-state", "disabled");
+    const retreatButton = screen.getByRole("button", { name: "Repli au campement" });
+    expect(retreatButton).toHaveAttribute("data-state", "ready");
+    expect(retreatButton.parentElement).toHaveClass("grid-cols-1", "sm:grid-cols-3");
+    expect(screen.getByRole("button", { name: "Réinitialiser l’étage" })).toHaveClass("w-full", "whitespace-nowrap");
   });
 
   it("lets the player fold and unfold the dungeon history", () => {
@@ -73,6 +78,7 @@ describe("DungeonPanel authoritative structure", () => {
     expect(screen.getByText("Étage 2 · Salle 8/10")).toBeInTheDocument();
     expect(screen.queryByText(/Résoudre/i)).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Exploration en cours…" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Exploration en cours…" })).toHaveAttribute("data-state", "loading");
 
     rerender(<DungeonPanel {...props} encounterPlayback={{ encounterId: encounter.encounterId, visibleCount: 2, complete: true }} isExploring={false} />);
     expect(within(screen.getByTestId("dungeon-current-encounter")).getAllByText("Tour 1 — Ragnor inflige 6 dégâts.")).toHaveLength(2);
@@ -137,12 +143,23 @@ describe("DungeonPanel authoritative structure", () => {
     render(<DungeonPanel {...props} heroes={[reserve]} canMutate={false} battleLogs={[{ id: "dungeon-note", timestamp: "10:00", message: "Note donjon", type: "info", category: "dungeon" }, { id: "colony-note", timestamp: "10:01", message: "Note colonie", type: "info", category: "colony" }]} />);
     const party = within(screen.getByTestId("dungeon-party-panel"));
     fireEvent.click(party.getByRole("button", { name: /^Réserve/ }));
-    expect(party.getByText("Fiche & équipement")).toBeInTheDocument();
+    const sheetElement = screen.getByTestId("dungeon-hero-sheet");
+    const sheet = within(sheetElement);
+    expect(sheet.getByText(/Réserve · Lv 1/)).toBeInTheDocument();
+    expect(sheet.queryByText(/Humain · Novice/)).not.toBeInTheDocument();
+    expect(sheetElement.querySelector('[id^="hero-portrait-"]')).not.toBeNull();
+    expect(sheet.getByText("Défense magique")).toBeInTheDocument();
+    fireEvent.click(party.getByRole("button", { name: "Compétences" }));
+    expect(party.getByTestId("dungeon-hero-skills")).toBeInTheDocument();
+    fireEvent.click(party.getByRole("button", { name: "Équipement" }));
+    expect(party.getByTestId("dungeon-hero-equipment")).toBeInTheDocument();
     expect(party.getByRole("button", { name: "Déployer Réserve" })).toBeDisabled();
+    expect(party.getByLabelText("Pourquoi Réserve ne peut pas être déployé")).toHaveAccessibleDescription("Lecture seule");
     expect(screen.getByText("Note donjon")).toBeInTheDocument();
     expect(screen.queryByText("Note colonie")).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Colonie" })).not.toBeInTheDocument();
+    expect(screen.queryByText("Donjon", { selector: "span" })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Exploration en cours…" })).toBeDisabled();
+    expect(screen.getByLabelText("Pourquoi l’exploration est indisponible")).toHaveAccessibleDescription("Lecture seule");
   });
 
   it("dispatches party deployment from the dungeon page", () => {

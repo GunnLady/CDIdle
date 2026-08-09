@@ -1,5 +1,8 @@
 # UI patterns
 
-This directory is reserved for product-specific compositions of primitives and
-components. Version 0.1 intentionally defines no pattern until at least one
-real CDIdle flow needs it; business rules stay in the shared domain.
+This directory contains product-specific compositions built from UI primitives
+and components. It currently exposes navigation tabs, activity logs, room
+progress, entry screens and deferred floating prompts.
+
+Patterns accept presentation-ready values and callbacks. Business rules,
+permissions and authoritative calculations stay in the shared domain.

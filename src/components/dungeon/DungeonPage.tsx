@@ -5,6 +5,7 @@ import type {
   CanonicalDungeonEncounterRecord,
 } from "../../../shared/contracts/authoritative";
 import { createHeroEquipmentView } from "../../domain/heroEquipmentPresentation";
+import { createHeroSkillsView } from "../../domain/heroSkillPresentation";
 import {
   createCurrentEncounterView,
   createDungeonHistoryView,
@@ -14,7 +15,7 @@ import {
 import { createHeroRosterView, createSelectedHeroView, resolveSelectedHeroId } from "../../domain/heroPresentation";
 import CurrentEncounterPanel from "./CurrentEncounterPanel";
 import DungeonHistoryPanel from "./DungeonHistoryPanel";
-import DungeonPartyPanel from "./DungeonPartyPanel";
+import DungeonPartyWorkspace from "./DungeonPartyWorkspace";
 import DungeonProgressControls from "./DungeonProgressControls";
 
 export interface DungeonPageProps {
@@ -51,6 +52,7 @@ export default function DungeonPage(props: DungeonPageProps) {
   const history = useMemo(() => createDungeonHistoryView(props.encounterHistory, props.battleLogs, props.heroes, props.encounterPlayback), [props.encounterHistory, props.battleLogs, props.heroes, props.encounterPlayback]);
   const selectedHeroView = useMemo(() => createSelectedHeroView(selectedHero), [selectedHero]);
   const equipment = useMemo(() => createHeroEquipmentView(selectedHero, []), [selectedHero]);
+  const skills = useMemo(() => createHeroSkillsView(selectedHero), [selectedHero]);
   const activeHeroCount = party.party.filter(Boolean).length;
 
   useEffect(() => {
@@ -79,9 +81,9 @@ export default function DungeonPage(props: DungeonPageProps) {
   return <section aria-labelledby="dungeon-page-title" className="space-y-4 animate-fade-in motion-reduce:animate-none">
     <h2 id="dungeon-page-title" className="sr-only">Donjon</h2>
     <DungeonProgressControls view={progress} autoExplore={props.autoExplore} canMutate={props.canMutate} activeHeroCount={activeHeroCount} resetConfirming={resetConfirming} onChangeFloor={props.onChangeFloor} onToggleAutoExplore={props.onToggleAutoExplore} onRetreatParty={props.onRetreatParty} onResetLevel={handleReset} />
-    <div className="grid grid-cols-1 items-start gap-4 xl:h-[55em] xl:grid-cols-[minmax(28rem,0.85fr)_minmax(36rem,1.15fr)] xl:items-stretch">
+    <div className="grid grid-cols-1 items-start gap-4">
       <CurrentEncounterPanel view={encounter} canMutate={props.canMutate} activeHeroCount={activeHeroCount} isExploring={props.isExploring} onExplore={props.onExplore} />
-      <DungeonPartyPanel party={party.party} reserves={party.reserves} selectedHeroId={resolvedSelectedId} selectedHero={selectedHeroView} equipment={equipment} canMutate={props.canMutate} onSelectHero={setSelectedHeroId} onToggleHeroActive={props.onToggleHeroActive} />
+      <DungeonPartyWorkspace party={party.party} reserves={party.reserves} selectedHeroId={resolvedSelectedId} selectedHero={selectedHeroView} equipment={equipment} skills={skills} canMutate={props.canMutate} onSelectHero={setSelectedHeroId} onToggleHeroActive={props.onToggleHeroActive} />
     </div>
     <DungeonHistoryPanel view={history} onClearBattleLogs={props.onClearBattleLogs} />
   </section>;

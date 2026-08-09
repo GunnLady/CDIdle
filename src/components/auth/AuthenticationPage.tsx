@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { Cloud, ShieldAlert } from "lucide-react";
 import EntryScreenFrame from "../onboarding/EntryScreenFrame";
+import Alert from "../../ui/components/Alert";
+import Button from "../../ui/primitives/Button";
 
 export default function AuthenticationPage(props: {
   sessionLoading: boolean;
@@ -31,10 +33,10 @@ export default function AuthenticationPage(props: {
       <h1 className="font-serif text-xl font-bold uppercase tracking-widest text-[#d4af37]">Idle City Donjon</h1>
       <p className="mt-1 text-[10px] font-bold uppercase tracking-widest text-[#a89078]">Alpha privée — accès Google autorisé</p>
     </div>
-    {error && <div role="alert" className="mt-5 flex items-center gap-2 rounded-xl border border-red-900/50 bg-rose-950/40 p-3 text-xs text-red-300"><ShieldAlert className="h-4 w-4 shrink-0" />{error}</div>}
-    <button type="button" onClick={() => { void authenticate(); }} disabled={loading} className="mt-6 min-h-11 w-full rounded-xl border border-[#5c402b] bg-[#1e140d] px-4 text-xs font-bold text-[#dfdbc7] transition hover:bg-[#2e2015] disabled:cursor-wait disabled:opacity-50">
+    {error && <Alert variant="error" live="assertive" className="mt-5 flex items-center gap-2"><ShieldAlert className="h-4 w-4 shrink-0" />{error}</Alert>}
+    <Button type="button" block busy={loading} onClick={() => { void authenticate(); }} className="mt-6">
       {loading ? "Vérification de la session…" : "S’identifier avec Google"}
-    </button>
+    </Button>
     <p className="mt-5 border-t border-[#5c402b]/25 pt-4 text-center text-[11px] text-[#a89078]">L’accès à l’alpha est réservé aux comptes Google autorisés.</p>
   </EntryScreenFrame>;
 }

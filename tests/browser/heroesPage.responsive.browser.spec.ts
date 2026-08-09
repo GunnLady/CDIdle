@@ -30,6 +30,11 @@ for (const viewport of viewports) {
       expect(boxes[2]!.x).toBeLessThan(boxes[3]!.x);
       expect(boxes[0]!.y).toBeLessThan(boxes[1]!.y);
       expect(boxes[3]!.y).toBeLessThan(boxes[4]!.y);
+      const filledPartyCard = await expedition.getByRole("button", { name: /Ariane, PV/ }).boundingBox();
+      const emptyPartyCard = await expedition.getByText("Place libre").first().boundingBox();
+      expect(Math.abs(filledPartyCard!.height - emptyPartyCard!.height)).toBeLessThanOrEqual(1);
+      expect(await selected.locator(":scope > div").evaluate((content) => content.scrollHeight - content.clientHeight)).toBeLessThanOrEqual(1);
+      await expect(skills.locator("summary")).toHaveCount(2);
     } else {
       expect(boxes[0]!.y).toBeLessThan(boxes[1]!.y);
       expect(boxes[1]!.y).toBeLessThan(boxes[2]!.y);

@@ -38,7 +38,7 @@ describe("heroPresentation", () => {
   it("projects selected hero details outside the React panel", () => {
     const hero = makeHero({ name: "Ariane", classType: "Guerrier", xp: 25, xpNeeded: 100 });
     const view = createSelectedHeroView(hero);
-    expect(view).toMatchObject({ name: "Ariane", identityLabel: "Humain · Guerrier · Niveau 1", xpPercent: 25 });
+    expect(view).toMatchObject({ name: "Ariane", level: 1, identityLabel: "Humain · Guerrier · Niveau 1", xpPercent: 25 });
     expect(view?.attributes).toHaveLength(7);
     expect(view?.combatStats.find((stat) => stat.label === "DPS estimé")?.value).toBe("6.60");
   });

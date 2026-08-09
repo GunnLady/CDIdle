@@ -1,4 +1,6 @@
 import { KeyRound } from "lucide-react";
+import Button from "../../ui/primitives/Button";
+import TextField from "../../ui/primitives/TextField";
 
 interface DeveloperCheatPanelProps {
   value: string;
@@ -27,7 +29,7 @@ export default function DeveloperCheatPanel(props: DeveloperCheatPanelProps) {
         </div>
       </div>
       <div className="flex items-center gap-2">
-        <input
+        <TextField
           type="text"
           aria-label="Code développeur"
           value={props.value}
@@ -35,16 +37,19 @@ export default function DeveloperCheatPanel(props: DeveloperCheatPanelProps) {
           onChange={(event) => props.onChange(event.target.value)}
           onKeyDown={(event) => { if (event.key === "Enter") props.onApply(); }}
           placeholder="Exemple : G 10000"
-          className="min-h-11 min-w-0 flex-1 rounded-lg border border-[#523520] bg-[#100805] px-3 text-xs font-mono text-[#fbf7f0] placeholder-[#5a483a] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#caa050] disabled:cursor-not-allowed disabled:opacity-50"
+          wrapperClassName="min-w-0 flex-1"
+          className="font-mono text-xs"
         />
-        <button
+        <Button
           type="button"
+          size="sm"
+          variant="primary"
           disabled={!props.canMutate}
           onClick={props.onApply}
-          className="min-h-11 shrink-0 rounded-lg border border-[#ebd7a0]/45 bg-gradient-to-b from-[#caa050] to-[#ab813a] px-4 text-xs font-bold text-[#110905] shadow-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#caa050] disabled:cursor-not-allowed disabled:opacity-50"
+          className="shrink-0"
         >
           Invoquer
-        </button>
+        </Button>
       </div>
     </div>
   </details>;

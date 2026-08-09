@@ -7,9 +7,9 @@ import type { HeroPortraitView } from "./heroPortrait";
 export interface HeroRosterEntryView {
   id: string;
   name: string;
+  level: number;
   race: string;
   className: string;
-  level: number;
   isActive: boolean;
   statusLabel: string;
   currentHp: number;
@@ -33,6 +33,7 @@ export interface HeroesPageView {
 export interface SelectedHeroView {
   id: string;
   name: string;
+  level: number;
   portrait: HeroPortraitView;
   identityLabel: string;
   statusLabel: string;
@@ -119,6 +120,7 @@ export function createSelectedHeroView(hero: Hero | null): SelectedHeroView | nu
   return {
     id: hero.id,
     name: hero.name,
+    level: hero.level,
     portrait: {
       id: hero.id,
       name: hero.name,

@@ -36,7 +36,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
       aria-busy={busy || undefined}
       data-state={busy ? "loading" : unavailable ? "disabled" : "ready"}
       className={classNames(
-        "cursor-pointer rounded-ui-control border font-serif font-bold uppercase tracking-wider transition-[color,background-color,border-color,transform] duration-[var(--ui-motion-fast)] focus-visible:outline-ui-focus focus-visible:[outline-width:var(--ui-focus-width)] focus-visible:[outline-offset:var(--ui-focus-offset)] disabled:cursor-not-allowed disabled:border-ui-border-subtle disabled:bg-ui-panel-strong disabled:text-ui-text-disabled disabled:opacity-70",
+        "inline-flex cursor-pointer items-center justify-center gap-2 rounded-ui-control border text-center font-serif font-bold uppercase tracking-wider transition-[color,background-color,border-color,transform] duration-[var(--ui-motion-fast)] focus-visible:outline-ui-focus focus-visible:[outline-width:var(--ui-focus-width)] focus-visible:[outline-offset:var(--ui-focus-offset)] disabled:cursor-not-allowed disabled:border-ui-border-subtle disabled:bg-ui-panel-strong disabled:text-ui-text-disabled disabled:opacity-70",
         variantClasses[variant],
         sizeClasses[size],
         block && "w-full",

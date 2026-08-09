@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import type { ClassType, Hero, PendingClassTransition } from "../types";
+import FloatingPrompt from "../ui/patterns/FloatingPrompt";
 import VocationPrayerDialog from "./VocationPrayerDialog";
 
 type Props = {
@@ -19,13 +20,14 @@ export default function VocationPrayerPrompt({ pending, hero, disabled = false, 
 
   if (deferred) {
     return (
-      <button
+      <FloatingPrompt
         type="button"
         onClick={() => setDeferred(false)}
-        className="fixed bottom-4 left-4 z-[60] rounded-xl border-2 border-amber-500 bg-[#21150d] px-4 py-3 text-sm font-bold text-amber-200 shadow-2xl hover:bg-[#302015]"
+        icon="🙏"
+        className="fixed bottom-4 left-4 z-[var(--ui-layer-floating)]"
       >
-        🙏 Choisir la vocation de {hero?.name ?? "ce héros"}
-      </button>
+        Choisir la vocation de {hero?.name ?? "ce héros"}
+      </FloatingPrompt>
     );
   }
 

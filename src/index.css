@@ -2,6 +2,17 @@
 @import "tailwindcss";
 @import "./ui/foundations/tokens.css";
 
+html,
+body,
+#root {
+  min-height: 100%;
+  background-color: var(--color-ui-canvas);
+}
+
+html {
+  color-scheme: dark;
+}
+
 /* Custom smooth scrollbars to complement the sleek medieval theme */
 ::-webkit-scrollbar {
   width: 7px;

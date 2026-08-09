@@ -8,7 +8,7 @@ size: L
 risk: high
 source: Audit fonctionnel et architectural pré-push de CDI-069 du 2026-08-09
 depends_on: ["CDI-069", "CDI-081"]
-blocks: []
+blocks: ["CDI-090"]
 github_issue: null
 related_docs: ["src/App.tsx", "src/hooks/useCanonicalOperations.ts", "src/hooks/useCanonicalSessionBootstrap.ts", "src/hooks/useAutomationLeadership.ts", "src/lib/authoritativeCommandDispatch.ts", "workboard/data/Done/CDI-069/ticket.md", "workboard/data/Done/CDI-081/ticket.md", "workboard/data/Later/CDI-077/ticket.md", "docs/architecture/cdi-069-interface-architecture.md", "docs/architecture/cdi-089-app-use-case-extraction.md"]
 ---

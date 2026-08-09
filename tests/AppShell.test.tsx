@@ -16,9 +16,11 @@ describe("AppShell", () => {
     ><p>Page Cité</p></AppShell>);
 
     expect(screen.getByRole("main")).toHaveTextContent("Page Cité");
-    expect(screen.getByTestId("app-shell")).toHaveClass("h-screen", "overflow-hidden");
-    expect(screen.getByRole("main")).toHaveClass("min-h-0", "overflow-y-auto");
-    expect(screen.getByTestId("persistent-page-navigation")).toHaveClass("sticky", "top-0", "xl:flex");
+    expect(screen.getByTestId("app-shell")).toHaveClass("min-h-screen", "xl:h-screen", "xl:overflow-hidden");
+    expect(screen.getByTestId("app-shell")).not.toHaveClass("h-screen", "overflow-hidden");
+    expect(screen.getByRole("main")).toHaveClass("min-h-0", "overflow-visible", "xl:overflow-y-auto");
+    expect(screen.getByTestId("persistent-page-navigation")).toHaveClass("xl:sticky", "xl:top-0", "xl:flex");
+    expect(screen.getByTestId("persistent-page-navigation")).not.toHaveClass("sticky", "top-0");
     expect(screen.getByTestId("primary-navigation-slot")).toContainElement(screen.getByText("Destinations"));
     expect(screen.queryByTestId("dungeon-progress-slot")).not.toBeInTheDocument();
     expect(screen.queryByRole("contentinfo")).not.toBeInTheDocument();
@@ -57,6 +59,7 @@ describe("AppShell", () => {
     />);
 
     expect(screen.getByRole("heading", { name: "Valbois" })).toBeInTheDocument();
+    expect(screen.getByRole("banner")).not.toHaveClass("sticky", "top-0");
     expect(screen.getByText(/1.*250/)).toBeInTheDocument();
     expect(screen.getByText("+4/s")).toBeInTheDocument();
     expect(screen.getByLabelText(/Or :/)).toHaveClass("select-text");
