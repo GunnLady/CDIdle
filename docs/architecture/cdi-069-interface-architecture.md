@@ -1,7 +1,8 @@
 # CDI-069 — Architecture de l'interface
 
-Statut : **architecture implémentée ; validation visuelle utilisateur en attente
-avant l'audit fonctionnel pré-push**.
+Statut : **architecture implémentée et validée visuellement par l'utilisateur ;
+audit fonctionnel pré-push terminé sans écart restant**. Le ticket demeure en
+`Doing` sur décision explicite de l'utilisateur.
 
 ## 1. Décision
 

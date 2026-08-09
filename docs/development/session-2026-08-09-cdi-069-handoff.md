@@ -7,9 +7,10 @@ restructuration fonctionnelle des écrans Cité, Aventuriers, Donjon, Coffre,
 Compte et du parcours d'entrée est implémentée. Ne pas recommencer cette
 architecture : reprendre le dépôt et le ticket tels quels.
 
-Le prochain contrôle attendu est visuel et appartient à l'utilisateur. Après
-validation visuelle, faire l'audit fonctionnel pré-push, puis laisser
-l'utilisateur exécuter les commandes Git.
+La validation visuelle utilisateur et l'audit fonctionnel pré-push sont
+terminés. L'implémentation a été publiée sur `main` dans le commit `be04493`.
+Le ticket demeure volontairement en `Doing` et ne doit pas être déplacé en
+`Done` sans nouvelle demande explicite de l'utilisateur.
 
 ## Réalisé
 
@@ -26,6 +27,9 @@ l'utilisateur exécuter les commandes Git.
 - modale de recrutement compatible clavier, lecture seule et viewport court ;
 - coût, capacité et priorité des refus de recrutement partagés entre le front
   et les handlers autoritaires, y compris dès `hero.recruit_offer` ;
+- projection de la bannière Donjon extraite dans le modèle de présentation
+  partagé et exception de récupération du Compte documentée ;
+- dette d'orchestration restante de `App.tsx` tracée dans `CDI-089` ;
 - documentation d'architecture consolidée dans
   `docs/architecture/cdi-069-interface-architecture.md`.
 
@@ -38,9 +42,9 @@ Vérifiées par Codex :
 
 - TypeScript : conforme ;
 - ESLint : conforme ;
-- Workboard : 88 tickets, 0 erreur ;
+- Workboard : 89 tickets, 0 erreur ;
 - `git diff --check` : conforme ;
-- Vitest : 96 fichiers, 717 tests réussis.
+- Vitest : 96 fichiers, 718 tests réussis.
 
 Rapportées par l'utilisateur le 2026-08-09 :
 
@@ -55,14 +59,16 @@ tests. Ne pas la présenter comme une preuve récente sans nouveau résultat.
 ## Reprise recommandée
 
 1. Lire `AGENTS.md`, le ticket CDI-069 et l'architecture associée.
-2. Inspecter `git status` : le sous-lot complet est encore dans le worktree ;
-   préserver toutes ces modifications.
-3. Laisser l'utilisateur effectuer les contrôles visuels.
-4. Corriger seulement les écarts réellement observés.
-5. Faire l'audit fonctionnel pré-push final.
-6. Donner les commandes Git exactes ; ne pas commit/push à la place de
-   l'utilisateur.
-7. Après push, contrôler uniquement Git/CI et les déploiements concernés.
+2. Conserver CDI-069 en `Doing` tant que l'utilisateur ne demande pas son
+   déplacement.
+3. Considérer `be04493` comme le commit fonctionnel publié et ne pas refaire
+   l'audit pré-push sans modification fonctionnelle ultérieure.
+4. Contrôler uniquement Git, la CI et les déploiements concernés.
+5. Au 2026-08-09 à 11:03 +02:00, le connecteur GitHub confirme le commit mais ne
+   retourne aucun statut ni run pour sa CI déclenchée sur `main` : état CI
+   `inconnu`, sans conclure à un échec.
+6. Le frontend et le backend restent à déployer explicitement ; aucun des deux
+   déploiements n'est impliqué par le seul push.
 
 ## Déploiement à retenir
 
@@ -76,4 +82,3 @@ npm.cmd exec --offline -- supabase functions deploy game-api --project-ref tohuj
 ```
 
 Ne pas affirmer qu'un push déploie automatiquement le front.
-
