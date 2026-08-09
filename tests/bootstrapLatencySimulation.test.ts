@@ -4,7 +4,7 @@ import {
   CACHE_TIME_TO_USABLE_BUDGET_MS,
 } from "../src/domain/bootstrapPolicy";
 import { CanonicalOperationQueue } from "../src/lib/canonicalOperationQueue";
-import { canMutateCanonicalState } from "../src/lib/canonicalMutationAccess";
+import { canMutateCanonicalState, canUseAccountDangerActions } from "../src/lib/canonicalMutationAccess";
 import { initialTownState } from "../supabase/functions/game-api/town-authority";
 
 describe("bootstrap latency simulation", () => {
@@ -44,6 +44,30 @@ describe("bootstrap latency simulation", () => {
       authoritativeReady: true,
       automationLeader: true,
     })).toBe(true);
+  });
+
+  it("keeps destructive account recovery available for an incompatible canonical save", () => {
+    expect(canUseAccountDangerActions({
+      browserOnline: true,
+      transportOnline: false,
+      authoritativeReady: true,
+      automationLeader: false,
+      canonicalStateFailed: true,
+    })).toBe(true);
+    expect(canUseAccountDangerActions({
+      browserOnline: false,
+      transportOnline: false,
+      authoritativeReady: true,
+      automationLeader: false,
+      canonicalStateFailed: true,
+    })).toBe(false);
+    expect(canUseAccountDangerActions({
+      browserOnline: true,
+      transportOnline: true,
+      authoritativeReady: true,
+      automationLeader: false,
+      canonicalStateFailed: false,
+    })).toBe(false);
   });
 
   it("never lets a heartbeat compete with a queued user mutation", async () => {

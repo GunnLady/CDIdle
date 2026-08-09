@@ -1,4 +1,4 @@
-import { canActivateHero, recruitmentEligibility } from "../../shared/domain/hero";
+import { ACTIVE_HERO_LIMIT, canActivateHero, recruitmentEligibility } from "../../shared/domain/hero";
 import { CANONICAL_HERO_STAT_PRESENTATION, type CanonicalHeroStat } from "../../shared/domain/hero-stats";
 import { CLASS_INFO_LIST, RACE_INFO_LIST } from "../data/gameData";
 import type { Hero, Resources } from "../types";
@@ -62,9 +62,22 @@ const recruitmentReason = (error: "INSUFFICIENT_GOLD" | "GUILD_REQUIRED" | "CAPA
 };
 
 export function createHeroesPageView(heroes: Hero[], resources: Resources, buildings: Record<string, number>): HeroesPageView {
-  const activeCount = heroes.filter((hero) => hero.isActive).length;
   const recruitment = recruitmentEligibility(heroes.length, resources.gold, buildings.guilde ?? 0);
-  const roster = heroes.map((hero): HeroRosterEntryView => {
+  const roster = createHeroRosterView(heroes);
+  const active = roster.filter((hero) => hero.isActive).slice(0, ACTIVE_HERO_LIMIT);
+  return {
+    roster,
+    party: Array.from({ length: ACTIVE_HERO_LIMIT }, (_, index) => active[index] ?? null),
+    capacity: recruitment.capacity,
+    recruitCost: recruitment.cost,
+    canRecruit: recruitment.ok,
+    recruitmentBlockReason: recruitment.ok === false ? recruitmentReason(recruitment.error) : undefined,
+  };
+}
+
+export function createHeroRosterView(heroes: Hero[]): HeroRosterEntryView[] {
+  const activeCount = heroes.filter((hero) => hero.isActive).length;
+  return heroes.map((hero): HeroRosterEntryView => {
     const canDeploy = canActivateHero(hero, activeCount);
     const currentHp = Math.max(0, Math.floor(hero.currentHp));
     const maxHp = Math.max(1, hero.calculatedStats.maxHp);
@@ -86,20 +99,11 @@ export function createHeroesPageView(heroes: Hero[], resources: Resources, build
         ? undefined
         : hero.currentHp <= 0
           ? "Héros blessé"
-          : activeCount >= 4
+          : activeCount >= ACTIVE_HERO_LIMIT
             ? "Groupe complet"
             : undefined,
     };
   });
-  const active = roster.filter((hero) => hero.isActive).slice(0, 4);
-  return {
-    roster,
-    party: Array.from({ length: 4 }, (_, index) => active[index] ?? null),
-    capacity: recruitment.capacity,
-    recruitCost: recruitment.cost,
-    canRecruit: recruitment.ok,
-    recruitmentBlockReason: recruitment.ok === false ? recruitmentReason(recruitment.error) : undefined,
-  };
 }
 
 const statKeys: readonly CanonicalHeroStat[] = ["str", "agi", "end", "int", "wiz", "dex", "luk"];

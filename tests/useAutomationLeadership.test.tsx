@@ -35,6 +35,28 @@ describe("automation leadership hook", () => {
     expect(result.current.isAutomationLeaderRef.current).toBe(false);
   });
 
+  it("restarts leadership acquisition when the authoritative transport recovers", async () => {
+    const onAuthorityAcquired = vi.fn();
+    const base = {
+      userId: "user-1",
+      ready: true,
+      canonicalQueue: new CanonicalOperationQueue(),
+      getBootstrapOperationKey: (userId: string) => `bootstrap:${userId}`,
+      refreshAuthority: vi.fn(async () => undefined),
+      onAuthorityAcquired,
+      onAuthorityFailure: vi.fn(),
+      showNotice: vi.fn(),
+    };
+    const { result, rerender } = renderHook(
+      ({ transportOnline }) => useAutomationLeadership({ ...base, transportOnline }),
+      { initialProps: { transportOnline: false } },
+    );
+
+    expect(result.current.isAutomationLeader).toBe(false);
+    rerender({ transportOnline: true });
+    await waitFor(() => expect(result.current.isAutomationLeader).toBe(true));
+  });
+
   it("refreshes authority before publishing leadership acquired through Web Locks", async () => {
     const request = vi.fn((
       _name: string,

@@ -24,7 +24,7 @@ export interface EquipmentCandidateView {
   levelBlocked: boolean;
   requiredLevel: number;
   displacedItems: string[];
-  statDeltas: Array<{ label: string; value: number }>;
+  statDeltas: Array<{ label: string; value: number; before: number; after: number }>;
 }
 
 export interface EquipmentSlotView {
@@ -41,6 +41,16 @@ export interface HeroEquipmentView {
   heroId: string;
   heroName: string;
   slots: EquipmentSlotView[];
+}
+
+export interface EquipmentCandidateTargetView {
+  key: EquipmentSlot;
+  label: string;
+  icon: string;
+  blocked: boolean;
+  blockReason?: string;
+  item: EquipmentItemView | null;
+  candidate: EquipmentCandidateView | null;
 }
 
 const slots: Array<{ key: EquipmentSlot; label: string; icon: string }> = [
@@ -72,7 +82,7 @@ function modifierViews(modifiers?: Modifier[]): EquipmentModifierView[] {
   }));
 }
 
-function itemView(item: ItemInfo, rarity?: Rarity): EquipmentItemView {
+export function createEquipmentItemView(item: ItemInfo, rarity?: Rarity): EquipmentItemView {
   const facts: string[] = [];
   if (item.requiredLevel !== undefined) facts.push(`Niv. requis ${item.requiredLevel}`);
   if (item.itemType === "weapon" && item.damageRange) facts.push(`Dégâts ${item.damageRange.min}-${item.damageRange.max}`);
@@ -83,7 +93,7 @@ function itemView(item: ItemInfo, rarity?: Rarity): EquipmentItemView {
   return { name: item.name, rarity, description: item.description, facts, modifiers: modifierViews(item.modifiers) };
 }
 
-function resolveStoredItem(instance: StoredItemInstance): ItemInfo | null {
+export function resolveStoredEquipmentItem(instance: StoredItemInstance): ItemInfo | null {
   const base = getItemById(instance.itemId);
   if (!base) return null;
   const scaled = applyItemRarityScaling(base, instance.rarity);
@@ -103,17 +113,53 @@ function displacedItemNames(hero: Hero, slot: EquipmentSlot, candidate: ItemInfo
   return [...new Set(displaced)];
 }
 
-function statDeltas(hero: Hero, storedItems: StoredItemInstance[], instanceId: string) {
+function statDeltas(hero: Hero, instance: StoredItemInstance) {
   const previewHero = { ...hero, equipment: { ...(hero.equipment ?? {}) } };
-  const previewStorage = storedItems.map((instance) => ({ ...instance, modifiers: instance.modifiers?.map((modifier) => ({ ...modifier })) }));
-  const projected = equipItem(previewHero, previewStorage, instanceId);
+  const previewStorage = [{ ...instance, modifiers: instance.modifiers?.map((modifier) => ({ ...modifier })) }];
+  const projected = equipItem(previewHero, previewStorage, instance.instanceId);
   return comparisonKeys.flatMap((key) => {
     const before = hero.calculatedStats[key];
     const after = projected.calculatedStats[key];
     if (typeof before !== "number" || typeof after !== "number") return [];
     const value = Math.round((after - before) * 100) / 100;
-    return value === 0 ? [] : [{ label: statLabels[key], value }];
+    return value === 0 ? [] : [{ label: statLabels[key], value, before, after }];
   });
+}
+
+function createEquipmentCandidateView(
+  hero: Hero,
+  instance: StoredItemInstance,
+  item: ItemInfo,
+): EquipmentCandidateView {
+  return {
+    instanceId: instance.instanceId,
+    item: createEquipmentItemView(item, instance.rarity),
+    levelBlocked: hero.level < (item.requiredLevel ?? 1),
+    requiredLevel: item.requiredLevel ?? 1,
+    displacedItems: displacedItemNames(hero, getItemSlot(item), item),
+    statDeltas: statDeltas(hero, instance),
+  };
+}
+
+export function createEquipmentCandidateTargetView(
+  hero: Hero,
+  instance: StoredItemInstance,
+): EquipmentCandidateTargetView | null {
+  const candidateItem = resolveStoredEquipmentItem(instance);
+  if (!candidateItem) return null;
+  const key = getItemSlot(candidateItem);
+  const definition = slots.find((slot) => slot.key === key);
+  if (!definition) return null;
+  const blocked = key === "offHand" && isMainHandTwoHanded(hero);
+  const equippedRef = hero.equipment?.[key];
+  const equipped = resolveEquippedItem(equippedRef);
+  return {
+    ...definition,
+    blocked,
+    blockReason: blocked ? "Bloquée par l’arme principale" : undefined,
+    item: equipped ? createEquipmentItemView(equipped, equippedRef?.rarity) : null,
+    candidate: blocked ? null : createEquipmentCandidateView(hero, instance, candidateItem),
+  };
 }
 
 export function createHeroEquipmentView(hero: Hero | null, storedItems: StoredItemInstance[]): HeroEquipmentView | null {
@@ -127,22 +173,15 @@ export function createHeroEquipmentView(hero: Hero | null, storedItems: StoredIt
       const equippedRef = hero.equipment?.[slot.key];
       const equipped = resolveEquippedItem(equippedRef);
       const candidates = blocked ? [] : storedItems.flatMap((instance): EquipmentCandidateView[] => {
-        const item = resolveStoredItem(instance);
+        const item = resolveStoredEquipmentItem(instance);
         if (!item || getItemSlot(item) !== slot.key) return [];
-        return [{
-          instanceId: instance.instanceId,
-          item: itemView(item, instance.rarity),
-          levelBlocked: hero.level < (item.requiredLevel ?? 1),
-          requiredLevel: item.requiredLevel ?? 1,
-          displacedItems: displacedItemNames(hero, slot.key, item),
-          statDeltas: statDeltas(hero, storedItems, instance.instanceId),
-        }];
+        return [createEquipmentCandidateView(hero, instance, item)];
       });
       return {
         ...slot,
         blocked,
         blockReason: blocked ? "Bloquée par l’arme principale" : undefined,
-        item: equipped ? itemView(equipped, equippedRef?.rarity) : null,
+        item: equipped ? createEquipmentItemView(equipped, equippedRef?.rarity) : null,
         candidates,
       };
     }),

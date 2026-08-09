@@ -1,9 +1,22 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import DungeonProgressBanner, { shouldShowDungeonProgressBanner } from "../src/components/app-shell/DungeonProgressBanner";
+import { createDungeonProgressBannerView } from "../src/domain/dungeonPresentation";
 import { makeHero } from "./fixtures/game";
 
 afterEach(cleanup);
+
+const createView = (overrides: Partial<Parameters<typeof createDungeonProgressBannerView>[0]> = {}) =>
+  createDungeonProgressBannerView({
+    heroes: [],
+    floor: 1,
+    room: 1,
+    autoExplore: false,
+    encounter: null,
+    isExploring: false,
+    canMutate: true,
+    ...overrides,
+  });
 
 describe("DungeonProgressBanner", () => {
   it("is present on the four supporting pages and absent from the dungeon", () => {
@@ -17,13 +30,7 @@ describe("DungeonProgressBanner", () => {
   it("offers party preparation when no hero is active", () => {
     const onNavigate = vi.fn();
     render(<DungeonProgressBanner
-      heroes={[makeHero({ isActive: false })]}
-      floor={2}
-      room={3}
-      autoExplore={false}
-      encounter={null}
-      isExploring={false}
-      canMutate
+      view={createView({ heroes: [makeHero({ isActive: false })], floor: 2, room: 3 })}
       onNavigate={onNavigate}
       onToggleAutoExplore={vi.fn()}
     />);
@@ -36,13 +43,12 @@ describe("DungeonProgressBanner", () => {
   it("projects canonical party health and exposes an unambiguous pause command", () => {
     const onToggleAutoExplore = vi.fn();
     render(<DungeonProgressBanner
-      heroes={[makeHero({ name: "Ariane", isActive: true, currentHp: 10, currentMana: 5, calculatedStats: { ...makeHero().calculatedStats, maxHp: 20, maxMana: 10 } })]}
-      floor={4}
-      room={2}
-      autoExplore
-      encounter={null}
-      isExploring={false}
-      canMutate
+      view={createView({
+        heroes: [makeHero({ name: "Ariane", isActive: true, currentHp: 10, currentMana: 5, calculatedStats: { ...makeHero().calculatedStats, maxHp: 20, maxMana: 10 } })],
+        floor: 4,
+        room: 2,
+        autoExplore: true,
+      })}
       onNavigate={vi.fn()}
       onToggleAutoExplore={onToggleAutoExplore}
     />);

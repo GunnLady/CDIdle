@@ -1,37 +1,47 @@
-import { useState, useCallback, useRef } from "react";
-import { BattleLogEntry } from "../types";
+import { useCallback, useMemo, useState } from "react";
+import type { BattleLogEntry } from "../types";
+
+export type GameLogChannel = "dungeon" | "colony" | "system";
+
+const MAX_LOGS_PER_CHANNEL = 25;
+
+type GameLogsByChannel = Record<GameLogChannel, BattleLogEntry[]>;
+
+const emptyLogs = (): GameLogsByChannel => ({ dungeon: [], colony: [], system: [] });
 
 export function useGameLog() {
-  const [battleLogs, setBattleLogs] = useState<BattleLogEntry[]>([]);
-  const battleLogsRef = useRef<BattleLogEntry[]>(battleLogs);
-  battleLogsRef.current = battleLogs;
+  const [logsByChannel, setLogsByChannel] = useState<GameLogsByChannel>(emptyLogs);
 
   const addLog = useCallback((
     message: string,
     type: BattleLogEntry["type"] = "info",
-    category: "dungeon" | "colony" = "dungeon"
+    channel: GameLogChannel = "system",
   ) => {
     const now = new Date();
-    const ts = now.toTimeString().split(" ")[0];
     const newEntry: BattleLogEntry = {
       id: Math.random().toString(36).substring(3, 10),
-      timestamp: ts,
+      timestamp: now.toTimeString().split(" ")[0],
       message,
       type,
-      category
+      ...(channel === "system" ? {} : { category: channel }),
     };
-    setBattleLogs((prev) => [...prev.slice(-45), newEntry]); // retain last 50 logs for scroll performance
+    setLogsByChannel((current) => ({
+      ...current,
+      [channel]: [...current[channel].slice(-(MAX_LOGS_PER_CHANNEL - 1)), newEntry],
+    }));
   }, []);
 
-  const clearBattleLogs = useCallback(() => {
-    setBattleLogs([]);
+  const clearBattleLogs = useCallback((channel?: GameLogChannel) => {
+    setLogsByChannel((current) => channel
+      ? { ...current, [channel]: [] }
+      : emptyLogs());
   }, []);
 
-  return {
-    battleLogs,
-    battleLogsRef,
-    setBattleLogs,
+  return useMemo(() => ({
+    dungeonLogs: logsByChannel.dungeon,
+    colonyLogs: logsByChannel.colony,
+    systemLogs: logsByChannel.system,
     addLog,
-    clearBattleLogs
-  };
+    clearBattleLogs,
+  }), [addLog, clearBattleLogs, logsByChannel]);
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createCityDashboardView } from "../src/domain/cityPresentation";
+import { createCityDashboardView, createCityHistoryView } from "../src/domain/cityPresentation";
 
 const createView = (buildings: Record<string, number>) => createCityDashboardView({
   resources: { gold: 10_000, food: 10_000, wood: 10_000, stone: 10_000, ore: 10_000 },
@@ -34,5 +34,17 @@ describe("createCityDashboardView", () => {
 
     expect(view.jobs.find((job) => job.id === "farmers")).toMatchObject({ canAdd: true, canRemove: false });
     expect(buildings).toEqual({ habitation: 1, ferme: 1 });
+  });
+});
+
+describe("createCityHistoryView", () => {
+  it("keeps only colony actions and displays the newest one first", () => {
+    const view = createCityHistoryView([
+      { id: "colony-old", timestamp: "10:00", message: "Ferme améliorée", type: "info", category: "colony" },
+      { id: "dungeon", timestamp: "10:01", message: "Combat gagné", type: "victory", category: "dungeon" },
+      { id: "colony-new", timestamp: "10:02", message: "Citoyen affecté", type: "info", category: "colony" },
+    ]);
+
+    expect(view.entries.map((entry) => entry.id)).toEqual(["colony-new", "colony-old"]);
   });
 });

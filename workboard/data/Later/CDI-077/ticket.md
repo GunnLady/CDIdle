@@ -10,7 +10,7 @@ source: Cadrage du refactor visuel CDIdle du 2026-08-01
 depends_on: ["CDI-076", "CDI-081"]
 blocks: []
 github_issue: null
-related_docs: ["workboard/data/Later/CDI-069/ticket.md", "workboard/data/Later/CDI-076/ticket.md", "src/App.tsx", "src/components", "src/index.css"]
+related_docs: ["workboard/data/Doing/CDI-069/ticket.md", "workboard/data/Later/CDI-076/ticket.md", "src/App.tsx", "src/components", "src/index.css"]
 ---
 
 # CDI-077 - Migrer les ecrans et faire murir le design system CDIdle

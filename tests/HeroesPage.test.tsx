@@ -158,7 +158,7 @@ describe("HeroesPage", () => {
     />);
 
     fireEvent.click(screen.getByRole("button", { name: "Changer" }));
-    expect(screen.getByText("Remplace : Épée de départ")).toBeInTheDocument();
+    expect(screen.getByText("Objets restitués au Coffre : Épée de départ")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Remplacer" }));
     expect(onEquipItem).toHaveBeenCalledWith(hero.id, "new-dagger");
   });

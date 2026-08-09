@@ -1,6 +1,6 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import AppShell, { AppFooter } from "../src/components/app-shell/AppShell";
+import AppShell from "../src/components/app-shell/AppShell";
 import CanonicalStatusLayer from "../src/components/app-shell/CanonicalStatusLayer";
 import PrimaryNavigation from "../src/components/app-shell/PrimaryNavigation";
 import ResourceHeader from "../src/components/app-shell/ResourceHeader";
@@ -8,12 +8,11 @@ import ResourceHeader from "../src/components/app-shell/ResourceHeader";
 afterEach(cleanup);
 
 describe("AppShell", () => {
-  it("owns the shared frame, viewport and footer", () => {
+  it("owns the shared frame and viewport without a persistent footer", () => {
     render(<AppShell
       header={<header>Ressources</header>}
       statusLayer={null}
       navigation={<nav>Destinations</nav>}
-      footer={<AppFooter totalCitizens={4} heroesCount={2} highestFloor={7} />}
     ><p>Page Cité</p></AppShell>);
 
     expect(screen.getByRole("main")).toHaveTextContent("Page Cité");
@@ -22,7 +21,7 @@ describe("AppShell", () => {
     expect(screen.getByTestId("persistent-page-navigation")).toHaveClass("sticky", "top-0", "xl:flex");
     expect(screen.getByTestId("primary-navigation-slot")).toContainElement(screen.getByText("Destinations"));
     expect(screen.queryByTestId("dungeon-progress-slot")).not.toBeInTheDocument();
-    expect(screen.getByText(/4 Citoyens • 2 Champions • Étage record : 7/)).toBeInTheDocument();
+    expect(screen.queryByRole("contentinfo")).not.toBeInTheDocument();
   });
 
   it("places navigation and dungeon progress in one desktop bar", () => {
@@ -31,7 +30,6 @@ describe("AppShell", () => {
       statusLayer={null}
       navigation={<nav>Destinations</nav>}
       progress={<aside>Expédition</aside>}
-      footer={null}
     ><p>Page Cité</p></AppShell>);
 
     expect(screen.getByTestId("persistent-page-navigation")).toHaveClass("xl:flex", "xl:border");

@@ -9,12 +9,16 @@ const CityDashboard = lazy(() => import("./components/city/CityDashboard"));
 const DungeonPanel = lazy(() => import("./components/DungeonPanel"));
 const HeroesPage = lazy(() => import("./components/heroes/HeroesPage"));
 const AccountPanel = lazy(() => import("./components/AccountPanel"));
-import LoginPage from "./components/LoginPage";
+const RecruitmentOfferDialog = lazy(() => import("./components/heroes/RecruitmentOfferDialog"));
+import AuthenticationPage from "./components/auth/AuthenticationPage";
+import OnboardingPage from "./components/onboarding/OnboardingPage";
+import EntryLoadingPage from "./components/onboarding/EntryLoadingPage";
+import type { StartingFounderChoice } from "./domain/onboardingPresentation";
 import ResourceHeader from "./components/app-shell/ResourceHeader";
 import PrimaryNavigation from "./components/app-shell/PrimaryNavigation";
 import DeveloperCheatPanel from "./components/app-shell/DeveloperCheatPanel";
 import CanonicalStatusLayer from "./components/app-shell/CanonicalStatusLayer";
-import AppShell, { AppFooter } from "./components/app-shell/AppShell";
+import AppShell from "./components/app-shell/AppShell";
 import DungeonProgressBanner, { shouldShowDungeonProgressBanner } from "./components/app-shell/DungeonProgressBanner";
 const StoragePanel = lazy(() => import("./components/StoragePanel"));
 const VocationPrayerPrompt = lazy(() => import("./components/VocationPrayerPrompt"));
@@ -22,6 +26,7 @@ import {
   callGameApi,
   canonicalStateFailure,
   GameApiError,
+  signInWithGoogle,
   signOut,
   type CanonicalStateFailure,
 } from "./lib/supabase";
@@ -40,15 +45,11 @@ import { sendOptimisticCommandWithConflictRetry } from "./lib/optimisticCommandD
 import type { AuthoritativeCommandSuccess, AuthoritativeGameEnvelope, GameCommand } from "./domain/commands";
 import { createCommandEnvelope } from "./domain/commandEnvelope";
 import type { CanonicalDungeonEncounterRecord } from "../shared/contracts/authoritative";
-import {
-  formatCanonicalHeroStatLabel,
-  isCanonicalHeroStat,
-  type CanonicalHeroStat,
-} from "../shared/domain/hero-stats.ts";
 import { formatCanonicalIdleReport } from "./domain/idleReport";
+import { createDungeonProgressBannerView } from "./domain/dungeonPresentation";
 import { shouldRefreshTownAuthority } from "./domain/townHeartbeat";
 import { canonicalBootstrapOperationKey, requestCanonicalBootstrap } from "./lib/canonicalBootstrap";
-import { canMutateCanonicalState } from "./lib/canonicalMutationAccess";
+import { canMutateCanonicalState, canUseAccountDangerActions } from "./lib/canonicalMutationAccess";
 import { formatCanonicalTownEvent } from "./domain/townEventLog";
 import {
   ACTIVE_TAB_STORAGE_KEY,
@@ -173,6 +174,31 @@ export default function App() {
     authoritativeReady: isInitialGameLoadDone,
     automationLeader: isAutomationLeader,
   });
+  const accountDangerActionsAvailable = canUseAccountDangerActions({
+    browserOnline,
+    transportOnline,
+    authoritativeReady: isInitialGameLoadDone,
+    automationLeader: isAutomationLeader,
+    canonicalStateFailed: canonicalStateFailureDetails !== null,
+  });
+  const mutationBlockReason = canonicalStateFailureDetails
+    ? "Sauvegarde incompatible : les mutations de jeu sont verrouillées."
+    : !transportOnline
+      ? "Service indisponible : les actions canoniques sont verrouillées."
+      : !isInitialGameLoadDone
+        ? "Chargement de l’état canonique en cours."
+        : !isAutomationLeader
+          ? "Mode observateur : prenez le contrôle pour agir."
+          : undefined;
+  const accountDangerActionBlockReason = accountDangerActionsAvailable
+    ? undefined
+    : !browserOnline || !transportOnline
+      ? "Service indisponible : les actions de récupération sont verrouillées."
+      : !isInitialGameLoadDone
+        ? "Chargement de la session en cours."
+        : !isAutomationLeader
+          ? "Mode observateur : prenez le contrôle pour gérer le royaume."
+          : undefined;
 
   useEffect(() => {
     if (!crossTabNotice) return;
@@ -188,8 +214,9 @@ export default function App() {
 
   // Custom Hooks
   const {
-    battleLogs,
-    setBattleLogs,
+    dungeonLogs,
+    colonyLogs,
+    systemLogs,
     addLog,
     clearBattleLogs
   } = useGameLog();
@@ -263,13 +290,13 @@ export default function App() {
     encounterHistoryRef.current = [];
     resetEncounterPlayback();
     setPendingRecruitName(null);
-    setBattleLogs([]);
+    clearBattleLogs();
     clearCanonicalSnapshot();
     dungeonAutomationResetRef.current();
     resetPendingOperations();
     setCanonicalStateFailureDetails(null);
     resetAutomationLeadership();
-  }, [clearCanonicalSnapshot, resetAutomationLeadership, resetEncounterPlayback, resetPendingOperations, setBattleLogs]);
+  }, [clearBattleLogs, clearCanonicalSnapshot, resetAutomationLeadership, resetEncounterPlayback, resetPendingOperations]);
 
   const canonicalSession = useCanonicalSessionBootstrap({
     reconnectNonce,
@@ -450,8 +477,8 @@ export default function App() {
         for (const event of result?.events ?? []) {
           const townLog = formatCanonicalTownEvent(event);
           if (townLog && !options.silentSuccess) addLog(townLog.message, townLog.type, "colony");
-          if (event?.type === "dungeon.encounter_started") addLog("⚔️ Une rencontre autoritaire a commencé.", "info");
-          if (event?.type === "dungeon.retreat") addLog("🏕️ Repli tactique : l’escouade regagne le campement.", "info");
+          if (event?.type === "dungeon.encounter_started") addLog("⚔️ Une rencontre autoritaire a commencé.", "info", "dungeon");
+          if (event?.type === "dungeon.retreat") addLog("🏕️ Repli tactique : l’escouade regagne le campement.", "info", "dungeon");
         }
         const playback = resolvedEncounter
           ? playEncounterTranscript(resolvedEncounter)
@@ -779,6 +806,42 @@ export default function App() {
     }
   }, [addLog, applyAuthoritativeState, currentUser, enqueueInteractiveCoalescedOperation, isAutomationLeaderRef, isOnline, publishAuthoritativeSnapshot, showCrossTabNotice]);
 
+  const handleAccountAuthenticate = useCallback(async () => {
+    try {
+      await signInWithGoogle();
+      addLog("Authentification Google demandée.", "info");
+    } catch (error) {
+      addLog("Échec de la demande d’authentification Google.", "defeat");
+      throw error;
+    }
+  }, [addLog]);
+
+  const handleRequestStartingCandidates = useCallback((name: string) => (
+    dispatchAuthoritativeCommand({ type: "onboarding.offer", cityName: name })
+  ), [dispatchAuthoritativeCommand]);
+
+  const handleConfirmStartingFounders = useCallback(async (founders: StartingFounderChoice[]) => {
+    const completed = await dispatchAuthoritativeCommand({
+      type: "onboarding.start",
+      cityName: pendingOnboardingCityName,
+      starterHeroes: founders,
+    });
+    if (completed) {
+      addLog(`🏰 Cité de ${pendingOnboardingCityName} ralliée sous vos bannières !`, "victory", "colony");
+      addLog(`🤝 ${founders.map((founder) => founder.name).join(" et ")} intègrent l’escouade du domaine.`, "victory", "colony");
+    }
+    return completed;
+  }, [addLog, dispatchAuthoritativeCommand, pendingOnboardingCityName]);
+
+  const handleAccountSignOut = useCallback(async () => {
+    const result = await signOut();
+    if (result.error) {
+      addLog("Échec de la fermeture de la session cloud.", "defeat");
+      throw result.error;
+    }
+    addLog("Session cloud fermée. Sauvegarde locale active.", "info");
+  }, [addLog]);
+
   // Lock offline users to the Account panel
   useEffect(() => {
     if (!isAuthLoading && !currentUser) {
@@ -787,13 +850,10 @@ export default function App() {
   }, [isAuthLoading, currentUser]);
 
   const hardResetGame = async () => {
-    if (!transportOnline) {
-      addLog("📡 Mode hors connexion : la réinitialisation est verrouillée.", "info");
-      showCrossTabNotice("Remise à zéro indisponible hors connexion. L’état actuel est conservé.");
-      return;
-    }
-    if (!isAutomationLeaderRef.current) {
-      showCrossTabNotice("Mode observateur : prenez le contrôle avant de réinitialiser.");
+    if (!accountDangerActionsAvailable) {
+      const reason = accountDangerActionBlockReason ?? "Remise à zéro momentanément indisponible.";
+      addLog(reason, "info");
+      showCrossTabNotice(`${reason} L’état actuel est conservé.`);
       return;
     }
     const operation = enqueueInteractiveOperation(async ({ measureNetwork }) => {
@@ -823,11 +883,12 @@ export default function App() {
             showCrossTabNotice("Partie remise à zéro. Le cache hors ligne sera recréé à la prochaine synchronisation.");
           }
           publishAuthoritativeSnapshot(reset);
+          setApiAvailable(true);
         }
         await purgeLegacyGameCache();
 
         // Clear transient UI after the canonical reset response was applied.
-        setBattleLogs([]);
+        clearBattleLogs();
         encounterHistoryRef.current = [];
         resetEncounterPlayback();
         setCanonicalStateFailureDetails(null);
@@ -849,12 +910,10 @@ export default function App() {
   };
 
   const deleteAccount = async () => {
-    if (!transportOnline) {
-      addLog("📡 Mode hors connexion : la suppression du compte est verrouillée.", "info");
-      return;
-    }
-    if (!isAutomationLeaderRef.current) {
-      showCrossTabNotice("Mode observateur : prenez le contrôle avant de supprimer le compte.");
+    if (!accountDangerActionsAvailable) {
+      const reason = accountDangerActionBlockReason ?? "Suppression du compte momentanément indisponible.";
+      addLog(reason, "info");
+      showCrossTabNotice(reason);
       return;
     }
     const operation = enqueueInteractiveOperation(async ({ measureNetwork }) => {
@@ -895,7 +954,38 @@ export default function App() {
   // Canonical idle/health progression is applied by game-api. React only
   // requests and renders snapshots; it never computes a gameplay tick.
 
+  if (isAuthLoading || !currentUser) {
+    return <AuthenticationPage
+      sessionLoading={isAuthLoading}
+      onAuthenticate={handleAccountAuthenticate}
+    />;
+  }
+
+  if (!isInitialGameLoadDone) return <EntryLoadingPage />;
+
+  if (!canonicalStateFailureDetails && !cityName) {
+    return <OnboardingPage
+      candidates={onboardingCandidates}
+      pendingCityName={pendingOnboardingCityName}
+      canMutate={canMutate}
+      mutationBlockReason={mutationBlockReason}
+      controlTransferPending={isControlTransferPending}
+      onRequestControl={transportOnline && !isAutomationLeader ? requestGameControl : undefined}
+      onRequestCandidates={handleRequestStartingCandidates}
+      onConfirmFounders={handleConfirmStartingFounders}
+    />;
+  }
+
   const activeRates = town.getRates();
+  const dungeonProgressBannerView = createDungeonProgressBannerView({
+    heroes: dungeon.displayHeroes,
+    floor: dungeon.activeDungeonFloor,
+    room: dungeon.activeDungeonRoom,
+    autoExplore: dungeon.autoExplore,
+    encounter: currentEncounter,
+    isExploring: dungeonAutomation.isRunning,
+    canMutate,
+  });
   return (
     <>
       <AppShell
@@ -912,44 +1002,11 @@ export default function App() {
           onOpenAccount={() => setActiveTab("account")}
           onRequestControl={requestGameControl}
         />}
-        beforeViewport={<>
-      {/* 2. DYNAMIC NAMING POPUP STAGE (BLOCKED IF USER DID NOT CHOOSE A NAME YET) */}
-      {currentUser && !canonicalStateFailureDetails && !cityName && isInitialGameLoadDone && (
-        <div
-          data-testid="onboarding-stage"
-          aria-disabled={!canMutate}
-          className={`flex-1 bg-[#150D08]/90 flex items-center justify-center p-4 ${canMutate ? "" : "pointer-events-none opacity-80"}`}
-        >
-          <LoginPage
-            authoritativeNovices={onboardingCandidates}
-            pendingCityName={pendingOnboardingCityName}
-            onGenerateStartingNovices={(name) => dispatchAuthoritativeCommand({
-              type: "onboarding.offer",
-              cityName: name,
-            })}
-            onLoginSuccess={(name, startingHeroes) => {
-              return dispatchAuthoritativeCommand({
-                type: "onboarding.start",
-                cityName: name,
-                starterHeroes: (startingHeroes ?? []).map((hero) => ({ id: hero.id, name: hero.name })),
-              });
-            }}
-            addLog={addLog}
-          />
-        </div>
-      )}
-        </>}
         developerTools={cheatsAllowedForUser && cityName ? <DeveloperCheatPanel value={cheatInput} canMutate={canMutate} onChange={setCheatInput} onApply={handleApplyCheat} /> : null}
         navigation={<PrimaryNavigation activeTab={activeTab} authenticated={Boolean(currentUser)} onChange={setActiveTab} />}
         progress={shouldShowDungeonProgressBanner(Boolean(currentUser), activeTab) ? (
           <DungeonProgressBanner
-            heroes={dungeon.displayHeroes}
-            floor={dungeon.activeDungeonFloor}
-            room={dungeon.activeDungeonRoom}
-            autoExplore={dungeon.autoExplore}
-            encounter={currentEncounter}
-            isExploring={dungeonAutomation.isRunning}
-            canMutate={canMutate}
+            view={dungeonProgressBannerView}
             onNavigate={setActiveTab}
             onToggleAutoExplore={() => {
               const enabled = !dungeon.autoExplore;
@@ -958,11 +1015,6 @@ export default function App() {
             }}
           />
         ) : null}
-        footer={<AppFooter
-          totalCitizens={town.totalCitizens}
-          heroesCount={dungeon.heroes.length}
-          highestFloor={dungeon.highestFloorReached}
-        />}
       >
 
         {/* TAB MAIN CONTENT CONTAINER */}
@@ -971,7 +1023,7 @@ export default function App() {
           
           {/* A. CITY TAB VIEW (TOWN INTERFACE) */}
           {activeTab === "city" && (
-            <div className="w-full" aria-disabled={!canMutate}>
+            <div className="w-full">
               <CityDashboard
                 resources={town.displayResources}
                 buildings={town.buildings}
@@ -987,6 +1039,8 @@ export default function App() {
                 highestFloorReached={dungeon.highestFloorReached}
                 forgeMaterials={dungeon.forgeMaterials}
                 itemBlueprints={dungeon.itemBlueprints}
+                battleLogs={colonyLogs}
+                onClearCityLogs={() => clearBattleLogs("colony")}
                 canMutate={canMutate}
                 pendingForge={pendingForge}
                 onStartForge={(recipeId) => { void dispatchAuthoritativeCommand({ type: "forge.start", recipeId }); }}
@@ -998,7 +1052,7 @@ export default function App() {
 
           {/* B. HEROES TAB VIEW (HERO GUILD MANAGEMENT) */}
           {activeTab === "heroes" && (
-            <div className="w-full" aria-disabled={!canMutate}>
+            <div className="w-full">
               <HeroesPage
                 heroes={dungeon.displayHeroes}
                 resources={town.resources}
@@ -1026,14 +1080,15 @@ export default function App() {
 
           {/* C. DUNGEON TAB VIEW (CENTERED HIGH-PERFORMANCE COMBAT MONITOR) */}
           {activeTab === "dungeon" && (
-            <div className={`w-full ${canMutate ? "" : "pointer-events-none opacity-80"}`} aria-disabled={!canMutate}>
+            <div className="w-full">
               <DungeonPanel
-                heroes={dungeon.heroes}
+                heroes={dungeon.displayHeroes}
                 activeDungeonFloor={dungeon.activeDungeonFloor}
                 activeDungeonRoom={dungeon.activeDungeonRoom}
                 autoExplore={dungeon.autoExplore}
-                battleLogs={battleLogs}
+                battleLogs={dungeonLogs}
                 highestFloorReached={dungeon.highestFloorReached}
+                canMutate={canMutate}
                 onToggleAutoExplore={() => {
                   const enabled = !dungeon.autoExplore;
                   dungeonAutomation.setBlocked(!enabled);
@@ -1060,7 +1115,11 @@ export default function App() {
                   enqueueOptimisticCommand("dungeon:floor", { type: "dungeon.select_floor", floor });
                 }}
                 onRetreatParty={() => { void dungeonAutomation.retreat(); }}
-                onClearBattleLogs={clearBattleLogs}
+                onToggleHeroActive={(heroId) => {
+                  const hero = dungeon.heroes.find((entry) => entry.id === heroId);
+                  if (hero) enqueueOptimisticCommand(`hero-activity:${heroId}`, { type: "hero.activity", heroId, active: !hero.isActive });
+                }}
+                onClearBattleLogs={() => clearBattleLogs("dungeon")}
                 onResetLevel={() => {
                   void (async () => {
                     if (currentEncounter && !dungeonAutomation.isRunningRef.current) {
@@ -1074,11 +1133,12 @@ export default function App() {
                       floor: dungeon.activeDungeonFloor,
                     });
                     if (reset) {
+                      clearBattleLogs("dungeon");
                       addLog(
                         "🔄 Étage réinitialisé : l'exploration reprend à la salle 1.",
                         "info",
+                        "dungeon",
                       );
-                      clearBattleLogs();
                     }
                   })();
                 }}
@@ -1091,25 +1151,30 @@ export default function App() {
             <div className="w-full">
               <AccountPanel
                 currentUser={currentUser}
-                isAuthLoading={isAuthLoading}
                 isSyncing={isSyncing}
                 isCommandPending={pendingUserCommandCount > 0}
-                resources={town.resources}
+                canMutate={canMutate}
+                canUseDangerActions={accountDangerActionsAvailable}
+                mutationBlockReason={mutationBlockReason}
+                dangerActionBlockReason={accountDangerActionBlockReason}
+                resources={town.displayResources}
                 buildings={town.buildings}
-                totalCitizensCount={town.totalCitizens}
-                heroesCount={dungeon.heroes.length}
+                totalCitizensCount={town.displayTotalCitizens}
+                heroesCount={dungeon.displayHeroes.length}
                 highestFloorReached={dungeon.highestFloorReached}
                 onSaveCloud={handleManualSaveCloud}
                 onHardReset={hardResetGame}
                 onDeleteAccount={deleteAccount}
-                addLog={addLog}
+                onSignOut={handleAccountSignOut}
+                systemLogs={systemLogs}
+                onClearSystemLogs={() => clearBattleLogs("system")}
               />
             </div>
           )}
 
           {/* E. STORAGE TAB VIEW (GLOBAL CITY VAULT & EQUIPMENT PREVIEW) */}
           {activeTab === "storage" && (
-            <div className={`w-full ${canMutate ? "" : "pointer-events-none opacity-80"}`} aria-disabled={!canMutate}>
+            <div className="w-full">
               <StoragePanel
                 storedItems={dungeon.storedItems}
                 heroes={dungeon.heroes}
@@ -1119,6 +1184,7 @@ export default function App() {
                 isForgeUnlocked={(town.buildings["forge"] || 0) >= 1}
                 onScrapItem={(instanceId) => { void dispatchAuthoritativeCommand({ type: "inventory.recycle", instanceId }); }}
                 forgeMaterials={dungeon.forgeMaterials}
+                canMutate={canMutate}
               />
             </div>
           )}
@@ -1149,110 +1215,19 @@ export default function App() {
         );
       })()}
 
-      {pendingRecruit && isAutomationLeader && (() => {
-        const entries = Object.entries(pendingRecruit.baseStats || {}) as [string, number][];
-        const valid = entries.filter((entry): entry is [CanonicalHeroStat, number] => isCanonicalHeroStat(entry[0]));
-        const fallback: [CanonicalHeroStat, number] = ["str", 0];
-        const bestEntry = valid.reduce((max, curr) => curr[1] > max[1] ? curr : max, valid[0] || fallback);
-        const worstEntry = valid.reduce((min, curr) => curr[1] < min[1] ? curr : min, valid[0] || fallback);
-
-        return (
-          <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-xs flex items-center justify-center p-4 font-sans select-none">
-            <div className="w-full max-w-sm bg-[#160f0a] border-2 border-[#d4af37] rounded-3xl p-6 shadow-[0_15px_45px_rgba(0,0,0,0.95)] relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-[#926430]/5 rounded-full blur-2xl pointer-events-none" />
-
-              <div className="text-center mb-5">
-                <div className="w-12 h-12 bg-gradient-to-br from-[#ae8650] via-[#86592e] to-[#462d16] rounded-xl flex items-center justify-center mx-auto shadow-md border-2 border-[#d4af37] mb-2">
-                  <span className="text-xl">🤝</span>
-                </div>
-                <h3 className="line-clamp-1 text-lg font-serif font-bold text-[#d4af37] uppercase tracking-wider">
-                  Nouveau Pacte de Recrutement
-                </h3>
-                <p className="text-[11px] text-[#a89078] mt-0.5 font-serif">
-                  Ajustez le prénom de ce candidat avant de sceller le contrat d'embauche.
-                </p>
-              </div>
-
-              {/* First Name Input */}
-              <div className="mb-4">
-                <label className="text-[9px] uppercase tracking-widest text-[#8c5a2b] font-extrabold block mb-1.5 font-mono">
-                  Prénom de l'aventurier
-                </label>
-                <input
-                  type="text"
-                  value={pendingRecruit.name}
-                  onChange={(e) => handleUpdatePendingName(e.target.value)}
-                  className="bg-[#0f0a06] border-2 border-[#45301f] text-[#fbf7f0] rounded-xl px-3.5 py-2 text-sm focus:outline-none focus:border-[#d4af37] w-full font-serif font-bold"
-                  maxLength={20}
-                />
-              </div>
-
-              {/* Candidate Summary Panel (Only showing requested info) */}
-              <div className="bg-[#0b0704] border border-[#45301f] rounded-2xl p-4 mb-5 space-y-3 font-mono text-xs text-[#a89078]">
-                {/* Sex */}
-                <div className="flex justify-between items-center border-b border-[#302216]/40 pb-2">
-                  <span className="uppercase text-[9px] tracking-wider font-bold text-[#8c5a2b]">Sexe / Genre :</span>
-                  <span className="font-extrabold text-[#dfdbc7]">
-                    {pendingRecruit.gender === "Male" ? "♂ Homme" : "♀ Femme"}
-                  </span>
-                </div>
-
-                {/* Best Stat */}
-                <div className="flex justify-between items-center border-b border-[#302216]/40 pb-2">
-                  <span className="uppercase text-[9px] tracking-wider font-bold text-[#8c5a2b]">Meilleur Attribut :</span>
-                  <span className="font-extrabold text-emerald-400">
-                    {formatCanonicalHeroStatLabel(bestEntry[0])} ({bestEntry[1]})
-                  </span>
-                </div>
-
-                {/* Worst Stat */}
-                <div className="flex justify-between items-center border-b border-[#302216]/40 pb-2">
-                  <span className="uppercase text-[9px] tracking-wider font-bold text-[#8c5a2b]">Attribut Faible :</span>
-                  <span className="font-extrabold text-red-400">
-                    {formatCanonicalHeroStatLabel(worstEntry[0])} ({worstEntry[1]})
-                  </span>
-                </div>
-
-                {/* Max HP & Max Mana */}
-                <div className="grid grid-cols-2 gap-4 pt-1 text-center">
-                  <div className="bg-[#1a110a] border border-[#3e2c1c] rounded-xl py-2">
-                    <span className="block text-[#a89078] text-[9px] uppercase font-bold tracking-wider mb-0.5">PV Max</span>
-                    <strong className="text-emerald-400 text-xs font-bold">{pendingRecruit.calculatedStats.maxHp} HP</strong>
-                  </div>
-                  <div className="bg-[#1a110a] border border-[#3e2c1c] rounded-xl py-2">
-                    <span className="block text-[#a89078] text-[9px] uppercase font-bold tracking-wider mb-0.5">PM Max</span>
-                    <strong className="text-sky-400 text-xs font-bold">{pendingRecruit.calculatedStats.maxMana || 20} PM</strong>
-                  </div>
-                </div>
-              </div>
-
-              {/* Actions */}
-              <div className="flex gap-3">
-                <button
-                  type="button"
-                  onClick={handleCancelRecruit}
-                  disabled={isRecruitConfirmationPending}
-                  className="flex-1 py-2.5 px-4 bg-[#231710] hover:bg-[#342217] border border-[#5c402b]/70 text-[#a89078] rounded-xl font-serif font-bold text-xs text-center transition cursor-pointer disabled:cursor-wait disabled:opacity-50"
-                >
-                  Décliner l'Offre
-                </button>
-                <button
-                  type="button"
-                  onClick={handleConfirmRecruit}
-                  disabled={isRecruitConfirmationPending}
-                  className="flex-1 py-2.5 px-4 bg-[#8c5a2b] hover:bg-[#b0773f] text-[#fdf9f2] border border-[#d4af37] rounded-xl font-serif font-bold text-xs text-center transition cursor-pointer shadow-[0_4px_12px_rgba(140,90,43,0.3)] flex items-center justify-center gap-1.5 disabled:cursor-wait disabled:opacity-70"
-                >
-                  <span>
-                    {isRecruitConfirmationPending
-                      ? "CONFIRMATION…"
-                      : `SCELLER (🪙 ${(100 + dungeon.heroes.length * 150).toLocaleString()})`}
-                  </span>
-                </button>
-              </div>
-            </div>
-          </div>
-        );
-      })()}
+      {pendingRecruit && <Suspense fallback={null}>
+        <RecruitmentOfferDialog
+          candidate={pendingRecruit}
+          editedName={pendingRecruit.name}
+          heroCount={dungeon.heroes.length}
+          pending={isRecruitConfirmationPending}
+          readOnly={!canMutate}
+          blockReason={mutationBlockReason}
+          onNameChange={handleUpdatePendingName}
+          onConfirm={handleConfirmRecruit}
+          onCancel={handleCancelRecruit}
+        />
+      </Suspense>}
 
     </>
   );

@@ -1,5 +1,5 @@
-import { render, screen, within } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import DungeonPanel from "../src/components/DungeonPanel";
 import type { CanonicalDungeonEncounterRecord } from "../shared/contracts/authoritative";
 import type React from "react";
@@ -27,6 +27,7 @@ const props = {
   autoExplore: false,
   battleLogs: [],
   highestFloorReached: 2,
+  canMutate: true,
   onToggleAutoExplore: vi.fn(),
   activeEncounter: null,
   encounterHistory: [encounter],
@@ -37,171 +38,118 @@ const props = {
   onRetreatParty: vi.fn(),
   onClearBattleLogs: vi.fn(),
   onResetLevel: vi.fn(),
+  onToggleHeroActive: vi.fn(),
 } satisfies React.ComponentProps<typeof DungeonPanel>;
 
-describe("DungeonPanel authoritative encounter history", () => {
-  it("reveals transcript lines progressively without a manual resolve action", () => {
-    const { rerender } = render(<DungeonPanel {...props} />);
+afterEach(() => {
+  cleanup();
+  vi.clearAllMocks();
+});
 
-    expect(screen.getByText("Tour 1 — Ragnor inflige 6 dégâts.")).toBeInTheDocument();
-    expect(screen.getAllByText("Tour 1 — Ragnor inflige 6 dégâts.")).toHaveLength(1);
-    expect(screen.getByText("Combat en cours")).toBeInTheDocument();
-    expect(screen.getByText("Étage 2 - Salle 8/10")).toBeInTheDocument();
+describe("DungeonPanel authoritative structure", () => {
+  it("renders the four validated page zones", () => {
+    render(<DungeonPanel {...props} />);
+    expect(screen.getByTestId("dungeon-progression-panel")).toBeInTheDocument();
+    expect(screen.getByTestId("dungeon-current-encounter")).toBeInTheDocument();
+    expect(screen.getByTestId("dungeon-party-panel")).toBeInTheDocument();
+    expect(screen.getByTestId("dungeon-history-panel")).toBeInTheDocument();
+  });
+
+  it("lets the player fold and unfold the dungeon history", () => {
+    render(<DungeonPanel {...props} />);
+    const history = screen.getByTestId("dungeon-history-panel");
+    expect(history).toHaveAttribute("open");
+    fireEvent.click(history.querySelector("summary")!);
+    expect(history).not.toHaveAttribute("open");
+    fireEvent.click(history.querySelector("summary")!);
+    expect(history).toHaveAttribute("open");
+  });
+
+  it("reveals the current transcript progressively without a manual resolve action", () => {
+    const { rerender } = render(<DungeonPanel {...props} />);
+    const current = within(screen.getByTestId("dungeon-current-encounter"));
+    expect(current.getAllByText("Tour 1 — Ragnor inflige 6 dégâts.")).toHaveLength(1);
+    expect(current.getByText("Combat en cours")).toBeInTheDocument();
+    expect(screen.getByText("Étage 2 · Salle 8/10")).toBeInTheDocument();
     expect(screen.queryByText(/Résoudre/i)).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Exploration en cours…" })).toBeDisabled();
 
-    rerender(
-      <DungeonPanel
-        {...props}
-        encounterPlayback={{ encounterId: encounter.encounterId, visibleCount: 2, complete: true }}
-        isExploring={false}
-      />,
-    );
-
-    expect(screen.getAllByText("Tour 1 — Ragnor inflige 6 dégâts.")).toHaveLength(2);
-    expect(screen.getByText("Victoire en 1 tour(s) · +7 or")).toBeInTheDocument();
+    rerender(<DungeonPanel {...props} encounterPlayback={{ encounterId: encounter.encounterId, visibleCount: 2, complete: true }} isExploring={false} />);
+    expect(within(screen.getByTestId("dungeon-current-encounter")).getAllByText("Tour 1 — Ragnor inflige 6 dégâts.")).toHaveLength(2);
+    expect(within(screen.getByTestId("dungeon-current-encounter")).getByText("Victoire en 1 tour(s) · +7 or")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Explorer la salle" })).toBeDisabled();
   });
 
   it("keeps retreat available throughout the dungeon flow", () => {
     const view = render(<DungeonPanel {...props} isExploring={false} />);
-    const panel = within(view.container);
-
-    expect(panel.getByRole("button", { name: "Repli au Campement" })).toBeEnabled();
-
-    view.rerender(
-      <DungeonPanel
-        {...props}
-        isExploring={false}
-      />,
-    );
-
-    expect(panel.getByRole("button", { name: "Repli au Campement" })).toBeEnabled();
-
-    view.rerender(
-      <DungeonPanel
-        {...props}
-        isExploring
-      />,
-    );
-
-    expect(panel.getByRole("button", { name: "Repli au Campement" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Repli au campement" })).toBeEnabled();
+    view.rerender(<DungeonPanel {...props} isExploring />);
+    expect(screen.getByRole("button", { name: "Repli au campement" })).toBeEnabled();
   });
 
   it("shows the canonical active encounter while its resolution is pending", () => {
-    render(
-      <DungeonPanel
-        {...props}
-        activeEncounter={{
-          encounterId: "encounter-active",
-          kind: "pending",
-          status: "active",
-          floor: 2,
-          room: 8,
-          commandId: "command-active",
-        }}
-      />,
-    );
-
+    render(<DungeonPanel {...props} activeEncounter={{ encounterId: "encounter-active", kind: "pending", status: "active", floor: 2, room: 8, commandId: "command-active" }} />);
     expect(screen.getByLabelText("Rencontre autoritaire active")).toHaveTextContent("Rencontre autoritaire prête");
     expect(screen.getByLabelText("Rencontre autoritaire active")).toHaveTextContent("Étage 2 · Salle 8");
   });
 
-  it("shows the weapon-resolved normal attack power and estimated DPS", () => {
+  it("shows weapon-resolved attack power, DPS and mana in the party", () => {
     const hero = makeHero({
       isActive: true,
-      equipment: {
-        mainHand: { instanceId: "magic-main-hand", itemId: "basic_staff", rarity: "common" },
-      },
-      calculatedStats: {
-        ...makeHero().calculatedStats,
-        physicalDamage: 5,
-        magicDamage: 99,
-        estimatedDps: 123.45,
-      },
+      currentMana: 4,
+      equipment: { mainHand: { instanceId: "magic-main-hand", itemId: "basic_staff", rarity: "common" } },
+      calculatedStats: { ...makeHero().calculatedStats, physicalDamage: 5, magicDamage: 99, estimatedDps: 123.45 },
     });
     render(<DungeonPanel {...props} heroes={[hero]} />);
-
-    expect(screen.getByTitle("Puissance garantie de l'attaque normale avant le jet de l'arme"))
-      .toHaveTextContent("123");
-    expect(screen.getByTitle("DPS estimé de l'attaque normale par cycle, avant défense et résistances"))
-      .toHaveTextContent("123.45");
+    const party = within(screen.getByTestId("dungeon-party-panel"));
+    expect(party.getByTitle("Puissance garantie de l'attaque normale avant le jet de l'arme")).toHaveTextContent("123");
+    expect(party.getByTitle("DPS estimé de l'attaque normale par cycle, avant défense et résistances")).toHaveTextContent("123.45");
+    const heroButton = party.getAllByText(hero.name)[0].closest("button");
+    expect(heroButton).not.toBeNull();
+    expect(within(heroButton as HTMLElement).getByText(`4/${hero.calculatedStats.maxMana}`)).toBeInTheDocument();
   });
 
-  it("shows current mana below health for each active hero", () => {
-    const hero = makeHero({ isActive: true, currentMana: 4 });
-    const view = render(<DungeonPanel {...props} heroes={[hero]} />);
-    const card = within(view.container).getByText(hero.name).closest(".rounded-xl");
-
-    expect(card).not.toBeNull();
-    const cardContent = within(card as HTMLElement);
-    const healthLabel = cardContent.getByText("Vie de l'aventurier");
-    const manaLabel = cardContent.getByText("Mana");
-    expect(healthLabel.compareDocumentPosition(manaLabel) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(cardContent.getByText(`4/${hero.calculatedStats.maxMana}`)).toBeInTheDocument();
+  it("shows the latest current transcript message first", () => {
+    const orderedEncounter = { ...encounter, transcript: [
+      { sequence: 0, type: "hero.hit", round: 1, heroId: "hero-1", heroName: "Ragnor", damage: 3, enemyHp: 9 },
+      { sequence: 1, type: "hero.hit", round: 1, heroId: "hero-1", heroName: "Ragnor", damage: 9, enemyHp: 0 },
+    ] } satisfies CanonicalDungeonEncounterRecord;
+    render(<DungeonPanel {...props} encounterHistory={[orderedEncounter]} encounterPlayback={{ encounterId: orderedEncounter.encounterId, visibleCount: 2, complete: true }} />);
+    const current = within(screen.getByTestId("dungeon-current-encounter"));
+    const latest = current.getByText("Tour 1 — Ragnor inflige 9 dégâts.");
+    const oldest = current.getByText("Tour 1 — Ragnor inflige 3 dégâts.");
+    expect(latest.compareDocumentPosition(oldest) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
-  it("shows the latest transcript message first", () => {
-    const orderedEncounter: CanonicalDungeonEncounterRecord = {
-      ...encounter,
-      transcript: [
-        { sequence: 0, type: "hero.hit", round: 1, heroId: "hero-1", heroName: "Ragnor", damage: 3, enemyHp: 9 },
-        { sequence: 1, type: "hero.hit", round: 1, heroId: "hero-1", heroName: "Ragnor", damage: 9, enemyHp: 0 },
-      ],
-    };
-    render(
-      <DungeonPanel
-        {...props}
-        encounterHistory={[orderedEncounter]}
-        encounterPlayback={{ encounterId: orderedEncounter.encounterId, visibleCount: 2, complete: true }}
-      />,
-    );
-
-    const latestMessage = screen.getByText("Tour 1 — Ragnor inflige 9 dégâts.");
-    const oldestMessage = screen.getByText("Tour 1 — Ragnor inflige 3 dégâts.");
-    expect(latestMessage.compareDocumentPosition(oldestMessage)
-      & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  it("shows authoritative non-combat messages without recomputing them", () => {
+    const challengeEncounter: CanonicalDungeonEncounterRecord = { ...encounter, encounterId: "challenge-front", kind: "trap", enemy: null, roundCount: 0, transcript: [
+      { sequence: 0, type: "challenge.hero_selected", message: "Probable est le héros le plus qualifié (AGI 44 + DEX 43 = 87, 80 % de réussite).", heroId: "probable", heroName: "Probable", score: 87, probabilityPercent: 80 },
+      { sequence: 1, type: "challenge.attempted", message: "Probable tente l'épreuve avec un jet de LUK compris entre 1 et 10.", luck: 10, difficulty: 90 },
+    ] };
+    render(<DungeonPanel {...props} encounterHistory={[challengeEncounter]} encounterPlayback={{ encounterId: challengeEncounter.encounterId, visibleCount: 2, complete: true }} isExploring={false} />);
+    const current = within(screen.getByTestId("dungeon-current-encounter"));
+    expect(current.getByText("Probable est le héros le plus qualifié (AGI 44 + DEX 43 = 87, 80 % de réussite).")).toBeInTheDocument();
+    expect(current.getByText("Probable tente l'épreuve avec un jet de LUK compris entre 1 et 10.")).toBeInTheDocument();
   });
 
-  it("shows the authoritative non-combat calculation without recomputing it", () => {
-    const challengeEncounter: CanonicalDungeonEncounterRecord = {
-      ...encounter,
-      encounterId: "challenge-front",
-      kind: "trap",
-      enemy: null,
-      roundCount: 0,
-      transcript: [
-        {
-          sequence: 0,
-          type: "challenge.hero_selected",
-          message: "Probable est le héros le plus qualifié (AGI 44 + DEX 43 = 87, 80 % de réussite).",
-          heroId: "probable",
-          heroName: "Probable",
-          score: 87,
-          probabilityPercent: 80,
-        },
-        {
-          sequence: 1,
-          type: "challenge.attempted",
-          message: "Probable tente l'épreuve avec un jet de LUK compris entre 1 et 10.",
-          luck: 10,
-          difficulty: 90,
-        },
-      ],
-    };
+  it("keeps local consultation available in read-only mode while blocking commands", () => {
+    const reserve = makeHero({ id: "reserve", name: "Réserve", isActive: false });
+    render(<DungeonPanel {...props} heroes={[reserve]} canMutate={false} battleLogs={[{ id: "dungeon-note", timestamp: "10:00", message: "Note donjon", type: "info", category: "dungeon" }, { id: "colony-note", timestamp: "10:01", message: "Note colonie", type: "info", category: "colony" }]} />);
+    const party = within(screen.getByTestId("dungeon-party-panel"));
+    fireEvent.click(party.getByRole("button", { name: /^Réserve/ }));
+    expect(party.getByText("Fiche & équipement")).toBeInTheDocument();
+    expect(party.getByRole("button", { name: "Déployer Réserve" })).toBeDisabled();
+    expect(screen.getByText("Note donjon")).toBeInTheDocument();
+    expect(screen.queryByText("Note colonie")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Colonie" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Exploration en cours…" })).toBeDisabled();
+  });
 
-    render(
-      <DungeonPanel
-        {...props}
-        encounterHistory={[challengeEncounter]}
-        encounterPlayback={{ encounterId: challengeEncounter.encounterId, visibleCount: 2, complete: true }}
-        isExploring={false}
-      />,
-    );
-
-    expect(screen.getByText("Probable est le héros le plus qualifié (AGI 44 + DEX 43 = 87, 80 % de réussite)."))
-      .toBeInTheDocument();
-    expect(screen.getByText("Probable tente l'épreuve avec un jet de LUK compris entre 1 et 10."))
-      .toBeInTheDocument();
+  it("dispatches party deployment from the dungeon page", () => {
+    const reserve = makeHero({ id: "reserve", name: "Réserve", isActive: false });
+    const onToggleHeroActive = vi.fn();
+    render(<DungeonPanel {...props} heroes={[reserve]} onToggleHeroActive={onToggleHeroActive} />);
+    fireEvent.click(screen.getByRole("button", { name: "Déployer Réserve" }));
+    expect(onToggleHeroActive).toHaveBeenCalledWith("reserve");
   });
 });

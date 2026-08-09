@@ -288,6 +288,24 @@ describe("authoritative town commands", () => {
     expect((dismissed.state.storedItems as Array<{ instanceId: string }>).map((item) => item.instanceId)).toEqual(expectedInstanceIds);
   });
 
+  it("uses the shared recruitment eligibility priority", () => {
+    const noGuild = initialTownState();
+    noGuild.resources.gold = 0;
+    expect(() => applyTownCommand(noGuild, { type: "hero.recruit", commandId: "no-guild" })).toThrow("guild building");
+
+    const atCapacity = initialTownState();
+    atCapacity.buildings.guilde = 1;
+    atCapacity.resources.gold = 0;
+    atCapacity.heroes = Array.from({ length: 3 }, (_, index) => makeHero({ id: `capacity-${index}` }));
+    expect(() => applyTownCommand(atCapacity, { type: "hero.recruit", commandId: "capacity" })).toThrow("hero capacity");
+
+    const offerWithoutGold = initialTownState();
+    offerWithoutGold.buildings.guilde = 1;
+    offerWithoutGold.resources.gold = 0;
+    expect(() => applyTownCommand(offerWithoutGold, { type: "hero.recruit_offer", commandId: "poor-offer" })).toThrow("insufficient gold");
+    expect(offerWithoutGold.pendingRecruit).toBeUndefined();
+  });
+
   it("reconciles an existing level-10 Novice without consuming RNG and applies its chosen vocation", () => {
     const base = initialTownState();
     const novice = refreshHeroDerivedStats(makeHero({

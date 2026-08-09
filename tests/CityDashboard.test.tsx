@@ -126,6 +126,35 @@ describe("CityDashboard city controls", () => {
     expect(props.onCancelForge).not.toHaveBeenCalled();
   });
 
+  it("shows only colony actions in the city history and clears only through its dedicated callback", () => {
+    const props = baseProps();
+    const onClearCityLogs = vi.fn();
+    render(<CityDashboard
+      {...props}
+      battleLogs={[
+        { id: "colony", timestamp: "10:00", message: "La ferme produit 12 nourriture.", type: "info", category: "colony" },
+        { id: "dungeon", timestamp: "10:01", message: "Le groupe gagne un combat.", type: "victory", category: "dungeon" },
+      ]}
+      onClearCityLogs={onClearCityLogs}
+    />);
+
+    const history = screen.getByTestId("city-history-panel");
+    expect(within(history).getByText("La ferme produit 12 nourriture.")).toBeInTheDocument();
+    expect(within(history).queryByText("Le groupe gagne un combat.")).not.toBeInTheDocument();
+    fireEvent.click(within(history).getByRole("button", { name: /effacer les notes/i }));
+    expect(onClearCityLogs).toHaveBeenCalledOnce();
+  });
+
+  it("lets the player fold and unfold the city history", () => {
+    render(<CityDashboard {...baseProps()} />);
+    const history = screen.getByTestId("city-history-panel");
+    expect(history).toHaveAttribute("open");
+    fireEvent.click(history.querySelector("summary")!);
+    expect(history).not.toHaveAttribute("open");
+    fireEvent.click(history.querySelector("summary")!);
+    expect(history).toHaveAttribute("open");
+  });
+
   it("finalizes a standard forge preview without treating it as cancellation", async () => {
     const props = baseProps();
     render(<CityDashboard {...props} pendingForge={{ previewId: "preview-standard", itemId: "starter_sword", upgradeProc: "none" }} />);

@@ -1,17 +1,50 @@
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import CanonicalStateAlert from "../src/components/CanonicalStateAlert";
 import AccountPanel from "../src/components/AccountPanel";
 
 const resources = { gold: 0, food: 0, wood: 0, stone: 0, ore: 0 };
 
+afterEach(cleanup);
+
 describe("canonical save recovery UI", () => {
-  it("offers Google as the only authentication method", () => {
+  it("separates the connected account responsibilities without adding subnavigation", () => {
     render(
       <AccountPanel
-        currentUser={null}
-        isAuthLoading={false}
+        currentUser={{ id: "user-1", email: "user@example.test" }}
         isSyncing={false}
+        canMutate
+        canUseDangerActions
+        resources={{ gold: 12, food: 10, wood: 8, stone: 6, ore: 4 }}
+        buildings={{ farm: 2, sawmill: 1 }}
+        totalCitizensCount={7}
+        heroesCount={4}
+        highestFloorReached={3}
+        onSaveCloud={vi.fn().mockResolvedValue(undefined)}
+        onHardReset={vi.fn().mockResolvedValue(undefined)}
+        onDeleteAccount={vi.fn().mockResolvedValue(undefined)}
+        systemLogs={[]}
+        onClearSystemLogs={vi.fn()}
+        onSignOut={vi.fn().mockResolvedValue(undefined)}
+      />,
+    );
+
+    expect(screen.getByTestId("account-identity-panel")).toBeInTheDocument();
+    expect(screen.getByTestId("account-sync-panel")).toBeInTheDocument();
+    expect(screen.getByTestId("realm-summary-panel")).toHaveTextContent("3 niv.");
+    expect(screen.getByTestId("system-history-panel")).toBeInTheDocument();
+    expect(screen.getByTestId("account-danger-zone")).toBeInTheDocument();
+    expect(screen.queryByRole("tablist")).not.toBeInTheDocument();
+  });
+
+  it("shows a foldable system history in Account and clears only through its dedicated callback", () => {
+    const onClearSystemLogs = vi.fn();
+    render(
+      <AccountPanel
+        currentUser={{ id: "user-1", email: "user@example.test" }}
+        isSyncing={false}
+        canMutate
+        canUseDangerActions
         resources={resources}
         buildings={{}}
         totalCitizensCount={0}
@@ -20,13 +53,20 @@ describe("canonical save recovery UI", () => {
         onSaveCloud={vi.fn().mockResolvedValue(undefined)}
         onHardReset={vi.fn().mockResolvedValue(undefined)}
         onDeleteAccount={vi.fn().mockResolvedValue(undefined)}
-        addLog={vi.fn()}
+        systemLogs={[{ id: "system", timestamp: "10:00", message: "Synchronisation terminée", type: "info" }]}
+        onClearSystemLogs={onClearSystemLogs}
+        onSignOut={vi.fn().mockResolvedValue(undefined)}
       />,
     );
 
-    expect(screen.getByRole("button", { name: /Google/i })).toBeInTheDocument();
-    expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
-    expect(screen.queryByText(/mot de passe/i)).not.toBeInTheDocument();
+    const history = screen.getByTestId("system-history-panel");
+    expect(within(history).getByText("Synchronisation terminée")).toBeInTheDocument();
+    expect(history).toHaveAttribute("open");
+    fireEvent.click(history.querySelector("summary")!);
+    expect(history).not.toHaveAttribute("open");
+    fireEvent.click(history.querySelector("summary")!);
+    fireEvent.click(within(history).getByRole("button", { name: /effacer les notes/i }));
+    expect(onClearSystemLogs).toHaveBeenCalledOnce();
   });
 
   it("shows an incompatible-save alert without claiming the app is offline", () => {
@@ -45,13 +85,15 @@ describe("canonical save recovery UI", () => {
     expect(onOpenAccount).toHaveBeenCalledOnce();
   });
 
-  it("keeps the explicit reset recovery action available in the account panel", async () => {
+  it("keeps reset recovery available when an incompatible save blocks gameplay mutations", async () => {
     const onHardReset = vi.fn().mockResolvedValue(undefined);
     render(
       <AccountPanel
         currentUser={{ id: "user-1", email: "user@example.test" }}
-        isAuthLoading={false}
         isSyncing={false}
+        canMutate={false}
+        canUseDangerActions
+        mutationBlockReason="Sauvegarde incompatible : les mutations de jeu sont verrouillées."
         resources={resources}
         buildings={{}}
         totalCitizensCount={0}
@@ -60,10 +102,13 @@ describe("canonical save recovery UI", () => {
         onSaveCloud={vi.fn().mockResolvedValue(undefined)}
         onHardReset={onHardReset}
         onDeleteAccount={vi.fn().mockResolvedValue(undefined)}
-        addLog={vi.fn()}
+        systemLogs={[]}
+        onClearSystemLogs={vi.fn()}
+        onSignOut={vi.fn().mockResolvedValue(undefined)}
       />,
     );
 
+    expect(screen.getByRole("button", { name: /Synchronisation indisponible/i })).toBeDisabled();
     fireEvent.click(screen.getByRole("button", {
       name: /Réinitialiser totalement le Royaume/i,
     }));
@@ -78,8 +123,9 @@ describe("canonical save recovery UI", () => {
     const { container } = render(
       <AccountPanel
         currentUser={{ id: "user-1", email: "user@example.test" }}
-        isAuthLoading={false}
         isSyncing={false}
+        canMutate
+        canUseDangerActions
         resources={resources}
         buildings={{}}
         totalCitizensCount={0}
@@ -88,7 +134,9 @@ describe("canonical save recovery UI", () => {
         onSaveCloud={vi.fn().mockResolvedValue(undefined)}
         onHardReset={vi.fn().mockResolvedValue(undefined)}
         onDeleteAccount={onDeleteAccount}
-        addLog={vi.fn()}
+        systemLogs={[]}
+        onClearSystemLogs={vi.fn()}
+        onSignOut={vi.fn().mockResolvedValue(undefined)}
       />,
     );
 
@@ -105,8 +153,9 @@ describe("canonical save recovery UI", () => {
     const { container } = render(
       <AccountPanel
         currentUser={{ id: "user-1", email: "user@example.test" }}
-        isAuthLoading={false}
         isSyncing={false}
+        canMutate
+        canUseDangerActions
         isCommandPending
         resources={resources}
         buildings={{}}
@@ -116,7 +165,9 @@ describe("canonical save recovery UI", () => {
         onSaveCloud={vi.fn().mockResolvedValue(undefined)}
         onHardReset={vi.fn().mockResolvedValue(undefined)}
         onDeleteAccount={vi.fn().mockResolvedValue(undefined)}
-        addLog={vi.fn()}
+        systemLogs={[]}
+        onClearSystemLogs={vi.fn()}
+        onSignOut={vi.fn().mockResolvedValue(undefined)}
       />,
     );
 
@@ -125,5 +176,60 @@ describe("canonical save recovery UI", () => {
     expect(panel.getByRole("button", { name: /Actualisation serveur/i })).toBeDisabled();
     expect(panel.getByRole("button", { name: /Réinitialiser totalement/i })).toBeDisabled();
     expect(panel.getByRole("button", { name: /Supprimer définitivement/i })).toBeDisabled();
+  });
+
+  it("keeps session management available but locks canonical actions in observer mode", () => {
+    render(
+      <AccountPanel
+        currentUser={{ id: "user-1", email: "user@example.test" }}
+        isSyncing={false}
+        canMutate={false}
+        canUseDangerActions={false}
+        mutationBlockReason="Mode observateur : prenez le contrôle pour agir."
+        dangerActionBlockReason="Mode observateur : prenez le contrôle pour gérer le royaume."
+        resources={resources}
+        buildings={{}}
+        totalCitizensCount={0}
+        heroesCount={0}
+        highestFloorReached={1}
+        onSaveCloud={vi.fn().mockResolvedValue(undefined)}
+        onHardReset={vi.fn().mockResolvedValue(undefined)}
+        onDeleteAccount={vi.fn().mockResolvedValue(undefined)}
+        onSignOut={vi.fn().mockResolvedValue(undefined)}
+        systemLogs={[]}
+        onClearSystemLogs={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: /Fermer la session/i })).toBeEnabled();
+    expect(screen.getByRole("button", { name: /Synchronisation indisponible/i })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /Réinitialiser totalement/i })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /Supprimer définitivement/i })).toBeDisabled();
+    expect(screen.getAllByText(/Mode observateur/).length).toBeGreaterThan(0);
+  });
+
+  it("reports a failed sign-out instead of claiming that the session is closed", async () => {
+    render(
+      <AccountPanel
+        currentUser={{ id: "user-1", email: "user@example.test" }}
+        isSyncing={false}
+        canMutate
+        canUseDangerActions
+        resources={resources}
+        buildings={{}}
+        totalCitizensCount={0}
+        heroesCount={0}
+        highestFloorReached={1}
+        onSaveCloud={vi.fn().mockResolvedValue(undefined)}
+        onHardReset={vi.fn().mockResolvedValue(undefined)}
+        onDeleteAccount={vi.fn().mockResolvedValue(undefined)}
+        onSignOut={vi.fn().mockRejectedValue(new Error("session refusée"))}
+        systemLogs={[]}
+        onClearSystemLogs={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /Fermer la session/i }));
+    await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("session refusée"));
   });
 });

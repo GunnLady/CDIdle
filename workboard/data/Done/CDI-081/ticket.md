@@ -8,7 +8,7 @@ size: L
 risk: high
 source: Audit d architecture logiciel front et back du 2026-08-01
 depends_on: ["CDI-078", "CDI-071"]
-blocks: ["CDI-077", "CDI-083"]
+blocks: ["CDI-077", "CDI-083", "CDI-089"]
 github_issue: null
 related_docs: ["src/App.tsx", "src/hooks/useCanonicalSnapshot.ts", "src/hooks/useCanonicalSessionBootstrap.ts", "src/hooks/useCanonicalOperations.ts", "src/hooks/useAutomationLeadership.ts", "src/hooks/useCrossTabAuthority.ts", "src/hooks/useDungeonAutomation.ts", "src/hooks/useEncounterPlayback.ts", "src/hooks/useOptimisticCommands.ts", "src/lib/canonicalOperationQueue.ts", "src/domain/optimisticStateProjection.ts", "workboard/data/Done/CDI-071/ticket.md"]
 ---

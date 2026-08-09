@@ -4,8 +4,19 @@ import type {
 } from "../../../shared/contracts/authoritative.ts";
 import { applyClassTransition } from "../../../shared/domain/class-transition.ts";
 import type { CanonicalHeroClass as ClassType } from "../../../shared/domain/hero-classes.ts";
+import {
+  ACTIVE_HERO_LIMIT,
+  recruitmentEligibility,
+  type HeroEligibilityError,
+} from "../../../shared/domain/hero.ts";
 import { generateAuthoritativeNovice } from "./novice-authority.ts";
 import { TownCommandError, type TownCommandHandler } from "./command-handler.ts";
+
+function throwRecruitmentError(error: HeroEligibilityError): never {
+  if (error === "GUILD_REQUIRED") throw new TownCommandError(error, "guild building is required");
+  if (error === "CAPACITY_REACHED") throw new TownCommandError(error, "hero capacity reached");
+  throw new TownCommandError("INSUFFICIENT_RESOURCES", "insufficient gold");
+}
 
 export const chooseHeroVocation: TownCommandHandler<"hero.choose_vocation"> = (context, command) => {
   const town = context.town;
@@ -22,7 +33,7 @@ export const chooseHeroVocation: TownCommandHandler<"hero.choose_vocation"> = (c
     throw new TownCommandError("INVALID_VOCATION_STATE", "hero no longer matches the pending vocation");
   }
   const activeOthers = heroes.filter((entry) => entry.id !== hero.id && entry.isActive).length;
-  const restoreActive = pending.wasActive && activeOthers < 4 && hero.currentHp > 0;
+  const restoreActive = pending.wasActive && activeOthers < ACTIVE_HERO_LIMIT && hero.currentHp > 0;
   const transition = {
     fromClass: pending.fromClass,
     toClass: command.classType as ClassType,
@@ -62,8 +73,8 @@ export const createRecruitOffer: TownCommandHandler<"hero.recruit_offer"> = (con
   const heroes = town.heroes ?? [];
   if (town.pendingRecruit) throw new TownCommandError("RECRUIT_PENDING", "a recruit offer is already pending");
   const guildLevel = town.buildings.guilde ?? 0;
-  if (guildLevel < 1) throw new TownCommandError("GUILD_REQUIRED", "guild building is required");
-  if (heroes.length >= Math.max(0, guildLevel) + 2) throw new TownCommandError("CAPACITY_REACHED", "hero capacity reached");
+  const eligibility = recruitmentEligibility(heroes.length, town.resources.gold, guildLevel);
+  if (eligibility.ok === false) throwRecruitmentError(eligibility.error);
   const candidate = generateAuthoritativeNovice(
     context.nextSeedKey("recruit"),
     `candidate-${command.commandId ?? "offer"}`,
@@ -86,9 +97,9 @@ export const confirmRecruit: TownCommandHandler<"hero.recruit_confirm"> = (conte
   const pending = town.pendingRecruit;
   if (!pending) throw new TownCommandError("RECRUIT_NOT_FOUND", "recruit offer not found");
   const guildLevel = town.buildings.guilde ?? 0;
-  const cost = 100 + heroes.length * 150;
-  if (heroes.length >= Math.max(0, guildLevel) + 2) throw new TownCommandError("CAPACITY_REACHED", "hero capacity reached");
-  if (town.resources.gold < cost) throw new TownCommandError("INSUFFICIENT_RESOURCES", "insufficient gold");
+  const eligibility = recruitmentEligibility(heroes.length, town.resources.gold, guildLevel);
+  if (eligibility.ok === false) throwRecruitmentError(eligibility.error);
+  const { cost } = eligibility;
   const name = command.name?.trim();
   const hero = { ...pending, ...(name ? { name: name.slice(0, 40) } : {}), id: String(pending.id).replace("candidate-", "hero-") };
   return {
@@ -106,11 +117,9 @@ export const recruitHero: TownCommandHandler<"hero.recruit"> = (context, command
   const town = context.town;
   const heroes = town.heroes ?? [];
   const guildLevel = town.buildings.guilde ?? 0;
-  const cost = 100 + heroes.length * 150;
-  const capacity = Math.max(0, guildLevel) + 2;
-  if (guildLevel < 1) throw new TownCommandError("GUILD_REQUIRED", "guild building is required");
-  if (heroes.length >= capacity) throw new TownCommandError("CAPACITY_REACHED", "hero capacity reached");
-  if (town.resources.gold < cost) throw new TownCommandError("INSUFFICIENT_RESOURCES", "insufficient gold");
+  const eligibility = recruitmentEligibility(heroes.length, town.resources.gold, guildLevel);
+  if (eligibility.ok === false) throwRecruitmentError(eligibility.error);
+  const { cost } = eligibility;
   const id = `hero-${command.commandId ?? `slot-${heroes.length}`}`;
   const hero = generateAuthoritativeNovice(context.nextSeedKey("recruit"), id);
   return context.withRng({
@@ -146,7 +155,7 @@ export const changeHeroActivity: TownCommandHandler<"hero.activity"> = (context,
   if (!hero) throw new TownCommandError("HERO_NOT_FOUND", "hero not found");
   if (command.active && Number(hero.currentHp ?? 0) <= 0) throw new TownCommandError("INVALID_HEALTH", "hero has no health");
   const occupiedSlots = town.heroes.filter((entry) => entry.isActive).length;
-  if (command.active && occupiedSlots >= 4) throw new TownCommandError("ACTIVE_LIMIT", "active hero limit reached");
+  if (command.active && occupiedSlots >= ACTIVE_HERO_LIMIT) throw new TownCommandError("ACTIVE_LIMIT", "active hero limit reached");
   return {
     state: {
       ...town,

@@ -1,16 +1,18 @@
 import { useEffect, useMemo, useState } from "react";
-import type { CitizenAllocation, ItemBlueprint, Resources, StoredForgeMaterialStack } from "../../types";
+import type { BattleLogEntry, CitizenAllocation, ItemBlueprint, Resources, StoredForgeMaterialStack } from "../../types";
 import type { BasicForgeUpgradeProc } from "../../utils/gameCalculations";
-import { createCityDashboardView } from "../../domain/cityPresentation";
+import { createCityDashboardView, createCityHistoryView } from "../../domain/cityPresentation";
 import AssignmentPanel from "./AssignmentPanel";
 import BuildingListPanel from "./BuildingListPanel";
 import ForgeWorkspace from "./ForgeWorkspace";
 import SelectedBuildingPanel from "./SelectedBuildingPanel";
+import CityHistoryPanel from "./CityHistoryPanel";
 
 interface CityDashboardProps {
   resources: Resources; buildings: Record<string, number>; citizens: CitizenAllocation; totalCitizensCount: number;
   citizenGrowthProgress: number; highestFloorReached: number; canMutate: boolean;
   forgeMaterials: StoredForgeMaterialStack[]; itemBlueprints: ItemBlueprint[];
+  battleLogs?: BattleLogEntry[]; onClearCityLogs?: () => void;
   pendingForge?: { previewId: string; itemId: string; upgradeProc?: BasicForgeUpgradeProc } | null;
   onUpgradeBuilding: (id: string) => void; onAllocateCitizen: (role: keyof Omit<CitizenAllocation, "unassigned">, amount: number) => void;
   onStartForge: (recipeId: string) => void; onFinalizeForge: (previewId: string, acceptUpgrade: boolean, chosenModifierStat?: string) => void; onCancelForge: (previewId: string) => void;
@@ -18,6 +20,7 @@ interface CityDashboardProps {
 
 export default function CityDashboard(props: CityDashboardProps) {
   const view = useMemo(() => createCityDashboardView({ resources: props.resources, buildings: props.buildings, citizens: props.citizens, totalCitizens: props.totalCitizensCount, citizenGrowthProgress: props.citizenGrowthProgress, highestFloorReached: props.highestFloorReached }), [props.resources, props.buildings, props.citizens, props.totalCitizensCount, props.citizenGrowthProgress, props.highestFloorReached]);
+  const history = useMemo(() => createCityHistoryView(props.battleLogs ?? []), [props.battleLogs]);
   const [selectedBuildingId, setSelectedBuildingId] = useState("habitation");
   useEffect(() => { if (props.pendingForge) setSelectedBuildingId("forge"); }, [props.pendingForge]);
   const selected = view.buildings.find((building) => building.id === selectedBuildingId) ?? view.buildings[0];
@@ -30,5 +33,6 @@ export default function CityDashboard(props: CityDashboardProps) {
       <BuildingListPanel buildings={view.buildings} selectedId={selected.id} onSelect={setSelectedBuildingId} />
       <AssignmentPanel view={view} canMutate={props.canMutate} onAllocate={props.onAllocateCitizen} />
     </div>
+    <CityHistoryPanel view={history} onClear={props.onClearCityLogs} />
   </section>;
 }

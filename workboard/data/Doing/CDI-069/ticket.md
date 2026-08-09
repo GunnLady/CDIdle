@@ -8,7 +8,7 @@ size: L
 risk: medium
 source: Retour utilisateur du 2026-07-30 apres deploiement de l alpha
 depends_on: ["CDI-068"]
-blocks: ["CDI-076"]
+blocks: ["CDI-076", "CDI-089"]
 github_issue: null
 related_docs: ["docs/architecture/cdi-069-ui-ux-audit.md", "docs/architecture/cdi-069-interface-architecture.md", "docs/architecture/hero-domain.md", "src/App.tsx", "src/components/app-shell/AppShell.tsx", "src/components/city/CityDashboard.tsx", "src/domain/cityPresentation.ts", "assets/design/cdi-069/manifest.json"]
 ---
@@ -235,6 +235,17 @@ première migration.
       par Expédition, Roster, Héros sélectionné, Équipement et Compétences.
 - [x] La preuve utilisateur desktop et mobile valide la hiérarchie du sous-lot
       Aventuriers et l'accès aux actions de groupe.
+- [x] Le sous-lot Donjon sépare progression, rencontre, gestion du groupe et
+      historique sans réintroduire de sous-navigation.
+- [x] Le sous-lot Coffre sépare résumé, filtres, inventaire et décision
+      d'équipement contextualisée.
+- [x] Le sous-lot Compte sépare identité, synchronisation, résumé, historique
+      système et zone dangereuse ; les runtimes d'authentification restent dans
+      `App`.
+- [x] Les historiques Cité, Donjon et Système disposent chacun d'une rétention
+      indépendante de 25 entrées.
+- [x] La preuve responsive autonome des cinq pages passe après la migration du
+      Compte et l'ajout de la frontière desktop à 1280 px.
 
 ## Tests
 
@@ -254,7 +265,7 @@ Pendant le premier lot :
 - tests de structure et d'ordre responsive pour chaque page lors de son lot ;
 - tests composants des actions amélioration, affectation et forge ;
 - test du flux autoritaire avec restauration après échec ;
-- contrôle clavier et responsive à 360, 768, 1024 et 1440 px ;
+- contrôle clavier et responsive à 360, 768, 1024, 1280 et 1440 px ;
 - simulation autonome sans Supabase : `npm.cmd run test:layout-browser` ;
 - `npm.cmd run typecheck`, `npm.cmd run lint`, tests ciblés, build et budget
   bundle selon les règles du projet.
@@ -274,12 +285,93 @@ de la modale couverts par 73 tests ciblés. La suite complète passe ensuite ave
 88 fichiers et 674 tests ; TypeScript, ESLint et le validateur Workboard sont
 également conformes.
 
+Contrôle structurel Codex du 2026-08-08 après migration des cinq pages :
+TypeScript, ESLint, Workboard et `git diff --check` conformes ; 67 tests ciblés
+passent. La preuve `test:layout-browser` compte désormais 30 scénarios.
+
+Preuve rapportée par l'utilisateur le 2026-08-08 :
+`test:layout-browser` passe avec 30 tests sur 30 en 16,3 s sur les cinq pages.
+
+Correction de l'audit structurel du 2026-08-08 : le reset de récupération reste
+disponible lorsqu'une sauvegarde incompatible verrouille les mutations de jeu ;
+les conteneurs de pages ne déclarent plus à tort leurs consultations locales
+comme désactivées ; la limite d'équipe active est partagée jusque dans les
+handlers autoritaires ; la documentation reflète les composants et les cinq
+zones réelles de Compte. TypeScript, ESLint et 75 tests ciblés confirment ces
+corrections, dont la reprise du leadership après restauration du transport.
+
+Sous-lot d'entrée et fondation du 2026-08-08 : l'ancien `LoginPage` de 504 lignes
+est remplacé par `AuthenticationPage`, `OnboardingPage`, `CityCreationStep`,
+`FounderSelectionStep` et `FounderCandidateCard`. Les composants reçoivent des
+callbacks typés, les cartes utilisent `onboardingPresentation`, les deux héros
+sont confirmés sous forme minimale `{ id, name }`, les sélections locales
+survivent aux projections équivalentes et les événements de fondation vont
+explicitement dans l'historique Cité. La seconde porte d'authentification morte
+du Compte est supprimée. TypeScript, ESLint et 23 tests ciblés sont conformes ;
+un harness responsive autonome couvre Connexion, Cité et Fondateurs.
+
+Les cartes de fondateurs réutilisent le sprite `HeroPortrait` déterministe. Toute
+la surface de carte sélectionne ou désélectionne le héros au pointeur et au
+clavier ; le champ de nom reste un contrôle indépendant. Les preuves responsive
+couvrent désormais 360, 768, 1024, 1280 et 1440 px, et vérifient que le renommage
+ne modifie pas la sélection.
+
+Le dernier écart P3 est corrigé : le recrutement normal est extrait dans
+`RecruitmentOfferDialog`. Sa présentation s'appuie, comme l'onboarding, sur
+`heroCandidatePresentation`, tandis que `recruitmentPresentation` projette le
+coût partagé du domaine. `App.tsx` ne calcule plus les attributs, le genre ou le
+coût de l'offre et conserve uniquement les callbacks d'orchestration. Les tests
+unitaires couvrent l'offre, la lecture seule et le fallback de genre cohérent.
+
+Contrôle complémentaire du 2026-08-09 : le backend utilise désormais la même
+éligibilité partagée que la présentation pour le coût, la capacité et la
+priorité des erreurs, dès la création de l'offre. La modale de recrutement enferme le focus, restaure le
+contrôle précédent, accepte `Échap` et scrolle sur viewport court. La lecture
+seule des Fondateurs est prouvée sans commande canonique, le fallback historique
+de 20 PM reste limité à l'offre de recrutement et le test d'authentification
+porte maintenant le nom du composant réel.
+
+Le premier lancement du pipeline navigateur réel a atteint les cinq candidats,
+leurs portraits et deux sélections, puis a révélé un sélecteur sensible à la
+casse sur le bouton final. Le libellé fonctionnel était présent et actif ; le
+test utilise désormais son nom accessible sans dépendre de la casse.
+
 ## Validation manuelle
 
-Avant développement, faire valider la composition, les responsabilités et le
-périmètre du premier lot. Après développement, vérifier sur une partie réelle :
-sélection, amélioration, affectation, forge verrouillée/déverrouillée,
-hors ligne, observateur, restauration autoritaire, desktop et mobile.
+Preuve rapportée par l'utilisateur le 2026-08-09 : l'ensemble du périmètre
+visuel de CDI-069 a été contrôlé sur une partie réelle et validé sans écart,
+notamment le parcours d'entrée ainsi que les écrans Cité, Aventuriers, Donjon,
+Coffre et Compte. Cette validation couvre la composition, les actions, les
+états visibles et le comportement responsive attendus du ticket.
+
+## Audit fonctionnel pré-push du 2026-08-09
+
+L'audit complet des objectifs, des frontières React/présentation/domaine, de
+l'orchestration canonique et de la parité frontend/backend ne relève aucune
+régression fonctionnelle. Deux écarts de cohérence restent ouverts avant
+clôture :
+
+- [x] P2 — extraire la projection du `DungeonProgressBanner` hors du composant
+      React et la partager avec `dungeonPresentation`, puis prouver la parité du
+      statut, de la progression et des quatre places du groupe.
+- [x] P3 — documenter l'exception de récupération d'une sauvegarde incompatible :
+      les actions dangereuses restent accessibles après chargement de session
+      lorsque l'état canonique est rejeté, même si le transport canonique et le
+      leadership ne peuvent pas être établis.
+
+Preuves de l'audit : TypeScript, ESLint, déterminisme, `git diff --check` et
+Workboard conformes ; 96 fichiers Vitest et 717 tests réussis. Les preuves
+navigateur, build et bundle restent celles rapportées par l'utilisateur le
+2026-08-09 ; la couverture n'a pas été rejouée.
+
+Corrections de l'audit : `DungeonProgressBanner` reçoit désormais une vue pure
+préparée par `App`, fondée sur la même projection de salle que Donjon ; le
+composant ne calcule plus statut, groupe ni pourcentages. Le contrat Compte
+documente l'exception de récupération exactement comme
+`canUseAccountDangerActions` et ses tests. Quatre fichiers de tests ciblés et
+20 tests passent ; TypeScript et ESLint sont conformes. Après correction, la
+suite complète passe avec 96 fichiers et 718 tests ; déterminisme,
+`git diff --check` et Workboard restent conformes.
 
 ## Preservation
 

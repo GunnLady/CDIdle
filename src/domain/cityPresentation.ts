@@ -1,4 +1,4 @@
-import type { CitizenAllocation, Resources } from "../types";
+import type { BattleLogEntry, CitizenAllocation, Resources } from "../types";
 import { BUILDINGS_LIST, BUILDING_UNLOCKS, checkBuildingUnlocked, getBuildingMaxLevel, getBuildingUpgradeCost } from "../data/gameData";
 
 export type CityJobId = keyof Omit<CitizenAllocation, "unassigned">;
@@ -21,6 +21,11 @@ export interface CityDashboardView {
   totalCitizens: number;
   maxCitizens: number;
   citizenGrowthProgress: number;
+}
+
+export interface CityHistoryView {
+  entries: BattleLogEntry[];
+  emptyMessage: string;
 }
 
 const categoryLabels = { housing: "Logement", production: "Production", military: "Vocation", social: "Communauté" } as const;
@@ -55,5 +60,12 @@ export function createCityDashboardView(input: {
   return {
     buildings, jobs, unassignedCitizens: input.citizens.unassigned, totalCitizens: input.totalCitizens,
     maxCitizens: (input.buildings.habitation ?? 0) * 3, citizenGrowthProgress: input.citizenGrowthProgress,
+  };
+}
+
+export function createCityHistoryView(logs: BattleLogEntry[]): CityHistoryView {
+  return {
+    entries: [...logs].filter((entry) => entry.category === "colony").reverse(),
+    emptyMessage: "Aucune action de la cité enregistrée.",
   };
 }

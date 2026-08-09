@@ -3,15 +3,18 @@ import { CLASS_INFO_LIST } from "../data/game-data.ts";
 import { calculateXpNeeded, refreshHeroDerivedStats } from "./game-calculations.ts";
 import type { Rng } from "./random.ts";
 
+export const ACTIVE_HERO_LIMIT = 4;
+
 export const recruitmentCost = (heroCount: number): number => 100 + Math.max(0, heroCount) * 150;
+export const recruitmentCapacity = (guildLevel: number): number => Math.max(0, guildLevel) + 2;
 
 export type HeroEligibilityError = "INSUFFICIENT_GOLD" | "GUILD_REQUIRED" | "CAPACITY_REACHED";
 export function recruitmentEligibility(heroCount: number, gold: number, guildLevel: number): { ok: true; cost: number; capacity: number } | { ok: false; error: HeroEligibilityError; cost: number; capacity: number } {
   const cost = recruitmentCost(heroCount);
-  const capacity = Math.max(0, guildLevel) + 2;
-  if (gold < cost) return { ok: false, error: "INSUFFICIENT_GOLD", cost, capacity };
+  const capacity = recruitmentCapacity(guildLevel);
   if (guildLevel < 1) return { ok: false, error: "GUILD_REQUIRED", cost, capacity };
   if (heroCount >= capacity) return { ok: false, error: "CAPACITY_REACHED", cost, capacity };
+  if (gold < cost) return { ok: false, error: "INSUFFICIENT_GOLD", cost, capacity };
   return { ok: true, cost, capacity };
 }
 
@@ -34,14 +37,14 @@ export function recruitHero(state: HeroRosterState, createHero: () => Hero): Rec
 }
 
 export function dismissHero(heroes: Hero[], heroId: string): Hero[] { return heroes.filter((hero) => hero.id !== heroId); }
-export function canActivateHero(hero: Hero, activeHeroCount: number): boolean { return !hero.isActive && hero.currentHp > 0 && activeHeroCount < 4; }
+export function canActivateHero(hero: Hero, activeHeroCount: number): boolean { return !hero.isActive && hero.currentHp > 0 && activeHeroCount < ACTIVE_HERO_LIMIT; }
 export type HeroActivityError = "HERO_NOT_FOUND" | "ALREADY_ACTIVE" | "ALREADY_INACTIVE" | "INVALID_HEALTH" | "ACTIVE_LIMIT";
 export function setHeroActivity(heroes: Hero[], heroId: string, active: boolean): { ok: true; heroes: Hero[] } | { ok: false; error: HeroActivityError } {
   const target = heroes.find((hero) => hero.id === heroId);
   if (!target) return { ok: false, error: "HERO_NOT_FOUND" };
   if (target.isActive === active) return { ok: false, error: active ? "ALREADY_ACTIVE" : "ALREADY_INACTIVE" };
   if (active && target.currentHp <= 0) return { ok: false, error: "INVALID_HEALTH" };
-  if (active && heroes.filter((hero) => hero.isActive).length >= 4) return { ok: false, error: "ACTIVE_LIMIT" };
+  if (active && heroes.filter((hero) => hero.isActive).length >= ACTIVE_HERO_LIMIT) return { ok: false, error: "ACTIVE_LIMIT" };
   return { ok: true, heroes: heroes.map((hero) => hero.id === heroId ? { ...hero, isActive: active, status: active ? "idle" : "resting" } : { ...hero }) };
 }
 
@@ -107,4 +110,3 @@ export function addHeroExperience(
 ): Hero {
   return applyHeroExperienceLevels(hero, xpEarned, rng).hero;
 }
-

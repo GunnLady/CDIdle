@@ -29,6 +29,11 @@ function Harness() {
         { materialId: "refined_metal", rarity: "uncommon", count: 2 },
       ]}
       itemBlueprints={[{ itemId: "starter_sword", unlocked: true }]}
+      battleLogs={[
+        { id: "colony", timestamp: "10:00", message: "La scierie produit du bois.", type: "info", category: "colony" },
+        { id: "dungeon", timestamp: "10:01", message: "Le groupe terrasse un squelette.", type: "victory", category: "dungeon" },
+      ]}
+      onClearCityLogs={recordMutation}
       onUpgradeBuilding={recordMutation}
       onAllocateCitizen={recordMutation}
       onStartForge={recordMutation}

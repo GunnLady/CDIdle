@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import StoragePanel from "../src/components/StoragePanel";
 import { makeHero } from "./fixtures/game";
@@ -105,6 +105,10 @@ describe("StoragePanel modifier stacks", () => {
     const recycleButtons = screen.getAllByRole("button", { name: /recycler/i });
     expect(recycleButtons).toHaveLength(2);
     fireEvent.click(recycleButtons[1]);
+    fireEvent.click(screen.getByRole("button", { name: "Annuler" }));
+    expect(onScrapItem).not.toHaveBeenCalled();
+    fireEvent.click(screen.getAllByRole("button", { name: /recycler/i })[1]);
+    fireEvent.click(screen.getByRole("button", { name: "Confirmer" }));
     expect(onScrapItem).toHaveBeenCalledOnce();
     expect(onScrapItem).toHaveBeenCalledWith("item-critical");
   });
@@ -122,6 +126,7 @@ describe("StoragePanel modifier stacks", () => {
 
     fireEvent.click(screen.getAllByRole("button", { name: /^Équiper$/i })[1]);
     fireEvent.click(screen.getByRole("button", { name: /Cible/ }));
+    fireEvent.click(within(screen.getByTestId("storage-equipment-decision")).getByRole("button", { name: "Équiper" }));
     expect(onEquipItem).toHaveBeenCalledOnce();
     expect(onEquipItem).toHaveBeenCalledWith("hero-target", "item-second");
   });
@@ -138,6 +143,34 @@ describe("StoragePanel modifier stacks", () => {
     const heroButton = screen.getByRole("button", { name: /Guerrier test/ });
     expect(heroButton).not.toBeDisabled();
     fireEvent.click(heroButton);
+    fireEvent.click(within(screen.getByTestId("storage-equipment-decision")).getByRole("button", { name: "Équiper" }));
     expect(onEquipItem).toHaveBeenCalledWith("hero-warrior", "item-lute");
+  });
+
+  it("keeps item and hero consultation local in read-only mode", () => {
+    const onEquipItem = vi.fn();
+    render(<StoragePanel
+      storedItems={[{ instanceId: "item-readonly", itemId: "starter_sword", rarity: "common" }]}
+      heroes={[makeHero({ id: "hero-readonly", name: "Observatrice" })]}
+      onEquipItem={onEquipItem}
+      canMutate={false}
+    />);
+
+    fireEvent.click(within(screen.getByTestId("storage-item-item-readonly")).getByRole("button", { name: /Épée de départ/ }));
+    const decision = screen.getByTestId("storage-equipment-decision");
+    expect(within(decision).getByText("Observatrice")).toBeInTheDocument();
+    expect(within(decision).getByRole("button", { name: "Équiper" })).toBeDisabled();
+    expect(onEquipItem).not.toHaveBeenCalled();
+  });
+
+  it("distinguishes an empty storage from an empty filtered result", () => {
+    const { rerender } = render(<StoragePanel storedItems={[]} />);
+    expect(screen.getByText("Votre coffre est vide.")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Réinitialiser les filtres" })).not.toBeInTheDocument();
+
+    rerender(<StoragePanel storedItems={[{ instanceId: "filtered", itemId: "starter_sword", rarity: "common" }]} />);
+    fireEvent.change(screen.getByRole("searchbox", { name: "Rechercher un objet" }), { target: { value: "introuvable" } });
+    expect(screen.getByText("Aucun objet ne correspond aux filtres.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Réinitialiser les filtres" })).toBeInTheDocument();
   });
 });

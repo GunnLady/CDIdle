@@ -4,6 +4,7 @@ const viewports = [
   { name: "mobile", width: 360, height: 800 },
   { name: "tablet", width: 768, height: 900 },
   { name: "compact", width: 1024, height: 900 },
+  { name: "desktop boundary", width: 1280, height: 900 },
   { name: "desktop", width: 1440, height: 1000 },
 ] as const;
 
@@ -55,6 +56,13 @@ for (const viewport of viewports) {
     await expect(selected).toContainText("Forge rustique");
     await expect(selected.getByRole("button", { name: "Forger" })).toBeDisabled();
     await expect(page.getByTestId("mutation-count")).toHaveText("0");
+    const history = page.getByTestId("city-history-panel");
+    await expect(history).toContainText("La scierie produit du bois.");
+    await expect(history).not.toContainText("Le groupe terrasse un squelette.");
+    await history.locator("summary").click();
+    expect(await history.evaluate((element) => (element as HTMLDetailsElement).open)).toBe(false);
+    await history.locator("summary").click();
+    expect(await history.evaluate((element) => (element as HTMLDetailsElement).open)).toBe(true);
     expect(commandRequests).toEqual([]);
   });
 }

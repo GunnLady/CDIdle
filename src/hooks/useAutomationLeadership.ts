@@ -50,7 +50,7 @@ export function useAutomationLeadership(options: AutomationLeadershipOptions) {
   }, [relinquishAutomationLeadership]);
 
   useEffect(() => {
-    if (!options.userId || !options.ready) {
+    if (!options.userId || !options.ready || !options.transportOnline) {
       resetAutomationLeadership();
       return;
     }
@@ -146,7 +146,7 @@ export function useAutomationLeadership(options: AutomationLeadershipOptions) {
       lease.stop();
       if (controlLeaseRef.current === lease) controlLeaseRef.current = null;
     };
-  }, [controlLeaseEpoch, options.ready, options.userId, relinquishAutomationLeadership, resetAutomationLeadership]);
+  }, [controlLeaseEpoch, options.ready, options.transportOnline, options.userId, relinquishAutomationLeadership, resetAutomationLeadership]);
 
   const requestGameControl = useCallback(() => {
     const current = optionsRef.current;

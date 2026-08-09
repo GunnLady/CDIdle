@@ -1,6 +1,7 @@
 # CDI-069 — Architecture de l'interface
 
-Statut : **cadrage proposé pour validation avant développement**.
+Statut : **architecture implémentée ; validation visuelle utilisateur en attente
+avant l'audit fonctionnel pré-push**.
 
 ## 1. Décision
 
@@ -117,12 +118,12 @@ La page contient quatre zones :
 | Progression et commande | étage, salle, navigation d'étage, exploration manuelle/auto, retraite |
 | Rencontre actuelle | type, ennemi ou événement, état de lecture et résultat |
 | Gestion du groupe | quatre places, héros engagés, réservistes, PV/PM, équipement et ajout/retrait |
-| Historique | rencontres résolues et registre filtrable |
+| Historique | rencontres résolues et notes locales du Donjon |
 
-La progression reste canonique. `DungeonPartyManager` permet de consulter tous
+La progression reste canonique. `DungeonPartyPanel` permet de consulter tous
 les héros, de les ajouter ou retirer et d'ouvrir leur fiche/équipement sans
 quitter le Donjon. Les seuls états locaux concernent l'affichage : héros
-sélectionné, filtre du journal, confirmation de reset et développement d'un
+sélectionné, confirmation de reset et développement d'un
 détail. L'action principale courante est unique et persistante ; les actions de
 reset ou retraite sont visuellement séparées.
 
@@ -142,7 +143,7 @@ La page suit un maître/détail à quatre zones :
 | Décision d'équipement | objet, héros cible, équipement actuel, comparaison et confirmation |
 
 `selectedItemInstanceId`, filtres, tri et cible d'équipement sont locaux.
-`EquipmentDecisionPanel` montre, pour chaque héros compatible, son portrait,
+`StorageEquipmentDecisionPanel` montre, pour chaque héros compatible, son portrait,
 son niveau, l'emplacement visé, l'objet actuel, les effets gagnés/perdus et les
 statistiques dérivées avant/après. Il signale le niveau requis, le blocage de
 main gauche et tout objet déplacé par une arme à deux mains.
@@ -167,16 +168,23 @@ distinctes sans objet sélectionné.
 | Identité et session | compte actif, connexion ou déconnexion |
 | Synchronisation | état cloud, commande de sauvegarde et erreurs |
 | Résumé du royaume | ressources, bâtiments, citoyens, héros et progression |
+| Historique système | connexion, synchronisation et état de l'application |
 | Zone dangereuse | réinitialisation du royaume et suppression du compte |
 
 Déconnecté, la page devient un portail d'authentification unique et n'affiche
-pas des contrôles inopérants. Connecté, les quatre zones sont visibles sans
+pas des contrôles inopérants. Connecté, les cinq zones sont visibles sans
 sous-navigation. Reset et suppression utilisent le même contrat de confirmation
-accessible, mais restent deux actions distinctes.
+accessible, mais restent deux actions distinctes. En fonctionnement normal,
+leur disponibilité dépend du transport, du chargement de session et de
+l'autorité de l'onglet. Une sauvegarde incompatible constitue une exception de
+récupération : après chargement de la session et tant que le navigateur est en
+ligne, reset et suppression restent accessibles même si le transport canonique
+et le leadership n'ont pas pu être établis. Le serveur conserve l'autorité sur
+leur résultat et aucune donnée locale n'est effacée avant sa réponse.
 
 Sur desktop, identité/synchronisation et résumé peuvent former deux colonnes ;
-la zone dangereuse reste pleine largeur en bas. Sur mobile, identité,
-synchronisation, résumé puis zone dangereuse.
+l'historique système et la zone dangereuse restent en pleine largeur en bas.
+Sur mobile : identité, synchronisation, résumé, historique puis zone dangereuse.
 
 ### Règle commune de composition
 
@@ -209,19 +217,20 @@ App
       │  ├─ HeroSkillsPanel
       │  └─ HeroEquipmentPanel
       ├─ DungeonPage
-      │  ├─ DungeonProgressPanel
-      │  ├─ ActiveEncounterPanel
-      │  ├─ DungeonPartyManager
-      │  └─ EncounterHistoryPanel
+      │  ├─ DungeonProgressControls
+      │  ├─ CurrentEncounterPanel
+      │  ├─ DungeonPartyPanel
+      │  └─ DungeonHistoryPanel
       ├─ StoragePage
       │  ├─ StorageToolbar
       │  ├─ ItemInventoryPanel
-      │  └─ EquipmentDecisionPanel
+      │  └─ StorageEquipmentDecisionPanel
       └─ AccountPage
          ├─ AccountIdentityPanel
          ├─ SyncStatusPanel
          ├─ RealmSummaryPanel
-         └─ DangerZonePanel
+         ├─ SystemHistoryPanel
+         └─ AccountDangerZonePanel
 ```
 
 ### `App`
@@ -293,16 +302,17 @@ les états de session et synchronisation sans projection maître/détail forcée
 
 ### Patterns transverses prouvés
 
-`DungeonPartyManager` possède actuellement un consommateur migré : Aventuriers.
-Il reçoit la projection des quatre places actives et ne possède pas la règle de
-capacité. Le lot Donjon réutilisera la même projection ; ses réservistes, raisons
-de blocage et callbacks `hero.activity` resteront dans son panneau de roster.
+`DungeonPartyManager` et `DungeonPartyPanel` consomment des projections issues
+du même roster. Aventuriers privilégie une synthèse qui mène au Donjon ; Donjon
+ajoute réservistes, raisons de blocage, statistiques de combat et callbacks
+`hero.activity`. La capacité active vient de `ACTIVE_HERO_LIMIT` dans le domaine
+partagé et n'est plus recopiée dans les panneaux.
 
-`EquipmentDecisionPanel` possède actuellement un consommateur migré :
-Équipement du héros. Le lot Coffre le réutilisera. Une projection pure calcule
-l'emplacement, l'éligibilité, les objets déplacés et les différences avant/après
-avec les mêmes règles que la transition autoritaire. Le composant ne simule pas
-lui-même l'équipement.
+`EquipmentDecisionPanel` et `StorageEquipmentDecisionPanel` répondent à deux
+contextes différents : un emplacement du héros d'un côté, un objet du Coffre et
+plusieurs héros candidats de l'autre. Ils partagent `EquipmentChangeSummary` et
+les projections pures de `heroEquipmentPresentation`, alignées sur la transition
+autoritaire. Aucun composant ne simule lui-même l'équipement.
 
 `DungeonProgressBanner` consomme la même projection que Donjon et n'est rendu
 que lorsque la destination active n'est pas Donjon. Il n'exécute que la
@@ -360,16 +370,49 @@ La preuve responsive autonome du lot Cité s'exécute sans Supabase :
 npm.cmd run test:layout-browser
 ```
 
-Elle monte les pages migrées sans Supabase et contrôle 360, 768, 1024 et
-1440 px. La Cité vérifie le débordement horizontal, le maître/détail desktop,
-les 14 bâtiments, la lecture seule, l'absence de commande sur sélection et les
-états Forge 0/1. Aventuriers vérifie ses cinq zones, leur ordre responsive, la
-sélection locale et le verrouillage des commandes en lecture seule.
+Elle monte les cinq pages sans Supabase et contrôle 360, 768, 1024, la frontière
+desktop de 1280 et 1440 px. La Cité vérifie le débordement horizontal, le
+maître/détail desktop, les 14 bâtiments, la lecture seule, l'absence de commande
+sur sélection et les états Forge 0/1. Aventuriers, Donjon, Coffre et Compte
+vérifient leurs zones, leur ordre responsive, leurs sélections locales et le
+verrouillage des commandes indisponibles.
 
-## 11. Hors périmètre du premier lot
+## 11. Parcours d'entrée et fondation
 
-- migration des quatre autres pages ;
+Les écrans précédant la partie complète ne sont pas rendus dans `AppShell` :
+
+1. `AuthenticationPage` reçoit uniquement le callback d'authentification ;
+2. `OnboardingPage` déduit l'étape depuis l'offre autoritaire ;
+3. `CityCreationStep` prépare le nom et demande l'offre de cinq novices ;
+4. `FounderSelectionStep` conserve localement les deux sélections et les noms ;
+5. la confirmation transmet uniquement les couples `{ id, name }` à `App`.
+
+`heroCandidatePresentation` prépare le résumé canonique commun aux candidats de
+fondation et de recrutement. `onboardingPresentation` ajoute les suggestions de
+nom et la sélection minimale ; `recruitmentPresentation` ajoute le coût issu de
+la règle de domaine partagée. Cette même règle fournit au backend le coût, la
+capacité et la priorité des refus pour la création de l'offre, sa confirmation
+et le recrutement direct ; les handlers ne les recalculent pas. Les
+composants n'importent ni Supabase ni le
+transport canonique. Les
+saisies locales restent disponibles en mode observateur, tandis que les deux
+commandes autoritaires sont verrouillées. Le parcours conserve l'action de
+transfert du contrôle sans réintroduire la navigation du jeu. Les réussites de
+fondation sont routées explicitement dans l'historique Cité.
+
+Le recrutement normal est rendu par `RecruitmentOfferDialog`, chargé à la
+demande. `App` lui transmet seulement le candidat, l'état d'autorité et les
+callbacks ; la projection des attributs et le calcul du coût ne sont plus dans
+la racine. L'offre reste consultable en mode observateur, mais ses commandes
+sont verrouillées. La modale capture et restaure le focus, boucle la navigation
+au clavier, accepte `Échap` lorsque l'annulation est autorisée et devient
+scrollable sur un viewport peu haut.
+
+## 12. Hors périmètre du ticket
+
 - recommandation automatique du prochain bâtiment ;
 - nouvelle règle de gameplay ou nouveau contrat persistant ;
 - carte interactive, masque ou variante graphique par niveau ;
-- bibliothèque UI générique construite sans consommateur réel.
+- bibliothèque UI générique construite sans consommateur réel ;
+- décomposition supplémentaire des cas d'usage et runtimes encore orchestrés
+  par `App.tsx`, sans rapport direct avec la structure des écrans de CDI-069.

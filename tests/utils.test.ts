@@ -21,7 +21,7 @@ import { CLASS_INFO_LIST } from "../src/data/heroes";
 import { makeCitizens, makeHero, makeStoredItem } from "./fixtures/game";
 import { isCommandSuccess, validateCommandEnvelope, type CommandEnvelope } from "../src/domain/commands";
 import { fixedClock, seededRng } from "../src/domain/random";
-import { addHeroExperience, canActivateHero, dismissHero, growHeroStats, recruitHero, recruitmentCost, recruitmentEligibility, setHeroActivity } from "../src/domain/hero";
+import { addHeroExperience, canActivateHero, dismissHero, growHeroStats, recruitHero, recruitmentCapacity, recruitmentCost, recruitmentEligibility, setHeroActivity } from "../src/domain/hero";
 import { assignTier1Skills } from "../src/domain/tier1ClassTransition";
 import { applyHeroProgression } from "../src/domain/heroProgression";
 import { applyClassTransition, resolveClassTransition } from "../src/domain/classTransition";
@@ -122,6 +122,10 @@ describe("hero domain", () => {
   it("calculates recruitment costs predictably", () => {
     expect(recruitmentCost(0)).toBe(100);
     expect(recruitmentCost(3)).toBe(550);
+    expect(recruitmentCapacity(0)).toBe(2);
+    expect(recruitmentCapacity(3)).toBe(5);
+    expect(recruitmentEligibility(0, 0, 0)).toMatchObject({ ok: false, error: "GUILD_REQUIRED" });
+    expect(recruitmentEligibility(3, 0, 1)).toMatchObject({ ok: false, error: "CAPACITY_REACHED" });
   });
 
   it("levels heroes with an injected deterministic RNG", () => {
