@@ -105,6 +105,19 @@ et l'objectif exacts, puis attend le résultat.
    déclenchement, la réussite du workflow et la validation visuelle ou
    fonctionnelle de l'application.
 
+## Surveillance asynchrone CI et déploiements
+
+1. Après un push, une relance ou un déploiement GitHub Actions, utiliser le
+   skill projet `cdidle-ci-monitor`.
+2. Déléguer par défaut le polling du run à un agent secondaire et poursuivre le
+   travail utile dans l'agent principal.
+3. Ne pas bloquer l'agent principal avec `gh run watch` lorsqu'une autre étape
+   du sous-lot peut avancer.
+4. Ne remonter que l'état terminal, ou immédiatement un blocage qui exige une
+   décision utilisateur.
+5. Si aucun slot d'agent n'est libre, effectuer des contrôles ponctuels à faible
+   fréquence entre les autres étapes.
+
 ## Replay autoritaire local
 
 Pour rejouer manuellement une commande sans copier de bearer :

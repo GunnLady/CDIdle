@@ -1,0 +1,4 @@
+interface:
+  display_name: "CDIdle CI Monitor"
+  short_description: "Surveille CI et déploiements sans bloquer"
+  default_prompt: "Use $cdidle-ci-monitor to monitor the current GitHub Actions run asynchronously."
