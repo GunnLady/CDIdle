@@ -137,9 +137,11 @@ test("persists one real browser command and restores state after a visible backe
     await expect(page.getByTestId("onboarding-stage")).toBeVisible({ timeout: 15_000 });
     const cityNameInput = page.getByLabel("Nom de la Cité ralliée");
     await cityNameInput.fill("Cité Smoke CDI-084");
+    const foundCityButton = page.getByRole("button", { name: "Fonder la Cité", exact: true });
+    await expect(foundCityButton).toBeEnabled({ timeout: 15_000 });
     await executeCommandThroughUi(
       page,
-      () => cityNameInput.press("Enter"),
+      () => foundCityButton.click(),
     );
     await expect(page.getByText("Choisissez vos Fondateurs")).toBeVisible();
     await expect(page.getByTestId("onboarding-stage").locator('[id^="hero-portrait-"]')).toHaveCount(5);
