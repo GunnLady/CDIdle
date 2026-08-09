@@ -41,10 +41,13 @@ diagnostics qu'en cas d'échec.
 
 ## CI
 
-La CI démarre déjà Supabase local. Elle installe uniquement Chromium, lance
-`npm run test:browser`, puis publie `test-results/browser` si le smoke échoue.
-Le test reste séquentiel et utilise une identité propre à son exécution afin de
-ne pas consommer le quota du moteur de test temporel.
+La CI matérialise `supabase/functions/.env` depuis l'exemple versionné avant de
+démarrer Supabase local. Cela aligne explicitement l'issuer JWT public du test
+avec celui attendu par `game-api`, sans ajouter de secret au dépôt. Elle
+installe ensuite Chromium, lance `npm run test:browser`, puis publie
+`test-results/browser` si le smoke échoue. Le test reste séquentiel et utilise
+une identité propre à son exécution afin de ne pas consommer le quota du moteur
+de test temporel.
 
 En cas d'indisponibilité locale de l'Edge Function, le test échoue tôt sur le
 reset avec le statut et le corps JSON non secret. Il faut alors diagnostiquer
