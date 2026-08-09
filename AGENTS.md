@@ -113,8 +113,9 @@ et l'objectif exacts, puis attend le résultat.
    travail utile dans l'agent principal.
 3. Ne pas bloquer l'agent principal avec `gh run watch` lorsqu'une autre étape
    du sous-lot peut avancer.
-4. Ne remonter que l'état terminal, ou immédiatement un blocage qui exige une
-   décision utilisateur.
+4. Après délégation, rendre immédiatement la main s'il ne reste aucun travail
+   utile, en signalant une seule fois que la surveillance continue. Remonter
+   ensuite l'état terminal, ou immédiatement un blocage exigeant une décision.
 5. Si aucun slot d'agent n'est libre, effectuer des contrôles ponctuels à faible
    fréquence entre les autres étapes.
 

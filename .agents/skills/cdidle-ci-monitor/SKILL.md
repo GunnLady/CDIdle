@@ -42,14 +42,19 @@ acceptable ; ne jamais bloquer un appel unique plus de 60 secondes.
 - Si un agent surveille déjà le même `run_id`, lui envoyer le contexte manquant
   au lieu d'en créer un autre.
 - Quand l'agent secondaire termine, intégrer son résultat au prochain point de
-  contrôle de l'agent principal.
+  contrôle de l'agent principal, ou au début du prochain tour.
 - Si aucun slot n'est libre, faire un polling ponctuel depuis l'agent principal
   entre deux étapes utiles. Utiliser `gh run watch` seulement lorsqu'il n'existe
   réellement aucun autre travail et qu'un résultat terminal est requis avant
   de continuer.
-- Si le tour doit rester ouvert uniquement pour attendre le run, utiliser des
-  attentes de boîte aux lettres de 60 secondes maximum sans publier de messages
-  répétitifs.
+- S'il ne reste aucun travail utile après la délégation, rendre immédiatement
+  la main à l'utilisateur avec le `run_id`, son URL et la mention que la
+  surveillance continue en arrière-plan.
+- Ne jamais garder le tour ouvert, appeler une attente de boîte aux lettres ou
+  publier des mises à jour uniquement pour patienter jusqu'à la fin du run.
+- L'utilisateur peut poursuivre avec une autre demande pendant la surveillance.
+  Traiter cette demande normalement, puis intégrer le rapport terminal dès
+  qu'il est disponible.
 
 ## Compte rendu terminal
 
