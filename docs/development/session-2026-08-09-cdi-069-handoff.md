@@ -2,15 +2,15 @@
 
 ## État du sous-lot
 
-CDI-069 est toujours dans `workboard/data/Doing/CDI-069/ticket.md`. La
+CDI-069 est clos dans `workboard/data/Done/CDI-069/ticket.md`. La
 restructuration fonctionnelle des écrans Cité, Aventuriers, Donjon, Coffre,
 Compte et du parcours d'entrée est implémentée. Ne pas recommencer cette
 architecture : reprendre le dépôt et le ticket tels quels.
 
 La validation visuelle utilisateur et l'audit fonctionnel pré-push sont
 terminés. L'implémentation a été publiée sur `main` dans le commit `be04493`.
-Le ticket demeure volontairement en `Doing` et ne doit pas être déplacé en
-`Done` sans nouvelle demande explicite de l'utilisateur.
+Le ticket a été déplacé en `Done` le 2026-08-09 après demande explicite de
+l'utilisateur, validation de la CI et déploiement du backend et du frontend.
 
 ## Réalisé
 
@@ -58,17 +58,17 @@ tests. Ne pas la présenter comme une preuve récente sans nouveau résultat.
 
 ## Reprise recommandée
 
-1. Lire `AGENTS.md`, le ticket CDI-069 et l'architecture associée.
-2. Conserver CDI-069 en `Doing` tant que l'utilisateur ne demande pas son
-   déplacement.
+1. Lire `AGENTS.md`, le ticket CDI-076 et l'architecture issue de CDI-069.
+2. Poursuivre CDI-076 depuis `workboard/data/Doing/CDI-076/ticket.md` sans
+   reprendre l'implémentation fonctionnelle close de CDI-069.
 3. Considérer `be04493` comme le commit fonctionnel publié et ne pas refaire
    l'audit pré-push sans modification fonctionnelle ultérieure.
 4. Contrôler uniquement Git, la CI et les déploiements concernés.
-5. Au 2026-08-09 à 11:03 +02:00, le connecteur GitHub confirme le commit mais ne
-   retourne aucun statut ni run pour sa CI déclenchée sur `main` : état CI
-   `inconnu`, sans conclure à un échec.
-6. Le frontend et le backend restent à déployer explicitement ; aucun des deux
-   déploiements n'est impliqué par le seul push.
+5. La CI du commit fonctionnel final `17362cb` est vérifiée réussie dans le run
+   GitHub Actions `31308627735`.
+6. Le déploiement backend `game-api` est rapporté réussi par l'utilisateur ; le
+   frontend alpha du même commit est vérifié déployé par Codex dans le run
+   `31309156183`.
 
 ## Déploiement à retenir
 

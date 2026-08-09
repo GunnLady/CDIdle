@@ -1,7 +1,7 @@
 ---
 id: CDI-076
 title: Etablir le design system interne et le catalogue UI CDIdle
-status: Later
+status: Doing
 area: frontend
 priority: P1
 size: L
@@ -10,7 +10,7 @@ source: Cadrage du refactor visuel CDIdle du 2026-08-01
 depends_on: ["CDI-069"]
 blocks: ["CDI-077"]
 github_issue: null
-related_docs: ["workboard/data/Doing/CDI-069/ticket.md", "src/index.css", "src/App.tsx", "src/components"]
+related_docs: ["workboard/data/Done/CDI-069/ticket.md", "src/index.css", "src/App.tsx", "src/components"]
 ---
 
 # CDI-076 - Etablir le design system interne et le catalogue UI CDIdle

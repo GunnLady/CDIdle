@@ -1,7 +1,7 @@
 ---
 id: CDI-069
 title: Cadrer l architecture UI UX et le tableau de bord de la Cite
-status: Doing
+status: Done
 area: frontend
 priority: P1
 size: L
