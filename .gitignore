@@ -27,3 +27,11 @@ workboard-backups/
 
 # Supabase Studio query scratch files; migrations, functions and tests remain tracked
 supabase/snippets/
+
+# Local visual-generation archive; only approved runtime assets are versioned
+assets/design/cdi-069/sources/
+assets/design/cdi-069/previews/
+assets/design/cdi-069/account-button-v1.prompt.md
+assets/design/cdi-069/app-shell-background-v1.prompt.md
+assets/design/cdi-069/app-shell-background-v2-ultrawide.prompt.md
+assets/design/cdi-069/header-menu-bar-v1.prompt.md

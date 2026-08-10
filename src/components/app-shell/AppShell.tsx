@@ -10,7 +10,7 @@ interface AppShellProps {
 }
 
 export default function AppShell(props: AppShellProps) {
-  return <div data-testid="app-shell" className="min-h-screen bg-[#110905] text-[#fbf7f0] flex flex-col font-sans selection:bg-[#ae8650] selection:text-white xl:h-screen xl:overflow-hidden">
+  return <div data-testid="app-shell" className="app-shell-background min-h-screen bg-[#110905] text-[#fbf7f0] flex flex-col font-sans selection:bg-[#ae8650] selection:text-white xl:h-screen xl:overflow-hidden">
     {props.header}
     {props.statusLayer}
     <PageViewport>
@@ -25,7 +25,7 @@ export default function AppShell(props: AppShellProps) {
 }
 
 export function PageViewport({ children }: { children: ReactNode }) {
-  return <main className="min-h-0 flex-1 p-3 sm:p-6 overflow-visible xl:overflow-y-auto max-w-[1440px] mx-auto w-full flex flex-col gap-4 select-none text-[15px] sm:text-base leading-relaxed">
+  return <main className="min-h-0 flex-1 p-3 sm:px-6 sm:py-4 xl:pt-2.5 overflow-visible xl:overflow-y-auto max-w-[1440px] mx-auto w-full flex flex-col gap-3 sm:gap-4 select-none text-[15px] sm:text-base leading-relaxed">
     {children}
   </main>;
 }

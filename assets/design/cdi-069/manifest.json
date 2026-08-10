@@ -10,6 +10,11 @@
     "references/city-dashboard-reference.png",
     "references/village-complete-reference.png"
   ],
+  "localArchive": {
+    "versioned": false,
+    "ignoredPaths": ["sources/", "previews/"],
+    "purpose": "local generation masters, rejected variants and working previews"
+  },
   "assets": [
     {
       "id": "header-reference",
@@ -45,6 +50,139 @@
         "not-an-interactive-surface",
         "no-runtime-mask-contract"
       ]
+    },
+    {
+      "id": "app-shell-background-v3-main-safe",
+      "kind": "decorative-app-shell-background",
+      "status": "context-approved",
+      "runtimePath": "../../../src/assets/images/backgrounds/app-shell-background-v3-main-safe.jpg",
+      "promptPath": "app-shell-background-v3-main-safe.prompt.md",
+      "dimensionsPx": [3440, 1440],
+      "runtimeSha256": "0d997319437bba10192b737ab36dbf736bcc3400598edd98e8c6ea98a469a32d",
+      "displayTargetsPx": [[3440, 1440], [1920, 1080]],
+      "invariants": [
+        "decorative-only",
+        "dom-rendered-functional-content",
+        "village-visible-left-of-main",
+        "dungeon-visible-right-of-main",
+        "low-detail-valley-under-main",
+        "smooth-realistic-matte-painting",
+        "desktop-only",
+        "no-pixel-art"
+      ]
+    },
+    {
+      "id": "header-menu-bar-v2-center",
+      "kind": "stretchable-menu-center",
+      "status": "context-approved",
+      "runtimePath": "../../../src/assets/images/ui/header-menu-bar-v2-center.png",
+      "promptPath": "header-menu-bar-v2-center.prompt.md",
+      "dimensionsPx": [1024, 912],
+      "runtimeSha256": "727a3b21e75458bb899215523f7bf1b5969a0850152ee372c21b34a93b551d59",
+      "invariants": [
+        "transparent-background",
+        "lion-metal-reference",
+        "dark-aged-walnut",
+        "4x-runtime-density",
+        "preserved-layout-ratios",
+        "no-end-caps",
+        "no-baked-functional-content"
+      ]
+    },
+    {
+      "id": "header-menu-ornament-left-v1",
+      "kind": "decorative-menu-ornament",
+      "status": "context-approved",
+      "runtimePath": "../../../src/assets/images/ui/header-menu-ornament-left-v1.png",
+      "promptPath": "header-menu-ornaments-v1.prompt.md",
+      "dimensionsPx": [939, 512],
+      "runtimeSha256": "c81e6fdbeb3f2b564da46ebc412c8347ca0170ab2b6174263e404882b6af46d9",
+      "invariants": ["ornament-only", "no-wood", "transparent-background"]
+    },
+    {
+      "id": "header-menu-ornament-right-v3",
+      "kind": "decorative-menu-ornament",
+      "status": "context-approved",
+      "runtimePath": "../../../src/assets/images/ui/header-menu-ornament-right-v3.png",
+      "promptPath": "header-menu-ornament-right-v3.prompt.md",
+      "dimensionsPx": [649, 512],
+      "runtimeSha256": "388003c8953d3ae6afee1e34b08871dd4fb2b067f9da84c22758295f6191b7ec",
+      "invariants": ["ornament-only", "no-wood", "transparent-background", "wood-rail-height-covered"]
+    },
+    {
+      "id": "mobile-header-panel-v1",
+      "kind": "decorative-mobile-header-panel",
+      "status": "context-approved",
+      "runtimePath": "../../../src/assets/images/ui/mobile-header-panel-v1.png",
+      "promptPath": "mobile-header-panel-v1.prompt.md",
+      "dimensionsPx": [1280, 349],
+      "runtimeSha256": "ed54ceb1ea1f470f55669e0c37ab1ea1a57eec4e597146368174b4ded15dce4a",
+      "invariants": ["decorative-only", "transparent-background", "closed-edges", "mobile-only", "no-baked-functional-content"]
+    },
+    {
+      "id": "resource-gold-v1",
+      "kind": "resource-icon",
+      "status": "context-approved",
+      "runtimePath": "../../../src/assets/images/ui/resource-gold-v1.png",
+      "promptPath": "resource-icons-v1.prompt.md",
+      "dimensionsPx": [192, 192],
+      "runtimeSha256": "1c11339d4260d3c7e623e3d77b0bfaad6683d0b5b14c957d493e0436f8e242ed",
+      "invariants": ["transparent-background", "desktop-header-only", "dom-rendered-value"]
+    },
+    {
+      "id": "resource-food-v1",
+      "kind": "resource-icon",
+      "status": "context-approved",
+      "runtimePath": "../../../src/assets/images/ui/resource-food-v1.png",
+      "promptPath": "resource-icons-v1.prompt.md",
+      "dimensionsPx": [192, 192],
+      "runtimeSha256": "22aa48ccafb181718e19f1b3f88cfcd934a6e72afffd075eb924ad7ec5f47289",
+      "invariants": ["transparent-background", "desktop-header-only", "dom-rendered-value"]
+    },
+    {
+      "id": "resource-wood-v1",
+      "kind": "resource-icon",
+      "status": "context-approved",
+      "approvalNote": "Accepted with an explicit visual reservation from the user.",
+      "runtimePath": "../../../src/assets/images/ui/resource-wood-v1.png",
+      "promptPath": "resource-icons-v1.prompt.md",
+      "dimensionsPx": [192, 192],
+      "runtimeSha256": "6e7a35dcbfd6ff9064052503415e79bec00648fdd1d3491e253a9c980a1941c5",
+      "invariants": ["transparent-background", "desktop-header-only", "dom-rendered-value"]
+    },
+    {
+      "id": "resource-stone-v1",
+      "kind": "resource-icon",
+      "status": "context-approved",
+      "runtimePath": "../../../src/assets/images/ui/resource-stone-v1.png",
+      "promptPath": "resource-icons-v1.prompt.md",
+      "dimensionsPx": [192, 192],
+      "runtimeSha256": "aa315a422e0cb68128b28e538d72cc33d0c4719c923bb973acc12c9606d66c35",
+      "invariants": ["transparent-background", "desktop-header-only", "dom-rendered-value"]
+    },
+    {
+      "id": "resource-ore-v1",
+      "kind": "resource-icon",
+      "status": "context-approved",
+      "runtimePath": "../../../src/assets/images/ui/resource-ore-v1.png",
+      "promptPath": "resource-icons-v1.prompt.md",
+      "dimensionsPx": [192, 192],
+      "runtimeSha256": "2310ac750f6a6379c6f2c31c9a366b284172bcc74dd80dc02c45768e6ea86168",
+      "invariants": ["transparent-background", "desktop-header-only", "dom-rendered-value"]
+    },
+    {
+      "id": "account-button-v2",
+      "kind": "interactive-button-art",
+      "status": "context-approved",
+      "runtimePath": "../../../src/assets/images/ui/account-button-v2.png",
+      "promptPath": "account-button-v2.prompt.md",
+      "dimensionsPx": [189, 192],
+      "runtimeSha256": "eb00cdc1bd2b91126473bd8e44ee3aed5519d91280eb42f31ca7f9c72d86fb16",
+      "displaySizePx": {
+        "compact": [44, 44],
+        "desktop": [41, 41]
+      },
+      "invariants": ["transparent-background", "lion-metal-reference", "dom-interaction", "accessible-name", "css-focus-and-active-states"]
     }
   ]
 }

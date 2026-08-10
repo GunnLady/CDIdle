@@ -16,9 +16,9 @@ describe("AppShell", () => {
     ><p>Page Cité</p></AppShell>);
 
     expect(screen.getByRole("main")).toHaveTextContent("Page Cité");
-    expect(screen.getByTestId("app-shell")).toHaveClass("min-h-screen", "xl:h-screen", "xl:overflow-hidden");
+    expect(screen.getByTestId("app-shell")).toHaveClass("app-shell-background", "min-h-screen", "xl:h-screen", "xl:overflow-hidden");
     expect(screen.getByTestId("app-shell")).not.toHaveClass("h-screen", "overflow-hidden");
-    expect(screen.getByRole("main")).toHaveClass("min-h-0", "overflow-visible", "xl:overflow-y-auto");
+    expect(screen.getByRole("main")).toHaveClass("min-h-0", "overflow-visible", "xl:overflow-y-auto", "gap-3", "sm:gap-4", "sm:py-4", "xl:pt-2.5");
     expect(screen.getByTestId("persistent-page-navigation")).toHaveClass("xl:sticky", "xl:top-0", "xl:flex");
     expect(screen.getByTestId("persistent-page-navigation")).not.toHaveClass("sticky", "top-0");
     expect(screen.getByTestId("primary-navigation-slot")).toContainElement(screen.getByText("Destinations"));
@@ -59,11 +59,25 @@ describe("AppShell", () => {
     />);
 
     expect(screen.getByRole("heading", { name: "Valbois" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Valbois" })).toHaveClass("font-city", "relative", "uppercase", "text-[1.35rem]", "sm:-left-[35px]", "sm:top-[7px]", "sm:text-[1.2rem]", "xl:-left-[3px]", "xl:text-[1.65rem]", "bg-clip-text", "text-transparent");
+    expect(screen.queryByText("Domaine")).not.toBeInTheDocument();
     expect(screen.getByRole("banner")).not.toHaveClass("sticky", "top-0");
+    expect(screen.getByRole("banner")).not.toHaveClass("bg-[#090604]", "shadow-[0_8px_22px_rgba(0,0,0,0.85)]");
     expect(screen.getByText(/1.*250/)).toBeInTheDocument();
     expect(screen.getByText("+4/s")).toBeInTheDocument();
     expect(screen.getByLabelText(/Or :/)).toHaveClass("select-text");
-    expect(screen.getByTestId("resource-header-content")).toHaveClass("motion-reduce:animate-none");
+    expect(screen.getByTestId("resource-header-frame")).toHaveAttribute("aria-hidden", "true");
+    expect(screen.getByTestId("resource-header-frame")).toHaveClass("max-w-[1440px]", "left-1/2", "-translate-x-1/2");
+    expect(screen.getByTestId("resource-header-frame").querySelectorAll("img")).toHaveLength(4);
+    expect(screen.getByTestId("resource-header-mobile-panel")).toHaveClass("h-full", "w-full", "object-fill", "sm:hidden");
+    expect(screen.getByTestId("resource-header-mobile-crest")).toHaveClass("hidden", "sm:block", "lg:hidden");
+    expect(screen.getByTestId("resource-header-wood-rail")).toHaveClass("absolute", "inset-x-0", "hidden", "sm:block", "lg:left-[6.65rem]", "lg:right-[2.3rem]");
+    expect(screen.getByTestId("resource-header-ornament-left")).toHaveClass("absolute", "left-0", "z-10", "h-full", "object-contain", "lg:block");
+    expect(screen.getByTestId("resource-header-ornament-right")).toHaveClass("absolute", "right-[5px]", "top-[calc(50%+5px)]", "z-10", "h-[94%]", "-translate-y-1/2", "object-contain", "lg:block");
+    expect(screen.getByTestId("resource-header-ornament-right")).toHaveAttribute("src", expect.stringContaining("header-menu-ornament-right-v3"));
+    expect(screen.getByTestId("resource-strip")).toHaveTextContent("1/s");
+    expect(screen.getByTestId("resource-strip")).not.toHaveClass("border", "bg-[#100905]/80", "lg:bg-black/15", "backdrop-blur-[1px]");
+    expect(screen.getByTestId("resource-header-content")).toHaveClass("motion-reduce:animate-none", "max-w-[1440px]", "px-7", "sm:px-5", "lg:pl-[15rem]", "lg:pr-[7rem]");
     fireEvent.click(screen.getByRole("button", { name: "Ouvrir le compte" }));
     expect(onOpenAccount).toHaveBeenCalledOnce();
   });

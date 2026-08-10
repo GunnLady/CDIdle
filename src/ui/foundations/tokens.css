@@ -1,6 +1,7 @@
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-serif: "Cinzel", Georgia, serif;
+  --font-city: "Metamorphous", "Cinzel", Georgia, serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
   --color-ui-canvas: #0b0704;
   --color-ui-surface: #100805;
