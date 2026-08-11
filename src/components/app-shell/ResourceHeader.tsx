@@ -22,7 +22,7 @@ interface ResourceHeaderProps {
 }
 
 function ResourceValue({ label, icon, artSrc, artClassName = "h-11 w-11", value, rate, color }: { label: string; icon: ReactNode; artSrc: string; artClassName?: string; value: number; rate?: number; color: string }) {
-  return <div className="flex min-w-0 select-text items-center gap-1.5 px-1 sm:gap-2" aria-label={`${label} : ${formatResourceValue(value)}${rate === undefined ? "" : `, plus ${rate.toFixed(0)} par seconde`}`}>
+  return <div className="flex min-w-0 select-text items-center gap-1.5 px-1 sm:gap-2 xl:gap-1" aria-label={`${label} : ${formatResourceValue(value)}${rate === undefined ? "" : `, plus ${rate.toFixed(0)} par seconde`}`}>
     <span className="xl:hidden">{icon}</span>
     <span className="hidden h-11 w-11 shrink-0 items-center justify-center xl:flex">
       <img src={artSrc} alt="" aria-hidden="true" className={`${artClassName} object-contain drop-shadow-[0_2px_2px_rgba(0,0,0,0.75)]`} />

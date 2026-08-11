@@ -19,7 +19,12 @@ export default function PrimaryNavigation({ activeTab, authenticated, onChange }
     label="Navigation principale"
     activeId={activeTab}
     onChange={onChange}
-    className="h-full shrink-0 select-none xl:rounded-none xl:border-0 xl:bg-transparent"
-    items={tabs.map((tab) => ({ ...tab, icon: authenticated ? tab.icon : "🔒", disabled: !authenticated }))}
+    className="h-full shrink-0 select-none xl:rounded-none xl:border-0 xl:bg-transparent min-[1440px]:w-[492px]"
+    listClassName="min-[1440px]:h-full min-[1440px]:w-full min-[1440px]:gap-1.5 min-[1440px]:[&>button]:h-full"
+    items={tabs.map((tab) => ({
+      ...tab,
+      icon: authenticated ? tab.icon : "🔒",
+      disabled: !authenticated,
+    }))}
   />;
 }

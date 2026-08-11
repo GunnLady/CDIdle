@@ -39,6 +39,30 @@
       ]
     },
     {
+      "id": "secondary-navigation-rail-background-v5",
+      "kind": "desktop-secondary-navigation-rail",
+      "status": "integrated",
+      "runtimePath": "../../../src/assets/images/ui/secondary-navigation-rail/secondary-navigation-rail-background-v5.png",
+      "promptPath": "secondary-navigation-rail-background-v5.prompt.md",
+      "sourceDimensionsPx": [2172, 724],
+      "sourceSubjectBoundsPx": [24, 235, 2123, 255],
+      "dimensionsPx": [1440, 173],
+      "dividerCenterPx": 632,
+      "leftTransparentWindowPx": [115, 35, 492, 103],
+      "runtimeSha256": "4493bc98cd166831160992085b2e8df360a22c98e1fc73bc7fd09da5130dcb2b",
+      "invariants": [
+        "desktop-only",
+        "fixed-1440-width",
+        "transparent-exterior",
+        "transparent-left-navigation-window",
+        "dom-rendered-navigation",
+        "dom-rendered-dungeon-status",
+        "single-violet-divider-gem",
+        "four-amber-end-cap-gems",
+        "no-rivets"
+      ]
+    },
+    {
       "id": "village-complete-scene",
       "kind": "art-direction-reference",
       "status": "context-approved",

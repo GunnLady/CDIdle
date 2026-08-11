@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import SecondaryNavigationRailFrame from "./SecondaryNavigationRailFrame";
 
 interface AppShellProps {
   header: ReactNode;
@@ -15,17 +16,20 @@ export default function AppShell(props: AppShellProps) {
     {props.statusLayer}
     <PageViewport>
       {props.developerTools}
-      <div data-testid="persistent-page-navigation" className="z-30 space-y-4 xl:sticky xl:top-0 xl:flex xl:items-stretch xl:gap-0 xl:space-y-0 xl:rounded-xl xl:border xl:border-[#5c402b] xl:bg-[#18100a] xl:p-1.5 xl:shadow-lg">
-        <div data-testid="primary-navigation-slot" className="xl:basis-[40%] xl:shrink-0">{props.navigation}</div>
-        {props.progress && <div data-testid="dungeon-progress-slot" className="xl:min-w-0 xl:flex-1 xl:border-l xl:border-[#5c402b]">{props.progress}</div>}
+      <div data-testid="persistent-page-navigation" className="relative z-30 space-y-4 xl:flex xl:items-stretch xl:gap-0 xl:space-y-0 min-[1440px]:-mx-6 min-[1440px]:-mt-[10px] min-[1440px]:h-[178px] min-[1440px]:w-[1440px] min-[1440px]:shrink-0">
+        <SecondaryNavigationRailFrame />
+        <div data-testid="primary-navigation-slot" className="relative z-10 xl:basis-[40%] xl:shrink-0 min-[1440px]:absolute min-[1440px]:left-[115px] min-[1440px]:top-[35px] min-[1440px]:h-[103px] min-[1440px]:w-[492px] min-[1440px]:basis-auto">{props.navigation}</div>
+        {props.progress && <div data-testid="dungeon-progress-slot" className="relative z-30 xl:min-w-0 xl:flex-1 xl:border-l xl:border-[#5c402b] min-[1440px]:absolute min-[1440px]:left-[645px] min-[1440px]:top-[35px] min-[1440px]:h-[102px] min-[1440px]:w-[600px] min-[1440px]:border-0">{props.progress}</div>}
       </div>
-      <div className="h-full">{props.children}</div>
+      <div data-testid="page-content-scroll-region" className="h-full">{props.children}</div>
     </PageViewport>
   </div>;
 }
 
 export function PageViewport({ children }: { children: ReactNode }) {
-  return <main className="min-h-0 flex-1 p-3 sm:px-6 sm:py-4 xl:pt-2.5 overflow-visible xl:overflow-y-auto max-w-[1440px] mx-auto w-full flex flex-col gap-3 sm:gap-4 select-none text-[15px] sm:text-base leading-relaxed">
-    {children}
+  return <main className="min-h-0 flex-1 w-full overflow-visible xl:overflow-x-hidden xl:overflow-y-auto select-none text-[15px] sm:text-base leading-relaxed">
+    <div className="mx-auto flex min-h-full w-full max-w-[1440px] flex-col gap-3 p-3 sm:gap-4 sm:px-6 sm:py-4 xl:pt-2.5">
+      {children}
+    </div>
   </main>;
 }

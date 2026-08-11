@@ -18,9 +18,19 @@ describe("AppShell", () => {
     expect(screen.getByRole("main")).toHaveTextContent("Page Cité");
     expect(screen.getByTestId("app-shell")).toHaveClass("app-shell-background", "min-h-screen", "xl:h-screen", "xl:overflow-hidden");
     expect(screen.getByTestId("app-shell")).not.toHaveClass("h-screen", "overflow-hidden");
-    expect(screen.getByRole("main")).toHaveClass("min-h-0", "overflow-visible", "xl:overflow-y-auto", "gap-3", "sm:gap-4", "sm:py-4", "xl:pt-2.5");
-    expect(screen.getByTestId("persistent-page-navigation")).toHaveClass("xl:sticky", "xl:top-0", "xl:flex");
+    expect(screen.getByRole("main")).toHaveClass("min-h-0", "overflow-visible", "xl:overflow-x-hidden", "xl:overflow-y-auto");
+    expect(screen.getByRole("main").firstElementChild).toHaveClass("min-h-full", "max-w-[1440px]", "gap-3", "sm:gap-4", "sm:py-4", "xl:pt-2.5");
+    expect(screen.getByTestId("page-content-scroll-region")).toHaveClass("h-full");
+    expect(screen.getByTestId("page-content-scroll-region")).not.toHaveClass("xl:overflow-y-auto");
+    expect(screen.getByTestId("persistent-page-navigation")).toHaveClass("z-30", "xl:flex");
+    expect(screen.getByTestId("persistent-page-navigation")).not.toHaveClass("xl:sticky", "xl:top-0");
+    expect(screen.getByTestId("persistent-page-navigation")).toHaveClass("min-[1440px]:-mx-6", "min-[1440px]:-mt-[10px]", "min-[1440px]:h-[178px]", "min-[1440px]:w-[1440px]");
+    expect(screen.getByTestId("persistent-page-navigation")).not.toHaveClass("xl:rounded-xl", "xl:border", "xl:bg-[#18100a]", "xl:p-1.5", "xl:shadow-lg");
     expect(screen.getByTestId("persistent-page-navigation")).not.toHaveClass("sticky", "top-0");
+    expect(screen.getByTestId("secondary-navigation-rail-frame").querySelectorAll("img")).toHaveLength(1);
+    expect(screen.getByTestId("secondary-navigation-rail-frame")).toHaveClass("z-20", "min-[1440px]:block");
+    expect(screen.getByTestId("primary-navigation-slot")).toHaveClass("z-10", "min-[1440px]:left-[115px]", "min-[1440px]:top-[35px]", "min-[1440px]:h-[103px]", "min-[1440px]:w-[492px]");
+    expect(screen.queryByTestId("secondary-rail-concept-preview")).not.toBeInTheDocument();
     expect(screen.getByTestId("primary-navigation-slot")).toContainElement(screen.getByText("Destinations"));
     expect(screen.queryByTestId("dungeon-progress-slot")).not.toBeInTheDocument();
     expect(screen.queryByRole("contentinfo")).not.toBeInTheDocument();
@@ -34,8 +44,10 @@ describe("AppShell", () => {
       progress={<aside>Expédition</aside>}
     ><p>Page Cité</p></AppShell>);
 
-    expect(screen.getByTestId("persistent-page-navigation")).toHaveClass("xl:flex", "xl:border");
+    expect(screen.getByTestId("persistent-page-navigation")).toHaveClass("xl:flex");
+    expect(screen.getByTestId("persistent-page-navigation")).not.toHaveClass("xl:border", "xl:bg-[#18100a]", "xl:shadow-lg");
     expect(screen.getByTestId("dungeon-progress-slot")).toHaveTextContent("Expédition");
+    expect(screen.getByTestId("dungeon-progress-slot")).toHaveClass("z-30", "min-[1440px]:left-[645px]", "min-[1440px]:top-[35px]", "min-[1440px]:h-[102px]", "min-[1440px]:w-[600px]");
   });
 
   it("keeps account out of game navigation and locks game pages before authentication", () => {
@@ -45,6 +57,17 @@ describe("AppShell", () => {
     expect(screen.getByRole("button", { name: /Cité/ })).toBeDisabled();
     expect(screen.queryByRole("button", { name: /Compte/ })).not.toBeInTheDocument();
     expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it("keeps navigation labels and state in the DOM above the rail background", () => {
+    render(<PrimaryNavigation activeTab="city" authenticated onChange={vi.fn()} />);
+
+    const cityButton = screen.getByRole("button", { name: "Cité" });
+    const heroesButton = screen.getByRole("button", { name: "Aventuriers" });
+    expect(cityButton.querySelector("img")).not.toBeInTheDocument();
+    expect(heroesButton.querySelector("img")).not.toBeInTheDocument();
+    expect(cityButton).toHaveTextContent("Cité");
+    expect(cityButton).toHaveAttribute("aria-current", "page");
   });
 
   it("keeps resource values as readable DOM text", () => {

@@ -35,3 +35,19 @@ assets/design/cdi-069/account-button-v1.prompt.md
 assets/design/cdi-069/app-shell-background-v1.prompt.md
 assets/design/cdi-069/app-shell-background-v2-ultrawide.prompt.md
 assets/design/cdi-069/header-menu-bar-v1.prompt.md
+
+# Rejected secondary-navigation rail experiments; V5 runtime remains versioned
+assets/design/cdi-069/references/secondary-navigation-rail-concept-v1.png
+assets/design/cdi-069/secondary-navigation-rail-background-v2.prompt.md
+assets/design/cdi-069/secondary-navigation-rail-background-v4.prompt.md
+assets/design/cdi-069/secondary-navigation-rail-concept-v1.prompt.md
+scripts/prepare-secondary-navigation-rail.ps1
+src/assets/images/ui/secondary-navigation-rail/dungeon-panel.png
+src/assets/images/ui/secondary-navigation-rail/junction-gem.png
+src/assets/images/ui/secondary-navigation-rail/left-cap.png
+src/assets/images/ui/secondary-navigation-rail/navigation-active.png
+src/assets/images/ui/secondary-navigation-rail/navigation-inactive.png
+src/assets/images/ui/secondary-navigation-rail/right-cap.png
+src/assets/images/ui/secondary-navigation-rail/secondary-navigation-rail-background-146.png
+src/assets/images/ui/secondary-navigation-rail/secondary-navigation-rail-background-185.png
+src/assets/images/ui/secondary-navigation-rail/secondary-navigation-rail-background-v4.png
