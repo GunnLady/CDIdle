@@ -19,7 +19,7 @@
     {
       "id": "header-reference",
       "kind": "ui-reference",
-      "status": "context-approved",
+      "status": "integrated",
       "path": "references/header-reference.png",
       "dimensionsPx": [3065, 334],
       "sha256": "17412e1f7028d1f430a6305706454a16568a38cf9dc0e36e005330ac2d8d9705"
@@ -27,7 +27,7 @@
     {
       "id": "city-dashboard-reference",
       "kind": "ui-reference",
-      "status": "context-approved",
+      "status": "integrated",
       "path": "references/city-dashboard-reference.png",
       "dimensionsPx": [1672, 941],
       "sha256": "b22c02035b917146df9b70a356bd0721bef9b40dbaf0eff18a305371e5a05d46",
@@ -60,6 +60,345 @@
         "single-violet-divider-gem",
         "four-amber-end-cap-gems",
         "no-rivets"
+      ]
+    },
+    {
+      "id": "primary-navigation-button-normal-v2",
+      "kind": "desktop-navigation-button-background",
+      "status": "integrated",
+      "runtimePath": "../../../src/assets/images/ui/secondary-navigation-rail/primary-navigation-button-normal-v2.png",
+      "promptPath": "primary-navigation-buttons-v1.prompt.md",
+      "dimensionsPx": [462, 364],
+      "displaySizePx": [124, 107],
+      "runtimeSha256": "9f7019d55c5f32ee1d9a23dfaa5ff82c5da54ef1133d9eab6c7260bfd817d9c2",
+      "invariants": [
+        "desktop-only",
+        "transparent-background",
+        "same-bounds-as-selected-state",
+        "dom-rendered-icon-and-label",
+        "dom-owned-interaction"
+      ]
+    },
+    {
+      "id": "primary-navigation-button-selected-v2",
+      "kind": "desktop-navigation-button-background",
+      "status": "integrated",
+      "runtimePath": "../../../src/assets/images/ui/secondary-navigation-rail/primary-navigation-button-selected-v2.png",
+      "promptPath": "primary-navigation-buttons-v1.prompt.md",
+      "dimensionsPx": [462, 364],
+      "displaySizePx": [124, 107],
+      "runtimeSha256": "760b81e19485fba45a711ab5fdb5a3c9f7192de9d245dcb7313ce83a6b1e0a9b",
+      "invariants": [
+        "desktop-only",
+        "transparent-background",
+        "same-bounds-as-normal-state",
+        "dom-rendered-icon-and-label",
+        "dom-owned-interaction"
+      ]
+    },
+    {
+      "id": "primary-navigation-city-palace-v1",
+      "kind": "primary-navigation-icon",
+      "status": "superseded",
+      "supersededBy": "primary-navigation-city-v2",
+      "runtimePath": "../../../src/assets/images/ui/secondary-navigation-rail/primary-navigation-city-palace-v1.png",
+      "promptPath": "primary-navigation-city-palace-v1.prompt.md",
+      "sourceDimensionsPx": [1254, 1254],
+      "sourceSubjectBoundsPx": [244, 266, 766, 622],
+      "dimensionsPx": [192, 192],
+      "displaySizePx": {
+        "compact": [20, 20],
+        "desktop": [60, 55]
+      },
+      "desktopObjectFit": "fill",
+      "desktopIconOffsetXPx": -2,
+      "desktopIconOffsetYPx": -4,
+      "desktopLabelOffsetYPx": -5,
+      "runtimeSha256": "b94222c5a0cbff972777830944b2f825ab7cf9cf99fbfc55c3747fa7ccc1f96f",
+      "invariants": [
+        "transparent-background",
+        "civic-palace-not-fortress",
+        "dom-rendered-label",
+        "dom-owned-interaction",
+        "locked-state-keeps-lock-icon",
+        "aspect-ratio-preserved"
+      ]
+    },
+    {
+      "id": "primary-navigation-heroes-v1",
+      "kind": "primary-navigation-icon",
+      "status": "superseded",
+      "supersededBy": "primary-navigation-heroes-v2",
+      "runtimePath": "../../../src/assets/images/ui/secondary-navigation-rail/primary-navigation-heroes-v1.png",
+      "promptPath": "primary-navigation-heroes-v1.prompt.md",
+      "sourceDimensionsPx": [1254, 1254],
+      "sourceSubjectBoundsPx": [231, 192, 777, 839],
+      "dimensionsPx": [192, 192],
+      "displaySizePx": {
+        "compact": [20, 20],
+        "desktop": [64, 64]
+      },
+      "desktopLabelOffsetYPx": -5,
+      "runtimeSha256": "6441596e34db4ddb7cad2a20d793434c53439298dc7319e4c47097373dc53596",
+      "invariants": [
+        "transparent-background",
+        "single-sword-staff-and-lute",
+        "dom-rendered-label",
+        "dom-owned-interaction",
+        "locked-state-keeps-lock-icon",
+        "aspect-ratio-preserved"
+      ]
+    },
+    {
+      "id": "primary-navigation-icon-sheet-v2",
+      "kind": "primary-navigation-icon-source-sheet",
+      "status": "local-master",
+      "path": "sources/primary-navigation-icon-sheet-v2-chroma.png",
+      "promptPath": "primary-navigation-icon-sheet-v2.prompt.md",
+      "versioned": false,
+      "dimensionsPx": [1254, 1254],
+      "cellDimensionsPx": [627, 627],
+      "layout": [
+        ["city", "heroes"],
+        ["dungeon", "storage"]
+      ],
+      "invariants": [
+        "uniform-chroma-background",
+        "equal-source-cells",
+        "identical-cell-downscale",
+        "no-individual-subject-resize"
+      ]
+    },
+    {
+      "id": "primary-navigation-city-v2",
+      "kind": "primary-navigation-icon",
+      "status": "integrated",
+      "runtimePath": "../../../src/assets/images/ui/secondary-navigation-rail/primary-navigation-city-v2.png",
+      "promptPath": "primary-navigation-icon-sheet-v2.prompt.md",
+      "sourceSheetCell": "top-left",
+      "sourceCellDimensionsPx": [627, 627],
+      "sourceSubjectBoundsPx": [104, 48, 475, 573],
+      "dimensionsPx": [192, 192],
+      "displaySizePx": {
+        "compact": [20, 20],
+        "desktop": [64, 64]
+      },
+      "desktopLabelOffsetYPx": -4,
+      "runtimeSha256": "fca7f81f528b7ca319a289af6de1841ee300d9b042936d3acef3cd150fc4bf2c",
+      "invariants": [
+        "transparent-background",
+        "shared-sheet-scale-preserved",
+        "dom-rendered-label",
+        "dom-owned-interaction",
+        "locked-state-keeps-lock-icon"
+      ]
+    },
+    {
+      "id": "primary-navigation-heroes-v2",
+      "kind": "primary-navigation-icon",
+      "status": "integrated",
+      "runtimePath": "../../../src/assets/images/ui/secondary-navigation-rail/primary-navigation-heroes-v2.png",
+      "promptPath": "primary-navigation-icon-sheet-v2.prompt.md",
+      "sourceSheetCell": "top-right",
+      "sourceCellDimensionsPx": [627, 627],
+      "sourceSubjectBoundsPx": [78, 141, 428, 479],
+      "dimensionsPx": [192, 192],
+      "displaySizePx": {
+        "compact": [20, 20],
+        "desktop": [64, 64]
+      },
+      "desktopIconOffsetXPx": 3,
+      "desktopIconOffsetYPx": -9,
+      "desktopLabelOffsetYPx": -7,
+      "runtimeSha256": "474558f2737e444f0fe4af241a90616137a52dabc41ebf91f43a229fb529ee97",
+      "invariants": [
+        "transparent-background",
+        "shared-sheet-scale-preserved",
+        "single-sword-staff-and-lute",
+        "dom-rendered-label",
+        "dom-owned-interaction",
+        "locked-state-keeps-lock-icon"
+      ]
+    },
+    {
+      "id": "primary-navigation-dungeon-v1",
+      "kind": "primary-navigation-icon",
+      "status": "integrated",
+      "runtimePath": "../../../src/assets/images/ui/secondary-navigation-rail/primary-navigation-dungeon-v1.png",
+      "promptPath": "primary-navigation-icon-sheet-v2.prompt.md",
+      "sourceSheetCell": "bottom-left",
+      "sourceCellDimensionsPx": [627, 627],
+      "sourceSubjectBoundsPx": [91, 63, 494, 453],
+      "dimensionsPx": [192, 192],
+      "displaySizePx": {
+        "compact": [20, 20],
+        "desktop": [64, 64]
+      },
+      "desktopIconOffsetXPx": -2,
+      "desktopIconOffsetYPx": 3,
+      "desktopLabelOffsetYPx": -7,
+      "runtimeSha256": "c90032b96a50bcfbbd2d361aff55af36807e51c3fb5a932dc7ed6568a00e92fb",
+      "invariants": [
+        "transparent-background",
+        "shared-sheet-scale-preserved",
+        "stone-descent-entrance",
+        "dom-rendered-label",
+        "dom-owned-interaction",
+        "locked-state-keeps-lock-icon"
+      ]
+    },
+    {
+      "id": "primary-navigation-storage-v1",
+      "kind": "primary-navigation-icon",
+      "status": "integrated",
+      "runtimePath": "../../../src/assets/images/ui/secondary-navigation-rail/primary-navigation-storage-v1.png",
+      "promptPath": "primary-navigation-icon-sheet-v2.prompt.md",
+      "sourceSheetCell": "bottom-right",
+      "sourceCellDimensionsPx": [627, 627],
+      "sourceSubjectBoundsPx": [59, 99, 452, 429],
+      "dimensionsPx": [192, 192],
+      "displaySizePx": {
+        "compact": [20, 20],
+        "desktop": [64, 64]
+      },
+      "desktopIconOffsetXPx": 3,
+      "desktopIconOffsetYPx": 1,
+      "desktopLabelOffsetYPx": -7,
+      "runtimeSha256": "52980139a9c86801eeac5e8607ef4a71b23dff1f69979fda82afa732866480fd",
+      "invariants": [
+        "transparent-background",
+        "shared-sheet-scale-preserved",
+        "single-storage-chest",
+        "dom-rendered-label",
+        "dom-owned-interaction",
+        "locked-state-keeps-lock-icon"
+      ]
+    },
+    {
+      "id": "primary-navigation-junction-upper-v2",
+      "kind": "desktop-navigation-junction-ornament",
+      "status": "integrated",
+      "runtimePath": "../../../src/assets/images/ui/secondary-navigation-rail/primary-navigation-junction-upper-v2.png",
+      "promptPath": "primary-navigation-junction-ornaments-v2.prompt.md",
+      "sourceDimensionsPx": [290, 202],
+      "dimensionsPx": [38, 25],
+      "runtimeSha256": "b26ce3e8c617baca679cc7daf7bae961c30902e7c7525aad48d2cca5b087949a",
+      "invariants": [
+        "desktop-only",
+        "transparent-background",
+        "internal-junctions-only",
+        "violet-gem-visible",
+        "ornament-overlays-button-and-rail"
+      ]
+    },
+    {
+      "id": "primary-navigation-junction-lower-v2",
+      "kind": "desktop-navigation-junction-ornament",
+      "status": "integrated",
+      "runtimePath": "../../../src/assets/images/ui/secondary-navigation-rail/primary-navigation-junction-lower-v2.png",
+      "promptPath": "primary-navigation-junction-ornaments-v2.prompt.md",
+      "sourceDimensionsPx": [274, 183],
+      "dimensionsPx": [38, 25],
+      "runtimeSha256": "220d4aac941ffb5d90401988e028aad92e1b09d00a8edbff4b7a1679c0423122",
+      "invariants": [
+        "desktop-only",
+        "transparent-background",
+        "internal-junctions-only",
+        "ornament-underlays-buttons"
+      ]
+    },
+    {
+      "id": "dungeon-party-class-medallion-v1",
+      "kind": "dungeon-party-empty-medallion",
+      "status": "integrated",
+      "runtimePath": "../../../src/assets/images/ui/secondary-navigation-rail/dungeon-party-class-medallion-v1.png",
+      "preparationScript": "../../../scripts/prepare-dungeon-party-ui-components.ps1",
+      "dimensionsPx": [192, 192],
+      "displaySizePx": [72, 72],
+      "runtimeSha256": "cf7becf1beb2ea945bcea7f03ec1a13cc69b38d8c97579283d7b321f0e3f3594",
+      "invariants": [
+        "transparent-exterior",
+        "dark-wood-empty-center",
+        "empty-party-slot-only"
+      ]
+    },
+    {
+      "id": "dungeon-party-class-medallion-ring-v3",
+      "kind": "dungeon-party-occupied-medallion-ring",
+      "status": "integrated",
+      "runtimePath": "../../../src/assets/images/ui/secondary-navigation-rail/dungeon-party-class-medallion-ring-v3.png",
+      "preparationScript": "../../../scripts/prepare-dungeon-party-ui-components.ps1",
+      "dimensionsPx": [192, 192],
+      "displaySizePx": [72, 72],
+      "runtimeSha256": "c26de79f0832f26b68e3d2db51a6fa32b5a06cb7bb2962bfd015afa36e57d673",
+      "invariants": [
+        "transparent-exterior",
+        "transparent-center",
+        "class-plaque-rendered-below-ring",
+        "gold-rim-and-rivets-preserved"
+      ]
+    },
+    {
+      "id": "dungeon-class-plaque-novice-v2",
+      "kind": "dungeon-party-class-plaque",
+      "status": "integrated",
+      "runtimePath": "../../../src/assets/images/ui/secondary-navigation-rail/dungeon-class-plaque-novice-v2.png",
+      "preparationScript": "../../../scripts/prepare-dungeon-class-plaque.ps1",
+      "dimensionsPx": [192, 192],
+      "displaySizePx": [72, 72],
+      "discRadiusPx": 70,
+      "runtimeSha256": "e0821688cc7a12491285a3c7cb7d24c3ed9c26a795cb6e07314cea6ba9eda338",
+      "invariants": [
+        "transparent-exterior",
+        "opaque-copper-disc",
+        "eight-point-compass-rose",
+        "overlaps-below-medallion-ring",
+        "novice-only"
+      ]
+    },
+    {
+      "id": "dungeon-party-vital-bar-frame-v1",
+      "kind": "dungeon-party-vital-bar-frame",
+      "status": "integrated",
+      "runtimePath": "../../../src/assets/images/ui/secondary-navigation-rail/dungeon-party-vital-bar-frame-v1.png",
+      "preparationScript": "../../../scripts/prepare-dungeon-party-ui-components.ps1",
+      "dimensionsPx": [248, 32],
+      "runtimeSha256": "c804b76d27682755cd1e07a5bbbeb754d329992bb21731cacb6393a997297bdd",
+      "invariants": [
+        "transparent-interior",
+        "dom-rendered-health-and-mana-fill",
+        "frame-rendered-above-fill",
+        "rounded-fill-ends"
+      ]
+    },
+    {
+      "id": "dungeon-auto-play-v1",
+      "kind": "dungeon-auto-action-icon",
+      "status": "integrated",
+      "runtimePath": "../../../src/assets/images/ui/secondary-navigation-rail/dungeon-auto-play-v1.png",
+      "preparationScript": "../../../scripts/prepare-dungeon-auto-action-icons.ps1",
+      "dimensionsPx": [192, 192],
+      "displaySizePx": [52, 52],
+      "runtimeSha256": "19276442495181f08d1b8457682125152698cf514f61eab922cddac7f0e719bc",
+      "invariants": [
+        "transparent-background",
+        "gold-treatment",
+        "selected-navigation-button-background"
+      ]
+    },
+    {
+      "id": "dungeon-auto-pause-v1",
+      "kind": "dungeon-auto-action-icon",
+      "status": "integrated",
+      "runtimePath": "../../../src/assets/images/ui/secondary-navigation-rail/dungeon-auto-pause-v1.png",
+      "preparationScript": "../../../scripts/prepare-dungeon-auto-action-icons.ps1",
+      "dimensionsPx": [192, 192],
+      "displaySizePx": [52, 52],
+      "runtimeSha256": "9abc9ef4d38c04b6cdd0aba48c3b64ff15840a9aea50f08d1b28aa5c31a2bf53",
+      "invariants": [
+        "transparent-background",
+        "grayscale-runtime-treatment",
+        "normal-navigation-button-background"
       ]
     },
     {

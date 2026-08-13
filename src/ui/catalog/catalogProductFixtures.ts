@@ -14,8 +14,8 @@ export const catalogDungeonBanner: DungeonProgressBannerView = {
   autoExplore: true,
   canToggleAutoExplore: true,
   party: [
-    { id: "catalog-ariane", name: "Ariane", level: 7, currentHp: 84, maxHp: 100, currentMana: 18, maxMana: 30, healthPercent: 84, manaPercent: 60 },
-    { id: "catalog-borin", name: "Borin", level: 5, currentHp: 51, maxHp: 72, currentMana: 34, maxMana: 48, healthPercent: 71, manaPercent: 71 },
+    { id: "catalog-ariane", name: "Ariane", classType: "Novice", level: 7, currentHp: 84, maxHp: 100, currentMana: 18, maxMana: 30, healthPercent: 84, manaPercent: 60 },
+    { id: "catalog-borin", name: "Borin", classType: "Guerrier", level: 5, currentHp: 51, maxHp: 72, currentMana: 34, maxMana: 48, healthPercent: 71, manaPercent: 71 },
     null,
     null,
   ],

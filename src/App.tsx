@@ -587,7 +587,6 @@ export default function App() {
         progress={shouldShowDungeonProgressBanner(Boolean(currentUser), activeTab) ? (
           <DungeonProgressBanner
             view={dungeonProgressBannerView}
-            onNavigate={setActiveTab}
             onToggleAutoExplore={handleToggleAutoExplore}
           />
         ) : null}

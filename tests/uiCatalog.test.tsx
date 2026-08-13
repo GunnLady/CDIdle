@@ -41,9 +41,10 @@ describe("UI catalog", () => {
     expect(within(shell).getByTestId("resource-header-content")).toBeInTheDocument();
     expect(within(shell).getAllByRole("navigation", { name: "Navigation principale" })).toHaveLength(2);
     expect(within(shell).getAllByRole("button", { name: "Cité" }).some((button) => button.hasAttribute("disabled"))).toBe(true);
-    expect(within(shell).getAllByRole("complementary", { name: "Progression du groupe dans le donjon" })).toHaveLength(2);
-    await user.click(within(shell).getByRole("button", { name: "Pause" }));
-    expect(within(shell).getByRole("button", { name: "Reprendre" })).toBeInTheDocument();
+    const dungeonProgressBanners = within(shell).getAllByRole("complementary", { name: "Progression du groupe dans le donjon" });
+    expect(dungeonProgressBanners).toHaveLength(2);
+    await user.click(within(dungeonProgressBanners[0]).getByRole("button", { name: "Pause" }));
+    expect(within(dungeonProgressBanners[0]).getByRole("button", { name: "Reprendre" })).toBeInTheDocument();
 
     const heroEquipment = screen.getByTestId("catalog-product-hero-equipment");
     expect(within(heroEquipment).getByLabelText("Tailles de portraits de héros")).toBeInTheDocument();

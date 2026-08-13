@@ -79,8 +79,8 @@ export default function CatalogProductSections() {
         <PrimaryNavigation activeTab="city" authenticated={false} onChange={() => undefined} />
       </div>
       <div className="grid gap-3">
-        <DungeonProgressBanner view={{ ...catalogDungeonBanner, autoExplore }} onNavigate={setActiveTab} onToggleAutoExplore={() => setAutoExplore((active) => !active)} />
-        <DungeonProgressBanner view={{ ...catalogDungeonBanner, status: "Aucun groupe", autoExplore: false, canToggleAutoExplore: false, party: [null, null, null, null] }} onNavigate={setActiveTab} onToggleAutoExplore={() => undefined} />
+        <DungeonProgressBanner view={{ ...catalogDungeonBanner, autoExplore }} onToggleAutoExplore={() => setAutoExplore((active) => !active)} />
+        <DungeonProgressBanner view={{ ...catalogDungeonBanner, status: "Aucun groupe", autoExplore: false, canToggleAutoExplore: false, party: [null, null, null, null] }} onToggleAutoExplore={() => undefined} />
       </div>
     </Panel>
 

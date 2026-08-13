@@ -102,12 +102,22 @@ et l'objectif exacts, puis attend le résultat.
 3. Le frontend est déployé par le workflow manuel
    `.github/workflows/deploy-frontend.yml`. Un push ne déclenche pas
    automatiquement ce déploiement.
-4. La commande connue de déploiement backend est :
+4. Dans Codex CLI, lorsque `gh` est installé et authentifié, Codex déclenche
+   lui-même le déploiement frontend après la confirmation explicite requise,
+   avec la commande suivante :
+
+   ```powershell
+   gh workflow run deploy-frontend.yml --repo GunnLady/CDIdle --ref main
+   ```
+
+   Il ne renvoie cette commande à l'utilisateur que si `gh`, l'authentification
+   ou une capacité nécessaire est réellement indisponible.
+5. La commande connue de déploiement backend est :
 
    ```powershell
    npm.cmd exec --offline -- supabase functions deploy game-api --project-ref tohujvjxcfarciotsnbp
    ```
-5. Après un déploiement, Codex vérifie son état terminal et distingue le
+6. Après un déploiement, Codex vérifie son état terminal et distingue le
    déclenchement, la réussite du workflow et la validation visuelle ou
    fonctionnelle de l'application.
 

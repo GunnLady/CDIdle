@@ -33,6 +33,7 @@ export interface DungeonRoomProgressView {
 export interface DungeonProgressBannerHeroView {
   id: string;
   name: string;
+  classType: Hero["classType"];
   level: number;
   currentHp: number;
   maxHp: number;
@@ -148,6 +149,7 @@ export function createDungeonProgressBannerView(input: {
     return {
       id: hero.id,
       name: hero.name,
+      classType: hero.classType,
       level: hero.level,
       currentHp,
       maxHp,

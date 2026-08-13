@@ -1,4 +1,0 @@
-interface:
-  display_name: "Production visuelle CDIdle"
-  short_description: "Produire et intégrer les visuels cohérents de CDIdle"
-  default_prompt: "Utilise $cdidle-visual-production pour produire et valider un asset visuel de CDIdle."
