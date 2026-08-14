@@ -12,15 +12,15 @@ export type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
 };
 
 const variantClasses: Record<ButtonVariant, string> = {
-  primary: "border-ui-accent-strong bg-ui-accent text-ui-canvas hover:bg-ui-accent-strong active:translate-y-px",
-  secondary: "border-ui-border bg-ui-panel text-ui-accent hover:bg-ui-surface active:translate-y-px",
-  danger: "border-ui-danger-border bg-ui-danger-surface text-ui-danger-text hover:border-ui-danger hover:bg-ui-danger-surface-hover active:translate-y-px",
-  ghost: "border-transparent bg-transparent text-ui-text-muted hover:border-ui-border hover:text-ui-text",
+  primary: "text-[#241307] [text-shadow:0_1px_0_#f5c77a]",
+  secondary: "text-[#f4e3bd] [text-shadow:0_1px_2px_#000]",
+  danger: "text-[#ffe0d8] [text-shadow:0_1px_2px_#260000]",
+  ghost: "text-ui-accent [text-shadow:0_1px_2px_#000]",
 };
 
 const sizeClasses: Record<ButtonSize, string> = {
-  sm: "min-h-ui-control px-3 py-2 text-sm",
-  md: "min-h-ui-control px-4 py-2.5 text-sm",
+  sm: "min-h-11 px-2 py-0 text-xs",
+  md: "min-h-12 px-3 py-0 text-sm",
 };
 
 const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
@@ -35,8 +35,10 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
       disabled={unavailable}
       aria-busy={busy || undefined}
       data-state={busy ? "loading" : unavailable ? "disabled" : "ready"}
+      data-button-variant={variant}
+      data-button-size={size}
       className={classNames(
-        "inline-flex cursor-pointer items-center justify-center gap-2 rounded-ui-control border text-center font-serif font-bold uppercase tracking-wider transition-[color,background-color,border-color,transform] duration-[var(--ui-motion-fast)] focus-visible:outline-ui-focus focus-visible:[outline-width:var(--ui-focus-width)] focus-visible:[outline-offset:var(--ui-focus-offset)] disabled:cursor-not-allowed disabled:border-ui-border-subtle disabled:bg-ui-panel-strong disabled:text-ui-text-disabled disabled:opacity-70",
+        "ui-button-skin inline-flex cursor-pointer items-center justify-center gap-2 border-transparent bg-transparent text-center font-serif font-bold uppercase tracking-wider transition-[filter,transform,opacity] duration-[var(--ui-motion-fast)] focus-visible:outline-ui-focus focus-visible:[outline-width:var(--ui-focus-width)] focus-visible:[outline-offset:var(--ui-focus-offset)] enabled:active:translate-y-px disabled:cursor-not-allowed",
         variantClasses[variant],
         sizeClasses[size],
         block && "w-full",

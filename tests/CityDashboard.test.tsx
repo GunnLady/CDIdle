@@ -84,7 +84,7 @@ describe("CityDashboard city controls", () => {
       onCancelForge={vi.fn()}
     />);
     expect(screen.queryByRole("button", { name: /district/i })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /population/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^population$/i })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /infrastructures/i })).not.toBeInTheDocument();
     expect(screen.queryByText("Vue de la Cité")).not.toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 2, name: "Cité" })).toHaveClass("sr-only");
@@ -94,7 +94,8 @@ describe("CityDashboard city controls", () => {
     expect(within(selectedBuildingPanel).getByText(/augmente la population maximale/i)).toBeInTheDocument();
     expect(screen.getByText("Affectations")).toBeInTheDocument();
     expect(screen.getByTestId("building-ferme")).toBeInTheDocument();
-    expect(screen.getByTestId("building-ferme")).toHaveClass("min-h-11");
+    expect(screen.getByTestId("building-ferme")).toHaveClass("h-[156px]");
+    expect(screen.getByTestId("building-habitation")).toHaveAttribute("data-building-state", "selected");
     expect(selectedBuildingPanel).toHaveClass("order-1");
     expect(screen.getByTestId("building-list-panel")).toHaveClass("order-2");
     expect(screen.getByTestId("assignment-panel")).toHaveClass("order-3");

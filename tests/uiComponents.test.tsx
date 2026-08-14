@@ -28,11 +28,23 @@ describe("UI components", () => {
     expect(screen.getByRole("button", { name: "Locked" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Saving" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Saving" })).toHaveAttribute("aria-busy", "true");
-    expect(screen.getByRole("button", { name: "Continue" })).toHaveClass("inline-flex", "items-center", "justify-center", "gap-2");
+    expect(screen.getByRole("button", { name: "Saving" })).toHaveAttribute("data-state", "loading");
+    expect(screen.getByRole("button", { name: "Continue" })).toHaveClass("ui-button-skin", "inline-flex", "items-center", "justify-center", "gap-2");
+    expect(screen.getByRole("button", { name: "Continue" })).toHaveAttribute("data-button-variant", "secondary");
+    expect(screen.getByRole("button", { name: "Continue" })).toHaveAttribute("data-button-size", "md");
     await user.tab();
     expect(screen.getByRole("button", { name: "Continue" })).toHaveFocus();
     await user.keyboard("{Enter}");
     expect(onActivate).toHaveBeenCalledOnce();
+  });
+
+  it("maps every button intent to a dedicated oak skin", () => {
+    render(<><Button variant="primary">Primary</Button><Button>Secondary</Button><Button variant="danger">Danger</Button><Button variant="ghost">Ghost</Button><IconButton label="Icon" size="sm">+</IconButton></>);
+    expect(screen.getByRole("button", { name: "Primary" })).toHaveAttribute("data-button-variant", "primary");
+    expect(screen.getByRole("button", { name: "Secondary" })).toHaveAttribute("data-button-variant", "secondary");
+    expect(screen.getByRole("button", { name: "Danger" })).toHaveAttribute("data-button-variant", "danger");
+    expect(screen.getByRole("button", { name: "Ghost" })).toHaveAttribute("data-button-variant", "ghost");
+    expect(screen.getByRole("button", { name: "Icon" })).toHaveAttribute("data-button-size", "sm");
   });
 
   it("associates labels, help and errors with text fields", () => {
@@ -45,6 +57,8 @@ describe("UI components", () => {
   it("renders panels and semantic feedback without business rules", () => {
     render(<><Panel title="Inventory" titleAs="h2" testId="panel" variant="strong">Content</Panel><Alert variant="error" role="alert">Failure</Alert><Progress label="Build" value={150} max={100} /></>);
     expect(screen.getByTestId("panel")).toHaveTextContent("Inventory");
+    expect(screen.getByTestId("panel")).toHaveClass("ui-panel-skin");
+    expect(screen.getByTestId("panel")).toHaveAttribute("data-panel-variant", "strong");
     expect(screen.getByRole("alert")).toHaveTextContent("Failure");
     expect(screen.getByRole("progressbar", { name: "Build" })).toHaveAttribute("value", "100");
     expect(screen.getByRole("heading", { level: 2, name: "Inventory" })).toBeInTheDocument();

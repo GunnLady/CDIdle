@@ -17,6 +17,92 @@ html {
   background-image: none;
 }
 
+.ui-panel-skin {
+  position: relative;
+  isolation: isolate;
+  background-color: var(--color-ui-panel);
+  background-image: url("./assets/images/ui/panels/panel-background-tile-v1.png");
+  background-repeat: repeat;
+  background-size: 512px 512px;
+}
+
+.ui-panel-skin::before {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  border: 12px solid transparent;
+  border-image-source: url("./assets/images/ui/panels/panel-frame-v1.png");
+  border-image-slice: 55;
+  border-image-width: 12px;
+  border-image-repeat: stretch;
+  content: "";
+  pointer-events: none;
+}
+
+.ui-panel-skin[data-panel-variant="strong"]::before {
+  border-image-width: 14px;
+  filter: brightness(1.08) saturate(1.04);
+}
+
+.ui-panel-skin > * {
+  position: relative;
+  z-index: 2;
+}
+
+.ui-button-skin {
+  border-style: solid;
+  border-width: 10px 12px;
+  border-image-slice: 38 50 fill;
+  border-image-width: 10px 12px;
+  border-image-repeat: stretch;
+  background: transparent;
+}
+
+.ui-button-skin[data-button-size="sm"] {
+  border-width: 8px 10px;
+  border-image-width: 8px 10px;
+}
+
+.ui-button-skin[data-button-variant="primary"] {
+  border-image-source: url("./assets/images/ui/buttons/button-primary-oak-v1.png");
+}
+
+.ui-button-skin[data-button-variant="secondary"] {
+  border-image-source: url("./assets/images/ui/buttons/button-secondary-oak-v1.png");
+}
+
+.ui-button-skin[data-button-variant="danger"] {
+  border-image-source: url("./assets/images/ui/buttons/button-danger-oak-v1.png");
+}
+
+.ui-button-skin[data-button-variant="ghost"] {
+  border-image-source: url("./assets/images/ui/buttons/button-ghost-oak-v1.png");
+}
+
+.ui-button-skin:enabled:hover {
+  filter: brightness(1.08) saturate(1.03);
+}
+
+.ui-button-skin:disabled {
+  filter: grayscale(1) brightness(0.72);
+  opacity: 0.55;
+}
+
+.ui-button-skin[aria-busy="true"] {
+  filter: brightness(0.8);
+  opacity: 0.82;
+}
+
+.ui-building-card-frame {
+  box-sizing: border-box;
+  border-style: solid;
+  border-width: 14px 18px;
+  border-image-source: url("./assets/images/ui/buildings/building-card-frame-v1.png");
+  border-image-slice: 42 52 fill;
+  border-image-width: 14px 18px;
+  border-image-repeat: stretch;
+}
+
 @media (min-width: 80rem) {
   .app-shell-background {
     background-image: url("./assets/images/backgrounds/app-shell-background-v3-main-safe.jpg");

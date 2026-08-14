@@ -11,7 +11,7 @@ describe("UI catalog", () => {
     render(<UiCatalog />);
     expect(screen.getByTestId("ui-catalog-root")).toBeInTheDocument();
     expect(screen.getByTestId("ui-catalog-root").firstElementChild).toHaveClass("w-full", "min-w-0", "max-w-5xl");
-    expect(screen.getByRole("button", { name: "Chargement" })).toHaveAttribute("aria-busy", "true");
+    expect(within(screen.getByTestId("catalog-buttons")).getByRole("button", { name: "Chargement" })).toHaveAttribute("aria-busy", "true");
     expect(screen.getByLabelText("Code d'invitation")).toHaveAttribute("aria-invalid", "true");
     expect(screen.getAllByRole("status").length).toBeGreaterThanOrEqual(1);
     expect(screen.getByRole("progressbar", { name: "Construction" })).toBeInTheDocument();
@@ -20,6 +20,10 @@ describe("UI catalog", () => {
     expect(screen.getByTestId("catalog-selection-metrics")).toBeInTheDocument();
     expect(screen.getByTestId("catalog-navigation-status")).toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 2, name: "Boutons" })).toBeInTheDocument();
+    const buttonSkinPrototypes = screen.getByTestId("catalog-button-skin-prototypes");
+    for (const label of ["Primaire", "Secondaire", "Danger", "Ghost", "Désactivé", "Chargement", "Petit", "Action iconique"]) {
+      expect(within(buttonSkinPrototypes).getByRole("button", { name: label })).toBeInTheDocument();
+    }
     await user.click(screen.getByRole("button", { name: "Ouvrir le dialogue" }));
     expect(screen.getByRole("dialog", { name: "Confirmer l'action" })).toBeInTheDocument();
     await user.keyboard("{Escape}");

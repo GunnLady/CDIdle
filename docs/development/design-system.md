@@ -32,10 +32,10 @@ grille Tailwind de 4 px; les couches utilisent `--ui-layer-status` et
 
 | Composant | Intention et usages | Etats | Anti-usages et remplacement |
 | --- | --- | --- | --- |
-| `Button` | Declencher une action locale ou serveur. Employer `primary` une fois par zone, `secondary` par defaut, `danger` pour une action risquee et `ghost` pour une action discrete. | normal, survol, actif, focus, desactive, chargement | Ne pas l'utiliser comme lien ni y coder une autorisation metier. Remplace progressivement les boutons stylises repetes. |
+| `Button` | Declencher une action locale ou serveur. Employer `primary` une fois par zone, `secondary` par defaut, `danger` pour une action risquee et `ghost` pour une action discrete. Quatre peaux chene nine-slice portent cette hierarchie sans texte integre. | normal, survol, actif, focus, desactive, chargement | Ne pas l'utiliser comme lien ni y coder une autorisation metier. Ne pas recolorer une peau avec un overlay local. Remplace progressivement les boutons stylises repetes. |
 | `IconButton` | Porter une action uniquement iconique avec un libelle accessible obligatoire. | variantes et indisponibilite de `Button` | Ne pas l'utiliser si un libelle visible est rentable. Remplace les boutons icone ponctuels. |
 | `TextField` | Saisir une valeur avec libelle, aide, erreur et contenu initial optionnel. | normal, focus, desactive, erreur | Ne pas omettre le nom accessible ni valider une regle autoritaire ici. Remplace les champs stylises locaux. |
-| `Panel` | Regrouper une zone titree; `strong` renforce la priorite visuelle et `titleAs` preserve la hierarchie. | default, strong | Ne pas en faire une boite modale. Les anciennes frames restent les adaptateurs de depreciation. |
+| `Panel` | Regrouper une zone titree; `strong` renforce la priorite visuelle et `titleAs` preserve la hierarchie. Le fond bois repetable et le cadre nine-slice partages habillent toutes les dimensions sans etirer les ornements. | default, strong | Ne pas en faire une boite modale ni ajouter une frame propre a un ecran. Les anciennes frames restent les adaptateurs de depreciation. |
 | `Card` | Regrouper un element repetable et exposer sa selection. | default, selected | Ne pas remplacer un panneau de page. Remplace les cartes locales quand leur migration est prouvee. |
 | `Alert` | Afficher information, succes, avertissement, erreur, observateur ou verrouillage. `live` ou `role` est toujours explicite pour une annonce dynamique. | six variantes semantiques | Ne pas creer plusieurs regions live simultanees. Remplace les alertes locales et leurs couleurs ponctuelles. |
 | `Progress` | Exposer une progression bornee avec un nom accessible. | vide, partiel, complet | Ne pas representer une duree inconnue ni recalculer une regle de jeu. Remplace les progressions locales determinees. |
@@ -56,6 +56,14 @@ qu'une taille compacte. `Dialog` peut fermer sur le backdrop lorsque le
 consommateur l'autorise; `dismissDisabled` bloque toujours Escape et le
 backdrop pendant une operation.
 
+`Button` et `IconButton` partagent quatre assets `768 x 240` appliques avec
+`border-image-slice: 38 50 fill`. `primary` utilise le chene clair valide,
+`secondary` un chene fume, `danger` un chene rouge sombre et `ghost` un cadre
+evidé dont le centre laisse voir le panneau. Les etats `disabled` et `loading`
+derivent de la variante demandee par filtre CSS; ils ne changent ni la matiere
+ni la semantique. Les tailles `md` et `sm` conservent respectivement des bords
+de `10 x 12 px` et `8 x 10 px`.
+
 ## Patterns produit
 
 - `NavigationTabs` : navigation responsive avec etat courant et indisponible.
@@ -70,6 +78,27 @@ fois leurs derniers consommateurs migres. Les composants produit importent
 desormais `Panel` directement. Les quatre panneaux du Donjon declarent
 explicitement `variant="strong"`; cette intention visible ne justifie pas une
 abstraction intermediaire propre a un seul ecran.
+
+L'habillage commun de `Panel` repose sur deux assets `512 x 512` :
+`panel-background-tile-v1.png`, texture sombre raccordable sur ses quatre
+bords, et `panel-frame-v1.png`, cadre transparent decoupe avec
+`border-image-slice: 55`. Le contenu reste en DOM et au-dessus du decor. Le
+cadre utilise une largeur de 12 px en `default` et 14 px en `strong`; aucun
+consommateur ne doit redimensionner ou dupliquer ces assets localement.
+Les journaux `ActivityLog` emploient le meme habillage pour les historiques de
+la Cite, du Donjon et du systeme. Le panneau interne de `EntryScreen` l'emploie
+en variante `strong` pour la connexion, le chargement initial et l'erreur
+bloquante; le fond pleine page reste distinct.
+
+Les cartes du menu Bâtiments utilisent une illustration JPEG dédiée par
+identifiant métier et un cadre alpha commun. L'image occupe toute la carte de
+`156 px` et passe sous le cadre, posé comme overlay absolu afin de ne réduire ni
+la largeur utile ni les montants latéraux. Le cadre `1024 x 328 px` emploie des
+jonctions chanfreinées et `border-image-slice: 42 52 fill`. Les informations,
+niveaux et prérequis restent en DOM sur un fondu sombre. Le hover ne zoome pas
+l'image : un voile chaud et un déplacement d'un pixel évitent le flou de
+rééchantillonnage. Les quatorze JPEG runtime sont normalisés à `1024 x 448 px`
+par `scripts/prepare-building-card-assets.ps1`.
 
 ## Reports explicites
 

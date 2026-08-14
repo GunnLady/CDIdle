@@ -8,6 +8,7 @@ describe("authentication page", () => {
   it("delegates Google authentication without owning Supabase", async () => {
     const onAuthenticate = vi.fn().mockResolvedValue(undefined);
     render(<AuthenticationPage sessionLoading={false} onAuthenticate={onAuthenticate} />);
+    expect(screen.getByTestId("authentication-page").querySelector('[data-entry-panel="true"]')).toHaveClass("ui-panel-skin");
     expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: /Google/i }));
     await waitFor(() => expect(onAuthenticate).toHaveBeenCalledOnce());

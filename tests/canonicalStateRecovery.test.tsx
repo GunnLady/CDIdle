@@ -65,6 +65,7 @@ describe("canonical save recovery UI", () => {
     );
 
     const history = screen.getByTestId("system-history-panel");
+    expect(history).toHaveClass("ui-panel-skin");
     expect(within(history).getByText("Synchronisation terminée")).toBeInTheDocument();
     expect(history).toHaveAttribute("open");
     fireEvent.click(history.querySelector("summary")!);
