@@ -135,7 +135,7 @@ usages reels ou un risque transversal documente.
 | --- | --- | --- |
 | En-tete de ressources, taux et acces Compte | couvert | Valeurs compactes, taux positifs/nuls, acces Compte et repli responsive du composant reel. |
 | Navigation principale reelle | couvert | Onglet courant, version authentifiee et version verrouillee; libelles/icones suivent les breakpoints reels. |
-| Banniere persistante de progression du Donjon | couvert | Groupe rempli/vide, medaillons de classe, barres PV/mana et pause/reprise auto sur toutes les pages authentifiees. |
+| Banniere persistante de progression du Donjon | couvert | Groupe rempli/vide, medaillons Novice et neuf classes T1, galerie locale exhaustive, barres PV/mana et pause/reprise auto sur toutes les pages authentifiees. |
 | Portrait de heros | couvert | Tailles `xs`, `md`, `lg`, `xl`, sprites et fallback avec bordures du composant reel. |
 | Objet equipe et comparaison avant/apres | couvert | Objet equipe, emplacement vide, niveau bloque, remplacement, deltas et objet deplace. |
 | Carte de batiment | couvert | Selection, verrouillage, prerequis, niveaux et icones de Cite. |

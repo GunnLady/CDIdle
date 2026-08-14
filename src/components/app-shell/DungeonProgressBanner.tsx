@@ -1,8 +1,8 @@
 import type { ActiveTab } from "../../domain/activeTabPreference";
+import { getDungeonClassPlaque } from "../../domain/dungeonClassPlaquePresentation";
 import type { DungeonProgressBannerHeroView, DungeonProgressBannerView } from "../../domain/dungeonPresentation";
 import emptyClassMedallion from "../../assets/images/ui/secondary-navigation-rail/dungeon-party-class-medallion-v1.png";
 import classMedallionRing from "../../assets/images/ui/secondary-navigation-rail/dungeon-party-class-medallion-ring-v3.png";
-import noviceClassPlaque from "../../assets/images/ui/secondary-navigation-rail/dungeon-class-plaque-novice-v2.png";
 import vitalBarFrame from "../../assets/images/ui/secondary-navigation-rail/dungeon-party-vital-bar-frame-v1.png";
 import navigationButtonBackground from "../../assets/images/ui/secondary-navigation-rail/primary-navigation-button-normal-v2.png";
 import selectedNavigationButtonBackground from "../../assets/images/ui/secondary-navigation-rail/primary-navigation-button-selected-v2.png";
@@ -38,7 +38,7 @@ function PartySlots({ party }: { party: Array<DungeonProgressBannerHeroView | nu
         </div>;
         return (
           <div key={hero.id} className="relative flex min-w-0 flex-col items-center justify-center px-1 min-[1440px]:h-full min-[1440px]:justify-start">
-            {hero.classType === "Novice" && <img src={noviceClassPlaque} alt="" className="aspect-square h-12 w-12 max-w-none shrink-0 object-contain min-[1440px]:absolute min-[1440px]:left-1/2 min-[1440px]:top-[15px] min-[1440px]:z-10 min-[1440px]:h-[72px] min-[1440px]:w-[72px] min-[1440px]:-translate-x-1/2" aria-hidden="true" />}
+            <img src={getDungeonClassPlaque(hero.classType)} alt="" data-testid={`dungeon-class-plaque-${hero.classType}`} className="aspect-square h-12 w-12 max-w-none shrink-0 object-contain min-[1440px]:absolute min-[1440px]:left-1/2 min-[1440px]:top-[15px] min-[1440px]:z-10 min-[1440px]:h-[72px] min-[1440px]:w-[72px] min-[1440px]:-translate-x-1/2" aria-hidden="true" />
             <img src={classMedallionRing} alt="" className="aspect-square h-12 w-12 max-w-none shrink-0 object-contain min-[1440px]:absolute min-[1440px]:left-1/2 min-[1440px]:top-[15px] min-[1440px]:z-20 min-[1440px]:h-[72px] min-[1440px]:w-[72px] min-[1440px]:-translate-x-1/2" aria-hidden="true" />
             <Tooltip label={`Afficher ${hero.name} - Lv ${hero.level}`} content={`${hero.name} - Lv ${hero.level}`} className="mt-0.5 max-w-full min-w-0 min-[1440px]:absolute min-[1440px]:inset-x-0 min-[1440px]:top-[4px] min-[1440px]:z-10 min-[1440px]:mt-0 min-[1440px]:flex min-[1440px]:w-full min-[1440px]:-translate-x-px min-[1440px]:justify-center"><strong className="block min-w-0 truncate text-center text-[9px] leading-none text-[#dfdbc7] min-[1440px]:w-full min-[1440px]:text-[10px]">{hero.name} - Lv {hero.level}</strong></Tooltip>
             <div data-testid={`dungeon-banner-vitals-${hero.id}`} className="mt-1 grid w-full grid-cols-1 gap-0 font-mono min-[1440px]:absolute min-[1440px]:left-1 min-[1440px]:top-[82px] min-[1440px]:mt-0 min-[1440px]:w-[calc(100%-10px)]">
@@ -81,14 +81,14 @@ export default function DungeonProgressBanner(props: DungeonProgressBannerProps)
             title={actionUnavailableReason ?? actionLabel}
             disabled={actionUnavailableReason !== null}
             onClick={props.onToggleAutoExplore}
-            className="relative flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center overflow-hidden text-[#e9d8ab] transition-[filter,transform] focus-visible:outline-ui-focus focus-visible:[outline-width:var(--ui-focus-width)] focus-visible:[outline-offset:var(--ui-focus-offset)] active:translate-y-px disabled:cursor-not-allowed disabled:grayscale disabled:opacity-50 min-[1440px]:h-[105px] min-[1440px]:w-[124px]"
+            className="relative flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center overflow-hidden text-[#e9d8ab] transition-[filter,transform] focus-visible:outline-ui-focus focus-visible:[outline-width:var(--ui-focus-width)] focus-visible:[outline-offset:var(--ui-focus-offset)] active:translate-y-px disabled:cursor-not-allowed disabled:grayscale disabled:opacity-50 min-[1440px]:h-[103px] min-[1440px]:w-[122px] min-[1440px]:-translate-x-[10px] min-[1440px]:translate-y-[2px] min-[1440px]:active:translate-y-[3px]"
           >
             <img src={actionIsPause ? navigationButtonBackground : selectedNavigationButtonBackground} alt="" aria-hidden="true" className="pointer-events-none absolute inset-0 h-full w-full object-fill" />
             <img
               src={actionIsPause ? pauseIcon : playIcon}
               alt=""
               aria-hidden="true"
-              className={`relative z-10 h-7 w-7 object-contain min-[1440px]:h-[52px] min-[1440px]:w-[52px] ${actionIsPause ? "grayscale brightness-110" : ""}`}
+              className={`relative z-10 h-7 w-7 object-contain min-[1440px]:h-[52px] min-[1440px]:w-[52px] ${actionIsPause ? "grayscale brightness-110" : "min-[1440px]:translate-x-[5px]"}`}
             />
           </button>
           {hasActiveHeroes && <details className="relative shrink-0 md:hidden">

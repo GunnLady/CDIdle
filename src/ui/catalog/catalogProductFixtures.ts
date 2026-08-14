@@ -21,6 +21,33 @@ export const catalogDungeonBanner: DungeonProgressBannerView = {
   ],
 };
 
+const tier1BannerHero = (classType: Hero["classType"], index: number): NonNullable<DungeonProgressBannerView["party"][number]> => ({
+  id: `catalog-tier1-${classType}`,
+  name: classType,
+  classType,
+  level: 10,
+  currentHp: 80 + index,
+  maxHp: 100,
+  currentMana: 40 + index,
+  maxMana: 60,
+  healthPercent: 80 + index,
+  manaPercent: Math.round(((40 + index) / 60) * 100),
+});
+
+const tier1Classes: Hero["classType"][] = ["Guerrier", "Voleur", "Archer", "Mage", "Acolyte", "Aède", "Druide", "Artificier", "Pugiliste"];
+
+export const catalogTier1DungeonBanners: DungeonProgressBannerView[] = Array.from({ length: 3 }, (_, groupIndex) => ({
+  ...catalogDungeonBanner,
+  status: "Prêt",
+  autoExplore: false,
+  canToggleAutoExplore: false,
+  party: Array.from({ length: 4 }, (_, slotIndex) => {
+    const classIndex = groupIndex * 3 + slotIndex;
+    const classType = tier1Classes[classIndex];
+    return classType ? tier1BannerHero(classType, classIndex) : null;
+  }),
+}));
+
 export const catalogCurrentItem: EquipmentItemView = {
   name: "Épée de voyage", rarity: "uncommon", description: "Une lame fiable marquée par les routes.",
   facts: ["Niveau requis : 2", "Main principale"], modifiers: [{ id: "damage", label: "+7 dégâts physiques" }],

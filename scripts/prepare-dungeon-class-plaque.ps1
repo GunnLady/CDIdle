@@ -1,8 +1,10 @@
 param(
   [Parameter(Mandatory = $true)] [string]$InputPath,
   [Parameter(Mandatory = $true)] [string]$OutputPath,
-  [double]$SourceCropSize = 560,
-  [double]$DiscRadius = 65
+  [double]$SourceCropSize = 710,
+  [double]$DiscRadius = 70,
+  [double]$SourceCenterOffsetX = 0,
+  [double]$SourceCenterOffsetY = 0
 )
 
 $ErrorActionPreference = "Stop"
@@ -17,7 +19,7 @@ using System.IO;
 
 public static class DungeonClassPlaquePreparation
 {
-    public static void Prepare(string inputPath, string outputPath, double sourceCropSize, double discRadius)
+    public static void Prepare(string inputPath, string outputPath, double sourceCropSize, double discRadius, double sourceCenterOffsetX, double sourceCenterOffsetY)
     {
         const int runtimeSize = 192;
         using (var source = new Bitmap(inputPath))
@@ -26,8 +28,8 @@ public static class DungeonClassPlaquePreparation
         {
             var cropSize = Math.Min(sourceCropSize, Math.Min(source.Width, source.Height));
             var sourceRect = new RectangleF(
-                (float)((source.Width - cropSize) / 2.0),
-                (float)((source.Height - cropSize) / 2.0),
+                (float)(((source.Width - cropSize) / 2.0) + sourceCenterOffsetX),
+                (float)(((source.Height - cropSize) / 2.0) + sourceCenterOffsetY),
                 (float)cropSize,
                 (float)cropSize
             );
@@ -72,7 +74,8 @@ if (-not ("DungeonClassPlaquePreparation" -as [type])) {
   Add-Type -TypeDefinition $sourceCode -ReferencedAssemblies System.Drawing
 }
 
-[DungeonClassPlaquePreparation]::Prepare($InputPath, $OutputPath, $SourceCropSize, $DiscRadius)
+[DungeonClassPlaquePreparation]::Prepare($InputPath, $OutputPath, $SourceCropSize, $DiscRadius, $SourceCenterOffsetX, $SourceCenterOffsetY)
 Write-Output "Runtime plaque: 192x192"
 Write-Output "Source center crop: $SourceCropSize px"
 Write-Output "Disc radius: $DiscRadius px"
+Write-Output "Source center offset: [$SourceCenterOffsetX, $SourceCenterOffsetY] px"

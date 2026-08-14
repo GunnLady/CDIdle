@@ -22,7 +22,7 @@ import Button from "../primitives/Button";
 import {
   catalogBlockedCandidate, catalogCityView, catalogCurrentItem, catalogDefeatEncounter, catalogDungeonBanner, catalogEncounter,
   catalogEquipmentCandidate, catalogFounder, catalogHeroEquipment, catalogParty, catalogRates, catalogRecruit,
-  catalogPendingEncounter, catalogReserves, catalogResources, catalogSelectedHero, catalogVictoryEncounter,
+  catalogPendingEncounter, catalogReserves, catalogResources, catalogSelectedHero, catalogTier1DungeonBanners, catalogVictoryEncounter,
 } from "./catalogProductFixtures";
 
 type RecruitmentExample = "available" | "readonly" | null;
@@ -81,6 +81,12 @@ export default function CatalogProductSections() {
       <div className="grid gap-3">
         <DungeonProgressBanner view={{ ...catalogDungeonBanner, autoExplore }} onToggleAutoExplore={() => setAutoExplore((active) => !active)} />
         <DungeonProgressBanner view={{ ...catalogDungeonBanner, status: "Aucun groupe", autoExplore: false, canToggleAutoExplore: false, party: [null, null, null, null] }} onToggleAutoExplore={() => undefined} />
+      </div>
+    </Panel>
+
+    <Panel title="Insignes des classes T1" subtitle="Neuf aventuriers locaux répartis sur trois bandeaux de validation" testId="catalog-tier1-class-plaques" titleAs="h2">
+      <div className="grid gap-3">
+        {catalogTier1DungeonBanners.map((view, index) => <div key={index}><DungeonProgressBanner view={view} onToggleAutoExplore={() => undefined} /></div>)}
       </div>
     </Panel>
 

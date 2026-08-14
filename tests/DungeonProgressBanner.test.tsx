@@ -63,7 +63,7 @@ describe("DungeonProgressBanner", () => {
     expect(screen.getAllByTestId(/^dungeon-banner-vitals-/)[0]).toHaveClass("grid-cols-1");
     expect(screen.getAllByRole("progressbar", { name: /Ariane/ })[0].querySelector("img")).toHaveAttribute("src", expect.stringContaining("dungeon-party-vital-bar-frame-v1.png"));
     const heroSlotImages = screen.getAllByLabelText("Afficher Ariane - Lv 1")[0].parentElement?.querySelectorAll("img");
-    expect(Array.from(heroSlotImages ?? []).some((image) => image.getAttribute("src")?.includes("dungeon-class-plaque-novice-v2.png"))).toBe(true);
+    expect(Array.from(heroSlotImages ?? []).some((image) => image.getAttribute("src")?.includes("dungeon-class-plaque-novice-v3.png"))).toBe(true);
     expect(Array.from(heroSlotImages ?? []).some((image) => image.getAttribute("src")?.includes("dungeon-party-class-medallion-ring-v3.png"))).toBe(true);
     expect(screen.queryByText("10/20")).not.toBeInTheDocument();
     expect(screen.queryByText("5/10")).not.toBeInTheDocument();
@@ -72,12 +72,25 @@ describe("DungeonProgressBanner", () => {
     expect(screen.getByRole("complementary", { name: "Progression du groupe dans le donjon" }).firstElementChild).toHaveClass("justify-center", "text-center", "md:text-left", "xl:h-full");
     expect(screen.getByRole("button", { name: "Pause" }).parentElement).toHaveClass("justify-center", "flex-nowrap", "w-full", "md:w-auto");
     expect(screen.getByRole("button", { name: "Pause" }).parentElement).not.toHaveClass("ml-auto");
+    expect(screen.getByRole("button", { name: "Pause" })).toHaveClass("min-[1440px]:h-[103px]", "min-[1440px]:w-[122px]", "min-[1440px]:-translate-x-[10px]", "min-[1440px]:translate-y-[2px]", "min-[1440px]:active:translate-y-[3px]");
     expect(screen.getByRole("button", { name: "Pause" }).querySelector("img:last-child")).toHaveAttribute("src", expect.stringContaining("dungeon-auto-pause-v1.png"));
     const groupSummary = screen.getByLabelText("Voir le groupe");
     expect(groupSummary).toHaveClass("min-h-11", "focus-visible:outline-ui-focus");
     expect(groupSummary.closest("details")?.parentElement).toBe(screen.getByRole("button", { name: "Pause" }).parentElement);
     fireEvent.click(screen.getByRole("button", { name: "Pause" }));
     expect(onToggleAutoExplore).toHaveBeenCalledOnce();
+  });
+
+  it("renders the mapped plaque for a Tier 1 class below the shared ring", () => {
+    render(<DungeonProgressBanner
+      view={createView({ heroes: [makeHero({ id: "mage", name: "Morgane", classType: "Mage", isActive: true })] })}
+      onToggleAutoExplore={vi.fn()}
+    />);
+
+    const plaque = screen.getAllByTestId("dungeon-class-plaque-Mage")[0];
+    expect(plaque).toHaveAttribute("src", expect.stringContaining("dungeon-class-plaque-mage-v1.png"));
+    expect(plaque).toHaveClass("min-[1440px]:z-10");
+    expect(plaque.nextElementSibling).toHaveAttribute("src", expect.stringContaining("dungeon-party-class-medallion-ring-v3.png"));
   });
 
   it("uses the gold menu treatment for resume and the dark treatment for pause", () => {
@@ -90,6 +103,7 @@ describe("DungeonProgressBanner", () => {
     const resumeButton = screen.getByRole("button", { name: "Reprendre" });
     expect(resumeButton.querySelector("img:first-child")).toHaveAttribute("src", expect.stringContaining("primary-navigation-button-selected-v2.png"));
     expect(resumeButton.querySelector("img:last-child")).toHaveAttribute("src", expect.stringContaining("dungeon-auto-play-v1.png"));
+    expect(resumeButton.querySelector("img:last-child")).toHaveClass("min-[1440px]:translate-x-[5px]");
 
     rerender(<DungeonProgressBanner
       view={createView({ heroes: [hero], autoExplore: true })}
@@ -98,5 +112,6 @@ describe("DungeonProgressBanner", () => {
     const pauseButton = screen.getByRole("button", { name: "Pause" });
     expect(pauseButton.querySelector("img:first-child")).toHaveAttribute("src", expect.stringContaining("primary-navigation-button-normal-v2.png"));
     expect(pauseButton.querySelector("img:last-child")).toHaveClass("grayscale");
+    expect(pauseButton.querySelector("img:last-child")).not.toHaveClass("min-[1440px]:translate-x-[5px]");
   });
 });

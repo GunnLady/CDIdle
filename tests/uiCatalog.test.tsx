@@ -46,6 +46,12 @@ describe("UI catalog", () => {
     await user.click(within(dungeonProgressBanners[0]).getByRole("button", { name: "Pause" }));
     expect(within(dungeonProgressBanners[0]).getByRole("button", { name: "Reprendre" })).toBeInTheDocument();
 
+    const tier1Plaques = screen.getByTestId("catalog-tier1-class-plaques");
+    expect(within(tier1Plaques).getAllByRole("complementary", { name: "Progression du groupe dans le donjon" })).toHaveLength(3);
+    for (const className of ["Guerrier", "Voleur", "Archer", "Mage", "Acolyte", "Aède", "Druide", "Artificier", "Pugiliste"]) {
+      expect(within(tier1Plaques).getAllByText(new RegExp(`^${className} - Lv 10$`)).length).toBeGreaterThanOrEqual(2);
+    }
+
     const heroEquipment = screen.getByTestId("catalog-product-hero-equipment");
     expect(within(heroEquipment).getByLabelText("Tailles de portraits de héros")).toBeInTheDocument();
     expect(within(heroEquipment).getAllByText("Lame du guet").length).toBeGreaterThanOrEqual(1);
