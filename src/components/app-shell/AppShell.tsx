@@ -27,7 +27,7 @@ export default function AppShell(props: AppShellProps) {
 }
 
 export function PageViewport({ children }: { children: ReactNode }) {
-  return <main className="min-h-0 flex-1 w-full overflow-visible xl:overflow-x-hidden xl:overflow-y-auto select-none text-[15px] sm:text-base leading-relaxed">
+  return <main className="app-page-viewport min-h-0 flex-1 w-full overflow-visible xl:overflow-x-hidden xl:overflow-y-auto select-none text-[15px] sm:text-base leading-relaxed">
     <div className="mx-auto flex min-h-full w-full max-w-[1440px] flex-col gap-3 p-3 sm:gap-4 sm:px-6 sm:py-4 xl:pt-2.5">
       {children}
     </div>

@@ -52,7 +52,9 @@ grille Tailwind de 4 px; les couches utilisent `--ui-layer-status` et
 | `LoadingState` | Annoncer une attente de page ou de zone. | local, pleine page | Ne pas l'utiliser pour une progression determinee. |
 
 `Progress` expose aussi les tons accent, sante, mana et experience, ainsi
-qu'une taille compacte. `Dialog` peut fermer sur le backdrop lorsque le
+qu'une taille compacte. Sa variante `immigration` conserve le `<progress>`
+natif et lui applique une auge sombre, des embouts bois/laiton et un remplissage
+ambre-vert sans image ni valeur métier intégrée. `Dialog` peut fermer sur le backdrop lorsque le
 consommateur l'autorise; `dismissDisabled` bloque toujours Escape et le
 backdrop pendant une operation.
 
@@ -85,6 +87,20 @@ bords, et `panel-frame-v1.png`, cadre transparent decoupe avec
 `border-image-slice: 55`. Le contenu reste en DOM et au-dessus du decor. Le
 cadre utilise une largeur de 12 px en `default` et 14 px en `strong`; aucun
 consommateur ne doit redimensionner ou dupliquer ces assets localement.
+Le titre se termine par `panel-title-separator-v1.png`, une traverse en acier
+noirci et or vieilli qui reprend les materiaux et les angles du cadre. Elle
+remplace la bordure brune historique, reste purement decorative et s'etire en
+trois zones sans integrer de texte.
+Les scrollbars Chromium conservent leur interaction native dans une zone de
+14 px, avec un rail entierement transparent. Le curseur prend la forme d'une
+lancette metallique autonome : grande pointe fixe en haut, tige noire et doree
+fine au centre, petit pic fixe en bas. Six assets separent les extremites fixes
+des centres repetables, en vertical et en horizontal : seule la tige varie avec
+la longueur du curseur, sans etirer les pointes. Le survol eclaircit la poignee
+sans modifier sa geometrie. Le rail en corde, la bague evidee V1, les embouts
+ronds V2 et la tige centrale V3 peinte jusque sous les pointes ont ete rejetes
+visuellement et retires du runtime. Les moteurs qui ne prennent pas en charge les
+pseudo-elements WebKit conservent leur scrollbar native.
 Les journaux `ActivityLog` emploient le meme habillage pour les historiques de
 la Cite, du Donjon et du systeme. Le panneau interne de `EntryScreen` l'emploie
 en variante `strong` pour la connexion, le chargement initial et l'erreur
@@ -99,6 +115,14 @@ niveaux et prérequis restent en DOM sur un fondu sombre. Le hover ne zoome pas
 l'image : un voile chaud et un déplacement d'un pixel évitent le flou de
 rééchantillonnage. Les quatorze JPEG runtime sont normalisés à `1024 x 448 px`
 par `scripts/prepare-building-card-assets.ps1`.
+Le détail sélectionné utilise une illustration panoramique dédiée par
+bâtiment. Les quatorze JPEG sont recadrés au ratio exact `4:1` et normalisés à
+`1536 x 384 px` par `scripts/prepare-building-detail-assets.ps1`. Le sujet reste
+à gauche, tandis que le décor prolonge réellement la scène vers la droite sous
+le texte DOM. Les illustrations `1024 x 448 px` du menu ne sont pas modifiées.
+Son coût dynamique reste en DOM sur `building-cost-vellum-v1.png`, un fond de
+plan de construction en vélin découpé en neuf zones (`64 96 fill`) afin de
+préserver les coins et les tracés marginaux lorsque le bloc change de largeur.
 
 ## Reports explicites
 

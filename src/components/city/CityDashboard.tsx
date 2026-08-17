@@ -28,10 +28,14 @@ export default function CityDashboard(props: CityDashboardProps) {
   if (!selected) return null;
   return <section aria-labelledby="city-page-title" className="space-y-6 animate-fade-in motion-reduce:animate-none">
     <h2 id="city-page-title" className="sr-only">Cité</h2>
-    <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)_minmax(0,1fr)] gap-4 items-start xl:items-stretch">
-      {selected.id === "forge" && selected.level > 0 ? <ForgeWorkspace canMutate={props.canMutate} materials={props.forgeMaterials} blueprints={props.itemBlueprints} pending={props.pendingForge} onStart={props.onStartForge} onFinalize={props.onFinalizeForge} onCancel={props.onCancelForge} /> : <SelectedBuildingPanel building={selected} canMutate={props.canMutate} onUpgrade={props.onUpgradeBuilding} />}
-      <BuildingListPanel buildings={view.buildings} selectedId={selected.id} onSelect={setSelectedBuildingId} />
-      <AssignmentPanel view={view} canMutate={props.canMutate} onAllocate={props.onAllocateCitizen} />
+    <div className="grid grid-cols-1 items-start gap-4 xl:flex xl:items-stretch">
+      <div data-testid="city-primary-column" className="contents xl:flex xl:min-w-0 xl:flex-[2.2_1_0%] xl:flex-col xl:gap-4">
+        {selected.id === "forge" && selected.level > 0 ? <ForgeWorkspace canMutate={props.canMutate} materials={props.forgeMaterials} blueprints={props.itemBlueprints} pending={props.pendingForge} onStart={props.onStartForge} onFinalize={props.onFinalizeForge} onCancel={props.onCancelForge} /> : <SelectedBuildingPanel building={selected} canMutate={props.canMutate} onUpgrade={props.onUpgradeBuilding} />}
+        <AssignmentPanel view={view} canMutate={props.canMutate} onAllocate={props.onAllocateCitizen} />
+      </div>
+      <div data-testid="city-building-column" className="city-building-column order-2 xl:relative xl:min-h-0 xl:min-w-80 xl:flex-[1_1_0%] xl:self-stretch">
+        <BuildingListPanel buildings={view.buildings} selectedId={selected.id} onSelect={setSelectedBuildingId} />
+      </div>
     </div>
     <CityHistoryPanel view={history} onClear={props.onClearCityLogs} />
   </section>;

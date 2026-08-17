@@ -17,6 +17,12 @@ html {
   background-image: none;
 }
 
+@media (min-width: 80rem) {
+  .app-page-viewport {
+    scrollbar-gutter: stable;
+  }
+}
+
 .ui-panel-skin {
   position: relative;
   isolation: isolate;
@@ -24,6 +30,16 @@ html {
   background-image: url("./assets/images/ui/panels/panel-background-tile-v1.png");
   background-repeat: repeat;
   background-size: 512px 512px;
+}
+
+@media (min-width: 80rem) {
+  .city-building-column > .ui-panel-skin {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    min-height: 0;
+    flex-direction: column;
+  }
 }
 
 .ui-panel-skin::before {
@@ -47,6 +63,17 @@ html {
 .ui-panel-skin > * {
   position: relative;
   z-index: 2;
+}
+
+.ui-panel-title-separator {
+  height: 12px;
+  border-style: solid;
+  border-width: 0 14px;
+  border-image-source: url("./assets/images/ui/panels/panel-title-separator-v1.png");
+  border-image-slice: 0 170 fill;
+  border-image-width: 0 14px;
+  border-image-repeat: stretch;
+  pointer-events: none;
 }
 
 .ui-button-skin {
@@ -103,6 +130,114 @@ html {
   border-image-repeat: stretch;
 }
 
+.ui-building-card-copy {
+  -webkit-text-stroke: 0.25px rgba(0, 0, 0, 0.98);
+  paint-order: stroke fill;
+  text-shadow:
+    -1px 0 0 rgba(0, 0, 0, 0.9),
+    1px 0 0 rgba(0, 0, 0, 0.9),
+    0 -1px 0 rgba(0, 0, 0, 0.9),
+    0 1px 0 rgba(0, 0, 0, 0.9);
+}
+
+.ui-building-cost-vellum {
+  min-height: 56px;
+  border: 9px solid transparent;
+  border-image-source: url("./assets/images/ui/buildings/building-cost-vellum-v1.png");
+  border-image-slice: 64 96 fill;
+  border-image-width: 9px 14px;
+  border-image-repeat: stretch;
+}
+
+.ui-building-upgrade-button {
+  color: #160b04;
+  font-size: 0.95rem;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-shadow:
+    0 1px 0 rgba(255, 229, 172, 0.98),
+    0 0 3px rgba(255, 211, 126, 0.72);
+}
+
+.ui-immigration-progress-shell {
+  position: relative;
+  display: flex;
+  height: 26px;
+  align-items: center;
+  padding-inline: 10px;
+  filter: drop-shadow(0 3px 3px rgba(0, 0, 0, 0.55));
+}
+
+.ui-immigration-progress-shell::before,
+.ui-immigration-progress-shell::after {
+  position: absolute;
+  z-index: 2;
+  top: 50%;
+  width: 16px;
+  height: 26px;
+  content: "";
+  transform: translateY(-50%);
+  border: 1px solid #17100b;
+  background:
+    radial-gradient(circle at center, #d6ad52 0 2px, #4c2d16 2.5px 4px, transparent 4.5px),
+    linear-gradient(90deg, #2b170d, #68401f 48%, #251309);
+  box-shadow:
+    inset 0 0 0 1px rgba(210, 165, 78, 0.28),
+    0 1px 2px rgba(0, 0, 0, 0.85);
+  clip-path: polygon(50% 0, 100% 20%, 100% 80%, 50% 100%, 0 80%, 0 20%);
+}
+
+.ui-immigration-progress-shell::before {
+  left: 0;
+}
+
+.ui-immigration-progress-shell::after {
+  right: 0;
+}
+
+.ui-immigration-progress {
+  position: relative;
+  z-index: 1;
+  display: block;
+  height: 18px;
+  overflow: hidden;
+  appearance: none;
+  border: 3px solid #2a180e;
+  border-radius: 3px;
+  background: #100c09;
+  box-shadow:
+    0 0 0 1px #93652c,
+    0 0 0 2px #17100a,
+    inset 0 2px 5px rgba(0, 0, 0, 0.95),
+    inset 0 -1px 0 rgba(226, 184, 94, 0.16);
+}
+
+.ui-immigration-progress::-webkit-progress-bar {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent 45%),
+    repeating-linear-gradient(90deg, #17110c 0 22px, #120d09 22px 24px);
+}
+
+.ui-immigration-progress::-webkit-progress-value {
+  border-right: 1px solid #ffe09a;
+  background:
+    linear-gradient(180deg, rgba(255, 247, 194, 0.62), transparent 24%),
+    linear-gradient(90deg, #6f7c2d, #b89536 58%, #d8ad4b);
+  box-shadow:
+    inset 0 0 5px rgba(255, 234, 151, 0.48),
+    2px 0 7px rgba(224, 177, 67, 0.55);
+}
+
+.ui-immigration-progress::-moz-progress-bar {
+  border-right: 1px solid #ffe09a;
+  background:
+    linear-gradient(180deg, rgba(255, 247, 194, 0.62), transparent 24%),
+    linear-gradient(90deg, #6f7c2d, #b89536 58%, #d8ad4b);
+  box-shadow:
+    inset 0 0 5px rgba(255, 234, 151, 0.48),
+    2px 0 7px rgba(224, 177, 67, 0.55);
+}
+
 @media (min-width: 80rem) {
   .app-shell-background {
     background-image: url("./assets/images/backgrounds/app-shell-background-v3-main-safe.jpg");
@@ -112,23 +247,53 @@ html {
   }
 }
 
-/* Custom smooth scrollbars to complement the sleek medieval theme */
+/* Native scrollbar interaction with a fixed-cap lancet thumb. */
 ::-webkit-scrollbar {
-  width: 7px;
-  height: 7px;
+  width: 14px;
+  height: 14px;
 }
 
 ::-webkit-scrollbar-track {
-  background: rgba(15, 10, 8, 0.95); /* Deep antique wood */
+  background: transparent;
 }
 
-::-webkit-scrollbar-thumb {
-  background: rgba(146, 100, 48, 0.6); /* Muted brass/bronze */
-  border-radius: 4px;
-  border: 1px solid rgba(60, 40, 20, 0.4);
+::-webkit-scrollbar-thumb:vertical {
+  min-height: 50px;
+  background-color: transparent;
+  background-image:
+    url("./assets/images/ui/scrollbar/scrollbar-thumb-top-v4.png"),
+    url("./assets/images/ui/scrollbar/scrollbar-thumb-bottom-v4.png"),
+    url("./assets/images/ui/scrollbar/scrollbar-thumb-middle-vertical-v4.png");
+  background-position: center top, center bottom, center 32px;
+  background-repeat: no-repeat;
+  background-size: 14px 32px, 14px 14px, 14px calc(100% - 46px);
+}
+
+::-webkit-scrollbar-thumb:horizontal {
+  min-width: 50px;
+  background-color: transparent;
+  background-image:
+    url("./assets/images/ui/scrollbar/scrollbar-thumb-left-v4.png"),
+    url("./assets/images/ui/scrollbar/scrollbar-thumb-right-v4.png"),
+    url("./assets/images/ui/scrollbar/scrollbar-thumb-middle-horizontal-v4.png");
+  background-position: left center, right center, 14px center;
+  background-repeat: no-repeat;
+  background-size: 14px 14px, 32px 14px, calc(100% - 46px) 14px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(197, 137, 64, 0.85); /* Bright warm brass */
+  filter: brightness(1.18) saturate(1.08);
+}
+
+::-webkit-scrollbar-thumb:active {
+  filter: brightness(1.28) saturate(1.12);
+}
+
+::-webkit-scrollbar-button {
+  display: none;
+}
+
+::-webkit-scrollbar-corner {
+  background: rgba(8, 5, 3, 0.9);
 }
 

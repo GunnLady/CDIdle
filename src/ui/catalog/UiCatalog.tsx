@@ -67,9 +67,9 @@ export default function UiCatalog() {
                 <span className="absolute inset-0 bg-[#d7ad68]/0 transition-colors duration-150 group-hover:bg-[#d7ad68]/[0.06]" />
               </span>
               <span className="ui-building-card-frame pointer-events-none absolute inset-0 z-20" />
-              <span className="relative z-10 ml-auto flex h-full w-[54%] min-w-0 flex-col justify-center px-4 py-4">
-                <span className="flex items-start justify-between gap-2"><span className="min-w-0"><span className="block truncate font-serif text-sm font-bold text-[#f0dfbe] drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">{building.name}</span><span className="block font-mono text-[8px] uppercase tracking-wider text-[#bca27e]">{building.category}</span></span><span className="shrink-0 font-serif text-[9px] font-bold text-[#e0bd58]">{building.level}</span></span>
-                <span className="mt-3 line-clamp-3 block text-[10px] leading-relaxed text-[#c8b9a4] drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">{building.description}</span>
+              <span className="ui-building-card-copy relative z-10 ml-auto flex h-full w-[54%] min-w-0 flex-col justify-center px-4 py-4">
+                <span className="min-w-0"><span className="block whitespace-normal break-words font-serif text-sm font-bold leading-tight text-[#f0dfbe] drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">{building.name}</span><span className="mt-1 block font-serif text-[9px] font-bold text-[#e0bd58]">{building.level}</span><span className="mt-0.5 block font-mono text-[8px] uppercase tracking-wider text-[#bca27e]">{building.category}</span></span>
+                <span className="mt-2 line-clamp-3 block text-[10px] leading-relaxed text-[#c8b9a4] drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">{building.description}</span>
               </span>
             </button>)}
           </div>

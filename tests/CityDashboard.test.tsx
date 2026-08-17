@@ -54,7 +54,9 @@ describe("CityDashboard city controls", () => {
     }
 
     const assignmentPanel = screen.getByTestId("assignment-panel");
-    expect(within(assignmentPanel).getByRole("progressbar", { name: /immigration/i })).toBeInTheDocument();
+    const immigrationProgress = within(assignmentPanel).getByRole("progressbar", { name: /immigration/i });
+    expect(immigrationProgress).toHaveClass("ui-immigration-progress");
+    expect(immigrationProgress.closest("label")).toHaveAttribute("data-progress-variant", "immigration");
     expect(within(assignmentPanel).getByRole("status")).toHaveTextContent(/citoyen.*disponible/i);
     expect(within(assignmentPanel).getByRole("button", { name: /ajouter un fermier/i })).toHaveAttribute("data-state", "ready");
 
@@ -92,26 +94,53 @@ describe("CityDashboard city controls", () => {
     const selectedBuildingPanel = screen.getByTestId("selected-building-panel");
     expect(within(selectedBuildingPanel).getByText("Cabane")).toBeInTheDocument();
     expect(within(selectedBuildingPanel).getByText(/augmente la population maximale/i)).toBeInTheDocument();
+    const selectedBuildingImage = selectedBuildingPanel.querySelector("[data-selected-building-illustration] img")!;
+    expect(selectedBuildingImage).toHaveAttribute("src", expect.stringContaining("building-detail-habitation-v1.jpg"));
+    expect(selectedBuildingImage).toHaveClass("object-cover", "object-center");
+    expect(selectedBuildingImage).not.toHaveClass("object-contain");
+    const costVellum = selectedBuildingPanel.querySelector<HTMLElement>(".ui-building-cost-vellum")!;
+    expect(costVellum).toHaveClass("sm:flex-1");
+    expect(costVellum.parentElement).toHaveClass("sm:flex-row", "sm:items-stretch");
+    expect(selectedBuildingPanel.querySelector("[data-building-description]")?.closest(".ui-building-cost-vellum")).toBe(costVellum);
+    expect(within(costVellum).getByText(/^Or 25$/i)).toBeInTheDocument();
+    expect(within(costVellum).getByText(/^Nourriture 15$/i)).toBeInTheDocument();
+    expect(within(costVellum).queryByText(/^gold /i)).not.toBeInTheDocument();
     expect(screen.getByText("Affectations")).toBeInTheDocument();
     expect(screen.getByTestId("building-ferme")).toBeInTheDocument();
     expect(screen.getByTestId("building-ferme")).toHaveClass("h-[156px]");
+    const woodcutterCard = screen.getByTestId("building-scierie");
+    expect(woodcutterCard.querySelector(".ui-building-card-copy")).toBeInTheDocument();
+    const woodcutterName = woodcutterCard.querySelector("[data-building-card-name]")!;
+    const woodcutterLevel = woodcutterCard.querySelector("[data-building-card-level]")!;
+    const woodcutterCategory = woodcutterCard.querySelector("[data-building-card-category]")!;
+    expect(woodcutterName).toHaveTextContent("Maison de bûcheron");
+    expect(woodcutterName).not.toHaveClass("truncate");
+    expect(Array.from(woodcutterName.parentElement?.children ?? [])).toEqual([woodcutterName, woodcutterLevel, woodcutterCategory]);
     expect(screen.getByTestId("building-habitation")).toHaveAttribute("data-building-state", "selected");
     expect(selectedBuildingPanel).toHaveClass("order-1");
-    expect(screen.getByTestId("building-list-panel")).toHaveClass("order-2");
     expect(screen.getByTestId("assignment-panel")).toHaveClass("order-3");
-    expect(screen.getByTestId("building-list-panel")).toHaveClass("xl:col-start-2");
-    expect(screen.getByTestId("assignment-panel")).toHaveClass("xl:col-start-3");
-    expect(selectedBuildingPanel.parentElement).toHaveClass("xl:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)_minmax(0,1fr)]", "xl:items-stretch");
-    expect(Array.from(selectedBuildingPanel.parentElement?.children ?? []).map((element) => element.getAttribute("data-testid"))).toEqual([
+    const buildingColumn = screen.getByTestId("city-building-column");
+    expect(buildingColumn).toHaveClass("city-building-column", "order-2", "xl:relative", "xl:flex-[1_1_0%]", "xl:self-stretch");
+    const primaryColumn = screen.getByTestId("city-primary-column");
+    expect(primaryColumn).toHaveClass("contents", "xl:flex", "xl:flex-[2.2_1_0%]", "xl:flex-col", "xl:gap-4");
+    expect(primaryColumn.parentElement).toHaveClass("xl:flex", "xl:items-stretch");
+    expect(Array.from(primaryColumn.children).map((element) => element.getAttribute("data-testid"))).toEqual([
       "selected-building-panel",
-      "building-list-panel",
       "assignment-panel",
+    ]);
+    expect(Array.from(primaryColumn.parentElement?.children ?? []).map((element) => element.getAttribute("data-testid"))).toEqual([
+      "city-primary-column",
+      "city-building-column",
     ]);
 
     fireEvent.click(screen.getByTestId("building-ferme"));
     expect(within(selectedBuildingPanel).getByText("Ferme")).toBeInTheDocument();
+    expect(selectedBuildingPanel.querySelector("[data-selected-building-illustration] img")).toHaveAttribute("src", expect.stringContaining("building-detail-ferme-v1.jpg"));
     expect(onUpgradeBuilding).not.toHaveBeenCalled();
-    fireEvent.click(within(selectedBuildingPanel).getByRole("button", { name: /améliorer/i }));
+    const upgradeButton = within(selectedBuildingPanel).getByRole("button", { name: /améliorer/i });
+    expect(upgradeButton).toHaveClass("ui-building-upgrade-button", "sm:min-h-14", "sm:w-48", "sm:self-end");
+    expect(upgradeButton).not.toHaveClass("sm:self-stretch");
+    fireEvent.click(upgradeButton);
     expect(onUpgradeBuilding).toHaveBeenCalledWith("ferme");
   });
 

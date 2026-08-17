@@ -58,6 +58,7 @@ describe("UI components", () => {
     render(<><Panel title="Inventory" titleAs="h2" testId="panel" variant="strong">Content</Panel><Alert variant="error" role="alert">Failure</Alert><Progress label="Build" value={150} max={100} /></>);
     expect(screen.getByTestId("panel")).toHaveTextContent("Inventory");
     expect(screen.getByTestId("panel")).toHaveClass("ui-panel-skin");
+    expect(screen.getByTestId("panel").querySelector(".ui-panel-title-separator")).toHaveAttribute("aria-hidden", "true");
     expect(screen.getByTestId("panel")).toHaveAttribute("data-panel-variant", "strong");
     expect(screen.getByRole("alert")).toHaveTextContent("Failure");
     expect(screen.getByRole("progressbar", { name: "Build" })).toHaveAttribute("value", "100");
@@ -143,5 +144,13 @@ describe("UI components", () => {
     expect(backdrop).not.toBeNull();
     fireEvent.mouseDown(backdrop!);
     expect(onDismiss).toHaveBeenCalledOnce();
+  });
+
+  it("keeps the immigration progress semantic while applying its decorative skin", () => {
+    render(<Progress label="Immigration" value={45} variant="immigration" showValue={false} />);
+    const progress = screen.getByRole("progressbar", { name: "Immigration" });
+    expect(progress).toHaveAttribute("value", "45");
+    expect(progress).toHaveClass("ui-immigration-progress");
+    expect(progress.parentElement).toHaveClass("ui-immigration-progress-shell");
   });
 });

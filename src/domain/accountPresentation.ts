@@ -1,4 +1,5 @@
 import type { BattleLogEntry, Resources } from "../types";
+import { resourceLabels } from "./resourcePresentation";
 
 export interface SystemHistoryView {
   entries: BattleLogEntry[];
@@ -40,11 +41,11 @@ export function createRealmSummaryView(input: CreateRealmSummaryViewInput): Real
       { id: "floor", label: "Étage record", value: `${input.highestFloorReached}` },
     ],
     resources: [
-      { id: "gold", label: "Or", value: input.resources.gold },
-      { id: "food", label: "Nourriture", value: input.resources.food },
-      { id: "wood", label: "Bois", value: input.resources.wood },
-      { id: "stone", label: "Pierre", value: input.resources.stone },
-      { id: "ore", label: "Minerai", value: input.resources.ore },
+      { id: "gold", label: resourceLabels.gold, value: input.resources.gold },
+      { id: "food", label: resourceLabels.food, value: input.resources.food },
+      { id: "wood", label: resourceLabels.wood, value: input.resources.wood },
+      { id: "stone", label: resourceLabels.stone, value: input.resources.stone },
+      { id: "ore", label: resourceLabels.ore, value: input.resources.ore },
     ],
   };
 }

@@ -31,7 +31,7 @@ export default function ForgeWorkspace(props: ForgeWorkspaceProps) {
       title="Bâtiment sélectionné"
       subtitle="Forge rustique"
       testId="selected-building-panel"
-      className="order-1 xl:col-start-1 xl:row-start-1"
+      className="order-1"
       contentClassName="space-y-4"
     >
           <div className="flex items-center gap-2">
