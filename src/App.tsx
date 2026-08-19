@@ -601,6 +601,7 @@ export default function App() {
             <div className="w-full">
               <CityDashboard
                 resources={town.displayResources}
+                rates={activeRates}
                 buildings={town.buildings}
                 citizens={town.citizens}
                 totalCitizensCount={town.displayTotalCitizens}

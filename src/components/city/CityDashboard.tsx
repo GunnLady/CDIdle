@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import type { BattleLogEntry, CitizenAllocation, ItemBlueprint, Resources, StoredForgeMaterialStack } from "../../types";
+import type { BattleLogEntry, CitizenAllocation, ItemBlueprint, ResourceRates, Resources, StoredForgeMaterialStack } from "../../types";
 import type { BasicForgeUpgradeProc } from "../../utils/gameCalculations";
 import { createCityDashboardView, createCityHistoryView } from "../../domain/cityPresentation";
 import AssignmentPanel from "./AssignmentPanel";
@@ -10,7 +10,7 @@ import CityHistoryPanel from "./CityHistoryPanel";
 
 interface CityDashboardProps {
   resources: Resources; buildings: Record<string, number>; citizens: CitizenAllocation; totalCitizensCount: number;
-  citizenGrowthProgress: number; highestFloorReached: number; canMutate: boolean;
+  citizenGrowthProgress: number; highestFloorReached: number; canMutate: boolean; rates?: ResourceRates;
   forgeMaterials: StoredForgeMaterialStack[]; itemBlueprints: ItemBlueprint[];
   battleLogs?: BattleLogEntry[]; onClearCityLogs?: () => void;
   pendingForge?: { previewId: string; itemId: string; upgradeProc?: BasicForgeUpgradeProc } | null;
@@ -19,7 +19,7 @@ interface CityDashboardProps {
 }
 
 export default function CityDashboard(props: CityDashboardProps) {
-  const view = useMemo(() => createCityDashboardView({ resources: props.resources, buildings: props.buildings, citizens: props.citizens, totalCitizens: props.totalCitizensCount, citizenGrowthProgress: props.citizenGrowthProgress, highestFloorReached: props.highestFloorReached }), [props.resources, props.buildings, props.citizens, props.totalCitizensCount, props.citizenGrowthProgress, props.highestFloorReached]);
+  const view = useMemo(() => createCityDashboardView({ resources: props.resources, buildings: props.buildings, citizens: props.citizens, totalCitizens: props.totalCitizensCount, citizenGrowthProgress: props.citizenGrowthProgress, highestFloorReached: props.highestFloorReached, rates: props.rates }), [props.resources, props.buildings, props.citizens, props.totalCitizensCount, props.citizenGrowthProgress, props.highestFloorReached, props.rates]);
   const history = useMemo(() => createCityHistoryView(props.battleLogs ?? []), [props.battleLogs]);
   const [selectedBuildingId, setSelectedBuildingId] = useState("habitation");
   useEffect(() => { if (props.pendingForge) setSelectedBuildingId("forge"); }, [props.pendingForge]);

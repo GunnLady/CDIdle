@@ -1,4 +1,4 @@
-import type { BattleLogEntry, CitizenAllocation, Resources } from "../types";
+import type { BattleLogEntry, CitizenAllocation, ResourceRates, Resources } from "../types";
 import { BUILDINGS_LIST, BUILDING_UNLOCKS, checkBuildingUnlocked, getBuildingMaxLevel, getBuildingUpgradeCost } from "../data/gameData";
 
 export type CityJobId = keyof Omit<CitizenAllocation, "unassigned">;
@@ -11,7 +11,7 @@ export interface CityBuildingView {
 
 export interface CityJobView {
   id: CityJobId; label: string; buildingLabel: string; buildingLevel: number;
-  count: number; canAdd: boolean; canRemove: boolean;
+  productionLabel: string; count: number; canAdd: boolean; canRemove: boolean;
 }
 
 export interface CityDashboardView {
@@ -36,7 +36,7 @@ const affordable = (resources: Resources, cost: Resources) =>
 
 export function createCityDashboardView(input: {
   resources: Resources; buildings: Record<string, number>; citizens: CitizenAllocation;
-  totalCitizens: number; citizenGrowthProgress: number; highestFloorReached: number;
+  totalCitizens: number; citizenGrowthProgress: number; highestFloorReached: number; rates?: ResourceRates;
 }): CityDashboardView {
   const buildings = BUILDINGS_LIST.map((building): CityBuildingView => {
     const level = input.buildings[building.id] ?? 0;
@@ -51,11 +51,18 @@ export function createCityDashboardView(input: {
       cost, atMaxLevel, affordable: unlocked && !atMaxLevel && affordable(input.resources, cost),
     };
   });
+  const formatRate = (rate: number) => rate.toLocaleString("fr-FR", { maximumFractionDigits: 2 });
+  const job = (id: CityJobId, label: string, buildingLabel: string, buildingId: string, resourceLabel: string, rate: number | undefined): CityJobView => {
+    const buildingLevel = input.buildings[buildingId] ?? 0;
+    const count = input.citizens[id];
+    const resolvedRate = rate ?? count * buildingLevel;
+    return { id, label, buildingLabel, buildingLevel, count, canAdd: input.citizens.unassigned > 0 && buildingLevel > 0, canRemove: count > 0, productionLabel: buildingLevel > 0 ? `+${formatRate(resolvedRate)} ${resourceLabel}/s` : "Bâtiment non construit" };
+  };
   const jobs: CityJobView[] = [
-    { id: "farmers", label: "Fermiers", buildingLabel: "Ferme", buildingLevel: input.buildings.ferme ?? 0, count: input.citizens.farmers, canAdd: input.citizens.unassigned > 0 && (input.buildings.ferme ?? 0) > 0, canRemove: input.citizens.farmers > 0 },
-    { id: "woodcutters", label: "Bûcherons", buildingLabel: "Maison de bûcheron", buildingLevel: input.buildings.scierie ?? 0, count: input.citizens.woodcutters, canAdd: input.citizens.unassigned > 0 && (input.buildings.scierie ?? 0) > 0, canRemove: input.citizens.woodcutters > 0 },
-    { id: "quarrymen", label: "Tailleurs de pierre", buildingLabel: "Carrière", buildingLevel: input.buildings.carriere ?? 0, count: input.citizens.quarrymen, canAdd: input.citizens.unassigned > 0 && (input.buildings.carriere ?? 0) > 0, canRemove: input.citizens.quarrymen > 0 },
-    { id: "miners", label: "Mineurs", buildingLabel: "Mine", buildingLevel: input.buildings.mine ?? 0, count: input.citizens.miners, canAdd: input.citizens.unassigned > 0 && (input.buildings.mine ?? 0) > 0, canRemove: input.citizens.miners > 0 },
+    job("farmers", "Fermiers", "Ferme", "ferme", "Nourriture", input.rates?.food),
+    job("woodcutters", "Bûcherons", "Maison de bûcheron", "scierie", "Bois", input.rates?.wood),
+    job("quarrymen", "Tailleurs de pierre", "Carrière", "carriere", "Pierre", input.rates?.stone),
+    job("miners", "Mineurs", "Mine", "mine", "Minerai", input.rates?.ore),
   ];
   return {
     buildings, jobs, unassignedCitizens: input.citizens.unassigned, totalCitizens: input.totalCitizens,

@@ -71,10 +71,10 @@ export const catalogCityView: CityDashboardView = {
     { id: "guilde", name: "Guilde", description: "Réunit les aventuriers.", icon: "Castle", categoryLabel: "Communauté", level: 0, maxLevel: 5, unlocked: false, prerequisite: "Donjon étage 5", cost: buildingCost(900, 120, 100), affordable: false, atMaxLevel: false },
   ],
   jobs: [
-    { id: "farmers", label: "Fermiers", buildingLabel: "Ferme", buildingLevel: 3, count: 4, canAdd: true, canRemove: true },
-    { id: "woodcutters", label: "Bûcherons", buildingLabel: "Scierie", buildingLevel: 2, count: 2, canAdd: true, canRemove: true },
-    { id: "quarrymen", label: "Carriers", buildingLabel: "Carrière", buildingLevel: 1, count: 0, canAdd: true, canRemove: false },
-    { id: "miners", label: "Mineurs", buildingLabel: "Mine", buildingLevel: 0, count: 0, canAdd: false, canRemove: false },
+    { id: "farmers", label: "Fermiers", buildingLabel: "Ferme", buildingLevel: 3, productionLabel: "+24 Nourriture/s", count: 4, canAdd: true, canRemove: true },
+    { id: "woodcutters", label: "Bûcherons", buildingLabel: "Scierie", buildingLevel: 2, productionLabel: "+8 Bois/s", count: 2, canAdd: true, canRemove: true },
+    { id: "quarrymen", label: "Carriers", buildingLabel: "Carrière", buildingLevel: 1, productionLabel: "+0 Pierre/s", count: 0, canAdd: true, canRemove: false },
+    { id: "miners", label: "Mineurs", buildingLabel: "Mine", buildingLevel: 0, productionLabel: "Bâtiment non construit", count: 0, canAdd: false, canRemove: false },
   ],
   unassignedCitizens: 1, totalCitizens: 8, maxCitizens: 12, citizenGrowthProgress: 62,
 };

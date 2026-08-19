@@ -19,6 +19,7 @@ import StorageToolbar from "../../components/storage/StorageToolbar";
 import Alert from "../components/Alert";
 import Panel from "../components/Panel";
 import Button from "../primitives/Button";
+import CitizenAssignmentCardsPrototype from "./CitizenAssignmentCardsPrototype";
 import {
   catalogBlockedCandidate, catalogCityView, catalogCurrentItem, catalogDefeatEncounter, catalogDungeonBanner, catalogEncounter,
   catalogEquipmentCandidate, catalogFounder, catalogHeroEquipment, catalogParty, catalogRates, catalogRecruit,
@@ -105,6 +106,10 @@ export default function CatalogProductSections() {
           <div className="rounded-ui-control border border-ui-locked-border bg-ui-locked-surface p-3 sm:col-span-2"><p className="mb-2 text-xs font-bold text-ui-locked-text">Niveau {catalogBlockedCandidate.requiredLevel} requis</p><EquipmentChangeSummary currentItem={null} candidate={catalogBlockedCandidate} /></div>
         </div>
       </div>
+    </Panel>
+
+    <Panel title="Population et affectations" subtitle="Habillage raster validé et intégré dans la Cité" testId="catalog-citizen-assignment-prototype" variant="strong" titleAs="h2">
+      <CitizenAssignmentCardsPrototype />
     </Panel>
 
     <Panel title="Compositions de la Cité" subtitle="Bâtiments et affectations avec états sélectionné, verrouillé et borné" testId="catalog-product-city" titleAs="h2">

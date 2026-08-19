@@ -195,6 +195,26 @@ html {
   right: 0;
 }
 
+.ui-immigration-progress-compact {
+  gap: 4px;
+}
+
+.ui-immigration-progress-compact .ui-immigration-progress-shell {
+  height: 18px;
+  padding-inline: 8px;
+}
+
+.ui-immigration-progress-compact .ui-immigration-progress-shell::before,
+.ui-immigration-progress-compact .ui-immigration-progress-shell::after {
+  width: 12px;
+  height: 18px;
+}
+
+.ui-immigration-progress-compact .ui-immigration-progress {
+  height: 12px;
+  border-width: 2px;
+}
+
 .ui-immigration-progress {
   position: relative;
   z-index: 1;
