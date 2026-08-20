@@ -111,7 +111,7 @@ Doing.
       comme preuve datee.
 - [x] Auth n est optimise que s il depasse 10 % de l egress ou menace la marge.
 - [x] Les seuils d alerte et la procedure de regression sont documentes.
-- [ ] Aucune restriction de service liee a l egress ne reste non traitee.
+- [x] Aucune restriction de service liee a l egress ne reste non traitee.
 - [x] Les validations fonctionnelles des trois optimisations restent vertes.
 
 ## Tests
@@ -141,6 +141,45 @@ la reponse `/commands`, l auto-exploration utilise une invocation par rencontre
 et les scenarios visible et masque respectent leurs plafonds documentes. Cette
 preuve locale ne remplace pas la fenetre distante, la ventilation datee ni le
 controle des restrictions egress, qui restent ouverts.
+
+Preuve de deploiement verifiee par Codex le 20 aout 2026 : le SHA
+`1a72890b5089e870d7390da09a33e7ef21eab9b3` est publie, la migration
+`20260820010000_compact_transition_commits.sql` est enregistree a distance,
+`game-api` est `ACTIVE` en version 27 et le workflow frontend
+`32390128060` est `completed / success`. Le bundle Cloudflare immuable repond
+`HTTP 200` et contient le SHA attendu.
+
+Preuve fonctionnelle en production rapportee par l utilisateur le 20 aout
+2026 : connexion et chargement de la ville OK, `/bootstrap` en `HTTP 200`,
+`x-response-bytes` present, une seule commande `dungeon.auto_advance` en
+`HTTP 200` par rencontre, progression et recompenses coherentes, aucune
+commande pendant 30 secondes d onglet masque et reprise sans rafale au retour.
+Aucune restriction de service n a ete observee pendant ce controle.
+
+Restent ouverts avant passage en `Done` : une fenetre Supabase distante
+representative projetee a au plus 4,5 GB par cycle et sa ventilation datee
+PostgREST, Functions, Auth et cached egress.
+
+Point T0 Supabase rapporte par l utilisateur le 20 aout 2026 :
+
+- 19 aout, journee complete : Auth 3,802 MB, PostgREST 42,379 MB et
+  Functions 17,651 MB, soit 63,832 MB observes. La ventilation calculee est
+  6,0 % Auth, 66,4 % PostgREST et 27,6 % Functions. Une extrapolation brute
+  de ce seul jour donne environ 1,98 GB sur 31 jours.
+- 20 aout, journee partielle : Auth 234,566 KB, PostgREST 2,79 MB et
+  Functions 1,31 MB, soit environ 4,335 MB observes. Cette journee melange
+  ancien et nouveau fonctionnement, le deploiement ayant termine vers 18 h 08
+  heure de Paris.
+- Cached egress : aucune valeur positive n est affichee dans le graphique,
+  selon l utilisateur. La valeur est consideree nulle pour le calcul T0, sans
+  preuve numerique independante.
+
+Les alpha-testeurs ont volontairement reduit leur activite pour preserver le
+quota gratuit. Ce T0 prouve la ventilation et fournit un repere de securite,
+mais ne constitue pas seul une fenetre representative d activite normale. La
+fenetre strictement post-deploiement commence le 21 aout 2026 ; elle sera
+comparee au retour de l utilisateur le 31 aout, puis completee si necessaire
+par une courte session controlee a activite normale.
 
 ## Preservation
 
