@@ -18,10 +18,11 @@ valeur pour idle. Les projections React sont ancrées sur `serverTime` et
 `lastProcessedAt`, puis animées avec `performance.now()` : changer l'heure
 Windows ne crée donc ni gain ni rollback autoritaire.
 
-Dans un même navigateur, chaque heartbeat ou mutation transmet aux autres
+Dans un même navigateur, chaque réconciliation temporelle ou mutation transmet aux autres
 onglets le snapshot `game-api` déjà reçu (`revision`, état, `serverTime`,
 `lastProcessedAt`). Cette réplication UI n'exécute aucun calcul temporel et ne
 produit aucun commit. Toute mutation suivante reste validée par PostgreSQL.
-Un seul onglet maître exécute également le heartbeat ; les observateurs ne
-créent donc aucune révision temporelle concurrente. Un transfert de contrôle
+Un seul onglet maître exécute les échéances de récupération et les reprises
+visibles ; les observateurs ne créent donc aucune révision temporelle
+concurrente. Un transfert de contrôle
 est précédé d'un bootstrap canonique avant toute nouvelle mutation.

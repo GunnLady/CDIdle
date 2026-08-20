@@ -14,6 +14,7 @@ export function useDungeonAutomation(options: {
 }) {
   const optionsRef = useRef(options);
   optionsRef.current = options;
+  const [documentVisible, setDocumentVisible] = useState(() => document.visibilityState === "visible");
   const [isRunning, setIsRunning] = useState(false);
   const isRunningRef = useRef(false);
   const retreatRequestedRef = useRef(false);
@@ -30,6 +31,14 @@ export function useDungeonAutomation(options: {
     setIsRunning(true);
     try {
       if (!current.currentEncounter) {
+        if (!interactive && current.autoExplore) {
+          const advanced = await current.dispatchCommand({
+            type: "dungeon.auto_advance",
+            floor: current.activeFloor,
+          }, { interactive: false });
+          if (!advanced) blockedRef.current = true;
+          return advanced;
+        }
         const explored = await current.dispatchCommand({
           type: "dungeon.explore",
           floor: current.activeFloor,
@@ -73,15 +82,21 @@ export function useDungeonAutomation(options: {
   }, []);
 
   useEffect(() => {
-    if (blockedRef.current || !options.enabled || !options.currentEncounter || isRunning) return;
-    void exploreAndResolve(false);
-  }, [exploreAndResolve, isRunning, options.currentEncounter, options.enabled]);
+    const handleVisibilityChange = () => setDocumentVisible(document.visibilityState === "visible");
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
+  }, []);
 
   useEffect(() => {
-    if (blockedRef.current || !options.enabled || !options.autoExplore || options.currentEncounter || isRunning) return;
+    if (blockedRef.current || !documentVisible || !options.enabled || !options.currentEncounter || isRunning) return;
+    void exploreAndResolve(false);
+  }, [documentVisible, exploreAndResolve, isRunning, options.currentEncounter, options.enabled]);
+
+  useEffect(() => {
+    if (blockedRef.current || !documentVisible || !options.enabled || !options.autoExplore || options.currentEncounter || isRunning) return;
     const handle = window.setTimeout(() => { void exploreAndResolve(false); }, 1_000);
     return () => window.clearTimeout(handle);
-  }, [exploreAndResolve, isRunning, options.autoExplore, options.currentEncounter, options.enabled]);
+  }, [documentVisible, exploreAndResolve, isRunning, options.autoExplore, options.currentEncounter, options.enabled]);
 
   return {
     exploreAndResolve,

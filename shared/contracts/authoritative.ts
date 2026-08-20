@@ -248,6 +248,7 @@ export type CanonicalGameCommand =
   | { type: "cheat.grant_resources"; amounts: Partial<Record<"gold" | "food" | "wood" | "stone" | "ore", number>> }
   | { type: "cheat.set_highest_floor"; floor: number }
   | { type: "dungeon.explore"; floor: number }
+  | { type: "dungeon.auto_advance"; floor: number }
   | { type: "dungeon.select_floor"; floor: number }
   | { type: "dungeon.resolve" }
   | { type: "dungeon.auto_explore"; enabled: boolean }
@@ -266,7 +267,7 @@ export const CANONICAL_COMMAND_TYPES = [
   "hero.recruit", "hero.recruit_offer", "hero.recruit_confirm", "hero.recruit_cancel", "hero.dismiss", "hero.activity", "hero.choose_vocation", "hero.equip", "hero.unequip",
   "inventory.recycle", "forge.start", "forge.finalize", "forge.cancel",
   "cheat.grant_resources", "cheat.set_highest_floor",
-  "dungeon.explore", "dungeon.select_floor", "dungeon.resolve", "dungeon.auto_explore", "dungeon.retreat",
+  "dungeon.explore", "dungeon.auto_advance", "dungeon.select_floor", "dungeon.resolve", "dungeon.auto_explore", "dungeon.retreat",
 ] as const;
 
 const CANONICAL_RARITIES = ["common", "uncommon", "rare", "epic", "legendary"] as const;
@@ -346,6 +347,12 @@ function validateCanonicalCommandPayload(command: Record<string, unknown>): stri
     case "forge.cancel":
       if (!hasOnlyKeys(command, ["type", "previewId"])) errors.push("command contains unsupported fields");
       requireString("previewId");
+      break;
+    case "dungeon.auto_advance":
+      if (!hasOnlyKeys(command, ["type", "floor"])) errors.push("command contains unsupported fields");
+      if (!Number.isInteger(command.floor) || Number(command.floor) < 1) {
+        errors.push("command.floor must be an integer >= 1");
+      }
       break;
     default:
       break;

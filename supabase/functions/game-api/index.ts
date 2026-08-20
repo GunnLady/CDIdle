@@ -42,11 +42,16 @@ function response(body: unknown, status: number, requestIdValue: string, origin?
     headers.set("access-control-allow-origin", origin);
     headers.set("access-control-allow-headers", "authorization, content-type, x-client-version");
     headers.set("access-control-allow-methods", "POST, DELETE, OPTIONS");
+    headers.set("access-control-expose-headers", "x-request-id, x-response-bytes");
     headers.set("vary", "Origin");
   }
   const bodyAllowed = status !== 204 && status !== 205 && status !== 304;
   if (!bodyAllowed) headers.delete("content-type");
-  return new Response(bodyAllowed ? JSON.stringify(body) : null, { status, headers });
+  const serialized = bodyAllowed ? JSON.stringify(body) : null;
+  if (serialized !== null) {
+    headers.set("x-response-bytes", String(new TextEncoder().encode(serialized).byteLength));
+  }
+  return new Response(serialized, { status, headers });
 }
 
 function errorResponse(code: string, message: string, id: string, status: number, origin?: string): Response {

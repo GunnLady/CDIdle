@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { createSupabaseGameApiServices } from "../supabase/functions/game-api/supabase-adapter";
 import { applyTownCommand, initialTownState } from "../supabase/functions/game-api/town-authority";
+import { makeHero } from "./fixtures/game";
 
 describe("Supabase game-api adapter", () => {
   it("applies and commits idle before returning bootstrap", async () => {
@@ -12,7 +13,7 @@ describe("Supabase game-api adapter", () => {
       fetcher: async (url, init) => {
         calls.push(`${init?.method ?? "GET"} ${url}`);
         if (url.includes("load_game_transition")) return new Response(JSON.stringify([{ schema_version: 1, revision: 0, state: {}, last_processed_at: "2026-07-19T00:00:00.000Z", server_time: "2026-07-19T01:00:00.000Z" }]), { status: 200 });
-        if (url.includes("commit_idle_transition")) return new Response(JSON.stringify([{ schema_version: 1, revision: 1, state: { idleApplied: true }, last_processed_at: "2026-07-19T01:00:00.000Z" }]), { status: 200 });
+        if (url.includes("commit_idle_transition")) return new Response(JSON.stringify([{ schema_version: 1, revision: 1, last_processed_at: "2026-07-19T01:00:00.000Z" }]), { status: 200 });
         return new Response("[]", { status: 200 });
       },
     });
@@ -28,6 +29,7 @@ describe("Supabase game-api adapter", () => {
       },
     });
     expect(calls.some((call) => call.includes("commit_idle_transition"))).toBe(true);
+    expect(calls.some((call) => call.includes("commit_idle_transition_v2"))).toBe(true);
   });
 
   it("reloads bootstrap when a concurrent command changes only the revision", async () => {
@@ -77,7 +79,6 @@ describe("Supabase game-api adapter", () => {
           committedBody = JSON.parse(String(init?.body)) as Record<string, unknown>;
           return new Response(JSON.stringify([{
             schema_version: 1, revision: 5,
-            state: { idleApplied: true, commandApplied: true },
             last_processed_at: "2026-07-19T00:00:02.000Z",
           }]), { status: 200 });
         }
@@ -103,6 +104,54 @@ describe("Supabase game-api adapter", () => {
       p_state: { idleApplied: true, commandApplied: true },
     });
     expect(calls.some((call) => call.includes("commit_idle_transition"))).toBe(false);
+    expect(calls.some((call) => call.includes("commit_game_transition_v2"))).toBe(true);
+  });
+
+  it("rejects malformed compact idle commit metadata", async () => {
+    const adapter = createSupabaseGameApiServices({
+      supabaseUrl: "http://db", serviceRoleKey: "server-only", initialState: {},
+      applyCommand: async (state) => ({ state }),
+      applyIdle: (state) => ({ state, lastProcessedAt: "2026-07-19T01:00:00.000Z", report: {} }),
+      fetcher: async (url) => {
+        if (url.includes("commit_idle_transition_v2")) {
+          return new Response(JSON.stringify([{ schema_version: 1, revision: "1" }]), { status: 200 });
+        }
+        return new Response(JSON.stringify([{
+          schema_version: 1, revision: 0, state: {},
+          last_processed_at: "2026-07-19T00:00:00.000Z",
+          server_time: "2026-07-19T01:00:00.000Z",
+        }]), { status: 200 });
+      },
+    });
+
+    await expect(adapter.bootstrap("u1")).rejects.toMatchObject({
+      code: "SUPABASE_INVALID_RESPONSE",
+    });
+  });
+
+  it("rejects malformed compact command commit metadata", async () => {
+    const adapter = createSupabaseGameApiServices({
+      supabaseUrl: "http://db", serviceRoleKey: "server-only", initialState: {},
+      applyCommand: async (state) => ({ state: { ...state, applied: true } }),
+      fetcher: async (url) => {
+        if (url.includes("claim_game_transition")) return new Response(JSON.stringify("claimed"), { status: 200 });
+        if (url.includes("commit_game_transition_v2")) {
+          return new Response(JSON.stringify([{ schema_version: 1, revision: "1", last_processed_at: null }]), { status: 200 });
+        }
+        return new Response(JSON.stringify([{
+          schema_version: 1, revision: 0, state: {},
+          last_processed_at: "2026-07-19T00:00:00.000Z",
+          server_time: "2026-07-19T01:00:00.000Z",
+        }]), { status: 200 });
+      },
+    });
+
+    await expect(adapter.commands("u1", {
+      commandId: "30303030-3030-4030-8030-303030303030",
+      idempotencyKey: "invalid-commit",
+      expectedRevision: 0,
+      command: { type: "building.upgrade" },
+    })).rejects.toMatchObject({ code: "SUPABASE_INVALID_RESPONSE" });
   });
 
   it("does not commit elapsed idle when the business command is rejected", async () => {
@@ -301,6 +350,90 @@ describe("Supabase game-api adapter", () => {
     expect(replay.state).toEqual(first.state);
     expect((replay.state.storedItems as Array<{ instanceId: string }>)).toHaveLength(1);
     expect(applyCount).toBe(1);
+  });
+
+  it("commits and replays one composite dungeon advance without duplicating the encounter", async () => {
+    const commandId = "94949494-9494-4494-8494-949494949494";
+    const payload = {
+      commandId,
+      idempotencyKey: "dungeon-auto-advance-replay",
+      clientVersion: "cdi-094",
+      expectedRevision: 0,
+      command: { type: "dungeon.auto_advance", floor: 1 },
+    };
+    let revision = 0;
+    let persistedState: Record<string, unknown> = {
+      ...initialTownState(94),
+      activeDungeonFloor: 1,
+      activeDungeonRoom: 1,
+      highestFloorReached: 1,
+      autoExplore: true,
+      currentEncounter: null,
+      encounterHistory: [],
+      heroes: [makeHero({
+        id: "hero-auto-replay",
+        isActive: true,
+        currentHp: 10_000,
+        calculatedStats: {
+          ...makeHero().calculatedStats,
+          maxHp: 10_000,
+          hp: 10_000,
+          physicalDamage: 1_000_000,
+        },
+      })],
+    };
+    let committed = false;
+    let applyCount = 0;
+    let commitCount = 0;
+    const adapter = createSupabaseGameApiServices({
+      supabaseUrl: "http://db",
+      serviceRoleKey: "server-only",
+      initialState: persistedState,
+      applyCommand: async (state, command) => {
+        applyCount += 1;
+        return applyTownCommand(state, command);
+      },
+      fetcher: async (url, init) => {
+        if (url.includes("claim_game_transition")) {
+          return new Response(JSON.stringify(committed ? "replayed" : "claimed"), { status: 200 });
+        }
+        if (url.includes("/rpc/commit_game_transition_v2")) {
+          const body = JSON.parse(String(init?.body)) as { p_state: Record<string, unknown> };
+          persistedState = structuredClone(body.p_state);
+          committed = true;
+          commitCount += 1;
+          revision += 1;
+          return new Response(JSON.stringify([{
+            schema_version: 1,
+            revision,
+            last_processed_at: "2026-08-20T12:00:00Z",
+          }]), { status: 200 });
+        }
+        if (url.includes("load_game_transition")) {
+          return new Response(JSON.stringify([{
+            schema_version: 1,
+            revision,
+            state: persistedState,
+            last_processed_at: "2026-08-20T12:00:00Z",
+            server_time: "2026-08-20T12:00:00Z",
+          }]), { status: 200 });
+        }
+        throw new Error("unexpected request: " + url);
+      },
+    });
+
+    const first = await adapter.commands("u1", payload);
+    const replay = await adapter.commands("u1", payload);
+
+    expect(first).toMatchObject({ ok: true, replayed: false, revision: 1 });
+    expect(replay).toMatchObject({ ok: true, replayed: true, revision: 1 });
+    if (!("state" in first) || !("state" in replay)) {
+      throw new Error("expected successful composite dungeon commands");
+    }
+    expect(replay.state).toEqual(first.state);
+    expect(replay.state.encounterHistory).toHaveLength(1);
+    expect(applyCount).toBe(1);
+    expect(commitCount).toBe(1);
   });
 
   it("processes idle on a replay without reapplying the command", async () => {

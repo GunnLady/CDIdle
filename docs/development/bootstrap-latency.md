@@ -3,7 +3,7 @@
 ## Baseline avant CDI-071
 
 L'inventaire du parcours a identifié six déclencheurs légitimes : démarrage ou
-F5, reconnexion, heartbeat, prise de contrôle d'un onglet, conflit de révision
+F5, reconnexion, réconciliation temporelle, prise de contrôle d'un onglet, conflit de révision
 et synchronisation manuelle.
 
 Trois coûts évitables existaient :
@@ -25,7 +25,7 @@ serveur ne séparait pas chargement Supabase, calcul idle et commit.
 - Toute acquisition du contrôle, initiale, passive ou explicitement demandée,
   resynchronise la révision avant d'autoriser les mutations. L'âge d'un
   snapshot ne constitue pas une preuve suffisante de son autorité.
-- Le heartbeat reste abandonné lorsque la file contient une commande.
+- Une réconciliation temporelle reste abandonnée lorsque la file contient une commande.
 - La confirmation de recrutement conserve directement le snapshot renvoyé par
   `/commands`.
 
@@ -46,7 +46,7 @@ principalement transport, authentification Edge et transfert JSON.
 
 - cache confirmé utilisable localement en au plus 100 ms ;
 - zéro bootstrap de confirmation après une commande réussie ;
-- zéro heartbeat ajouté lorsque la file est occupée ;
+- zéro réconciliation de fond ajoutée lorsque la file est occupée ;
 - une réconciliation obligatoire avant chaque acquisition du contrôle ;
 - aucune mutation avant la fin de la réconciliation réseau.
 
@@ -59,7 +59,7 @@ npm.cmd run test:bootstrap-simulation
 ## Mesure alpha avant clôture
 
 Dans la console du navigateur alpha, filtrer sur `Canonical` puis relever les
-événements pour un F5, une reconnexion, un heartbeat, une prise de contrôle et
+événements pour un F5, une reconnexion, une reprise visible, une prise de contrôle et
 une synchronisation manuelle. Un conflit se vérifie avec le scénario
 inter-onglets existant. Comparer `queueWaitMs`, `networkMs`, `applicationMs`,
 `operationMs` et les quatre phases serveur.

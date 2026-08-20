@@ -1,6 +1,7 @@
 import type { TownCommandHandlerRegistry } from "./command-handler.ts";
 import { allocateCitizens } from "./citizen-command-handlers.ts";
 import {
+  advanceDungeonAutomation,
   exploreDungeon,
   resolveDungeon,
   retreatDungeon,
@@ -48,6 +49,7 @@ export const TOWN_COMMAND_HANDLERS = {
   "cheat.grant_resources": grantCheatResources,
   "cheat.set_highest_floor": setCheatHighestFloor,
   "dungeon.explore": exploreDungeon,
+  "dungeon.auto_advance": advanceDungeonAutomation,
   "dungeon.select_floor": selectDungeonFloor,
   "dungeon.resolve": resolveDungeon,
   "dungeon.auto_explore": setDungeonAutoExplore,

@@ -70,13 +70,13 @@ describe("bootstrap latency simulation", () => {
     })).toBe(false);
   });
 
-  it("never lets a heartbeat compete with a queued user mutation", async () => {
+  it("never lets a recovery reconciliation compete with a queued user mutation", async () => {
     let releaseUser!: () => void;
     const userPending = new Promise<void>((resolve) => { releaseUser = resolve; });
     const queue = new CanonicalOperationQueue();
     const command = queue.enqueueUser(() => userPending, "command:test");
 
-    expect(queue.tryEnqueueBackground(async () => undefined, "bootstrap:heartbeat")).toBeNull();
+    expect(queue.tryEnqueueBackground(async () => undefined, "bootstrap:recovery")).toBeNull();
     releaseUser();
     await command;
   });

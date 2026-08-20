@@ -7,14 +7,16 @@ describe("canonical bootstrap policy", () => {
   it("inventories every justified bootstrap trigger", () => {
     expect(Object.keys(CANONICAL_BOOTSTRAP_POLICIES).sort()).toEqual([
       "conflict",
-      "heartbeat",
       "immigration",
       "initial",
       "leadership",
       "manual",
       "reconnect",
+      "recovery",
+      "visibility",
     ]);
-    expect(CANONICAL_BOOTSTRAP_POLICIES.heartbeat.skipWhenQueueBusy).toBe(true);
+    expect(CANONICAL_BOOTSTRAP_POLICIES.recovery.skipWhenQueueBusy).toBe(true);
+    expect(CANONICAL_BOOTSTRAP_POLICIES.visibility.skipWhenQueueBusy).toBe(true);
     expect(CANONICAL_BOOTSTRAP_POLICIES.conflict.priority).toBe("user");
     expect(CANONICAL_BOOTSTRAP_POLICIES.leadership.mayReuseRecentSnapshot).toBe(false);
   });

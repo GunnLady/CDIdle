@@ -60,13 +60,13 @@ describe("CanonicalOperationQueue", () => {
     expect(queue.tryEnqueueBackground(async () => "accepted")).not.toBeNull();
   });
 
-  it("coalesces immediate and periodic refreshes sharing the same authority key", async () => {
+  it("coalesces immigration and recovery refreshes sharing the same authority key", async () => {
     const release = deferred<void>();
     const run = vi.fn(() => release.promise);
     const queue = new CanonicalOperationQueue();
 
     const immediate = queue.enqueueCoalescedBackground("town-authority", run, "bootstrap:immigration");
-    const periodic = queue.tryEnqueueCoalescedBackground("town-authority", run, "bootstrap:heartbeat");
+    const periodic = queue.tryEnqueueCoalescedBackground("town-authority", run, "bootstrap:recovery");
 
     expect(periodic).toBe(immediate);
     await Promise.resolve();

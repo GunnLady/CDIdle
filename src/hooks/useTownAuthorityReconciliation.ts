@@ -1,19 +1,21 @@
-import { useCallback, useEffect, useRef, type MutableRefObject } from 'react';
+import { useCallback, useEffect, useRef, useState, type MutableRefObject } from 'react';
 import type { CanonicalGameState } from '../../shared/contracts/authoritative';
 import type { GameApplicationPorts } from '../application/gameApplicationPorts';
 import type { BattleLogEntry } from '../types';
 import type { CanonicalStateFailure } from '../domain/canonicalStateFailure';
 import type { AuthoritativeGameEnvelope } from '../domain/commands';
 import { formatCanonicalIdleReport } from '../domain/idleReport';
-import { shouldRefreshTownAuthority, type TownHeartbeatInput } from '../domain/townHeartbeat';
+import type { CanonicalBootstrapReason } from '../domain/bootstrapPolicy';
+import {
+  nextTownAuthorityRecoveryDelayMs,
+  type TownAuthorityRecoveryHero,
+} from '../domain/townAuthoritySchedule';
 import { canonicalBootstrapOperationKey } from '../lib/canonicalBootstrap';
 import type { CanonicalOperationQueue } from '../lib/canonicalOperationQueue';
 import type { CanonicalAuthorityGeneration } from '../lib/canonicalReconciliation';
 import { canonicalStateFailure } from '../lib/supabase';
 import type { GameLogChannel } from './useGameLog';
 import { useImmigrationReconciliation } from './useImmigrationReconciliation';
-
-export const TOWN_AUTHORITY_HEARTBEAT_MS = 30_000;
 
 type AddGameLog = (
   message: string,
@@ -38,7 +40,7 @@ export interface TownAuthorityReconciliationDependencies {
   cityName: string;
   currentUserId: string | null;
   hasPendingImmigration: boolean;
-  heartbeat: TownHeartbeatInput;
+  recoveryHeroes: TownAuthorityRecoveryHero[];
   isAutomationLeader: boolean;
   isAutomationLeaderRef: MutableRefObject<boolean>;
   isInitialGameLoadDone: boolean;
@@ -53,9 +55,12 @@ export function useTownAuthorityReconciliation(
 ): void {
   const dependenciesRef = useRef(dependencies);
   dependenciesRef.current = dependencies;
+  const [documentVisible, setDocumentVisible] = useState(
+    () => typeof document === 'undefined' || document.visibilityState === 'visible',
+  );
 
   const reconcileTownAuthority = useCallback((
-    reason: 'heartbeat' | 'immigration',
+    reason: Extract<CanonicalBootstrapReason, 'immigration' | 'recovery' | 'visibility'>,
     skipWhenBusy: boolean,
     skipIfAuthorityAdvancedFrom?: number,
   ): Promise<void> | null => {
@@ -128,27 +133,39 @@ export function useTownAuthorityReconciliation(
   );
 
   useImmigrationReconciliation({
-    isAutomationLeader: dependencies.isAutomationLeader,
+    isAutomationLeader: dependencies.isAutomationLeader && documentVisible,
     hasPendingImmigration: dependencies.hasPendingImmigration,
     authorityGeneration: dependencies.authorityGeneration.current,
     reconcile: reconcilePendingImmigration,
   });
 
-  const heartbeatRequired = dependencies.isAutomationLeader
+  const reconciliationReady = dependencies.isAutomationLeader
     && Boolean(dependencies.currentUserId)
     && dependencies.browserOnline
     && dependencies.isInitialGameLoadDone
     && Boolean(dependencies.cityName)
-    && !dependencies.canonicalStateFailureDetails
-    && shouldRefreshTownAuthority(dependencies.heartbeat);
+    && !dependencies.canonicalStateFailureDetails;
 
   useEffect(() => {
-    if (!heartbeatRequired) return;
-    const refresh = () => {
-      const operation = reconcileTownAuthority('heartbeat', true);
+    if (typeof document === 'undefined') return;
+    const onVisibilityChange = () => {
+      const visible = document.visibilityState === 'visible';
+      setDocumentVisible(visible);
+      if (!visible) return;
+      const operation = reconcileTownAuthority('visibility', true);
       if (operation) void operation.catch(() => undefined);
     };
-    const interval = window.setInterval(refresh, TOWN_AUTHORITY_HEARTBEAT_MS);
-    return () => window.clearInterval(interval);
-  }, [heartbeatRequired, reconcileTownAuthority]);
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', onVisibilityChange);
+  }, [reconcileTownAuthority]);
+
+  const recoveryDelayMs = nextTownAuthorityRecoveryDelayMs(dependencies.recoveryHeroes);
+  useEffect(() => {
+    if (!reconciliationReady || !documentVisible || recoveryDelayMs === null) return;
+    const timeout = window.setTimeout(() => {
+      const operation = reconcileTownAuthority('recovery', true);
+      if (operation) void operation.catch(() => undefined);
+    }, recoveryDelayMs);
+    return () => window.clearTimeout(timeout);
+  }, [documentVisible, reconciliationReady, reconcileTownAuthority, recoveryDelayMs]);
 }

@@ -30,9 +30,16 @@ describe("game-api Edge handler", () => {
     expect(result.status).toBe(200);
     expect(result.headers.get("x-request-id")).toBeTruthy();
     expect(result.headers.get("access-control-allow-origin")).toBe("https://app.example.test");
+    expect(result.headers.get("access-control-expose-headers")).toContain("x-response-bytes");
+    const body = await result.clone().text();
+    expect(Number(result.headers.get("x-response-bytes"))).toBe(new TextEncoder().encode(body).byteLength);
+    expect(result.headers.get("x-response-bytes")).not.toContain(body);
   });
   it("enforces auth, strict CORS and command validation", async () => {
-    expect((await handler(new Request("https://api.example.test/game-api/bootstrap", { method: "POST" }))).status).toBe(401);
+    const unauthorized = await handler(new Request("https://api.example.test/game-api/bootstrap", { method: "POST" }));
+    expect(unauthorized.status).toBe(401);
+    const unauthorizedBody = await unauthorized.clone().text();
+    expect(Number(unauthorized.headers.get("x-response-bytes"))).toBe(new TextEncoder().encode(unauthorizedBody).byteLength);
     expect((await handler(new Request("https://api.example.test/game-api/bootstrap", { method: "POST", headers: { origin: "https://evil.test" } }))).status).toBe(403);
     const invalid = await handler(request("/commands", { method: "POST", body: JSON.stringify({}) }));
     expect(invalid.status).toBe(400);

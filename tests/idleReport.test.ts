@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { formatCanonicalIdleReport } from "../src/domain/idleReport";
 
 describe("canonical idle report", () => {
-  it("hides heartbeat noise and summarizes meaningful returns", () => {
+  it("hides short reconciliation noise and summarizes meaningful returns", () => {
     expect(formatCanonicalIdleReport({
       elapsedSeconds: 5,
       appliedSeconds: 5,
@@ -25,7 +25,7 @@ describe("canonical idle report", () => {
     })).toContain("+1 citoyen(s)");
   });
 
-  it("reports only completed recovery during a short heartbeat", () => {
+  it("reports only completed recovery during a short reconciliation", () => {
     const report = {
       elapsedSeconds: 30,
       appliedSeconds: 30,

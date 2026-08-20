@@ -251,13 +251,6 @@ export default function App() {
     autoExplore: canonicalProjection?.autoExplore ?? true,
   });
 
-  const {
-    buildings: townBuildings,
-    getRates: getTownRates,
-    resources: townResources,
-    totalCitizens: townTotalCitizens,
-  } = town;
-
   const clearClientGameState = useCallback(() => {
     optimisticResetRef.current();
     encounterHistoryRef.current = [];
@@ -472,13 +465,7 @@ export default function App() {
     cityName,
     currentUserId: currentUser ? String(currentUser.id) : null,
     hasPendingImmigration: town.hasPendingImmigration,
-    heartbeat: {
-      rates: getTownRates(),
-      food: townResources.food,
-      totalCitizens: townTotalCitizens,
-      habitationLevel: townBuildings.habitation ?? 0,
-      heroes: dungeon.heroes,
-    },
+    recoveryHeroes: dungeon.heroes,
     isAutomationLeader,
     isAutomationLeaderRef,
     isInitialGameLoadDone,

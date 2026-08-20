@@ -54,14 +54,15 @@ sont appliqués par le chemin temporel CDI-061.
 - À l'ouverture du canal, chaque onglet publie également son dernier snapshot
   de bootstrap initial. Un bootstrap initial terminé plus tard ne peut donc
   pas laisser le futur onglet maître sur une révision silencieusement périmée.
-- Les commandes, heartbeats, synchronisations manuelles et resets propagent
+- Les commandes, réconciliations temporelles, synchronisations manuelles et resets propagent
   leur snapshot. Un conflit affiche une réussite de resynchronisation
   uniquement si le rechargement canonique a réellement abouti.
 - Le frontend sérialise toutes les opérations canoniques dans une file unique.
   Une commande utilisateur non démarrée passe avant les synchronisations
   d'arrière-plan encore en attente, sans interrompre une opération déjà
-  envoyée. Le heartbeat périodique n'est pas ajouté lorsque cette file est
-  occupée ; il retentera au prochain intervalle.
+  envoyée. Une réconciliation temporelle de fond n'est pas ajoutée lorsque
+  cette file est occupée ; une prochaine échéance ou reprise visible la
+  replanifie.
 - Les mutations déterministes fréquentes sont projetées immédiatement dans
   l'onglet maître, sans bandeau de succès ni d'attente. Elles sont limitées à
   cinq clics par seconde et par famille, puis condensées : les deltas sont
@@ -94,7 +95,7 @@ sont appliqués par le chemin temporel CDI-061.
   développement ; les builds alpha et production n'émettent pas ces logs.
 - Un verrou navigateur exclusif, isolé par `userId`, désigne un seul onglet
   maître pour toutes les mutations, les commandes automatiques de donjon et
-  le heartbeat temporel. Les autres onglets sont des observateurs sans
+  les réconciliations temporelles. Les autres onglets sont des observateurs sans
   contrôles de mutation et affichent les snapshots sans écrire.
 - Un observateur peut demander `Prendre le contrôle`. Le maître termine sa
   commande courante, libère le verrou, puis le demandeur recharge un snapshot
@@ -139,7 +140,7 @@ sont appliqués par le chemin temporel CDI-061.
   par commande authentifiée ; aucune mutation de donjon n'est exécutée hors
   ligne.
 
-Les quatre commandes sont idempotentes via l'enveloppe commune et leurs
+Les cinq commandes sont idempotentes via l'enveloppe commune et leurs
 événements sont commités avec l'état canonique.
 
 ## RNG canonique (CDI-050)

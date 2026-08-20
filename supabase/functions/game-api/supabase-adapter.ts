@@ -28,6 +28,7 @@ type GameRow = {
   server_time?: string;
   migration_pending?: boolean;
 };
+type GameCommit = Pick<GameRow, "schema_version" | "revision" | "last_processed_at">;
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 export function createSupabaseGameApiServices(options: SupabaseAdapterOptions) {
@@ -61,10 +62,19 @@ export function createSupabaseGameApiServices(options: SupabaseAdapterOptions) {
     }
     return body;
   }
-  function row(value: unknown): GameRow {
+  function row<T extends Record<string, unknown>>(value: unknown): T {
     const item = Array.isArray(value) ? value[0] : value;
     if (!item || typeof item !== "object") throw new SupabaseAdapterError("SUPABASE_INVALID_RESPONSE", "Supabase returned an invalid game");
-    return item as GameRow;
+    return item as T;
+  }
+  function commitRow(value: unknown): GameCommit {
+    const commit = row<Record<string, unknown>>(value);
+    if (!Number.isInteger(commit.schema_version) || Number(commit.schema_version) < 1
+        || !Number.isInteger(commit.revision) || Number(commit.revision) < 0
+        || typeof commit.last_processed_at !== "string" || commit.last_processed_at.length === 0) {
+      throw new SupabaseAdapterError("SUPABASE_INVALID_RESPONSE", "Supabase returned invalid commit metadata");
+    }
+    return commit as GameCommit;
   }
   async function load(userId: string): Promise<GameRow | null> {
     const value = await request("/rest/v1/rpc/load_game_transition", {
@@ -72,7 +82,7 @@ export function createSupabaseGameApiServices(options: SupabaseAdapterOptions) {
       body: JSON.stringify({ p_user_id: userId }),
     });
     if (!Array.isArray(value) || !value.length) return null;
-    const loaded = row(value);
+    const loaded = row<GameRow>(value);
     const migrated = options.migrateState?.(loaded.state, userId) ?? loaded.state;
     return {
       ...loaded,
@@ -80,8 +90,8 @@ export function createSupabaseGameApiServices(options: SupabaseAdapterOptions) {
       migration_pending: JSON.stringify(migrated) !== JSON.stringify(loaded.state),
     };
   }
-  async function commitIdle(userId: string, current: GameRow, idle: ReturnType<NonNullable<SupabaseAdapterOptions["applyIdle"]>>): Promise<GameRow> {
-    return row(await request("/rest/v1/rpc/commit_idle_transition", {
+  async function commitIdle(userId: string, current: GameRow, idle: ReturnType<NonNullable<SupabaseAdapterOptions["applyIdle"]>>): Promise<GameCommit> {
+    return commitRow(await request("/rest/v1/rpc/commit_idle_transition_v2", {
       method: "POST",
       body: JSON.stringify({
         p_user_id: userId,
@@ -145,7 +155,7 @@ export function createSupabaseGameApiServices(options: SupabaseAdapterOptions) {
           const committed = await commitIdle(userId, existing, idle).finally(() => {
             commitMs += Math.max(0, now() - commitStartedAt);
           });
-          return complete({ schemaVersion: committed.schema_version, revision: committed.revision, serverTime: existing.server_time, lastProcessedAt: committed.last_processed_at, state: committed.state, idleReport: idle.report });
+          return complete({ schemaVersion: committed.schema_version, revision: committed.revision, serverTime: existing.server_time, lastProcessedAt: committed.last_processed_at, state: idle.state, idleReport: idle.report });
         } catch (error) {
           if (!(error instanceof SupabaseAdapterError) || error.code !== "REVISION_CONFLICT") throw error;
           // Concurrent bootstrap calls may race on the same idle timestamp.
@@ -167,7 +177,7 @@ export function createSupabaseGameApiServices(options: SupabaseAdapterOptions) {
       method: "POST",
       body: JSON.stringify({ p_user_id: userId, p_state: initialState }),
     });
-    row(created);
+    row<GameRow>(created);
     const value = await timedLoad();
     if (!value) throw new SupabaseAdapterError("GAME_NOT_FOUND", "created game not found", 404);
     return complete({ schemaVersion: value.schema_version, revision: value.revision, serverTime: value.server_time, lastProcessedAt: value.last_processed_at, state: value.state });
@@ -197,7 +207,7 @@ export function createSupabaseGameApiServices(options: SupabaseAdapterOptions) {
       if (replayIdle && temporalChange(replay, replayIdle.lastProcessedAt)) {
         try {
           const committedReplayIdle = await commitIdle(userId, replay, replayIdle);
-          return { ok: true, revision: committedReplayIdle.revision, serverTime: replay.server_time, lastProcessedAt: committedReplayIdle.last_processed_at, state: committedReplayIdle.state, commandId: payload.commandId, replayed: true, idleReport: replayIdle.report };
+          return { ok: true, revision: committedReplayIdle.revision, serverTime: replay.server_time, lastProcessedAt: committedReplayIdle.last_processed_at, state: replayIdle.state, commandId: payload.commandId, replayed: true, idleReport: replayIdle.report };
         } catch (error) {
           if (!(error instanceof SupabaseAdapterError) || error.code !== "REVISION_CONFLICT") throw error;
           const refreshed = await load(userId);
@@ -229,7 +239,7 @@ export function createSupabaseGameApiServices(options: SupabaseAdapterOptions) {
     }
     let result: unknown;
     try {
-      result = await request("/rest/v1/rpc/commit_game_transition", { method: "POST", body: JSON.stringify({ p_user_id: userId, p_command_id: payload.commandId, p_request_hash: requestHash, p_expected_revision: expected, p_expected_last_processed_at: current.last_processed_at, p_state: transition.state, p_last_processed_at: nextLastProcessedAt, p_events: transition.events ?? [] }) });
+      result = await request("/rest/v1/rpc/commit_game_transition_v2", { method: "POST", body: JSON.stringify({ p_user_id: userId, p_command_id: payload.commandId, p_request_hash: requestHash, p_expected_revision: expected, p_expected_last_processed_at: current.last_processed_at, p_state: transition.state, p_last_processed_at: nextLastProcessedAt, p_events: transition.events ?? [] }) });
     } catch (error) {
       await releaseCommandClaim(userId, payload.commandId, requestHash);
       if (error instanceof SupabaseAdapterError && error.code === "REVISION_CONFLICT") {
@@ -249,8 +259,8 @@ export function createSupabaseGameApiServices(options: SupabaseAdapterOptions) {
       }
       throw error;
     }
-    const value = row(result);
-    return { ok: true, revision: value.revision, serverTime: current.server_time, lastProcessedAt: value.last_processed_at, state: value.state, events: transition.events ?? [], commandId: payload.commandId, replayed: false, ...(idle ? { idleReport: idle.report } : {}) };
+    const value = commitRow(result);
+    return { ok: true, revision: value.revision, serverTime: current.server_time, lastProcessedAt: value.last_processed_at, state: transition.state, events: transition.events ?? [], commandId: payload.commandId, replayed: false, ...(idle ? { idleReport: idle.report } : {}) };
   }
   async function reset(userId: string): Promise<Record<string, unknown>> {
     const initialState = options.initialStateForUser?.(userId)

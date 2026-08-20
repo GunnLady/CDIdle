@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { applyDungeonCommand, type DungeonRng, type DungeonState } from "../supabase/functions/game-api/dungeon-authority";
 import { makeHero } from "./fixtures/game";
-import { initialTownState } from "../supabase/functions/game-api/town-authority";
+import { applyTownCommand, initialTownState } from "../supabase/functions/game-api/town-authority";
 
 const state = (): DungeonState => ({
   ...initialTownState(42),
@@ -43,6 +43,36 @@ describe("authoritative dungeon commands", () => {
     expect(resolved.state.encounterHistory).toHaveLength(1);
     expect(resolved.state.encounterHistory?.[0]).toMatchObject({ encounterId: "encounter-cmd-resolve", floor: 1, room: 1 });
     expect(resolved.events[0]).toMatchObject({ type: "dungeon.encounter_resolved", encounter: { outcome: "victory", transcript: expect.any(Array), rewards: { gold: expect.any(Number) } } });
+  });
+
+  it("matches the sequential state and RNG in one automatic transition", () => {
+    const source = state();
+    const explored = applyTownCommand(source, {
+      type: "dungeon.explore",
+      floor: 1,
+      commandId: "composite-parity",
+    });
+    const sequential = applyTownCommand(explored.state, {
+      type: "dungeon.resolve",
+      commandId: "sequential-resolve",
+    });
+    const composite = applyTownCommand(source, {
+      type: "dungeon.auto_advance",
+      floor: 1,
+      commandId: "composite-parity",
+    });
+
+    expect(composite.state).toEqual(sequential.state);
+    expect(composite.events).toEqual([...explored.events, ...sequential.events]);
+    expect(composite.state.rngState).toEqual(sequential.state.rngState);
+  });
+
+  it("refuses the composite transition when automatic exploration is disabled", () => {
+    expect(() => applyTownCommand({ ...state(), autoExplore: false }, {
+      type: "dungeon.auto_advance",
+      floor: 1,
+      commandId: "disabled-auto",
+    })).toThrowError("automatic exploration is disabled");
   });
 
   it("persists only the last fifteen resolved encounters", () => {

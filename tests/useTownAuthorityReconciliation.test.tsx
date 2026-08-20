@@ -1,9 +1,8 @@
-import { act, renderHook, waitFor } from '@testing-library/react';
+import { act, cleanup, renderHook, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { CanonicalGameState } from '../shared/contracts/authoritative';
 import type { AuthoritativeGameEnvelope } from '../src/domain/commands';
 import {
-  TOWN_AUTHORITY_HEARTBEAT_MS,
   useTownAuthorityReconciliation,
   type TownAuthorityReconciliationDependencies,
 } from '../src/hooks/useTownAuthorityReconciliation';
@@ -42,13 +41,7 @@ function createDependencies(
     cityName: 'Aube',
     currentUserId: 'user-1',
     hasPendingImmigration: false,
-    heartbeat: {
-      rates: { food: 0, wood: 0, stone: 0, ore: 0 },
-      food: 0,
-      totalCitizens: 3,
-      habitationLevel: 1,
-      heroes: [],
-    },
+    recoveryHeroes: [],
     isAutomationLeader: true,
     isAutomationLeaderRef: { current: true },
     isInitialGameLoadDone: true,
@@ -67,6 +60,7 @@ describe('town authority reconciliation hook', () => {
   });
 
   afterEach(() => {
+    cleanup();
     vi.useRealTimers();
   });
 
@@ -99,16 +93,15 @@ describe('town authority reconciliation hook', () => {
     expect(bootstrapMocks.requestCanonicalBootstrap).not.toHaveBeenCalled();
   });
 
-  it('owns one heartbeat interval and reuses it across rerenders', async () => {
+  it('schedules one recovery deadline without a periodic interval', async () => {
     vi.useFakeTimers();
     const dependencies = createDependencies({
-      heartbeat: {
-        rates: { food: 1, wood: 0, stone: 0, ore: 0 },
-        food: 0,
-        totalCitizens: 3,
-        habitationLevel: 1,
-        heroes: [],
-      },
+      recoveryHeroes: [{
+        status: 'resting',
+        currentHp: 19,
+        currentMana: 20,
+        calculatedStats: { maxHp: 20, maxMana: 20 },
+      }],
     });
     const { rerender } = renderHook(() => useTownAuthorityReconciliation(dependencies));
 
@@ -117,8 +110,41 @@ describe('town authority reconciliation hook', () => {
     expect(vi.getTimerCount()).toBe(1);
 
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(TOWN_AUTHORITY_HEARTBEAT_MS);
+      await vi.advanceTimersByTimeAsync(2_500);
     });
-    expect(bootstrapMocks.requestCanonicalBootstrap).toHaveBeenCalledWith('heartbeat');
+    expect(bootstrapMocks.requestCanonicalBootstrap).toHaveBeenCalledWith('recovery');
+  });
+
+  it('suspends reconciliation while hidden and catches up once when visible', async () => {
+    vi.useFakeTimers();
+    const visibility = vi.spyOn(document, 'visibilityState', 'get');
+    visibility.mockReturnValue('hidden');
+    const dependencies = createDependencies({
+      hasPendingImmigration: true,
+      recoveryHeroes: [{
+        status: 'resting',
+        currentHp: 19,
+        currentMana: 20,
+        calculatedStats: { maxHp: 20, maxMana: 20 },
+      }],
+    });
+    dependencies.applyAuthoritativeState = vi.fn(async () => {
+      dependencies.hasPendingImmigration = false;
+      dependencies.recoveryHeroes = [];
+      return true;
+    });
+    const { unmount } = renderHook(() => useTownAuthorityReconciliation(dependencies));
+
+    await act(async () => { await vi.advanceTimersByTimeAsync(10_000); });
+    expect(bootstrapMocks.requestCanonicalBootstrap).not.toHaveBeenCalled();
+
+    visibility.mockReturnValue('visible');
+    await act(async () => { document.dispatchEvent(new Event('visibilitychange')); });
+    expect(bootstrapMocks.requestCanonicalBootstrap).toHaveBeenCalledTimes(1);
+    expect(bootstrapMocks.requestCanonicalBootstrap).toHaveBeenCalledWith('visibility');
+
+    unmount();
+    visibility.mockRestore();
+    expect(vi.getTimerCount()).toBe(0);
   });
 });

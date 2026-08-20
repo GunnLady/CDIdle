@@ -33,6 +33,21 @@ describe("authoritative shared contracts", () => {
     expect(validateCanonicalCommandEnvelope({ ...validEnvelope, command: { type: "inventory.remove", itemId: "starter_sword", rarity: "common", count: 1 } })).toContain("unsupported command type");
   });
 
+  it("validates the bounded automatic dungeon advance payload", () => {
+    expect(validateCanonicalCommandEnvelope({
+      ...validEnvelope,
+      command: { type: "dungeon.auto_advance", floor: 1 },
+    })).toEqual([]);
+    expect(validateCanonicalCommandEnvelope({
+      ...validEnvelope,
+      command: { type: "dungeon.auto_advance", floor: 0 },
+    })).toContain("command.floor must be an integer >= 1");
+    expect(validateCanonicalCommandEnvelope({
+      ...validEnvelope,
+      command: { type: "dungeon.auto_advance", floor: 1, rooms: 2 },
+    } as never)).toContain("command contains unsupported fields");
+  });
+
   it("bounds condensed building upgrades", () => {
     expect(validateCanonicalCommandEnvelope({
       ...validEnvelope,

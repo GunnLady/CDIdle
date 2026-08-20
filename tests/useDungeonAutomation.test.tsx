@@ -5,7 +5,10 @@ import type { GameCommand } from "../src/domain/commands";
 import type { CanonicalActiveDungeonEncounter } from "../shared/contracts/authoritative";
 
 describe("dungeon automation hook", () => {
-  afterEach(() => vi.useRealTimers());
+  afterEach(() => {
+    vi.useRealTimers();
+    Object.defineProperty(document, "visibilityState", { configurable: true, value: "visible" });
+  });
   it("serializes exploration and resolution for an empty room", async () => {
     const dispatchCommand = vi.fn(async () => true);
     const leaderRef = { current: true };
@@ -81,10 +84,38 @@ describe("dungeon automation hook", () => {
     expect(dispatchCommand).not.toHaveBeenCalled();
     await act(async () => { await vi.advanceTimersByTimeAsync(1); });
     expect(dispatchCommand.mock.calls).toEqual([
-      [{ type: "dungeon.explore", floor: 4 }, { interactive: false }],
-      [{ type: "dungeon.resolve" }, { interactive: false }],
+      [{ type: "dungeon.auto_advance", floor: 4 }, { interactive: false }],
     ]);
   });
+
+  it.each(["hidden", "prerender"] as const)(
+    "suspends automatic rooms while %s and resumes after becoming visible",
+    async (visibilityState) => {
+    vi.useFakeTimers();
+    Object.defineProperty(document, "visibilityState", { configurable: true, value: visibilityState });
+    const dispatchCommand = vi.fn(async () => true);
+    renderHook(() => useDungeonAutomation({
+      activeFloor: 4,
+      autoExplore: true,
+      currentEncounter: null,
+      enabled: true,
+      leaderRef: { current: true },
+      dispatchCommand,
+    }));
+
+    await act(async () => { await vi.advanceTimersByTimeAsync(60_000); });
+    expect(dispatchCommand).not.toHaveBeenCalled();
+
+    Object.defineProperty(document, "visibilityState", { configurable: true, value: "visible" });
+    act(() => document.dispatchEvent(new Event("visibilitychange")));
+    await act(async () => { await vi.advanceTimersByTimeAsync(1_000); });
+    expect(dispatchCommand).toHaveBeenCalledOnce();
+    expect(dispatchCommand).toHaveBeenCalledWith(
+      { type: "dungeon.auto_advance", floor: 4 },
+      { interactive: false },
+    );
+    },
+  );
 
   it("automatically resolves an encounter already present", async () => {
     let currentEncounter: CanonicalActiveDungeonEncounter | null = {

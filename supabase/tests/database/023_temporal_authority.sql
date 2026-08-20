@@ -1,6 +1,6 @@
 create extension if not exists pgtap;
 
-select plan(26);
+select plan(32);
 
 insert into auth.users (
   instance_id,
@@ -92,19 +92,69 @@ select ok(
 );
 
 select ok(
+  has_function_privilege(
+    'service_role',
+    'public.commit_idle_transition_v2(uuid,bigint,timestamptz,jsonb,timestamptz)',
+    'EXECUTE'
+  ),
+  'le service peut appeler le commit idle compact'
+);
+
+select ok(
+  not has_function_privilege(
+    'authenticated',
+    'public.commit_idle_transition_v2(uuid,bigint,timestamptz,jsonb,timestamptz)',
+    'EXECUTE'
+  ),
+  'le client authentifie ne peut pas appeler le commit idle compact'
+);
+
+select ok(
+  has_function_privilege(
+    'service_role',
+    'public.commit_game_transition_v2(uuid,uuid,text,bigint,timestamptz,jsonb,timestamptz,jsonb)',
+    'EXECUTE'
+  ),
+  'le service peut appeler le commit commande compact'
+);
+
+select ok(
+  not has_function_privilege(
+    'authenticated',
+    'public.commit_game_transition_v2(uuid,uuid,text,bigint,timestamptz,jsonb,timestamptz,jsonb)',
+    'EXECUTE'
+  ),
+  'le client authentifie ne peut pas appeler le commit commande compact'
+);
+
+select ok(
+  position('state' in pg_get_function_result(
+    'public.commit_idle_transition_v2(uuid,bigint,timestamptz,jsonb,timestamptz)'::regprocedure
+  )::text) = 0,
+  'le commit idle compact ne retourne pas le snapshot'
+);
+
+select ok(
+  position('state' in pg_get_function_result(
+    'public.commit_game_transition_v2(uuid,uuid,text,bigint,timestamptz,jsonb,timestamptz,jsonb)'::regprocedure
+  )::text) = 0,
+  'le commit commande compact ne retourne pas le snapshot'
+);
+
+select ok(
   (select server_time >= last_processed_at
    from public.load_game_transition('61616161-6161-4161-8161-616161616161')),
   'l heure autoritaire provient de PostgreSQL et suit le dernier traitement'
 );
 
 select is(
-  (public.commit_idle_transition(
+  (select revision from public.commit_idle_transition_v2(
     '61616161-6161-4161-8161-616161616161',
     0,
     (select last_processed_at from public.games where user_id = '61616161-6161-4161-8161-616161616161'),
     (select jsonb_set(state, '{idleMarker}', 'true'::jsonb) from public.games where user_id = '61616161-6161-4161-8161-616161616161'),
     (select last_processed_at + interval '1 second' from public.games where user_id = '61616161-6161-4161-8161-616161616161')
-  )).revision,
+  )),
   1::bigint,
   'idle incremente la revision et le timestamp dans le meme commit'
 );
@@ -168,7 +218,7 @@ select is(
 );
 
 select is(
-  (public.commit_game_transition(
+  (select revision from public.commit_game_transition_v2(
     '61616161-6161-4161-8161-616161616161',
     '61616161-0002-4000-8000-616161616161',
     'valid-temporal-command',
@@ -177,7 +227,7 @@ select is(
     (select jsonb_set(state, '{commandMarker}', 'true'::jsonb) from public.games where user_id = '61616161-6161-4161-8161-616161616161'),
     (select last_processed_at + interval '1 second' from public.games where user_id = '61616161-6161-4161-8161-616161616161'),
     '[]'::jsonb
-  )).revision,
+  )),
   2::bigint,
   'commande et temps sont commites dans une seule revision'
 );
@@ -227,7 +277,7 @@ select is(
 );
 
 select throws_ok(
-  $$select public.commit_game_transition(
+  $$select public.commit_game_transition_v2(
     '61616161-6161-4161-8161-616161616161',
     '61616161-0003-4000-8000-616161616161',
     'rate-limited-command',
