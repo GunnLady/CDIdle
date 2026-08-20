@@ -22,7 +22,7 @@ test("lets the complete top block leave the viewport while scrolling on mobile",
   expect((await navigation.boundingBox())!.y).toBeLessThan(0);
 });
 
-test("keeps the desktop shell and its navigation persistent", async ({ page }) => {
+test("keeps the desktop shell fixed while navigation scrolls with page content", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/tests/browser/fixtures/app-shell-harness.html");
   const shell = page.getByTestId("app-shell");
@@ -49,5 +49,5 @@ test("keeps the desktop shell and its navigation persistent", async ({ page }) =
   await main.evaluate((element) => { element.scrollTop = element.scrollHeight; });
   expect(await page.evaluate(() => window.scrollY)).toBe(0);
   expect(Math.abs((await header.boundingBox())!.y - initialHeaderTop)).toBeLessThanOrEqual(1);
-  expect(Math.abs((await navigation.boundingBox())!.y - initialNavigationTop)).toBeLessThanOrEqual(1);
+  expect((await navigation.boundingBox())!.y).toBeLessThan(initialNavigationTop);
 });

@@ -32,13 +32,11 @@ for (const viewport of viewports) {
     expect(assignmentsBox).not.toBeNull();
     if (viewport.width >= 1280) {
       expect(Math.abs(selectedBox!.y - buildingsBox!.y)).toBeLessThanOrEqual(2);
-      expect(Math.abs(selectedBox!.y - assignmentsBox!.y)).toBeLessThanOrEqual(2);
       expect(selectedBox!.x).toBeLessThan(buildingsBox!.x);
-      expect(buildingsBox!.x).toBeLessThan(assignmentsBox!.x);
+      expect(Math.abs(selectedBox!.x - assignmentsBox!.x)).toBeLessThanOrEqual(2);
+      expect(assignmentsBox!.y).toBeGreaterThan(selectedBox!.y + selectedBox!.height);
       expect(selectedBox!.width).toBeGreaterThan(buildingsBox!.width);
-      expect(Math.abs(buildingsBox!.width - assignmentsBox!.width)).toBeLessThanOrEqual(2);
-      expect(Math.abs(selectedBox!.height - buildingsBox!.height)).toBeLessThanOrEqual(2);
-      expect(Math.abs(selectedBox!.height - assignmentsBox!.height)).toBeLessThanOrEqual(2);
+      expect(Math.abs(selectedBox!.width - assignmentsBox!.width)).toBeLessThanOrEqual(2);
     } else {
       expect(selectedBox!.y).toBeLessThan(buildingsBox!.y);
       expect(buildingsBox!.y).toBeLessThan(assignmentsBox!.y);
