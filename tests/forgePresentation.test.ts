@@ -17,7 +17,7 @@ describe("createForgeWorkspaceView", () => {
 
     expect(view.baseAffordable).toBe(true);
     expect(view.selectedRecipe).toMatchObject({ id: "starter_sword", unlocked: true, rarityLabel: "Commune" });
-    expect(view.selectedRecipe?.weaponDetails).toContain("Scaling : Puissance (FOR)");
+    expect(view.selectedRecipe?.weaponDetails).toContain("Caractéristique : Force");
     expect(view.materials.find((material) => material.id === "metal_scrap")?.count).toBe(6);
   });
 

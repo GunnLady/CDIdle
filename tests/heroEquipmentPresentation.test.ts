@@ -18,6 +18,16 @@ describe("heroEquipmentPresentation", () => {
     const candidate = view?.slots.find((slot) => slot.key === "mainHand")?.candidates[0];
     expect(candidate?.displacedItems).toEqual(["Épée de départ", "Bouclier en bois"]);
     expect(candidate?.statDeltas.length).toBeGreaterThan(0);
+    expect(candidate?.item.rarityLabel).toBe("Commune");
+    expect(candidate?.item.facts.map((fact) => fact.label)).toEqual([
+      "Niveau requis",
+      "Dégâts",
+      "Vitesse d’attaque",
+      "Type de dégâts",
+      "Caractéristique",
+      "Profil d’attaque",
+    ]);
+    expect(candidate?.item.facts.find((fact) => fact.id === "damage-types")?.value).toBe("Physiques");
   });
 
   it("blocks off-hand candidates behind a two-handed main hand", () => {

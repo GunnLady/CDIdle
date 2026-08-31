@@ -7,13 +7,11 @@ import { makeHero, makeResources } from "./fixtures/game";
 afterEach(cleanup);
 
 const navigationProps = {
-  activeDungeonFloor: 2,
-  activeDungeonRoom: 3,
   canMutate: true,
 };
 
 describe("HeroesPage", () => {
-  it("keeps expedition, roster, selected hero, equipment and skills simultaneously available", () => {
+  it("keeps roster, selected hero, equipment and skills simultaneously available", () => {
     const active = makeHero({ id: "active", name: "Ariane", isActive: true });
     const reserve = makeHero({ id: "reserve", name: "Borin", isActive: false });
     render(<HeroesPage
@@ -26,15 +24,16 @@ describe("HeroesPage", () => {
       {...navigationProps}
     />);
 
-    expect(screen.getByTestId("dungeon-party-manager")).toBeInTheDocument();
+    expect(screen.queryByTestId("dungeon-party-manager")).not.toBeInTheDocument();
     expect(screen.getByTestId("hero-roster-panel")).toBeInTheDocument();
     expect(screen.getByTestId("selected-hero-panel")).toHaveTextContent("Ariane");
     expect(screen.getByTestId("hero-equipment-panel")).toBeInTheDocument();
     expect(screen.getByTestId("hero-skills-panel")).toBeInTheDocument();
-    expect(within(screen.getByTestId("selected-hero-panel")).getByRole("progressbar", { name: "Expérience" })).toBeInTheDocument();
+    const experienceProgress = within(screen.getByTestId("selected-hero-panel")).getByRole("progressbar", { name: "Expérience" });
+    expect(experienceProgress.parentElement).toHaveClass("ui-immigration-progress-shell");
+    const resistanceHeading = within(screen.getByTestId("selected-hero-panel")).getByRole("heading", { name: "Résistances" });
+    expect(resistanceHeading.nextElementSibling?.querySelectorAll(".ui-hero-detail-frame")).toHaveLength(14);
     expect(screen.getByRole("button", { name: /Recruter/ })).toHaveAttribute("data-state", "disabled");
-    expect(screen.getByRole("button", { name: "Voir le Donjon" })).toHaveAttribute("data-state", "ready");
-    expect(within(screen.getByTestId("dungeon-party-manager")).getByRole("button", { name: "Ariane, PV 20 sur 20" })).toHaveAttribute("aria-pressed", "true");
     expect(screen.getByTestId("hero-skills-panel")).toHaveClass("xl:min-h-64");
     expect(screen.getByTestId("selected-hero-panel").lastElementChild).not.toHaveClass("xl:overflow-y-auto");
     expect(screen.getByTestId("hero-roster-active").closest("article")).toHaveAttribute("data-selected", "true");
@@ -113,8 +112,10 @@ describe("HeroesPage", () => {
 
     expect(screen.getByText("DPS estimé")).toBeInTheDocument();
     expect(screen.getByText("LUK")).toBeInTheDocument();
-    expect(screen.getByText(/Scaling: Puissance \(FOR\)/)).toBeInTheDocument();
-    expect(screen.getByText(/1 coup × 100 % de puissance/)).toBeInTheDocument();
+    expect(screen.getByText("Caractéristique")).toBeInTheDocument();
+    expect(screen.getByText("Force")).toBeInTheDocument();
+    expect(screen.getByText("Profil d’attaque")).toBeInTheDocument();
+    expect(screen.getByText("1 × 100 %")).toBeInTheDocument();
     expect(screen.queryByText(/item-equipped-12345678/)).not.toBeInTheDocument();
     fireEvent.click(within(screen.getByTestId("hero-equipment-panel")).getByRole("button", { name: /^retirer$/i }));
     expect(onUnequipItem).toHaveBeenCalledWith(hero.id, "mainHand");
@@ -173,7 +174,8 @@ describe("HeroesPage", () => {
     expect(changeButton.compareDocumentPosition(removeButton) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(changeButton.parentElement).toHaveClass("self-stretch", "justify-center");
     fireEvent.click(changeButton);
-    expect(screen.getByText("Objets restitués au Coffre : Épée de départ")).toBeInTheDocument();
+    expect(screen.getByText("Retour au Coffre")).toBeInTheDocument();
+    expect(screen.getAllByText("Épée de départ").length).toBeGreaterThanOrEqual(2);
     fireEvent.click(screen.getByRole("button", { name: "Remplacer" }));
     expect(onEquipItem).toHaveBeenCalledWith(hero.id, "new-dagger");
   });

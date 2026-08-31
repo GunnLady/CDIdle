@@ -105,13 +105,10 @@ export function createStorageInventoryItemViews(items: ResolvedStorageItem[]): S
       itemTypeLabel: itemTypeLabels[item.itemType],
       item: {
         ...baseView,
-        facts: baseView.facts.map((fact) => fact
-          .replace(/^Dégâts /, "Dégâts : ")
-          .replace(/^Scaling:/, "Scaling :")
-          .replace(/^Profil:/, "Profil :")),
         modifiers: (item.modifiers ?? []).map((modifier, index) => ({
           id: `${modifier.stat}-${index}`,
-          label: `${modifier.value >= 0 ? "+" : ""}${modifier.value}${modifier.type === "percent" ? "%" : ""} ${storageStatLabels[modifier.stat] ?? modifier.stat}`,
+          label: storageStatLabels[modifier.stat] ?? modifier.stat,
+          value: `${modifier.value >= 0 ? "+" : ""}${modifier.value}${modifier.type === "percent" ? " %" : ""}`,
         })),
       },
     };

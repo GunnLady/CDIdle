@@ -23,7 +23,6 @@ export interface HeroRosterEntryView {
 
 export interface HeroesPageView {
   roster: HeroRosterEntryView[];
-  party: Array<HeroRosterEntryView | null>;
   capacity: number;
   recruitCost: number;
   canRecruit: boolean;
@@ -65,10 +64,8 @@ const recruitmentReason = (error: "INSUFFICIENT_GOLD" | "GUILD_REQUIRED" | "CAPA
 export function createHeroesPageView(heroes: Hero[], resources: Resources, buildings: Record<string, number>): HeroesPageView {
   const recruitment = recruitmentEligibility(heroes.length, resources.gold, buildings.guilde ?? 0);
   const roster = createHeroRosterView(heroes);
-  const active = roster.filter((hero) => hero.isActive).slice(0, ACTIVE_HERO_LIMIT);
   return {
     roster,
-    party: Array.from({ length: ACTIVE_HERO_LIMIT }, (_, index) => active[index] ?? null),
     capacity: recruitment.capacity,
     recruitCost: recruitment.cost,
     canRecruit: recruitment.ok,
@@ -114,6 +111,7 @@ export function createSelectedHeroView(hero: Hero | null): SelectedHeroView | nu
   const stats = hero.calculatedStats;
   const classInfo = CLASS_INFO_LIST.find((entry) => entry.type === hero.classType);
   const raceInfo = RACE_INFO_LIST.find((entry) => entry.name === hero.race);
+  const genderLabel = hero.gender === "Female" ? "Femme" : hero.gender === "Male" ? "Homme" : null;
   const baseStats = hero.baseStats ?? { str: 5, agi: 5, end: 5, int: 5, wiz: 5, dex: 5, luk: 5 };
   const xp = Math.max(0, Math.floor(hero.xp));
   const xpNeeded = Math.max(1, hero.xpNeeded);
@@ -128,7 +126,7 @@ export function createSelectedHeroView(hero: Hero | null): SelectedHeroView | nu
       gender: hero.gender,
       spriteIndex: hero.spriteIndex,
     },
-    identityLabel: `${hero.race} · ${hero.classType} · Niveau ${hero.level}`,
+    identityLabel: [hero.race, genderLabel, hero.classType, `Niveau ${hero.level}`].filter(Boolean).join(" · "),
     statusLabel: statusLabel(hero),
     currentHp: Math.max(0, Math.floor(hero.currentHp)),
     maxHp: Math.max(1, stats.maxHp),

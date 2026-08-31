@@ -97,59 +97,6 @@
       ]
     },
     {
-      "id": "primary-navigation-city-palace-v1",
-      "kind": "primary-navigation-icon",
-      "status": "superseded",
-      "supersededBy": "primary-navigation-city-v2",
-      "runtimePath": "../../../src/assets/images/ui/secondary-navigation-rail/primary-navigation-city-palace-v1.png",
-      "promptPath": "primary-navigation-city-palace-v1.prompt.md",
-      "sourceDimensionsPx": [1254, 1254],
-      "sourceSubjectBoundsPx": [244, 266, 766, 622],
-      "dimensionsPx": [192, 192],
-      "displaySizePx": {
-        "compact": [20, 20],
-        "desktop": [60, 55]
-      },
-      "desktopObjectFit": "fill",
-      "desktopIconOffsetXPx": -2,
-      "desktopIconOffsetYPx": -4,
-      "desktopLabelOffsetYPx": -5,
-      "runtimeSha256": "b94222c5a0cbff972777830944b2f825ab7cf9cf99fbfc55c3747fa7ccc1f96f",
-      "invariants": [
-        "transparent-background",
-        "civic-palace-not-fortress",
-        "dom-rendered-label",
-        "dom-owned-interaction",
-        "locked-state-keeps-lock-icon",
-        "aspect-ratio-preserved"
-      ]
-    },
-    {
-      "id": "primary-navigation-heroes-v1",
-      "kind": "primary-navigation-icon",
-      "status": "superseded",
-      "supersededBy": "primary-navigation-heroes-v2",
-      "runtimePath": "../../../src/assets/images/ui/secondary-navigation-rail/primary-navigation-heroes-v1.png",
-      "promptPath": "primary-navigation-heroes-v1.prompt.md",
-      "sourceDimensionsPx": [1254, 1254],
-      "sourceSubjectBoundsPx": [231, 192, 777, 839],
-      "dimensionsPx": [192, 192],
-      "displaySizePx": {
-        "compact": [20, 20],
-        "desktop": [64, 64]
-      },
-      "desktopLabelOffsetYPx": -5,
-      "runtimeSha256": "6441596e34db4ddb7cad2a20d793434c53439298dc7319e4c47097373dc53596",
-      "invariants": [
-        "transparent-background",
-        "single-sword-staff-and-lute",
-        "dom-rendered-label",
-        "dom-owned-interaction",
-        "locked-state-keeps-lock-icon",
-        "aspect-ratio-preserved"
-      ]
-    },
-    {
       "id": "primary-navigation-icon-sheet-v2",
       "kind": "primary-navigation-icon-source-sheet",
       "status": "local-master",
@@ -336,25 +283,6 @@
         "transparent-center",
         "class-plaque-rendered-below-ring",
         "gold-rim-and-rivets-preserved"
-      ]
-    },
-    {
-      "id": "dungeon-class-plaque-novice-v2",
-      "kind": "dungeon-party-class-plaque",
-      "status": "superseded",
-      "supersededBy": "dungeon-class-plaque-novice-v3",
-      "runtimePath": "../../../src/assets/images/ui/secondary-navigation-rail/dungeon-class-plaque-novice-v2.png",
-      "preparationScript": "../../../scripts/prepare-dungeon-class-plaque.ps1",
-      "dimensionsPx": [192, 192],
-      "displaySizePx": [72, 72],
-      "discRadiusPx": 70,
-      "runtimeSha256": "e0821688cc7a12491285a3c7cb7d24c3ed9c26a795cb6e07314cea6ba9eda338",
-      "invariants": [
-        "transparent-exterior",
-        "opaque-copper-disc",
-        "eight-point-compass-rose",
-        "overlaps-below-medallion-ring",
-        "novice-only"
       ]
     },
     {
@@ -733,29 +661,32 @@
       "invariants": ["transparent-background", "desktop-header-only", "dom-rendered-value"]
     },
     {
-      "id": "panel-frame-v1",
+      "id": "panel-frame-9slice-v1",
       "kind": "universal-panel-frame",
       "status": "integrated",
-      "runtimePath": "../../../src/assets/images/ui/panels/panel-frame-v1.png",
-      "promptPath": "panel-skin-v1.prompt.md",
-      "sourcePath": "sources/panel-skin-v1-chroma.png",
-      "preparationScript": "../../../scripts/prepare-panel-skin.ps1",
-      "dimensionsPx": [512, 512],
-      "borderImageSlicePx": 55,
-      "runtimeSha256": "d06f893e6ee14291eda3db285f82e3385913fc7ce7aeb79795e1275d3c5af180",
-      "invariants": ["transparent-exterior", "nine-slice-safe-edges", "compact-fixed-corners", "no-baked-content", "all-panel-sizes"]
+      "runtimePath": "../../../src/assets/images/ui/panels/panel-frame-9slice-v1.png",
+      "dimensionsPx": [1254, 1254],
+      "borderImageSlicePx": 128,
+      "runtimeSha256": "05d3feeb40452f482a65de2ffb5f277c8989f5b380af6fed90fe520b59f50b1c",
+      "invariants": ["transparent-exterior", "nine-slice-safe-edges", "shared-wood-and-slate-geometry", "no-baked-content", "all-panel-sizes"]
     },
     {
-      "id": "panel-background-tile-v1",
+      "id": "panel-background-tile-v2",
       "kind": "universal-panel-background-tile",
       "status": "integrated",
-      "runtimePath": "../../../src/assets/images/ui/panels/panel-background-tile-v1.png",
-      "promptPath": "panel-skin-v1.prompt.md",
-      "sourcePath": "sources/panel-skin-v1-chroma.png",
-      "preparationScript": "../../../scripts/prepare-panel-skin.ps1",
-      "dimensionsPx": [512, 512],
-      "runtimeSha256": "05a1fc838c3d635c42674e1db9ade61d0c4cc0866c86612fb9ab9e729a17d4bf",
-      "invariants": ["mirrored-seamless-tile", "matching-opposite-edges", "low-contrast-dark-wood", "no-baked-content", "all-panel-sizes"]
+      "runtimePath": "../../../src/assets/images/ui/panels/panel-background-tile-v2.png",
+      "dimensionsPx": [1254, 1254],
+      "runtimeSha256": "6741b7c930fb960f26c8a577013e2fbd9440d78875fe129f5eecbab47ce10a5c",
+      "invariants": ["dark-wood", "shared-frame-geometry", "no-baked-content", "all-panel-sizes"]
+    },
+    {
+      "id": "panel-background-slate-tile-v1",
+      "kind": "hero-panel-background-tile",
+      "status": "integrated",
+      "runtimePath": "../../../src/assets/images/ui/panels/panel-background-slate-tile-v1.png",
+      "dimensionsPx": [1254, 1254],
+      "runtimeSha256": "4f9398197004746ea1d91ffc7ca0ac82a21ad30ff450a976d08e22d88e9d9a2c",
+      "invariants": ["dark-blue-slate", "shared-frame-geometry", "no-baked-content", "hero-workspace-and-dialog"]
     },
     {
       "id": "panel-title-separator-v1",

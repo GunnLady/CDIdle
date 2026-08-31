@@ -23,13 +23,29 @@ html {
   }
 }
 
-.ui-panel-skin {
+.ui-panel-skin,
+.ui-hero-presentation-panel,
+.ui-catalog-panel-surface,
+.ui-hero-equipment-dialog {
+  box-sizing: border-box;
   position: relative;
   isolation: isolate;
+  min-width: 0;
+  border: 16px solid transparent;
+  border-radius: 16px;
+  border-image-source: url("./assets/images/ui/panels/panel-frame-9slice-v1.png");
+  border-image-slice: 128;
+  border-image-width: 16px;
+  border-image-repeat: stretch;
   background-color: var(--color-ui-panel);
-  background-image: url("./assets/images/ui/panels/panel-background-tile-v1.png");
   background-repeat: repeat;
   background-size: 512px 512px;
+  background-clip: border-box;
+  background-origin: border-box;
+}
+
+.ui-panel-skin {
+  background-image: url("./assets/images/ui/panels/panel-background-tile-v2.png");
 }
 
 @media (min-width: 80rem) {
@@ -42,29 +58,6 @@ html {
   }
 }
 
-.ui-panel-skin::before {
-  position: absolute;
-  z-index: 1;
-  inset: 0;
-  border: 12px solid transparent;
-  border-image-source: url("./assets/images/ui/panels/panel-frame-v1.png");
-  border-image-slice: 55;
-  border-image-width: 12px;
-  border-image-repeat: stretch;
-  content: "";
-  pointer-events: none;
-}
-
-.ui-panel-skin[data-panel-variant="strong"]::before {
-  border-image-width: 14px;
-  filter: brightness(1.08) saturate(1.04);
-}
-
-.ui-panel-skin > * {
-  position: relative;
-  z-index: 2;
-}
-
 .ui-panel-title-separator {
   height: 12px;
   border-style: solid;
@@ -74,6 +67,39 @@ html {
   border-image-width: 0 14px;
   border-image-repeat: stretch;
   pointer-events: none;
+}
+
+.ui-hero-presentation-panel {
+  background-color: #080e17;
+  background-image: url("./assets/images/ui/panels/panel-background-slate-tile-v1.png");
+  box-shadow: 0 16px 30px rgba(0, 0, 0, 0.48);
+}
+
+.ui-hero-equipment-dialog {
+  background-color: #080e17;
+  background-image: url("./assets/images/ui/panels/panel-background-slate-tile-v1.png");
+  box-shadow: 0 16px 30px rgba(0, 0, 0, 0.48);
+}
+
+.ui-catalog-panel-surface {
+  box-shadow: 0 16px 30px rgba(0, 0, 0, 0.32);
+}
+
+.ui-catalog-panel-surface[data-panel-material="wood"] {
+  background-image: url("./assets/images/ui/panels/panel-background-tile-v2.png");
+}
+
+.ui-catalog-panel-surface[data-panel-material="slate"] {
+  background-color: #080e17;
+  background-image: url("./assets/images/ui/panels/panel-background-slate-tile-v1.png");
+}
+
+.ui-hero-presentation-workspace .ui-panel-skin {
+  border: 0;
+  border-image-source: none;
+  background-color: transparent;
+  background-image: none;
+  box-shadow: none;
 }
 
 .ui-button-skin {
@@ -88,6 +114,11 @@ html {
 .ui-button-skin[data-button-size="sm"] {
   border-width: 8px 10px;
   border-image-width: 8px 10px;
+}
+
+.ui-button-skin[data-button-size="xs"] {
+  border-width: 6px 8px;
+  border-image-width: 6px 8px;
 }
 
 .ui-button-skin[data-button-variant="primary"] {
@@ -127,6 +158,19 @@ html {
   border-image-source: url("./assets/images/ui/buildings/building-card-frame-v1.png");
   border-image-slice: 42 52 fill;
   border-image-width: 14px 18px;
+  border-image-repeat: stretch;
+}
+
+.ui-hero-detail-frame {
+  border-width: 9px 12px;
+  border-image-width: 9px 12px;
+}
+
+.ui-hero-detail-frame[data-frame-size="compact"] {
+  border-width: 5px;
+  border-image-source: url("./assets/images/ui/panels/panel-frame-9slice-v1.png");
+  border-image-slice: 128;
+  border-image-width: 5px;
   border-image-repeat: stretch;
 }
 

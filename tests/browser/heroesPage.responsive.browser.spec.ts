@@ -14,32 +14,27 @@ for (const viewport of viewports) {
     await page.goto("/tests/browser/fixtures/heroes-harness.html");
     expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(0);
 
-    const expedition = page.getByTestId("dungeon-party-manager");
     const roster = page.getByTestId("hero-roster-panel");
     const selected = page.getByTestId("selected-hero-panel");
     const equipment = page.getByTestId("hero-equipment-panel");
     const skills = page.getByTestId("hero-skills-panel");
-    const boxes = await Promise.all([expedition, roster, selected, equipment, skills].map((locator) => locator.boundingBox()));
+    const boxes = await Promise.all([roster, selected, equipment, skills].map((locator) => locator.boundingBox()));
     boxes.forEach((box) => expect(box).not.toBeNull());
     if (viewport.width >= 1280) {
       const leftColumn = await page.getByTestId("heroes-left-column").boundingBox();
+      const presentationWorkspace = await page.getByTestId("hero-presentation-workspace").boundingBox();
       const rightColumn = await page.getByTestId("heroes-right-column").boundingBox();
-      expect(Math.abs(leftColumn!.height - boxes[2]!.height)).toBeLessThanOrEqual(2);
-      expect(Math.abs(rightColumn!.height - boxes[2]!.height)).toBeLessThanOrEqual(2);
-      expect(boxes[0]!.x).toBeLessThan(boxes[2]!.x);
-      expect(boxes[2]!.x).toBeLessThan(boxes[3]!.x);
-      expect(boxes[0]!.y).toBeLessThan(boxes[1]!.y);
-      expect(boxes[3]!.y).toBeLessThan(boxes[4]!.y);
-      const filledPartyCard = await expedition.getByRole("button", { name: /Ariane, PV/ }).boundingBox();
-      const emptyPartyCard = await expedition.getByText("Place libre").first().boundingBox();
-      expect(Math.abs(filledPartyCard!.height - emptyPartyCard!.height)).toBeLessThanOrEqual(1);
+      expect(Math.abs(leftColumn!.height - presentationWorkspace!.height)).toBeLessThanOrEqual(2);
+      expect(Math.abs(rightColumn!.height - boxes[1]!.height)).toBeLessThanOrEqual(2);
+      expect(boxes[0]!.x).toBeLessThan(boxes[1]!.x);
+      expect(boxes[1]!.x).toBeLessThan(boxes[2]!.x);
+      expect(boxes[2]!.y).toBeLessThan(boxes[3]!.y);
       expect(await selected.locator(":scope > div").evaluate((content) => content.scrollHeight - content.clientHeight)).toBeLessThanOrEqual(1);
       await expect(skills.locator("summary")).toHaveCount(2);
     } else {
       expect(boxes[0]!.y).toBeLessThan(boxes[1]!.y);
       expect(boxes[1]!.y).toBeLessThan(boxes[2]!.y);
       expect(boxes[2]!.y).toBeLessThan(boxes[3]!.y);
-      expect(boxes[3]!.y).toBeLessThan(boxes[4]!.y);
     }
     await page.getByTestId("hero-roster-borin").click();
     await expect(selected).toContainText("Borin");

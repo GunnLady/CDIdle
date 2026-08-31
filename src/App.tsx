@@ -620,8 +620,6 @@ export default function App() {
                 heroes={dungeon.displayHeroes}
                 resources={town.resources}
                 buildings={town.buildings}
-                activeDungeonFloor={dungeon.activeDungeonFloor}
-                activeDungeonRoom={dungeon.activeDungeonRoom}
                 canMutate={canMutate}
                 onDismissHero={(heroId) => { void dispatchAuthoritativeCommand({ type: "hero.dismiss", heroId }); }}
                 onToggleHeroActive={handleToggleHeroActive}

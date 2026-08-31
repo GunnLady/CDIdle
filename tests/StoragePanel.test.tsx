@@ -20,7 +20,7 @@ describe("StoragePanel modifier stacks", () => {
       storedItems={[{ instanceId: "dual-profile", itemId: "basic_gauntlets", rarity: "common" }]}
     />);
 
-    expect(screen.getByText("Profil : 2 coups × 65 % de puissance")).toBeInTheDocument();
+    expect(screen.getByText("2 × 65 %")).toBeInTheDocument();
   });
 
   it("filters items by required-level bands and resets the level filter", () => {
@@ -108,8 +108,8 @@ describe("StoragePanel modifier stacks", () => {
     expect(screen.getByText("+1 Coup Critique")).toBeInTheDocument();
     expect(screen.queryByText(/item-physical|item-critical/)).not.toBeInTheDocument();
 
-    expect(screen.getAllByText(/Scaling : Puissance \(FOR\)/)).toHaveLength(2);
-    expect(screen.getAllByText(/Profil : 1 coup × 100 % de puissance/)).toHaveLength(2);
+    expect(screen.getAllByText("Force")).toHaveLength(2);
+    expect(screen.getAllByText("1 × 100 %")).toHaveLength(2);
 
     const recycleButtons = screen.getAllByRole("button", { name: /recycler/i });
     expect(recycleButtons).toHaveLength(2);

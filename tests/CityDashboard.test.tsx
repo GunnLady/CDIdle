@@ -237,9 +237,9 @@ describe("CityDashboard city controls", () => {
   it("displays the selected weapon scaling in the forge catalog", async () => {
     render(<CityDashboard {...baseProps()} />);
     fireEvent.click(screen.getByRole("button", { name: /forge/i }));
-    expect(await screen.findByText(/Scaling : Puissance \(FOR\)/)).toBeInTheDocument();
-    expect(screen.getByText(/Profil : 1 coup × 100 % de puissance/)).toBeInTheDocument();
-    expect(screen.getByText(/Indice de vitesse : 1/)).toBeInTheDocument();
+    expect(await screen.findByText(/Caractéristique : Force/)).toBeInTheDocument();
+    expect(screen.getByText(/Profil d’attaque : 1 × 100 %/)).toBeInTheDocument();
+    expect(screen.getByText(/Vitesse d’attaque : 1/)).toBeInTheDocument();
   });
 
   it("does not start a forge command for a locked blueprint", () => {

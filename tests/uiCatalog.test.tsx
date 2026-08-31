@@ -14,16 +14,12 @@ describe("UI catalog", () => {
     expect(within(screen.getByTestId("catalog-buttons")).getByRole("button", { name: "Chargement" })).toHaveAttribute("aria-busy", "true");
     expect(screen.getByLabelText("Code d'invitation")).toHaveAttribute("aria-invalid", "true");
     expect(screen.getAllByRole("status").length).toBeGreaterThanOrEqual(1);
-    expect(screen.getByRole("progressbar", { name: "Construction" })).toBeInTheDocument();
+    expect(screen.getByRole("progressbar", { name: "Points de vie" })).toBeInTheDocument();
     expect(within(screen.getByTestId("catalog-control-variants")).getByRole("combobox", { name: "Type d’objet" })).toBeInTheDocument();
     expect(screen.getByRole("checkbox", { name: "Accepter l’amélioration" })).toBeInTheDocument();
     expect(screen.getByTestId("catalog-selection-metrics")).toBeInTheDocument();
     expect(screen.getByTestId("catalog-navigation-status")).toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 2, name: "Boutons" })).toBeInTheDocument();
-    const buttonSkinPrototypes = screen.getByTestId("catalog-button-skin-prototypes");
-    for (const label of ["Primaire", "Secondaire", "Danger", "Ghost", "Désactivé", "Chargement", "Petit", "Action iconique"]) {
-      expect(within(buttonSkinPrototypes).getByRole("button", { name: label })).toBeInTheDocument();
-    }
     await user.click(screen.getByRole("button", { name: "Ouvrir le dialogue" }));
     expect(screen.getByRole("dialog", { name: "Confirmer l'action" })).toBeInTheDocument();
     await user.keyboard("{Escape}");
@@ -37,61 +33,26 @@ describe("UI catalog", () => {
     expect(screen.getByText("La synchronisation est terminée.").closest("[role=status]")).toBeInTheDocument();
   });
 
-  it("covers the remaining product compositions with real interactive components", async () => {
+  it("keeps the primitive catalog interactive without product compositions", async () => {
     const user = userEvent.setup();
     render(<UiCatalog />);
 
-    const shell = screen.getByTestId("catalog-product-shell");
-    expect(within(shell).getByTestId("resource-header-content")).toBeInTheDocument();
-    expect(within(shell).getAllByRole("navigation", { name: "Navigation principale" })).toHaveLength(2);
-    expect(within(shell).getAllByRole("button", { name: "Cité" }).some((button) => button.hasAttribute("disabled"))).toBe(true);
-    const dungeonProgressBanners = within(shell).getAllByRole("complementary", { name: "Progression du groupe dans le donjon" });
-    expect(dungeonProgressBanners).toHaveLength(2);
-    await user.click(within(dungeonProgressBanners[0]).getByRole("button", { name: "Pause" }));
-    expect(within(dungeonProgressBanners[0]).getByRole("button", { name: "Reprendre" })).toBeInTheDocument();
+    const panelSurfaces = screen.getByTestId("catalog-panel-surfaces");
+    expect(within(panelSurfaces).getByTestId("catalog-panel-surface-wood")).toHaveAttribute("data-panel-material", "wood");
+    expect(within(panelSurfaces).getByTestId("catalog-panel-surface-slate")).toHaveAttribute("data-panel-material", "slate");
 
-    const tier1Plaques = screen.getByTestId("catalog-tier1-class-plaques");
-    expect(within(tier1Plaques).getAllByRole("complementary", { name: "Progression du groupe dans le donjon" })).toHaveLength(3);
-    for (const className of ["Guerrier", "Voleur", "Archer", "Mage", "Acolyte", "Aède", "Druide", "Artificier", "Pugiliste"]) {
-      expect(within(tier1Plaques).getAllByText(new RegExp(`^${className} - Lv 10$`)).length).toBeGreaterThanOrEqual(2);
-    }
+    const selection = screen.getByTestId("catalog-selection-metrics");
+    const mine = within(selection).getByRole("button", { name: /Mine de pierre/ });
+    await user.click(mine);
+    expect(mine).toHaveAttribute("aria-pressed", "true");
 
-    const heroEquipment = screen.getByTestId("catalog-product-hero-equipment");
-    expect(within(heroEquipment).getByLabelText("Tailles de portraits de héros")).toBeInTheDocument();
-    expect(within(heroEquipment).getAllByText("Lame du guet").length).toBeGreaterThanOrEqual(1);
-    expect(within(heroEquipment).getByText("Niveau 12 requis")).toBeInTheDocument();
+    const disclosure = within(screen.getByTestId("catalog-disclosure-log")).getByText("Filtres avancés");
+    await user.click(disclosure);
+    expect(screen.getByRole("combobox", { name: "Rareté" })).toBeInTheDocument();
 
-    const city = screen.getByTestId("catalog-product-city");
-    await user.click(within(city).getByTestId("building-forge"));
-    expect(within(city).getByTestId("building-forge")).toHaveAttribute("aria-pressed", "true");
-    const availableAssignments = within(city).getByTestId("catalog-assignment-available");
-    const fullAssignments = within(city).getByTestId("catalog-assignment-full");
-    expect(within(availableAssignments).getByRole("button", { name: "Retirer un Carriers" })).toBeDisabled();
-    expect(within(availableAssignments).getByRole("button", { name: "Ajouter un Mineurs" })).toBeDisabled();
-    await user.click(within(availableAssignments).getByRole("button", { name: "Ajouter un Fermiers" }));
-    expect(within(availableAssignments).getByRole("button", { name: "Ajouter un Bûcherons" })).toBeDisabled();
-    expect(within(fullAssignments).getByRole("button", { name: "Ajouter un Fermiers" })).toBeDisabled();
-
-    const dungeon = screen.getByTestId("catalog-product-dungeon");
-    expect(within(dungeon).getAllByTestId("dungeon-current-encounter")).toHaveLength(5);
-    expect(within(dungeon).getAllByTestId("dungeon-party-slot")).toHaveLength(4);
-    expect(within(dungeon).getByTestId("dungeon-reserves-list")).toBeInTheDocument();
-    expect(within(dungeon).getByTestId("dungeon-hero-sheet")).toBeInTheDocument();
-
-    const onboarding = screen.getByTestId("catalog-product-onboarding-account");
-    await user.click(within(onboarding).getByRole("button", { name: "Désélectionner Maëlys" }));
-    expect(within(onboarding).getByRole("button", { name: "Sélectionner Maëlys" })).toBeInTheDocument();
-    await user.click(within(onboarding).getByRole("button", { name: /Réinitialiser totalement/ }));
-    expect(within(onboarding).getByRole("alertdialog", { name: "Confirmation requise" })).toBeInTheDocument();
-    await user.click(within(onboarding).getByRole("button", { name: "Annuler" }));
-    await user.click(within(onboarding).getByRole("button", { name: "Ouvrir l’offre" }));
-    expect(screen.getByRole("dialog", { name: "Nouveau Pacte de Recrutement" })).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Décliner l'Offre" }));
-
-    const storage = screen.getByTestId("catalog-product-storage");
-    expect(within(storage).getByRole("combobox", { name: "Direction du tri" })).toBeDisabled();
-    await user.click(within(storage).getByRole("button", { name: "Filtres" }));
-    await user.type(within(storage).getByRole("searchbox", { name: "Rechercher un objet" }), "lame");
-    expect(within(storage).getByRole("button", { name: "Réinitialiser" })).toBeEnabled();
+    await user.click(screen.getByRole("button", { name: "Ouvrir une opération bloquée" }));
+    expect(screen.getByRole("dialog", { name: "Synchronisation en cours" })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Terminer la simulation" }));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 });

@@ -24,8 +24,8 @@ variante `strong` pour connexion, chargement et erreur.
 
 Assets :
 
-- `src/assets/images/ui/panels/panel-background-tile-v1.png` ;
-- `src/assets/images/ui/panels/panel-frame-v1.png`.
+- `src/assets/images/ui/panels/panel-background-tile-v2.png` ;
+- `src/assets/images/ui/panels/panel-frame-9slice-v1.png`.
 
 ## Boutons chêne
 

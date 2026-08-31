@@ -85,10 +85,10 @@ canoniques et prière de vocation.
   consommateur réel.
 
 Le sous-lot Aventuriers poursuit cette migration : `HeroPanel` est remplacé par
-`HeroesPage`, `DungeonPartyManager`, `HeroRosterPanel`, `SelectedHeroPanel`,
-`HeroEquipmentPanel` et `HeroSkillsPanel`. La sélection du héros devient locale
-et les règles de recrutement ou de capacité du groupe restent projetées depuis
-le domaine partagé.
+`HeroesPage`, `HeroRosterPanel`, `SelectedHeroPanel`, `HeroEquipmentPanel` et
+`HeroSkillsPanel`. La sélection du héros devient locale et les règles de
+recrutement ou de capacité du groupe restent projetées depuis le domaine
+partagé.
 
 La cible n’est pas un nouveau « gros composant générique ». `AppShell`, les
 écrans et leurs compositions doivent dépendre de composants UI sans logique

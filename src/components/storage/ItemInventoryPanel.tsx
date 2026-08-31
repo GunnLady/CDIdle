@@ -23,9 +23,9 @@ export default function ItemInventoryPanel(props: {
         const pendingRecycle = pendingRecycleId === instanceId;
         return <Card key={instanceId} data-testid={`storage-item-${instanceId}`} selected={selected} className="flex flex-col">
           <button type="button" aria-pressed={selected} onClick={() => props.onSelect(instanceId)} className="min-h-11 flex-1 text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#caa050]">
-            <span className="flex items-start justify-between gap-2"><span><span className="block text-[9px] uppercase text-[#8f7a67]">{itemTypeLabel}</span><strong className="font-serif text-xs text-[#eadabc]">{item.name}</strong></span><span className="text-[9px] uppercase text-[#caa050]">{item.rarity}</span></span>
-            {item.facts.length > 0 && <span className="mt-2 flex flex-wrap gap-x-2 gap-y-1 text-[9px] text-[#9f8872]">{item.facts.map((fact) => <span key={fact}>{fact}</span>)}</span>}
-            {item.modifiers.length > 0 && <span className="mt-2 flex flex-wrap gap-1">{item.modifiers.map((modifier) => <span key={modifier.id} className="rounded border border-[#63451f] px-1.5 py-0.5 text-[9px] text-amber-400">{modifier.label}</span>)}</span>}
+            <span className="flex items-start justify-between gap-2"><span><span className="block text-[9px] uppercase text-[#8f7a67]">{itemTypeLabel}</span><strong className="font-serif text-xs text-[#eadabc]">{item.name}</strong></span><span className="text-[9px] uppercase text-[#caa050]">{item.rarityLabel}</span></span>
+            {item.facts.length > 0 && <span className="mt-2 grid gap-1 text-[9px] text-[#9f8872]">{item.facts.map((fact) => <span key={fact.id} className="flex justify-between gap-2"><span>{fact.label}</span><span className="text-right text-[#dfdbc7]">{fact.value}</span></span>)}</span>}
+            {item.modifiers.length > 0 && <span className="mt-2 flex flex-wrap gap-1">{item.modifiers.map((modifier) => <span key={modifier.id} className="rounded border border-[#63451f] px-1.5 py-0.5 text-[9px] text-amber-400">{modifier.value} {modifier.label}</span>)}</span>}
           </button>
           <div className="mt-3 grid grid-cols-2 gap-2 border-t border-[#3e2b1f] pt-2">
             <Button type="button" size="sm" variant={selected ? "secondary" : "primary"} className={`min-w-0 whitespace-normal px-2 text-xs ${pendingRecycle ? "col-span-2" : ""}`} onClick={() => props.onSelect(instanceId)}>{selected ? "Sélectionné" : "Équiper"}</Button>

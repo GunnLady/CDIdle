@@ -8,13 +8,21 @@ export type EquipmentSlot = keyof HeroEquipment;
 export interface EquipmentModifierView {
   id: string;
   label: string;
+  value: string;
+}
+
+export interface EquipmentFactView {
+  id: string;
+  label: string;
+  value: string;
 }
 
 export interface EquipmentItemView {
   name: string;
   rarity?: Rarity;
+  rarityLabel?: string;
   description?: string;
-  facts: string[];
+  facts: EquipmentFactView[];
   modifiers: EquipmentModifierView[];
 }
 
@@ -61,36 +69,63 @@ const slots: Array<{ key: EquipmentSlot; label: string; icon: string }> = [
 ];
 
 const statLabels = {
-  physicalDamage: "Dégâts phys.",
-  magicDamage: "Dégâts mag.",
-  physicalDefense: "Défense phys.",
-  magicDefense: "Défense mag.",
-  maxHp: "PV max",
-  maxMana: "PM max",
+  physicalDamage: "Dégâts physiques",
+  magicDamage: "Dégâts magiques",
+  physicalDefense: "Défense physique",
+  magicDefense: "Défense magique",
+  maxHp: "Points de vie max",
+  maxMana: "Mana max",
   speed: "Vitesse",
-  dodgeChance: "Esquive",
-  criticalChance: "Critique",
-  estimatedDps: "DPS estimé",
+  dodgeChance: "Chance d’esquive",
+  criticalChance: "Chance de critique",
+  estimatedDps: "Dégâts par seconde",
 } as const;
+
+const rarityLabels: Record<Rarity, string> = {
+  common: "Commune",
+  uncommon: "Inhabituelle",
+  rare: "Rare",
+  epic: "Épique",
+  legendary: "Légendaire",
+};
+
+const damageTypeLabels: Record<string, string> = {
+  physical: "Physiques",
+  arcane: "Arcaniques",
+  fire: "Feu",
+  ice: "Glace",
+  water: "Eau",
+  earth: "Terre",
+  wind: "Vent",
+  lightning: "Foudre",
+  holy: "Sacrés",
+  dark: "Ténèbres",
+  nature: "Nature",
+  sound: "Sonores",
+  poison: "Poison",
+  blood: "Sang",
+  radiant: "Radiants",
+};
 
 const comparisonKeys = Object.keys(statLabels) as Array<keyof typeof statLabels>;
 
 function modifierViews(modifiers?: Modifier[]): EquipmentModifierView[] {
   return (modifiers ?? []).map((modifier, index) => ({
     id: `${modifier.stat}-${index}`,
-    label: `${modifier.value >= 0 ? "+" : ""}${modifier.value}${modifier.type === "percent" ? "%" : ""} ${statLabels[modifier.stat as keyof typeof statLabels] ?? modifier.stat}`,
+    label: statLabels[modifier.stat as keyof typeof statLabels] ?? modifier.stat,
+    value: `${modifier.value >= 0 ? "+" : ""}${modifier.value}${modifier.type === "percent" ? " %" : ""}`,
   }));
 }
 
 export function createEquipmentItemView(item: ItemInfo, rarity?: Rarity): EquipmentItemView {
-  const facts: string[] = [];
-  if (item.requiredLevel !== undefined) facts.push(`Niv. requis ${item.requiredLevel}`);
-  if (item.itemType === "weapon" && item.damageRange) facts.push(`Dégâts ${item.damageRange.min}-${item.damageRange.max}`);
-  if (item.itemType === "weapon" && item.attackSpeed !== undefined) facts.push(`Indice vit. : ${formatWeaponAttackSpeed(item.attackSpeed)}`);
-  if (item.itemType === "weapon") facts.push(resolveWeaponDamageTypes(item).join(", "));
-  if (item.itemType === "weapon") facts.push(`Scaling: ${getWeaponScalingLabel(item)}`);
-  if (item.itemType === "weapon") facts.push(`Profil: ${getWeaponAttackProfileLabel(item)}`);
-  return { name: item.name, rarity, description: item.description, facts, modifiers: modifierViews(item.modifiers) };
+  const facts: EquipmentFactView[] = [];
+  if (item.requiredLevel !== undefined) facts.push({ id: "required-level", label: "Niveau requis", value: String(item.requiredLevel) });
+  if (item.itemType === "weapon" && item.damageRange) facts.push({ id: "damage", label: "Dégâts", value: `${item.damageRange.min} à ${item.damageRange.max}` });
+  if (item.itemType === "weapon" && item.attackSpeed !== undefined) facts.push({ id: "attack-speed", label: "Vitesse d’attaque", value: formatWeaponAttackSpeed(item.attackSpeed) });
+  if (item.itemType === "weapon") facts.push({ id: "damage-types", label: "Type de dégâts", value: resolveWeaponDamageTypes(item).map((type) => damageTypeLabels[type] ?? type).join(", ") });
+  if (item.itemType === "weapon") facts.push({ id: "scaling", label: "Caractéristique", value: getWeaponScalingLabel(item) });
+  if (item.itemType === "weapon") facts.push({ id: "attack-profile", label: "Profil d’attaque", value: getWeaponAttackProfileLabel(item) });
+  return { name: item.name, rarity, rarityLabel: rarity ? rarityLabels[rarity] : undefined, description: item.description, facts, modifiers: modifierViews(item.modifiers) };
 }
 
 export function resolveStoredEquipmentItem(instance: StoredItemInstance): ItemInfo | null {

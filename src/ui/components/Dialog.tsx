@@ -81,9 +81,10 @@ export default function Dialog({ title, description, children, footer, onDismiss
         aria-describedby={description ? descriptionId : undefined}
         className={classNames("max-h-[calc(100vh-2rem)] w-full max-w-lg overflow-y-auto rounded-ui-panel border-2 border-ui-accent bg-ui-panel-strong p-5 shadow-2xl focus:outline-none", className)}
       >
-        <header className="mb-4 border-b border-ui-border pb-3">
+        <header className="mb-4">
           <h2 id={titleId} className="font-serif text-lg font-bold text-ui-accent">{title}</h2>
           {description && <p id={descriptionId} className="mt-1 text-sm text-ui-text-muted">{description}</p>}
+          <div className="ui-panel-title-separator mt-2" aria-hidden="true" />
         </header>
         {children}
         {footer && <footer className="mt-5 flex flex-wrap justify-end gap-3 border-t border-ui-border-subtle pt-4">{footer}</footer>}

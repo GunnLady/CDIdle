@@ -81,12 +81,13 @@ desormais `Panel` directement. Les quatre panneaux du Donjon declarent
 explicitement `variant="strong"`; cette intention visible ne justifie pas une
 abstraction intermediaire propre a un seul ecran.
 
-L'habillage commun de `Panel` repose sur deux assets `512 x 512` :
-`panel-background-tile-v1.png`, texture sombre raccordable sur ses quatre
-bords, et `panel-frame-v1.png`, cadre transparent decoupe avec
-`border-image-slice: 55`. Le contenu reste en DOM et au-dessus du decor. Le
-cadre utilise une largeur de 12 px en `default` et 14 px en `strong`; aucun
-consommateur ne doit redimensionner ou dupliquer ces assets localement.
+L'habillage commun de `Panel` repose sur une texture bois
+`panel-background-tile-v2.png` et le cadre transparent
+`panel-frame-9slice-v1.png`, partage avec la variante ardoise
+`panel-background-slate-tile-v1.png`. Le cadre est decoupe avec
+`border-image-slice: 128`; le contenu reste en DOM et au-dessus du decor. Les
+consommateurs choisissent seulement le materiau et ne doivent ni dupliquer le
+cadre ni ajouter de masque local.
 Le titre se termine par `panel-title-separator-v1.png`, une traverse en acier
 noirci et or vieilli qui reprend les materiaux et les angles du cadre. Elle
 remplace la bordure brune historique, reste purement decorative et s'etire en

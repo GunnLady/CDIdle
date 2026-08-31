@@ -208,7 +208,7 @@ describe("weapon profile integration simulation", () => {
     expect(dpsRow()).toHaveTextContent(equippedHero.calculatedStats.estimatedDps.toFixed(2));
     expect(equippedHero.calculatedStats.estimatedDps).not.toBe(hero.calculatedStats.estimatedDps);
 
-    expect(screen.getByText(/Profil: 2 coups × 65 % de puissance/)).toBeInTheDocument();
-    expect(screen.getByText(/Scaling: Puissance \(FOR\)/)).toBeInTheDocument();
+    expect(screen.getByText("2 × 65 %")).toBeInTheDocument();
+    expect(screen.getByText("Force")).toBeInTheDocument();
   });
 });

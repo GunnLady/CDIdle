@@ -62,7 +62,7 @@ describe("storage presentation", () => {
       { instanceId: "sword", itemId: "starter_sword", rarity: "common" },
     ]));
     expect(inventory[0]).toMatchObject({ instanceId: "sword", itemTypeLabel: "Arme" });
-    expect(inventory[0].item.facts).toContain("Profil : 1 coup × 100 % de puissance");
+    expect(inventory[0].item.facts).toContainEqual({ id: "attack-profile", label: "Profil d’attaque", value: "1 × 100 %" });
 
     const summary = createStorageSummaryView(1, true, [
       { materialId: "metal_scrap", rarity: "common", count: 7 },

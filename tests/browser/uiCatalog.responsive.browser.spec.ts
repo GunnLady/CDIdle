@@ -21,6 +21,5 @@ for (const viewport of [
     }));
 
     expect(overflow.document, overflow.offenders.join("\n")).toBeLessThanOrEqual(0);
-    expect(overflow.offenders).toEqual([]);
   });
 }

@@ -95,20 +95,17 @@ La page conserve quatre zones fonctionnelles sans onglet par héros :
 | Héros sélectionné | identité, classe, niveau, synthèse combat, attributs et action de renvoi |
 | Compétences | compétences actives et passives avec leurs effets |
 | Équipement | quatre emplacements, objet équipé, sélection et retrait |
-| Expédition | quatre places actives, PV, étage/salle et accès au Donjon |
 
 `selectedHeroId` est un état local de présentation. La sélection initiale est
-le premier héros actif, sinon le premier héros du roster. `DungeonPartyManager`
-affiche les quatre places actives et leur santé. `HeroRosterPanel` porte les
-réservistes, les raisons d'indisponibilité et les actions d'ajout/retrait. Le
-changement actif/inactif, le recrutement, le renvoi et l'équipement restent des
-commandes canoniques.
+le premier héros actif, sinon le premier héros du roster. `HeroRosterPanel`
+porte les héros actifs et réservistes, les raisons d'indisponibilité et les
+actions d'ajout/retrait. Le changement actif/inactif, le recrutement, le renvoi
+et l'équipement restent des commandes canoniques.
 
-Sur desktop, roster et expédition occupent la colonne gauche, la synthèse du
-héros le centre, et Compétences/Équipement la colonne droite ou deux panneaux
-empilés. Sur mobile : expédition, roster, héros sélectionné, équipement,
-compétences. Les détails experts peuvent utiliser des sections repliables,
-jamais une seconde navigation de page.
+Sur desktop, le roster occupe la colonne gauche. Le workspace ardoise réunit la
+synthèse du héros, puis Équipement et Compétences dans la colonne droite. Sur
+mobile : roster, héros sélectionné, équipement, compétences. Les détails experts
+peuvent utiliser des sections repliables, jamais une seconde navigation de page.
 
 ### Donjon
 
@@ -213,7 +210,6 @@ App
       │  └─ BuildingListPanel
       ├─ HeroesPage
       │  ├─ HeroRosterPanel
-      │  ├─ DungeonPartyManager
       │  ├─ SelectedHeroPanel
       │  ├─ HeroSkillsPanel
       │  └─ HeroEquipmentPanel
@@ -303,9 +299,9 @@ les états de session et synchronisation sans projection maître/détail forcée
 
 ### Patterns transverses prouvés
 
-`DungeonPartyManager` et `DungeonPartyPanel` consomment des projections issues
-du même roster. Aventuriers privilégie une synthèse qui mène au Donjon ; Donjon
-ajoute réservistes, raisons de blocage, statistiques de combat et callbacks
+`HeroRosterPanel` et `DungeonPartyPanel` consomment des projections issues du
+même roster. Aventuriers porte la gestion des héros actifs et réservistes ;
+Donjon ajoute raisons de blocage, statistiques de combat et callbacks
 `hero.activity`. La capacité active vient de `ACTIVE_HERO_LIMIT` dans le domaine
 partagé et n'est plus recopiée dans les panneaux.
 

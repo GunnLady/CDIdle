@@ -8,6 +8,7 @@ test-results/
 .vite/
 .eslintcache
 *.tsbuildinfo
+/tmp/
 
 # Operating-system files and logs
 .DS_Store

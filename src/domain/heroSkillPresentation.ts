@@ -7,7 +7,7 @@ export interface HeroSkillView {
   description: string;
   resourceLabel: string;
   targetLabel?: string;
-  effectSummary: string;
+  effectSummary?: string;
 }
 
 export interface HeroSkillsView {
@@ -58,15 +58,16 @@ export function createHeroSkillsView(hero: Hero | null): HeroSkillsView | null {
   const project = (skillId: string): HeroSkillView | null => {
     const skill = getSkillById(skillId);
     if (!skill) return null;
+    const effectSummary = formatSkillEffect(skill.effect);
     return {
       id: skill.id,
       name: skill.name,
       description: skill.description,
       resourceLabel: skill.type === "passive"
-        ? "Passif"
-        : `${skill.manaCost ?? 0} PM${skill.cooldownRounds ? ` · ${skill.cooldownRounds} t.` : ""}`,
+        ? effectSummary
+        : `Coût en mana : ${skill.manaCost ?? 0} · Temps de recharge : ${skill.cooldownRounds ?? 0} tours`,
       targetLabel: skill.target ? targetLabel(skill.target) : undefined,
-      effectSummary: formatSkillEffect(skill.effect),
+      effectSummary: skill.type === "passive" ? undefined : effectSummary,
     };
   };
   return {

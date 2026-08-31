@@ -87,9 +87,9 @@ function toRecipeView(item: ItemInfo, unlockedIds: Set<string>): ForgeRecipeView
   const weaponDetails = item.itemType === "weapon"
     ? [
         ...(item.damageRange ? [`Dégâts de base : ${item.damageRange.min} - ${item.damageRange.max}`] : []),
-        `Scaling : ${getWeaponScalingLabel(item)}`,
-        `Profil : ${getWeaponAttackProfileLabel(item)}`,
-        `Indice de vitesse : ${formatWeaponAttackSpeed(item.attackSpeed ?? 1)}`,
+        `Caractéristique : ${getWeaponScalingLabel(item)}`,
+        `Profil d’attaque : ${getWeaponAttackProfileLabel(item)}`,
+        `Vitesse d’attaque : ${formatWeaponAttackSpeed(item.attackSpeed ?? 1)}`,
       ]
     : [];
   return {

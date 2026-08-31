@@ -22,8 +22,6 @@ function Harness() {
       resources={{ gold: 1_000, food: 100, wood: 100, stone: 100, ore: 100 }}
       buildings={{ guilde: 2 }}
       storedItems={[{ instanceId: "stored-sword", itemId: "starter_sword", rarity: "common" }]}
-      activeDungeonFloor={3}
-      activeDungeonRoom={4}
       canMutate={!readOnly}
       onDismissHero={recordMutation}
       onToggleHeroActive={recordMutation}
