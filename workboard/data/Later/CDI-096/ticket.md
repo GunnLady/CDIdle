@@ -10,7 +10,7 @@ source: Audit CDI-095 du 2026-08-20
 depends_on: []
 blocks: []
 github_issue: null
-related_docs: ["workboard/data/Doing/CDI-095/ticket.md", "docs/development/supabase-egress-budget.md", "shared/contracts/authoritative.ts", "src/lib/egressBudget.ts", "supabase/functions/game-api/supabase-adapter.ts"]
+related_docs: ["workboard/data/Done/CDI-095/ticket.md", "docs/development/supabase-egress-budget.md", "shared/contracts/authoritative.ts", "src/lib/egressBudget.ts", "supabase/functions/game-api/supabase-adapter.ts"]
 ---
 
 # CDI-096 - Borner la croissance egress de l inventaire canonique

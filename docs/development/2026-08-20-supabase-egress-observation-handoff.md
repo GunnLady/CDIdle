@@ -2,7 +2,7 @@
 
 - Date d'arrêt : 2026-08-20
 - Date de reprise visée : 2026-08-31
-- Ticket actif : [`CDI-095`](../../workboard/data/Doing/CDI-095/ticket.md)
+- Ticket clôturé : [`CDI-095`](../../workboard/data/Done/CDI-095/ticket.md)
 
 ## Statut au départ
 

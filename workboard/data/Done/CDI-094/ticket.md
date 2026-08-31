@@ -10,7 +10,7 @@ source: Alerte Supabase egress du 2026-08-20
 depends_on: []
 blocks: ["CDI-095"]
 github_issue: null
-related_docs: ["workboard/data/Doing/CDI-095/ticket.md", "src/hooks/useDungeonAutomation.ts", "src/hooks/useAuthoritativeCommandDispatch.ts", "shared/domain/authoritative-dungeon.ts", "supabase/functions/game-api/dungeon-command-handlers.ts", "supabase/functions/game-api/dungeon-authority.ts", "shared/contracts/authoritative.ts"]
+related_docs: ["workboard/data/Done/CDI-095/ticket.md", "src/hooks/useDungeonAutomation.ts", "src/hooks/useAuthoritativeCommandDispatch.ts", "shared/domain/authoritative-dungeon.ts", "supabase/functions/game-api/dungeon-command-handlers.ts", "supabase/functions/game-api/dungeon-authority.ts", "shared/contracts/authoritative.ts"]
 ---
 
 # CDI-094 - Regrouper les commandes d auto-exploration du donjon

@@ -10,7 +10,7 @@ source: Alerte Supabase egress du 2026-08-20
 depends_on: []
 blocks: ["CDI-095"]
 github_issue: null
-related_docs: ["workboard/data/Doing/CDI-095/ticket.md", "supabase/functions/game-api/supabase-adapter.ts", "supabase/functions/game-api/index.ts", "supabase/migrations/20260726010000_temporal_authority.sql", "shared/contracts/authoritative.ts", "tests/supabaseAdapter.test.ts"]
+related_docs: ["workboard/data/Done/CDI-095/ticket.md", "supabase/functions/game-api/supabase-adapter.ts", "supabase/functions/game-api/index.ts", "supabase/migrations/20260726010000_temporal_authority.sql", "shared/contracts/authoritative.ts", "tests/supabaseAdapter.test.ts"]
 ---
 
 # CDI-093 - Supprimer les snapshots PostgREST redondants des commits

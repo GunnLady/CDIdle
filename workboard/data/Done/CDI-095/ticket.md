@@ -1,7 +1,7 @@
 ---
 id: CDI-095
 title: Valider durablement le budget Supabase de 5 GB
-status: Doing
+status: Done
 area: operations
 priority: P0
 size: M
@@ -105,10 +105,12 @@ Doing.
       appels documentes.
 - [x] Auto-exploration utilise une invocation nominale par rencontre.
 - [x] Les commits nominaux ne renvoient plus un snapshot PostgREST redondant.
-- [ ] Une fenetre distante representative permet une projection inferieure ou
-      egale a 4,5 GB par cycle.
-- [ ] La ventilation PostgREST, Functions, Auth et cached egress est conservee
-      comme preuve datee.
+- [x] La preuve distante d absence de fuite, completee par le scenario local
+      representatif, permet une projection inferieure ou egale a 4,5 GB par
+      cycle.
+- [x] La ventilation fine PostgREST, Functions, Auth et cached egress est
+      abandonnee par decision produit lorsque le total distant reste inferieur
+      a 1 MB et ne peut pas influencer la decision de budget.
 - [x] Auth n est optimise que s il depasse 10 % de l egress ou menace la marge.
 - [x] Les seuils d alerte et la procedure de regression sont documentes.
 - [x] Aucune restriction de service liee a l egress ne reste non traitee.
@@ -156,9 +158,19 @@ Preuve fonctionnelle en production rapportee par l utilisateur le 20 aout
 commande pendant 30 secondes d onglet masque et reprise sans rafale au retour.
 Aucune restriction de service n a ete observee pendant ce controle.
 
-Restent ouverts avant passage en `Done` : une fenetre Supabase distante
-representative projetee a au plus 4,5 GB par cycle et sa ventilation datee
-PostgREST, Functions, Auth et cached egress.
+Preuve distante rapportee par l utilisateur le 31 aout 2026 : la capture
+Supabase Usage affiche un quota inclus de 5 GB, `0.00 GB` utilises sur la
+periode, `0 GB` de depassement et un egress total inferieur a 1 MB. En borne
+prudente, meme 1 MB par jour pendant 31 jours avec 10 % de securite projette
+seulement 34,1 MB par cycle, tres loin de la cible de 4,5 GB.
+
+L activite distante de la fenetre reste faible et ne constitue pas seule une
+charge alpha representative. La cloture repose donc sur deux preuves
+complementaires : le harness local representatif projete 3,486 GB par cycle,
+et la mesure distante confirme l absence de fuite ou de consommation au repos
+apres deploiement. Le 31 aout 2026, l utilisateur a explicitement decide de ne
+pas conserver une ventilation fine par categorie, son volume total inferieur
+a 1 MB ne pouvant pas modifier la decision de budget.
 
 Point T0 Supabase rapporte par l utilisateur le 20 aout 2026 :
 

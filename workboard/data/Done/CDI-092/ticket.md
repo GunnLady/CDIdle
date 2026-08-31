@@ -10,7 +10,7 @@ source: Alerte Supabase egress du 2026-08-20
 depends_on: ["CDI-091"]
 blocks: ["CDI-095"]
 github_issue: null
-related_docs: ["workboard/data/Done/CDI-091/ticket.md", "workboard/data/Doing/CDI-095/ticket.md", "src/hooks/useTownAuthorityReconciliation.ts", "src/hooks/useImmigrationReconciliation.ts", "src/domain/townAuthoritySchedule.ts", "shared/contracts/authoritative.ts", "supabase/functions/game-api/idle-authority.ts"]
+related_docs: ["workboard/data/Done/CDI-091/ticket.md", "workboard/data/Done/CDI-095/ticket.md", "src/hooks/useTownAuthorityReconciliation.ts", "src/hooks/useImmigrationReconciliation.ts", "src/domain/townAuthoritySchedule.ts", "shared/contracts/authoritative.ts", "supabase/functions/game-api/idle-authority.ts"]
 ---
 
 # CDI-092 - Remplacer le polling temporel par une planification metier
