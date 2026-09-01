@@ -11,24 +11,27 @@ import {
 import { initialTownState, migrateTownState } from "../supabase/functions/game-api/town-authority";
 import {
   asLegacyUnversionedState,
-  currentV1GoldenAfter,
+  currentV2GoldenAfter,
   legacyV0GoldenBefore,
 } from "./fixtures/stateMigrations";
 import { makeHero } from "./fixtures/game";
+import { calculateXpNeeded } from "../shared/domain/hero-xp";
+import { LEGACY_HERO_PROGRESSION_MODEL } from "../shared/data/hero-progression-models";
 
 const migrationContext = (seed = 42) => ({ defaults: initialTownState(seed), legacySeed: seed });
 
 describe("canonical state migrations", () => {
-  it("registers a contiguous v0 -> v1 migration", () => {
-    expect(CURRENT_CANONICAL_STATE_VERSION).toBe(1);
+  it("registers contiguous v0 -> v1 -> v2 migrations", () => {
+    expect(CURRENT_CANONICAL_STATE_VERSION).toBe(2);
     expect(CANONICAL_STATE_MIGRATIONS.map(({ from, to }) => ({ from, to }))).toEqual([
       { from: 0, to: 1 },
+      { from: 1, to: 2 },
     ]);
   });
 
   it("matches the anonymized golden pair for an unversioned alpha snapshot", () => {
     expect(migrateCanonicalState(legacyV0GoldenBefore, migrationContext()))
-      .toEqual(currentV1GoldenAfter);
+      .toEqual(currentV2GoldenAfter);
   });
 
   it("is pure, deterministic and idempotent", () => {
@@ -61,6 +64,67 @@ describe("canonical state migrations", () => {
     expect(first.storedItems[0].instanceId).toBe("fixture-item");
     expect(first.encounterHistory).toEqual(before.encounterHistory);
     expect(validateCanonicalGameState(first)).toEqual([]);
+  });
+
+  it("migrates every persisted hero bucket while preserving XP completion", () => {
+    const legacyThreshold = calculateXpNeeded(21, "Guerrier", LEGACY_HERO_PROGRESSION_MODEL.xpCurve);
+    const legacyHero = makeHero({
+      level: 20,
+      classType: "Guerrier",
+      xp: Math.floor(legacyThreshold / 2),
+      xpNeeded: legacyThreshold,
+    });
+    const v1 = {
+      ...initialTownState(42),
+      stateVersion: 1,
+      heroes: [legacyHero],
+      onboardingCandidates: [{ ...legacyHero, id: "candidate" }],
+      pendingRecruit: { ...legacyHero, id: "pending" },
+    } as unknown as Record<string, unknown>;
+    delete v1.heroProgressionModelId;
+    const rngBefore = structuredClone(v1.rngState);
+
+    const migrated = migrateTownState(v1);
+    const expectedThreshold = calculateXpNeeded(21, "Guerrier");
+    const expectedXp = Math.floor((legacyHero.xp / legacyThreshold) * expectedThreshold);
+
+    expect(migrated.heroProgressionModelId).toBe("harmonized-t0-t1-v1");
+    expect(migrated.heroes[0]).toMatchObject({ xp: expectedXp, xpNeeded: expectedThreshold });
+    expect(migrated.onboardingCandidates[0]).toMatchObject({ xp: expectedXp, xpNeeded: expectedThreshold });
+    expect(migrated.pendingRecruit).toMatchObject({ xp: expectedXp, xpNeeded: expectedThreshold });
+    expect(migrated.rngState).toEqual(rngBefore);
+  });
+
+  it("does not reconvert XP from an already harmonized v2 snapshot", () => {
+    const hero = makeHero({
+      level: 20,
+      classType: "Guerrier",
+      xp: 123,
+      xpNeeded: calculateXpNeeded(21, "Guerrier"),
+    });
+    const current = { ...initialTownState(42), heroes: [hero] };
+
+    const migrated = migrateTownState(current);
+
+    expect(migrated.heroProgressionModelId).toBe("harmonized-t0-t1-v1");
+    expect(migrated.heroes[0]).toMatchObject({ xp: hero.xp, xpNeeded: hero.xpNeeded });
+  });
+
+  it("rejects excess legacy XP before model conversion instead of consuming hidden RNG", () => {
+    const legacyThreshold = calculateXpNeeded(21, "Guerrier", LEGACY_HERO_PROGRESSION_MODEL.xpCurve);
+    const v1 = {
+      ...initialTownState(42),
+      stateVersion: 1,
+      heroes: [makeHero({
+        level: 20,
+        classType: "Guerrier",
+        xp: legacyThreshold,
+        xpNeeded: legacyThreshold,
+      })],
+    } as unknown as Record<string, unknown>;
+    delete v1.heroProgressionModelId;
+
+    expect(() => migrateTownState(v1)).toThrow("xp must be lower than xpNeeded");
   });
 
   it("does not mutate migration defaults when restoring a displaced off-hand", () => {

@@ -9,6 +9,7 @@ import {
   recruitmentEligibility,
   type HeroEligibilityError,
 } from "../../../shared/domain/hero.ts";
+import { refreshHeroProgressionThreshold } from "../../../shared/domain/hero-xp.ts";
 import { generateAuthoritativeNovice } from "./novice-authority.ts";
 import { TownCommandError, type TownCommandHandler } from "./command-handler.ts";
 
@@ -48,7 +49,7 @@ export const chooseHeroVocation: TownCommandHandler<"hero.choose_vocation"> = (c
     (town.storedItems ?? []) as unknown as StoredItemInstance[],
   );
   const nextHeroes = [...heroes];
-  nextHeroes[heroIndex] = applied.hero;
+  nextHeroes[heroIndex] = refreshHeroProgressionThreshold(applied.hero);
   return context.withRng({
     state: {
       ...town,

@@ -28,6 +28,12 @@ describe("dungeon presentation projections", () => {
     expect(Number(view.party[0]?.estimatedDps)).toBeGreaterThan(0);
   });
 
+  it("projects maximum-level heroes with a full XP bar", () => {
+    const hero = makeHero({ id: "max-level", level: 99, xp: 0, isActive: true });
+    const view = createDungeonPartyView([hero], createHeroRosterView([hero]));
+    expect(view.party[0]).toMatchObject({ isMaxLevel: true, xpPercent: 100 });
+  });
+
   it("shares room progression and prepares expedition banner slots outside React", () => {
     const hero = makeHero({
       id: "banner-hero",

@@ -26,6 +26,7 @@ import {
   getHeroMainHandWeapon,
   getWeaponDamageTypes,
   rollWeaponDamage,
+  type XpProgressionCurve,
 } from "./game-calculations.ts";
 import {
   applyLootModifiers,
@@ -52,11 +53,17 @@ import {
   getDungeonGoldReward,
   getDungeonRoomCount,
   getMajorBossIndex,
-  getPartyXpShare,
   getRegularEnemyBudget,
   isDungeonFinalRoom,
   isMajorBossFloor,
 } from "./dungeon-progression.ts";
+import {
+  calculateEvenPartyXp,
+  calculateSharedCombatXp,
+  getRestXpPool,
+  getSuccessfulChallengeXp,
+  getTreasureXpPool,
+} from "./dungeon-xp-rewards.ts";
 import {
   resolveMonsterAttackProfile,
   resolveMonsterCombatRank,
@@ -117,6 +124,10 @@ export type AuthoritativeDungeonResolution = {
   encounter: AuthoritativeDungeonEncounter;
 };
 
+export type AuthoritativeDungeonResolutionOptions = {
+  xpCurve?: XpProgressionCurve;
+};
+
 const clone = <T>(value: T): T => structuredClone(value);
 
 function requiredCalculatedStat(stats: CalculatedStats, field: string): number {
@@ -133,8 +144,9 @@ function awardExperience(
   rng: Rng,
   buildings: Record<string, number>,
   storedItems: StoredItemInstance[],
+  xpCurve?: XpProgressionCurve,
 ): HeroProgressionResult {
-  return applyHeroProgression({ hero, xpEarned: xp, rng, buildings, storedItems });
+  return applyHeroProgression({ hero, xpEarned: xp, rng, buildings, storedItems, xpCurve });
 }
 
 function logExperienceAward(
@@ -380,6 +392,7 @@ function resolveFight(
   room: number,
   encounterId: string,
   rng: Rng,
+  xpCurve?: XpProgressionCurve,
 ): AuthoritativeDungeonResolution {
   let heroes = clone(source.heroes ?? []);
   let monster = scaleMonster(floor, room, rng);
@@ -812,9 +825,8 @@ function resolveFight(
     const eligibleCount = heroes.filter((hero) => hero.isActive && hero.currentHp > 0).length;
     heroes = heroes.map((hero) => {
       if (!hero.isActive || hero.currentHp <= 0) return hero;
-      const share = monster.xpYield * getPartyXpShare(eligibleCount);
-      const xp = Math.round(share * (hero.race === "Humain" ? 1.15 : 1));
-      const award = awardExperience(hero, xp, rng, source.buildings ?? {}, storedItems);
+      const xp = calculateSharedCombatXp(monster.xpYield, eligibleCount, hero);
+      const award = awardExperience(hero, xp, rng, source.buildings ?? {}, storedItems, xpCurve);
       storedItems = award.storedItems;
       appendPendingTransition(pendingClassTransitions, award);
       logExperienceAward(log, hero, xp, award);
@@ -825,9 +837,8 @@ function resolveFight(
       const bonusEligibleCount = heroes.filter((hero) => hero.isActive && hero.currentHp > 0).length;
       heroes = heroes.map((hero) => {
         if (!hero.isActive || hero.currentHp <= 0) return hero;
-        const share = reward.xpPool * getPartyXpShare(bonusEligibleCount);
-        const xp = Math.round(share * (hero.race === "Humain" ? 1.15 : 1));
-        const award = awardExperience(hero, xp, rng, source.buildings ?? {}, storedItems);
+        const xp = calculateSharedCombatXp(reward.xpPool, bonusEligibleCount, hero);
+        const award = awardExperience(hero, xp, rng, source.buildings ?? {}, storedItems, xpCurve);
         storedItems = award.storedItems;
         appendPendingTransition(pendingClassTransitions, award);
         logExperienceAward(log, hero, xp, award, { source: "floor_first_clear", floor });
@@ -894,6 +905,7 @@ function resolveNonFight(
   room: number,
   encounterId: string,
   rng: Rng,
+  xpCurve?: XpProgressionCurve,
 ): AuthoritativeDungeonResolution {
   let heroes = clone(source.heroes ?? []);
   const resources: Resources = {
@@ -975,12 +987,12 @@ function resolveNonFight(
       "loot",
       material,
     );
-    const totalXp = Math.round(15 * (1 + (floor - 1) * 0.15));
+    const totalXp = getTreasureXpPool(floor);
     const eligible = active().length;
     heroes = heroes.map((hero) => {
       if (!hero.isActive || hero.currentHp <= 0) return hero;
-      const xp = Math.max(1, Math.round((totalXp / eligible) * (hero.race === "Humain" ? 1.15 : 1)));
-      const award = awardExperience(hero, xp, rng, source.buildings ?? {}, storedItems);
+      const xp = calculateEvenPartyXp(totalXp, eligible, hero);
+      const award = awardExperience(hero, xp, rng, source.buildings ?? {}, storedItems, xpCurve);
       storedItems = award.storedItems;
       appendPendingTransition(pendingClassTransitions, award);
       logExperienceAward(log, hero, xp, award);
@@ -1019,12 +1031,12 @@ function resolveNonFight(
       "victory",
       { heroes: recovery },
     );
-    const totalXp = Math.round(10 * (1 + (floor - 1) * 0.15));
+    const totalXp = getRestXpPool(floor);
     const eligible = active().length;
     heroes = heroes.map((hero) => {
       if (!hero.isActive || hero.currentHp <= 0) return hero;
-      const xp = Math.max(1, Math.round((totalXp / eligible) * (hero.race === "Humain" ? 1.15 : 1)));
-      const award = awardExperience(hero, xp, rng, source.buildings ?? {}, storedItems);
+      const xp = calculateEvenPartyXp(totalXp, eligible, hero);
+      const award = awardExperience(hero, xp, rng, source.buildings ?? {}, storedItems, xpCurve);
       storedItems = award.storedItems;
       appendPendingTransition(pendingClassTransitions, award);
       logExperienceAward(log, hero, xp, award);
@@ -1162,10 +1174,10 @@ function resolveNonFight(
       } else {
         log("reward.material.none", "Aucun composant de forge recuperable.", "info");
       }
-      const xp = Math.round(20 * (1 + (floor - 1) * 0.15));
+      const xp = getSuccessfulChallengeXp(floor);
       heroes = heroes.map((hero) => {
         if (hero.id !== selected.hero.id) return hero;
-        const award = awardExperience(hero, xp, rng, source.buildings ?? {}, storedItems);
+        const award = awardExperience(hero, xp, rng, source.buildings ?? {}, storedItems, xpCurve);
         storedItems = award.storedItems;
         appendPendingTransition(pendingClassTransitions, award);
         logExperienceAward(log, hero, xp, award);
@@ -1265,12 +1277,13 @@ export function resolveAuthoritativeDungeonEncounter(
   source: AuthoritativeDungeonState,
   encounterId: string,
   rng: Rng,
+  options: AuthoritativeDungeonResolutionOptions = {},
 ): AuthoritativeDungeonResolution {
   const floor = Number(source.activeDungeonFloor ?? 1);
   const room = Number(source.activeDungeonRoom ?? 1);
   if (!Array.isArray(source.heroes)) throw new Error("INVALID_GAME_STATE");
   for (const [index, hero] of source.heroes.entries()) {
-    if (validateAuthoritativeHero(hero, `heroes[${index}]`).length > 0) {
+    if (validateAuthoritativeHero(hero, `heroes[${index}]`, options.xpCurve).length > 0) {
       throw new Error("INVALID_GAME_STATE");
     }
   }
@@ -1284,7 +1297,6 @@ export function resolveAuthoritativeDungeonEncounter(
     ? "fight"
     : getRandomDungeonEncounterType(rng, excludedType);
   return kind === "fight"
-    ? resolveFight(source, floor, room, encounterId, rng)
-    : resolveNonFight(source, kind, floor, room, encounterId, rng);
+    ? resolveFight(source, floor, room, encounterId, rng, options.xpCurve)
+    : resolveNonFight(source, kind, floor, room, encounterId, rng, options.xpCurve);
 }
-

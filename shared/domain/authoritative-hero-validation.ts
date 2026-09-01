@@ -1,31 +1,46 @@
 import { validateCanonicalHero } from "../contracts/authoritative.ts";
 import { CLASS_INFO_LIST, getSkillById } from "../data/game-data.ts";
 import type { ClassType, Hero } from "../contracts/game.ts";
-import { calculateXpNeeded } from "./game-calculations.ts";
+import { HERO_MAX_LEVEL } from "../data/hero-progression-models.ts";
+import {
+  CURRENT_XP_PROGRESSION_CURVE,
+  calculateXpNeeded,
+  type XpProgressionCurve,
+} from "./game-calculations.ts";
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   Boolean(value) && typeof value === "object" && !Array.isArray(value);
 
-function expectedXpNeeded(hero: Pick<Hero, "level" | "classType">): number {
-  return calculateXpNeeded(hero.level + 1, hero.classType);
+function expectedXpNeeded(
+  hero: Pick<Hero, "level" | "classType">,
+  xpCurve: XpProgressionCurve,
+): number {
+  return calculateXpNeeded(hero.level + 1, hero.classType, xpCurve);
 }
 
-export function migrateAuthoritativeHeroProgression(input: unknown): unknown {
+export function migrateAuthoritativeHeroProgression(
+  input: unknown,
+  xpCurve: XpProgressionCurve = CURRENT_XP_PROGRESSION_CURVE,
+): unknown {
   if (!isRecord(input) || !Number.isInteger(input.level)) return input;
   const classInfo = CLASS_INFO_LIST.find((entry) => entry.type === input.classType);
   if (!classInfo) return input;
-  const xpNeeded = calculateXpNeeded(Number(input.level) + 1, input.classType as ClassType);
+  const xpNeeded = calculateXpNeeded(Number(input.level) + 1, input.classType as ClassType, xpCurve);
   return input.xpNeeded === xpNeeded ? input : { ...input, xpNeeded };
 }
 
 export function validateAuthoritativeHero(
   input: unknown,
   path = "hero",
+  xpCurve: XpProgressionCurve = CURRENT_XP_PROGRESSION_CURVE,
 ): string[] {
   const errors = validateCanonicalHero(input, path);
   if (errors.length > 0) return errors;
   const hero = input as Hero;
-  const expected = expectedXpNeeded(hero);
+  if (hero.level > HERO_MAX_LEVEL) {
+    errors.push(`${path}.level must be an integer between 1 and ${HERO_MAX_LEVEL}`);
+  }
+  const expected = expectedXpNeeded(hero, xpCurve);
   if (hero.xpNeeded !== expected) {
     errors.push(`${path}.xpNeeded must equal ${expected} for level ${hero.level} ${hero.classType}`);
   }
@@ -57,8 +72,11 @@ export function validateAuthoritativeHeroSkills(
   return errors;
 }
 
-export function validateAuthoritativeHeroes(input: unknown, path = "heroes"): string[] {
+export function validateAuthoritativeHeroes(
+  input: unknown,
+  path = "heroes",
+  xpCurve: XpProgressionCurve = CURRENT_XP_PROGRESSION_CURVE,
+): string[] {
   if (!Array.isArray(input)) return [`${path} must be an array`];
-  return input.flatMap((hero, index) => validateAuthoritativeHero(hero, `${path}[${index}]`));
+  return input.flatMap((hero, index) => validateAuthoritativeHero(hero, `${path}[${index}]`, xpCurve));
 }
-

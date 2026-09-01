@@ -30,6 +30,18 @@ la version courante n'est jamais complété silencieusement.
 Une migration adapte un format, pas l'équilibrage du jeu. Toute valeur perdue
 ou ambiguë doit provoquer une erreur explicite.
 
+## Version du modèle de progression
+
+Depuis l'état canonique v2, `heroProgressionModelId` identifie séparément le
+modèle d'équilibrage. La migration structurelle `v1 -> v2` marque les snapshots
+existants avec `legacy-global-v1`; elle ne change pas leur XP.
+
+`migrateTownState` valide d'abord ce format, puis
+`upgradeCanonicalHeroProgression` convertit explicitement l'ancien modèle vers
+`harmonized-t0-t1-v1`. Pour chaque héros, candidat d'onboarding et recrutement
+en attente, la conversion conserve `xp / xpNeeded`, arrondit vers le bas et ne
+consomme aucun tirage RNG. L'identifiant rend cette conversion idempotente.
+
 ## Retirer une migration
 
 Une étape ne peut être retirée qu'après preuve qu'aucun snapshot persistant ne

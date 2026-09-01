@@ -1,6 +1,6 @@
 import { CLASS_INFO_LIST, getSkillById } from "../data/game-data.ts";
 import type { ClassType, Hero, StoredItemInstance } from "../contracts/game.ts";
-import { refreshHeroDerivedStats } from "./game-calculations.ts";
+import { refreshHeroCombatStats } from "./game-calculations.ts";
 import type { Rng } from "./random.ts";
 import {
   grantTier1ClassEquipment,
@@ -88,7 +88,7 @@ export function applyTier1ClassTransition(
   equipmentReward: ClassEquipmentReward;
 } {
   const skills = assignTier1Skills(hero, targetClass, rng);
-  const transitioned = refreshHeroDerivedStats({
+  const transitioned = refreshHeroCombatStats({
     ...hero,
     classType: targetClass,
     ...skills,
@@ -101,4 +101,3 @@ export function applyTier1ClassTransition(
     equipmentReward: equipped.reward,
   };
 }
-

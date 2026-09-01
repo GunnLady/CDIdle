@@ -4,7 +4,7 @@ import {
   getTier1ClassItemDefinition,
   rollTier1ClassEquipment,
 } from "../data/tier1-class-equipment.ts";
-import { refreshHeroDerivedStats } from "./game-calculations.ts";
+import { refreshHeroCombatStats } from "./game-calculations.ts";
 import type { Rng } from "./random.ts";
 
 export type ClassEquipmentReward = {
@@ -75,7 +75,7 @@ export function grantTier1ClassEquipment(
     storeDisplacedItem(nextStoredItems, hero.equipment?.offHand, rewardInstanceIds, returnedInstanceIds);
   }
 
-  const refreshed = refreshHeroDerivedStats({
+  const refreshed = refreshHeroCombatStats({
     ...hero,
     equipment: {
       ...(hero.equipment ?? {}),
@@ -106,4 +106,3 @@ export function describeTier1EquipmentReward(reward: ClassEquipmentReward): {
   if (!weaponName || !accessoryName) throw new Error("INVALID_TIER1_REWARD_CATALOG");
   return { weaponName, accessoryName };
 }
-

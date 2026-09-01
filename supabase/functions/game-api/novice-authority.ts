@@ -1,3 +1,5 @@
+import type { CanonicalHero, CanonicalHeroRace } from "../../../shared/contracts/authoritative.ts";
+import { calculateXpNeeded } from "../../../shared/domain/hero-xp.ts";
 import { generateAuthoritativeNoviceEquipment } from "./inventory-authority.ts";
 import {
   calculateAuthoritativeNoviceStats,
@@ -90,7 +92,7 @@ export function generateAuthoritativeNovice(seedKey: string, id: string, race: C
     classType: "Novice",
     level: 1,
     xp: 0,
-    xpNeeded: 100,
+    xpNeeded: calculateXpNeeded(2, "Novice"),
     currentHp: calculatedStats.maxHp,
     currentMana: calculatedStats.maxMana,
     baseStats: stats,
@@ -103,4 +105,3 @@ export function generateAuthoritativeNovice(seedKey: string, id: string, race: C
     calculatedStats,
   };
 }
-import type { CanonicalHero, CanonicalHeroRace } from "../../../shared/contracts/authoritative.ts";

@@ -13,6 +13,7 @@ import {
 import type { BattleLogEntry, Hero } from "../types";
 import { getHeroMainHandWeapon } from "../utils/gameCalculations";
 import type { HeroRosterEntryView } from "./heroPresentation";
+import { HERO_MAX_LEVEL } from "../../shared/data/hero-progression-models";
 
 export interface DungeonProgressView {
   floor: number;
@@ -62,6 +63,7 @@ export interface DungeonPartyHeroView extends HeroRosterEntryView {
   xp: number;
   xpNeeded: number;
   xpPercent: number;
+  isMaxLevel: boolean;
 }
 
 export interface DungeonEncounterView {
@@ -201,7 +203,10 @@ export function createDungeonPartyView(
         : 0,
       xp: Math.max(0, Math.floor(hero.xp)),
       xpNeeded: Math.max(1, hero.xpNeeded),
-      xpPercent: Math.max(0, Math.min(100, Math.round((Math.max(0, hero.xp) / Math.max(1, hero.xpNeeded)) * 100))),
+      xpPercent: hero.level >= HERO_MAX_LEVEL
+        ? 100
+        : Math.max(0, Math.min(100, Math.round((Math.max(0, hero.xp) / Math.max(1, hero.xpNeeded)) * 100))),
+      isMaxLevel: hero.level >= HERO_MAX_LEVEL,
     }];
   });
   const active = projected.filter((hero) => hero.isActive).slice(0, ACTIVE_HERO_LIMIT);

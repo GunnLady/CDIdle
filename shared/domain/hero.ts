@@ -1,6 +1,12 @@
 import type { ClassType, Hero, HeroStats, Resources } from "../contracts/game.ts";
 import { CLASS_INFO_LIST } from "../data/game-data.ts";
-import { calculateXpNeeded, refreshHeroDerivedStats } from "./game-calculations.ts";
+import {
+  CURRENT_XP_PROGRESSION_CURVE,
+  calculateXpNeeded,
+  refreshHeroCombatStats,
+  type XpProgressionCurve,
+} from "./game-calculations.ts";
+import { HERO_MAX_LEVEL } from "../data/hero-progression-models.ts";
 import type { Rng } from "./random.ts";
 
 export const ACTIVE_HERO_LIMIT = 4;
@@ -78,23 +84,27 @@ export function applyHeroExperienceLevels(
   hero: Hero,
   xpEarned: number,
   rng: Rng,
+  xpCurve: XpProgressionCurve = CURRENT_XP_PROGRESSION_CURVE,
+  maxLevel = HERO_MAX_LEVEL,
 ): HeroLevelProgressionResult {
   if (!Number.isFinite(xpEarned) || xpEarned < 0) return { hero, levels: [] };
+  if (hero.level >= maxLevel) return { hero: { ...hero, xp: 0 }, levels: [] };
   let next = { ...hero, baseStats: { ...hero.baseStats }, xp: hero.xp + xpEarned };
   const levels: number[] = [];
-  while (next.xp >= next.xpNeeded) {
+  while (next.level < maxLevel && next.xp >= next.xpNeeded) {
     next.xp -= next.xpNeeded;
     next.level += 1;
     next.baseStats = growHeroStats(next.baseStats, next.classType, rng);
-    next.xpNeeded = calculateXpNeeded(next.level + 1, next.classType);
+    next.xpNeeded = calculateXpNeeded(next.level + 1, next.classType, xpCurve);
     levels.push(next.level);
   }
+  if (next.level >= maxLevel) next.xp = 0;
   if (levels.length === 0) {
     next.currentHp = Math.min(hero.calculatedStats.maxHp, hero.currentHp);
     next.currentMana = Math.min(hero.calculatedStats.maxMana, hero.currentMana);
     return { hero: next, levels };
   }
-  next = refreshHeroDerivedStats(next);
+  next = refreshHeroCombatStats(next);
   next.currentHp = Math.min(next.calculatedStats.maxHp, hero.currentHp + Math.floor(next.calculatedStats.maxHp * 0.2));
   next.currentMana = Math.min(
     next.calculatedStats.maxMana,
@@ -107,6 +117,8 @@ export function addHeroExperience(
   hero: Hero,
   xpEarned: number,
   rng: Rng,
+  xpCurve: XpProgressionCurve = CURRENT_XP_PROGRESSION_CURVE,
+  maxLevel = HERO_MAX_LEVEL,
 ): Hero {
-  return applyHeroExperienceLevels(hero, xpEarned, rng).hero;
+  return applyHeroExperienceLevels(hero, xpEarned, rng, xpCurve, maxLevel).hero;
 }

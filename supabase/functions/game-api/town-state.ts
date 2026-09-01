@@ -19,6 +19,8 @@ import {
 import { initialCanonicalRngState } from "./authoritative-rng.ts";
 import { TownCommandError } from "./command-handler.ts";
 import { DEFAULT_NOVICE_ITEM_BLUEPRINTS } from "./forge-blueprints.ts";
+import { CURRENT_HERO_PROGRESSION_MODEL_ID, getHeroProgressionModel } from "../../../shared/data/hero-progression-models.ts";
+import { upgradeCanonicalHeroProgression } from "../../../shared/domain/hero-progression-migration.ts";
 import { migrateCanonicalState } from "./state-migrations.ts";
 
 export type TownResources = { gold: number; food: number; wood: number; stone: number; ore: number };
@@ -26,6 +28,7 @@ export type TownState = CanonicalGameState;
 
 export const initialTownState = (rngSeed?: number): TownState => ({
   stateVersion: CURRENT_CANONICAL_STATE_VERSION,
+  heroProgressionModelId: CURRENT_HERO_PROGRESSION_MODEL_ID,
   resources: { gold: 75, food: 50, wood: 20, stone: 0, ore: 0 },
   buildings: createInitialBuildingLevels(),
   citizens: { farmers: 0, woodcutters: 0, quarrymen: 0, miners: 0, unassigned: 3 },
@@ -108,10 +111,40 @@ function validateCatalogReferences(state: Record<string, unknown>): string[] {
 }
 
 export function migrateTownState(current: Record<string, unknown>, legacySeed?: number): TownState {
-  const migrated = migrateCanonicalState(current, {
+  const structurallyMigrated = migrateCanonicalState(current, {
     defaults: initialTownState(),
     legacySeed,
   });
+  const structuralErrors = validateCanonicalGameState(structurallyMigrated);
+  if (structuralErrors.length > 0) {
+    const reason = structuralErrors.join("; ");
+    throw new TownCommandError(
+      "INVALID_GAME_STATE",
+      `canonical game state is invalid: ${reason}`,
+      reason,
+    );
+  }
+  const persistedXpCurve = getHeroProgressionModel(structurallyMigrated.heroProgressionModelId).xpCurve;
+  const persistedProgressionErrors = [
+    ...validateAuthoritativeHeroes(structurallyMigrated.heroes, "heroes", persistedXpCurve),
+    ...validateAuthoritativeHeroes(
+      structurallyMigrated.onboardingCandidates ?? [],
+      "onboardingCandidates",
+      persistedXpCurve,
+    ),
+    ...(structurallyMigrated.pendingRecruit
+      ? validateAuthoritativeHero(structurallyMigrated.pendingRecruit, "pendingRecruit", persistedXpCurve)
+      : []),
+  ];
+  if (persistedProgressionErrors.length > 0) {
+    const reason = persistedProgressionErrors.join("; ");
+    throw new TownCommandError(
+      "INVALID_GAME_STATE",
+      `canonical game state is invalid: ${reason}`,
+      reason,
+    );
+  }
+  const migrated = upgradeCanonicalHeroProgression(structurallyMigrated);
   const canonicalErrors = validateCanonicalGameState(migrated);
   if (canonicalErrors.length > 0) {
     const reason = canonicalErrors.join("; ");

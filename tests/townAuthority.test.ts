@@ -349,7 +349,12 @@ describe("authoritative town commands", () => {
       classType: "Guerrier",
     });
     const evolved = chosen.state.heroes[0];
-    expect(evolved).toMatchObject({ classType: "Guerrier", isActive: true, status: "idle" });
+    expect(evolved).toMatchObject({
+      classType: "Guerrier",
+      isActive: true,
+      status: "idle",
+      xpNeeded: calculateXpNeeded(evolved.level + 1, "Guerrier"),
+    });
     expect(evolved.equipment?.mainHand?.instanceId).toBe(`item:${novice.id}:tier1:weapon`);
     expect(evolved.equipment?.accessory?.instanceId).toBe(`item:${novice.id}:tier1:accessory`);
     expect(chosen.state.pendingClassTransitions).toEqual([]);

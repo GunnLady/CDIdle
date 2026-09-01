@@ -153,7 +153,6 @@ describe("authoritative item catalog", () => {
     expect(() => migrateTownState({
       ...initialTownState(),
       heroes: [makeHero({
-        level: 100,
         equipment: { armor: { instanceId: "wrong-slot", itemId: "starter_sword", rarity: "common" } },
       })],
     })).toThrow(/incompatible with slot armor/);
@@ -170,6 +169,7 @@ describe("authoritative item catalog", () => {
       ...initialTownState(),
       heroes: [makeHero({
         level: 10,
+        xpNeeded: 1_061,
         equipment: {
           mainHand: { instanceId: "two-handed", itemId: "basic_staff", rarity: "common" },
           offHand: { instanceId: "shield", itemId: "wooden_shield", rarity: "common" },

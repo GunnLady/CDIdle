@@ -3,6 +3,7 @@ import { CANONICAL_HERO_STAT_PRESENTATION, type CanonicalHeroStat } from "../../
 import { CLASS_INFO_LIST, RACE_INFO_LIST } from "../data/gameData";
 import type { Hero, Resources } from "../types";
 import type { HeroPortraitView } from "./heroPortrait";
+import { HERO_MAX_LEVEL } from "../../shared/data/hero-progression-models";
 
 export interface HeroRosterEntryView {
   id: string;
@@ -43,6 +44,7 @@ export interface SelectedHeroView {
   xp: number;
   xpNeeded: number;
   xpPercent: number;
+  isMaxLevel: boolean;
   attributes: Array<{ key: CanonicalHeroStat; short: string; name: string; value: number; isPrimary: boolean }>;
   combatStats: Array<{ label: string; value: string | number }>;
   descriptions: Array<{ label: string; description: string }>;
@@ -115,6 +117,7 @@ export function createSelectedHeroView(hero: Hero | null): SelectedHeroView | nu
   const baseStats = hero.baseStats ?? { str: 5, agi: 5, end: 5, int: 5, wiz: 5, dex: 5, luk: 5 };
   const xp = Math.max(0, Math.floor(hero.xp));
   const xpNeeded = Math.max(1, hero.xpNeeded);
+  const isMaxLevel = hero.level >= HERO_MAX_LEVEL;
   return {
     id: hero.id,
     name: hero.name,
@@ -134,7 +137,8 @@ export function createSelectedHeroView(hero: Hero | null): SelectedHeroView | nu
     maxMana: Math.max(0, stats.maxMana),
     xp,
     xpNeeded,
-    xpPercent: Math.min(100, (xp / xpNeeded) * 100),
+    xpPercent: isMaxLevel ? 100 : Math.min(100, (xp / xpNeeded) * 100),
+    isMaxLevel,
     attributes: statKeys.map((key) => ({
       key,
       short: CANONICAL_HERO_STAT_PRESENTATION[key].short,

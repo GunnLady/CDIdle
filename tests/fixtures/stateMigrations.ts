@@ -45,9 +45,11 @@ export const legacyV0GoldenBefore: Record<string, unknown> = {
   pendingClassTransitions: [],
 };
 
-export const currentV1GoldenAfter: Record<string, unknown> = {
+export const currentV2GoldenAfter: Record<string, unknown> = {
   ...legacyV0GoldenBefore,
-  stateVersion: 1,
+  stateVersion: 2,
+  heroProgressionModelId: "legacy-global-v1",
+  pendingRecruit: undefined,
   buildings: { ...buildings },
   itemBlueprints: [
     { itemId: "starter_sword", unlocked: true },

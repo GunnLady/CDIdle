@@ -24,12 +24,23 @@ de l équipement ou du déséquipement d un objet. La récupération 20 % PV / 3
 PM est appliquée une fois par récompense, même si elle provoque plusieurs
 niveaux.
 
-La formule du seuil suivant est
-`ceil(100 * 1.5^(niveau cible - 2) * multiplicateur de tier)`, avec un
-multiplicateur de `1` pour T0 et `1.25` pour T1. `xpNeeded` est une valeur
-dérivée : les anciennes valeurs sont normalisées sans RNG au chargement. Un
-reliquat `xp >= xpNeeded`, qui nécessiterait une croissance aléatoire pour être
-réparé, est refusé comme état canonique invalide.
+Le modèle actif `harmonized-t0-t1-v1` est déclaré dans
+`shared/data/hero-progression-models.ts`. T0 part de `100 XP` et croît à
+`1.30`; T1 est ancré à `1 061 XP` pour le passage 10 vers 11 puis croît à
+`1.20`. Le niveau maximal absolu est 99. Aucun plafond T1 au niveau 35 n'est
+appliqué tant que la quête et la transition T2 n'existent pas.
+
+`xpNeeded` reste persisté pour la compatibilité du contrat, mais constitue un
+cache dérivé appartenant au domaine XP. Les statistiques de combat et le seuil
+d'XP sont recalculés par deux fonctions distinctes. Le chargement d'un ancien
+modèle conserve le pourcentage de la barre courante, ne donne aucun niveau et
+ne consomme aucun RNG.
+
+Les récompenses d'XP des combats, boss, premiers clears et rencontres
+non-combat sont centralisées dans `shared/domain/dungeon-xp-rewards.ts`. Leur
+extraction ne change pas leurs valeurs. Les futures hausses de gains devront
+être portées par le contenu débloqué et non par un multiplicateur invisible du
+tier du héros.
 
 Pour un Novice, les statistiques prioritaires sont les trois `baseStats` les
 plus élevées au début de chaque niveau. Equipement, passifs et statistiques

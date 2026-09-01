@@ -86,6 +86,7 @@ describe("authoritative shared contracts", () => {
   it("keeps runtime resources, hero options and active encounters aligned with TypeScript", () => {
     const errors = validateCanonicalGameState({
       stateVersion: CURRENT_CANONICAL_STATE_VERSION,
+      heroProgressionModelId: "harmonized-t0-t1-v1",
       ...initialTownState(42),
       resources: { gold: 1, food: 1, wood: 1, stone: 1, gems: 1 },
       heroes: [{
@@ -128,6 +129,7 @@ describe("authoritative shared contracts", () => {
   it("validates encounter history unions and transcript fields", () => {
     const errors = validateCanonicalGameState({
       stateVersion: CURRENT_CANONICAL_STATE_VERSION,
+      heroProgressionModelId: "harmonized-t0-t1-v1",
       ...initialTownState(42),
       encounterHistory: [{
         encounterId: "invalid-history",
@@ -157,6 +159,7 @@ describe("authoritative shared contracts", () => {
   it("validates persisted item, material, blueprint and forge preview shapes", () => {
     const errors = validateCanonicalGameState({
       stateVersion: CURRENT_CANONICAL_STATE_VERSION,
+      heroProgressionModelId: "harmonized-t0-t1-v1",
       resources: {}, buildings: {}, citizens: {}, districts: {}, heroes: [], encounterHistory: [],
       storedItems: [{ itemId: "starter_sword", rarity: "mythic", count: 0, modifiers: [{ stat: "speed", value: Number.NaN }] }],
       forgeMaterials: [{ materialId: "metal_scrap", rarity: "common", count: -1 }],
@@ -304,6 +307,7 @@ describe("authoritative shared contracts", () => {
   it("uses the same inclusive safe-integer draw boundary as the RNG runtime", () => {
     const errors = validateCanonicalGameState({
       stateVersion: CURRENT_CANONICAL_STATE_VERSION,
+      heroProgressionModelId: "harmonized-t0-t1-v1",
       resources: { gold: 0, food: 0, wood: 0, stone: 0, ore: 0 }, buildings: {}, citizens: { farmers: 0, woodcutters: 0, quarrymen: 0, miners: 0, unassigned: 3 }, districts: {}, heroes: [],
       storedItems: [], forgeMaterials: [], itemBlueprints: [], encounterHistory: [],
       totalCitizensCount: 3, activeDungeonFloor: 1, activeDungeonRoom: 1,
@@ -332,6 +336,7 @@ describe("authoritative shared contracts", () => {
 
     const errors = validateCanonicalGameState({
       stateVersion: CURRENT_CANONICAL_STATE_VERSION,
+      heroProgressionModelId: "harmonized-t0-t1-v1",
       resources: { gold: 0, food: 0, wood: 0, stone: 0, ore: 0 }, buildings: {}, citizens: { farmers: 0, woodcutters: 0, quarrymen: 0, miners: 0, unassigned: 3 }, districts: {}, heroes: [],
       storedItems: [], forgeMaterials: [], itemBlueprints: [], encounterHistory: [],
       totalCitizensCount: 3, activeDungeonFloor: 1, activeDungeonRoom: 1,

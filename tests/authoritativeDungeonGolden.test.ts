@@ -1350,8 +1350,8 @@ describe("authoritative dungeon golden behavior characterized from 640f89f", () 
     const levelingHero = makeHero({
       name: "Ariane",
       level: 9,
-      xp: 2562,
-      xpNeeded: 2563,
+      xp: 815,
+      xpNeeded: 816,
       baseStats: { str: 50, agi: 1, end: 50, int: 1, wiz: 1, dex: 1, luk: 1 },
       calculatedStats: {
         ...makeHero().calculatedStats,
@@ -1438,16 +1438,16 @@ describe("authoritative dungeon golden behavior characterized from 640f89f", () 
     }), "golden-multi-level", tape.rng);
     const levelEvents = result.encounter.transcript.filter((event) => event.type === "hero.level_up");
 
-    expect(tape.draws()).toBe(25);
-    expect(result.state.heroes?.[0].level).toBe(3);
+    expect(tape.draws()).toBe(35);
+    expect(result.state.heroes?.[0].level).toBe(4);
     expect(levelEvents).toHaveLength(1);
     expect(levelEvents[0]).toMatchObject({
-      levels: [2, 3],
+      levels: [2, 3, 4],
       levelBefore: 1,
-      levelAfter: 3,
-      statGains: { str: 10 },
+      levelAfter: 4,
+      statGains: { str: 15 },
     });
-    expect(levelEvents[0].message).toContain("Ygritte gagne 2 niveaux (1 → 3) !");
+    expect(levelEvents[0].message).toContain("Ygritte gagne 3 niveaux (1 → 4) !");
   });
 
   it.each([
@@ -1472,8 +1472,8 @@ describe("authoritative dungeon golden behavior characterized from 640f89f", () 
     const levelingHero = makeHero({
       id: `hero-${classType}`,
       level: 9,
-      xp: 2562,
-      xpNeeded: 2563,
+      xp: 815,
+      xpNeeded: 816,
       baseStats,
       activeSkills: ["heavy_blow"],
       passiveSkills: ["survival_instinct"],

@@ -37,9 +37,9 @@ describe("gameCalculations", () => {
   it("calcule l'XP de base et applique le multiplicateur de classe", () => {
     expect(calculateXpNeeded(1, "Novice")).toBe(100);
     expect(calculateXpNeeded(2, "Novice")).toBe(100);
-    expect(calculateXpNeeded(2, "Guerrier")).toBe(125);
-    expect(calculateXpNeeded(10, "Novice")).toBe(2563);
-    expect(calculateXpNeeded(10, "Guerrier")).toBe(3204);
+    expect(calculateXpNeeded(2, "Guerrier")).toBe(100);
+    expect(calculateXpNeeded(10, "Novice")).toBe(816);
+    expect(calculateXpNeeded(10, "Guerrier")).toBe(816);
   });
 
   it("ne débloque aucune classe sans bâtiment requis", () => {
@@ -168,7 +168,7 @@ describe("hero domain", () => {
     const hero = makeHero({ id: "hero-multi", currentHp: 1, currentMana: 0 });
     const leveled = addHeroExperience(hero, 250, seededRng(7));
     expect(leveled.level).toBe(3);
-    expect(leveled.xp).toBe(0);
+    expect(leveled.xp).toBe(20);
     expect(leveled.currentHp).toBe(Math.min(
       leveled.calculatedStats.maxHp,
       hero.currentHp + Math.floor(leveled.calculatedStats.maxHp * 0.2),

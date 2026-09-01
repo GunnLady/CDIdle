@@ -18,7 +18,9 @@ export default function SelectedHeroPanel({ view, canMutate, onDismissHero }: {
       <HeroPortrait hero={view.portrait} size="xl" noBorder noBg noPadding />
       <div><h4 className="font-serif text-[19px] font-bold text-[#f3e5ca]">{view.name}</h4><p className="text-[11px] uppercase tracking-wider text-[#caa050]">{view.identityLabel}</p></div>
       <div className="grid w-full grid-cols-2 gap-2 text-[11px] font-mono"><span className="rounded border border-emerald-900/50 bg-emerald-950/20 p-2 text-emerald-400">PV {view.currentHp}/{view.maxHp}</span><span className="rounded border border-sky-900/50 bg-sky-950/20 p-2 text-sky-400">PM {view.currentMana}/{view.maxMana}</span></div>
-      <Progress label="Expérience" value={view.xp} max={view.xpNeeded} variant="immigration" className="w-full" labelClassName="text-[13px]" />
+      {view.isMaxLevel
+        ? <p className="w-full rounded border border-amber-900/50 bg-amber-950/20 p-2 text-[11px] font-bold uppercase tracking-wider text-amber-400">Niveau maximum</p>
+        : <Progress label="Expérience" value={view.xp} max={view.xpNeeded} variant="immigration" className="w-full" labelClassName="text-[13px]" />}
     </div>
 
     <div className="mt-4">

@@ -139,4 +139,3 @@ export function applyClassTransition(
   }
   return policy(hero, transition, rng, storedItems);
 }
-

@@ -33,8 +33,11 @@ import {
   WEAPON_INFO_LIST
 } from "../data/game-data.ts";
 import { BUILDINGS_LIST } from "../data/buildings.ts";
+import { CURRENT_HERO_PROGRESSION_MODEL } from "../data/hero-progression-models.ts";
+import type { XpProgressionCurve } from "../data/hero-progression-models.ts";
 import type { Rng } from "./random.ts";
 import { calculateHeroDerivedStats } from "./hero-stats.ts";
+import { calculateXpNeeded, refreshHeroProgressionThreshold } from "./hero-xp.ts";
 import { applyItemRarityScaling as applyCanonicalItemRarityScaling } from "./items/scaling.ts";
 export {
   ITEM_RARITY_DAMAGE_MULTIPLIERS,
@@ -128,36 +131,25 @@ export const getHeroStats = (
   return calculateHeroDerivedStats(getHeroAttributes(hero), allModifiers, weaponContext) as CalculatedStats;
 };
 
-export const calculateXpNeeded = (nextLevel: number, classType: ClassType): number => {
-  if (nextLevel < 2) return 100;
+export { calculateXpNeeded, refreshHeroProgressionThreshold } from "./hero-xp.ts";
+export type { GlobalXpProgressionCurve, TierXpProgressionBand, TieredXpProgressionCurve, XpProgressionCurve } from "../data/hero-progression-models.ts";
+export { CURRENT_HERO_PROGRESSION_MODEL as CURRENT_XP_PROGRESSION_MODEL } from "../data/hero-progression-models.ts";
 
-  const classInfo = CLASS_INFO_LIST.find((c) => c.type === classType);
-  const tier: number = classInfo ? classInfo.tier : 0;
+export const CURRENT_XP_PROGRESSION_CURVE = CURRENT_HERO_PROGRESSION_MODEL.xpCurve;
 
-  let tierMultiplier = 1.00;
-  if (tier === 1) {
-    tierMultiplier = 1.25;
-  } else if (tier === 2) {
-    tierMultiplier = 1.60;
-  } else if (tier === 3) {
-    tierMultiplier = 2.00;
-  }
-
-  const baseExp = 100 * Math.pow(1.5, nextLevel - 2);
-  return Math.ceil(baseExp * tierMultiplier);
-};
-
-
-export const refreshHeroDerivedStats = (hero: Hero): Hero => {
+export const refreshHeroCombatStats = (hero: Hero): Hero => {
   const stats = getHeroStats(hero);
-  const xpNeeded = calculateXpNeeded(hero.level + 1, hero.classType);
   return {
     ...hero,
-    xpNeeded,
     currentMana: typeof hero.currentMana === "number" ? Math.min(stats.maxMana, hero.currentMana) : stats.maxMana,
     calculatedStats: stats
   };
 };
+
+export const refreshHeroDerivedStats = (
+  hero: Hero,
+  xpCurve: XpProgressionCurve = CURRENT_XP_PROGRESSION_CURVE,
+): Hero => refreshHeroProgressionThreshold(refreshHeroCombatStats(hero), xpCurve);
 
 export const generateNoviceStats = (rng: Rng): { stats: HeroStats; isElite: boolean } => {
   const isElite = rng.next() < 0.005;
@@ -467,7 +459,7 @@ export const generateSingleNoviceHero = (unlockedRaces: string[], rng: Rng): Her
     classType: chosenClass.type,
     level: 1,
     xp: 0,
-    xpNeeded: 120,
+    xpNeeded: calculateXpNeeded(2, chosenClass.type),
     currentHp: 0,
     currentMana: 0,
     baseStats: noviceRolledStats,

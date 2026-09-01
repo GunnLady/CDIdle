@@ -11,7 +11,7 @@ function HeroVitals({ hero }: { hero: DungeonPartyHeroView }) {
     <div className="mt-1 h-1 overflow-hidden rounded bg-[#3a2118]"><span className="block h-full bg-emerald-600" style={{ width: `${hero.healthPercent}%` }} /></div>
     <div className="mt-2 flex justify-between text-[9px] text-sky-400"><span>PM</span><span>{hero.currentMana}/{hero.maxMana}</span></div>
     <div className="mt-1 h-1 overflow-hidden rounded bg-[#3a2118]"><span className="block h-full bg-sky-600" style={{ width: `${hero.manaPercent}%` }} /></div>
-    <div className="mt-2 flex justify-between text-[8px] text-amber-400"><span>XP</span><span>{hero.xp}/{hero.xpNeeded}</span></div>
+    <div className="mt-2 flex justify-between text-[8px] text-amber-400"><span>XP</span><span>{hero.isMaxLevel ? "Niveau maximum" : `${hero.xp}/${hero.xpNeeded}`}</span></div>
     <div className="mt-1 h-1 overflow-hidden rounded bg-[#3a2118]"><span className="block h-full bg-amber-500" style={{ width: `${hero.xpPercent}%` }} /></div>
   </>;
 }

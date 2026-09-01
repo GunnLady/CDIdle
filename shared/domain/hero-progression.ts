@@ -8,6 +8,12 @@ import {
 } from "./class-transition.ts";
 import type { ClassEquipmentReward } from "./tier1-class-equipment-reward.ts";
 
+import {
+  CURRENT_XP_PROGRESSION_CURVE,
+  refreshHeroProgressionThreshold,
+  type XpProgressionCurve,
+} from "./game-calculations.ts";
+
 export type HeroProgressionResult = {
   hero: Hero;
   storedItems: StoredItemInstance[];
@@ -23,8 +29,10 @@ export function applyHeroProgression(input: {
   rng: Rng;
   buildings: Record<string, number>;
   storedItems: StoredItemInstance[];
+  xpCurve?: XpProgressionCurve;
 }): HeroProgressionResult {
-  const experience = applyHeroExperienceLevels(input.hero, input.xpEarned, input.rng);
+  const xpCurve = input.xpCurve ?? CURRENT_XP_PROGRESSION_CURVE;
+  const experience = applyHeroExperienceLevels(input.hero, input.xpEarned, input.rng, xpCurve);
   const storedItems = input.storedItems;
   if (experience.levels.length === 0) {
     return { ...experience, storedItems };
@@ -55,7 +63,7 @@ export function applyHeroProgression(input: {
     storedItems,
   );
   return {
-    hero: applied.hero,
+    hero: refreshHeroProgressionThreshold(applied.hero, xpCurve),
     storedItems: applied.storedItems,
     levels: experience.levels,
     classChange: {
@@ -64,4 +72,3 @@ export function applyHeroProgression(input: {
     },
   };
 }
-

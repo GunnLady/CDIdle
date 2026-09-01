@@ -48,4 +48,9 @@ describe("heroPresentation", () => {
     expect(view?.resistances).toHaveLength(13);
     expect(view?.resistances.find((resistance) => resistance.name === "arcane")).toBeUndefined();
   });
+
+  it("projects a full XP bar at the maximum hero level", () => {
+    const view = createSelectedHeroView(makeHero({ level: 99, xp: 0 }));
+    expect(view).toMatchObject({ isMaxLevel: true, xpPercent: 100 });
+  });
 });

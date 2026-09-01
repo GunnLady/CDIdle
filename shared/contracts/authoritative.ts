@@ -53,6 +53,11 @@ export type CanonicalDungeonLoot =
 export type CanonicalHeroRace =
   | "Humain" | "Elfe" | "Nain" | "Orc" | "Gobelin" | "Homme-Lézard" | "Tieffelin" | "Homme-Bête";
 export type CanonicalHeroStatus = "idle" | "exploring" | "resting";
+export const CANONICAL_HERO_PROGRESSION_MODEL_IDS = [
+  "legacy-global-v1",
+  "harmonized-t0-t1-v1",
+] as const;
+export type CanonicalHeroProgressionModelId = typeof CANONICAL_HERO_PROGRESSION_MODEL_IDS[number];
 
 export interface CanonicalResources {
   gold: number;
@@ -170,18 +175,19 @@ export interface CanonicalRngState {
 }
 
 export const MAX_CANONICAL_RNG_DRAWS = Number.MAX_SAFE_INTEGER;
-export const CURRENT_CANONICAL_STATE_VERSION = 1 as const;
+export const CURRENT_CANONICAL_STATE_VERSION = 2 as const;
 
 export const CANONICAL_GAME_STATE_REQUIRED_FIELDS = [
   "stateVersion", "resources", "buildings", "citizens", "districts", "heroes", "storedItems",
   "forgeMaterials", "itemBlueprints", "encounterHistory", "rngState",
   "totalCitizensCount", "activeDungeonFloor", "activeDungeonRoom",
   "highestFloorReached", "citizenGrowthProgress", "autoExplore", "currentEncounter",
-  "pendingClassTransitions",
+  "pendingClassTransitions", "heroProgressionModelId",
 ] as const;
 
 export interface CanonicalGameStateFields {
   stateVersion: typeof CURRENT_CANONICAL_STATE_VERSION;
+  heroProgressionModelId: CanonicalHeroProgressionModelId;
   cityName?: string;
   resources: CanonicalResources;
   buildings: Record<string, number>;
@@ -548,6 +554,10 @@ export function validateCanonicalGameState(input: unknown): string[] {
   }
   if ("stateVersion" in value && value.stateVersion !== CURRENT_CANONICAL_STATE_VERSION) {
     errors.push(`stateVersion must be ${CURRENT_CANONICAL_STATE_VERSION}`);
+  }
+  if ("heroProgressionModelId" in value
+    && !CANONICAL_HERO_PROGRESSION_MODEL_IDS.includes(value.heroProgressionModelId as CanonicalHeroProgressionModelId)) {
+    errors.push("heroProgressionModelId is invalid");
   }
   const validateNumberMap = (field: "resources" | "buildings", options: { integer?: boolean; allowed?: readonly string[] } = {}) => {
     if (!(field in value)) return;

@@ -5,6 +5,9 @@ import {
   type CanonicalPendingClassTransition,
 } from "../../../shared/contracts/authoritative.ts";
 import { migrateAuthoritativeHeroProgression } from "../../../shared/domain/authoritative-hero-validation.ts";
+import {
+  LEGACY_HERO_PROGRESSION_MODEL,
+} from "../../../shared/data/hero-progression-models.ts";
 import { getDungeonRoomCount } from "../../../shared/domain/dungeon-progression.ts";
 import { getItemById } from "../../../shared/domain/items/items.ts";
 import { migrateCanonicalRngState } from "./authoritative-rng.ts";
@@ -61,7 +64,7 @@ function readStateVersion(state: Record<string, unknown>): number {
 }
 
 function migrateHeroWithDerivedStats(input: unknown): unknown {
-  const progressed = migrateAuthoritativeHeroProgression(input);
+  const progressed = migrateAuthoritativeHeroProgression(input, LEGACY_HERO_PROGRESSION_MODEL.xpCurve);
   if (!isRecord(progressed)) return progressed;
   const existingCalculatedStats = progressed.calculatedStats;
   if (!isRecord(existingCalculatedStats) || !isRecord(progressed.baseStats)) return progressed;
@@ -131,7 +134,8 @@ function migrateV0ToV1(
   const candidate = {
     ...defaults,
     ...current,
-    stateVersion: CURRENT_CANONICAL_STATE_VERSION,
+    stateVersion: 1,
+    heroProgressionModelId: LEGACY_HERO_PROGRESSION_MODEL.id,
     resources: mergeMap(defaults.resources, current.resources),
     buildings: mergeMap(defaults.buildings, current.buildings),
     citizens: mergeMap(defaults.citizens, current.citizens),
@@ -167,8 +171,20 @@ function migrateV0ToV1(
   return migrated;
 }
 
+function migrateV1ToV2(current: Record<string, unknown>): Record<string, unknown> {
+  const migrated = {
+    ...current,
+    stateVersion: 2,
+    heroProgressionModelId: LEGACY_HERO_PROGRESSION_MODEL.id,
+  };
+  return validateCanonicalGameState(migrated).length === 0
+    ? reconcileExistingVocations(migrated as CanonicalGameState)
+    : migrated;
+}
+
 export const CANONICAL_STATE_MIGRATIONS: readonly CanonicalStateMigration[] = [
   { from: LEGACY_UNVERSIONED_STATE_VERSION, to: 1, migrate: migrateV0ToV1 },
+  { from: 1, to: 2, migrate: migrateV1ToV2 },
 ];
 
 export function migrateCanonicalState(
