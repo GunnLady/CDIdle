@@ -5,7 +5,7 @@ import { initialTownState } from "../supabase/functions/game-api/town-authority"
 import { makeHero, makeResources } from "./fixtures/game";
 
 describe("authoritative dungeon challenges", () => {
-  it("uses the approved curve and selects the highest real probability", () => {
+  it("uses the canonical curve and shares a successful reward with the active party", () => {
     const rawScoreHero = makeHero({
       id: "raw-score",
       name: "Score brut",
@@ -46,18 +46,23 @@ describe("authoritative dungeon challenges", () => {
     expect(result.encounter).toMatchObject({ kind: "trap", outcome: "victory" });
     expect(result.encounter.transcript).toContainEqual(expect.objectContaining({
       type: "challenge.hero_selected",
-      heroId: "probable",
-      score: 87,
-      luck: 10,
+      heroId: "raw-score",
+      score: 88,
+      luck: 1,
       primaryLabel: "AGI",
       secondaryLabel: "DEX",
-      probabilityPercent: 80,
+      probabilityPercent: 100,
     }));
     expect(result.encounter.transcript).toContainEqual(expect.objectContaining({
       type: "challenge.attempted",
-      difficulty: 90,
-      luckRoll: 10,
+      difficulty: 72,
+      luckRoll: 1,
     }));
+    expect(result.encounter.transcript.filter((event) => event.type === "reward.xp"))
+      .toEqual([
+        expect.objectContaining({ heroId: "raw-score", source: "challenge", floor: 20, xp: 91 }),
+        expect.objectContaining({ heroId: "probable", source: "challenge", floor: 20, xp: 91 }),
+      ]);
     expect(nextDraws).toBe(2);
     expect(nextIntDraws).toBe(1);
   });

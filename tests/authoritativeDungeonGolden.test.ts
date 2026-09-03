@@ -90,6 +90,9 @@ describe("authoritative dungeon golden behavior characterized from 640f89f", () 
       "reward.material.none",
       "reward.xp",
     ]);
+    expect(result.encounter.transcript).toContainEqual(expect.objectContaining({
+      type: "reward.xp", source: "regular_combat", floor: 1, xp: 13,
+    }));
     expect(result.state).toMatchObject({
       activeDungeonFloor: 1,
       activeDungeonRoom: 2,
@@ -117,6 +120,7 @@ describe("authoritative dungeon golden behavior characterized from 640f89f", () 
       highestFloorReached: 11,
       heroes: [makeHero({
         name: "Ariane",
+        xpNeeded: 1_000_000_000,
         baseStats: { str: 500, agi: 1, end: 500, int: 1, wiz: 1, dex: 1, luk: 1 },
         calculatedStats: {
           ...makeHero().calculatedStats,
@@ -128,7 +132,12 @@ describe("authoritative dungeon golden behavior characterized from 640f89f", () 
         },
         currentHp: 2_000,
       })],
-    }), "golden-boss", tape.rng);
+    }), "golden-boss", tape.rng, {
+      xpCurve: {
+        kind: "level-banded",
+        levelBands: [{ firstDestinationLevel: 2, firstLevelXp: 1_000_000_000, growthFactor: 1 }],
+      },
+    });
 
     expect(tape.draws()).toBe(13);
     expect(result.encounter).toMatchObject({
@@ -147,6 +156,9 @@ describe("authoritative dungeon golden behavior characterized from 640f89f", () 
       activeDungeonRoom: 1,
       highestFloorReached: 11,
     });
+    expect(result.encounter.transcript).toContainEqual(expect.objectContaining({
+      type: "reward.xp", source: "major_boss", floor: 10, xp: 193,
+    }));
   });
 
   it("awards the floor-clear bonus only on the first completion", () => {
@@ -183,7 +195,11 @@ describe("authoritative dungeon golden behavior characterized from 640f89f", () 
       type: "reward.floor_first_clear_xp",
       source: "floor_first_clear",
       floor: 1,
+      xp: 64,
       message: expect.stringContaining("Prime de première sécurisation"),
+    }));
+    expect(first.encounter.transcript).toContainEqual(expect.objectContaining({
+      type: "reward.xp", source: "elite", floor: 1, xp: 30,
     }));
     expect(replay.encounter.transcript.some((event) => event.type === "reward.floor_first_clear")).toBe(false);
     expect(replay.encounter.transcript.some((event) => event.type === "reward.floor_first_clear_xp")).toBe(false);
@@ -223,6 +239,9 @@ describe("authoritative dungeon golden behavior characterized from 640f89f", () 
       "reward.material",
       "reward.xp",
     ]);
+    expect(result.encounter.transcript).toContainEqual(expect.objectContaining({
+      type: "reward.xp", source: "treasure", floor: 1, xp: 13,
+    }));
   });
 
   it("preserves the treasure item branch and material rolls", () => {
@@ -282,6 +301,9 @@ describe("authoritative dungeon golden behavior characterized from 640f89f", () 
     ]);
     expect(result.state.heroes?.[0].currentHp).toBeGreaterThan(1);
     expect(result.state.heroes?.[0].currentMana).toBeGreaterThan(0);
+    expect(result.encounter.transcript).toContainEqual(expect.objectContaining({
+      type: "reward.xp", source: "rest", floor: 1, xp: 8,
+    }));
   });
 
   it.each([
@@ -330,6 +352,9 @@ describe("authoritative dungeon golden behavior characterized from 640f89f", () 
     expect(result.state.resources?.gold).toBe(expectedGold);
     expect(result.state.heroes?.[0].currentMana).toBe(expectedMana);
     expect(result.state.activeDungeonRoom).toBe(2);
+    expect(result.encounter.transcript).toContainEqual(expect.objectContaining({
+      type: "reward.xp", source: "challenge", floor: 1, xp: 21,
+    }));
   });
 
   it("applies encounter gold passives to successful non-combat challenges", () => {

@@ -2,13 +2,13 @@ import type { CanonicalGameState, CanonicalHero } from "../contracts/authoritati
 import {
   CURRENT_HERO_PROGRESSION_MODEL,
   CURRENT_HERO_PROGRESSION_MODEL_ID,
-  LEGACY_HERO_PROGRESSION_MODEL,
+  getHeroProgressionModel,
 } from "../data/hero-progression-models.ts";
 import { migrateHeroXpProgress } from "./hero-xp.ts";
 
 export function upgradeCanonicalHeroProgression(state: CanonicalGameState): CanonicalGameState {
   if (state.heroProgressionModelId === CURRENT_HERO_PROGRESSION_MODEL_ID) return state;
-  if (state.heroProgressionModelId !== LEGACY_HERO_PROGRESSION_MODEL.id) {
+  if (!getHeroProgressionModel(state.heroProgressionModelId)) {
     throw new Error(`UNSUPPORTED_HERO_PROGRESSION_MODEL:${state.heroProgressionModelId}`);
   }
   const migrateHero = (hero: CanonicalHero): CanonicalHero =>

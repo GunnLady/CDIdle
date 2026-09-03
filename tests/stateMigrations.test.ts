@@ -16,7 +16,10 @@ import {
 } from "./fixtures/stateMigrations";
 import { makeHero } from "./fixtures/game";
 import { calculateXpNeeded } from "../shared/domain/hero-xp";
-import { LEGACY_HERO_PROGRESSION_MODEL } from "../shared/data/hero-progression-models";
+import {
+  LEGACY_HERO_PROGRESSION_MODEL,
+  PUBLISHED_TIER_DEPENDENT_HERO_PROGRESSION_MODEL,
+} from "../shared/data/hero-progression-models";
 
 const migrationContext = (seed = 42) => ({ defaults: initialTownState(seed), legacySeed: seed });
 
@@ -88,7 +91,7 @@ describe("canonical state migrations", () => {
     const expectedThreshold = calculateXpNeeded(21, "Guerrier");
     const expectedXp = Math.floor((legacyHero.xp / legacyThreshold) * expectedThreshold);
 
-    expect(migrated.heroProgressionModelId).toBe("harmonized-t0-t1-v1");
+    expect(migrated.heroProgressionModelId).toBe("harmonized-level-bands-v2");
     expect(migrated.heroes[0]).toMatchObject({ xp: expectedXp, xpNeeded: expectedThreshold });
     expect(migrated.onboardingCandidates[0]).toMatchObject({ xp: expectedXp, xpNeeded: expectedThreshold });
     expect(migrated.pendingRecruit).toMatchObject({ xp: expectedXp, xpNeeded: expectedThreshold });
@@ -106,8 +109,35 @@ describe("canonical state migrations", () => {
 
     const migrated = migrateTownState(current);
 
-    expect(migrated.heroProgressionModelId).toBe("harmonized-t0-t1-v1");
+    expect(migrated.heroProgressionModelId).toBe("harmonized-level-bands-v2");
     expect(migrated.heroes[0]).toMatchObject({ xp: hero.xp, xpNeeded: hero.xpNeeded });
+  });
+
+  it("migrates the published tier-dependent model without losing current-level progress", () => {
+    const publishedThreshold = calculateXpNeeded(
+      21,
+      "Novice",
+      PUBLISHED_TIER_DEPENDENT_HERO_PROGRESSION_MODEL.xpCurve,
+    );
+    const hero = makeHero({
+      level: 20,
+      classType: "Novice",
+      xp: Math.floor(publishedThreshold / 2),
+      xpNeeded: publishedThreshold,
+    });
+    const published = {
+      ...initialTownState(42),
+      heroProgressionModelId: PUBLISHED_TIER_DEPENDENT_HERO_PROGRESSION_MODEL.id,
+      heroes: [hero],
+    };
+
+    const migrated = migrateTownState(published);
+    const expectedThreshold = calculateXpNeeded(21, "Novice");
+    const expectedXp = Math.floor((hero.xp / publishedThreshold) * expectedThreshold);
+
+    expect(migrated.heroProgressionModelId).toBe("harmonized-level-bands-v2");
+    expect(migrated.heroes[0]).toMatchObject({ xp: expectedXp, xpNeeded: expectedThreshold });
+    expect(migrated.rngState).toEqual(published.rngState);
   });
 
   it("rejects excess legacy XP before model conversion instead of consuming hidden RNG", () => {

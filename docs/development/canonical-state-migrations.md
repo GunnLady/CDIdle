@@ -38,9 +38,17 @@ existants avec `legacy-global-v1`; elle ne change pas leur XP.
 
 `migrateTownState` valide d'abord ce format, puis
 `upgradeCanonicalHeroProgression` convertit explicitement l'ancien modèle vers
-`harmonized-t0-t1-v1`. Pour chaque héros, candidat d'onboarding et recrutement
-en attente, la conversion conserve `xp / xpNeeded`, arrondit vers le bas et ne
-consomme aucun tirage RNG. L'identifiant rend cette conversion idempotente.
+`harmonized-level-bands-v2`. Le modèle publié `harmonized-t0-t1-v1`, dont les
+bandes dépendaient encore du tier de classe, suit la même conversion. Pour
+chaque héros, candidat d'onboarding et recrutement en attente, la conversion
+conserve `xp / xpNeeded`, arrondit vers le bas et ne consomme aucun tirage RNG.
+L'identifiant rend cette conversion idempotente.
+
+Les modèles de récompenses donjon `level-aligned-v2` et de difficulté des défis
+`party-four-two-thirds-v1` ne sont pas persistés dans le snapshot. Leur
+activation ne déclenche donc aucune migration et ne réécrit jamais l'XP déjà
+acquise. Un replay retourne le résultat de commande persisté au lieu de
+recalculer les récompenses avec la politique courante.
 
 ## Retirer une migration
 

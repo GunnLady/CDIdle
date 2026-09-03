@@ -107,6 +107,11 @@ Le donjon ne réalise pas lui-même cette transition. Toute source d'XP passe
 par `applyHeroProgression`, qui enchaîne le calcul des niveaux, la résolution
 générique de transition puis la politique `0->1`.
 
+La courbe XP active est commune à toutes les classes : elle dépend du niveau
+de destination et non du tier. Un Novice qui diffère sa prière conserve donc
+le même `xpNeeded` lorsqu'il accepte ensuite une vocation T1. Le changement de
+classe ne donne ni ne retire de progression dans le niveau courant.
+
 Le passif obtenu comme Novice est conservé. L’actif Novice est remplacé et les
 cooldowns antérieurs sont effacés.
 

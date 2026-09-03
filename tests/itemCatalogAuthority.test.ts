@@ -213,11 +213,16 @@ describe("authoritative item catalog", () => {
       highestFloorReached: floor,
       resources: makeResources({ gold: 0 }),
       buildings: { maison_chef: 0 },
-      heroes: [makeHero()],
+      heroes: [makeHero({ xpNeeded: 1_000_000_000 })],
       storedItems: [],
       forgeMaterials: [],
       itemBlueprints: [],
-    }, `band-treasure-${floor}`, rng);
+    }, `band-treasure-${floor}`, rng, {
+      xpCurve: {
+        kind: "level-banded",
+        levelBands: [{ firstDestinationLevel: 2, firstLevelXp: 1_000_000_000, growthFactor: 1 }],
+      },
+    });
     const instance = result.state.storedItems?.[0];
     expect(cursor).toBe(6);
     if (floor === 31) expect(instance?.rarity).toBe("epic");

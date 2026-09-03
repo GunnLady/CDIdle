@@ -30,7 +30,6 @@ export function isDungeonFinalRoom(floor: number, room: number): boolean {
 }
 
 const FIRST_CLEAR_GOLD = [50, 70, 100, 130, 180, 200, 220, 240, 270, 320] as const;
-const FIRST_CLEAR_XP_POOL = [140, 210, 315, 455, 630, 840, 1_120, 1_400, 1_750, 2_100] as const;
 
 function interpolateValue(
   floor: number,
@@ -38,11 +37,11 @@ function interpolateValue(
 ): number {
   const safeFloor = Math.max(1, Math.floor(floor));
   const upperIndex = DUNGEON_PROGRESSION_ANCHORS.findIndex((anchor) => safeFloor <= anchor.floor);
-  if (upperIndex <= 0) return DUNGEON_PROGRESSION_ANCHORS[0][field];
   if (upperIndex < 0) {
     const last = DUNGEON_PROGRESSION_ANCHORS.at(-1)!;
     return last[field] * (1 + (safeFloor - last.floor) * 0.03);
   }
+  if (upperIndex === 0) return DUNGEON_PROGRESSION_ANCHORS[0][field];
   const lower = DUNGEON_PROGRESSION_ANCHORS[upperIndex - 1];
   const upper = DUNGEON_PROGRESSION_ANCHORS[upperIndex];
   const ratio = (safeFloor - lower.floor) / (upper.floor - lower.floor);
@@ -89,12 +88,9 @@ export function getPartyXpShare(activeCount: number): number {
   return 0.35;
 }
 
-export function getFirstClearRewards(floor: number): { gold: number; xpPool: number } {
+export function getFirstClearGold(floor: number): number {
   const index = Math.max(0, Math.min(FIRST_CLEAR_GOLD.length - 1, Math.floor(floor) - 1));
-  if (floor <= 10) return { gold: FIRST_CLEAR_GOLD[index], xpPool: FIRST_CLEAR_XP_POOL[index] };
+  if (floor <= 10) return FIRST_CLEAR_GOLD[index];
   const growth = 1 + (floor - 10) * 0.075;
-  return {
-    gold: Math.round(FIRST_CLEAR_GOLD.at(-1)! * growth),
-    xpPool: Math.round(FIRST_CLEAR_XP_POOL.at(-1)! * growth),
-  };
+  return Math.round(FIRST_CLEAR_GOLD.at(-1)! * growth);
 }

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   getDungeonRoomCount,
   getDungeonGoldReward,
-  getFirstClearRewards,
+  getFirstClearGold,
   getMajorBossIndex,
   getPartyXpShare,
   getRegularEnemyBudget,
@@ -23,6 +23,16 @@ describe("dungeon progression curve", () => {
     expect(getRegularEnemyBudget(10)).toEqual({ attack: 10, xp: 42, gold: 6 });
     expect(getRegularEnemyBudget(30)).toEqual({ attack: 45, xp: 350, gold: 45 });
     expect(getRegularEnemyBudget(50)).toEqual({ attack: 120, xp: 1_400, gold: 200 });
+  });
+
+  it("extrapolates every regular enemy budget after floor fifty", () => {
+    expect(getRegularEnemyBudget(51)).toMatchObject({ xp: 1_442, gold: 206 });
+    expect(getRegularEnemyBudget(51).attack).toBeCloseTo(123.6);
+    expect(getRegularEnemyBudget(60)).toEqual({ attack: 156, xp: 1_820, gold: 260 });
+    const floorNinetyNine = getRegularEnemyBudget(99);
+    expect(floorNinetyNine.attack).toBeCloseTo(296.4);
+    expect(floorNinetyNine.xp).toBeCloseTo(3_458);
+    expect(floorNinetyNine.gold).toBeCloseTo(494);
   });
 
   it("derives every non-combat gold source from the shared floor budget", () => {
@@ -46,11 +56,11 @@ describe("dungeon progression curve", () => {
   });
 
   it("grows deterministic one-time floor-clear rewards", () => {
-    expect(getFirstClearRewards(1)).toEqual({ gold: 50, xpPool: 140 });
-    expect(getFirstClearRewards(5)).toEqual({ gold: 180, xpPool: 630 });
-    expect(getFirstClearRewards(10)).toEqual({ gold: 320, xpPool: 2_100 });
-    expect(getFirstClearRewards(11).gold).toBeLessThan(getFirstClearRewards(20).gold);
-    expect(getFirstClearRewards(20).gold).toBeGreaterThan(getFirstClearRewards(10).gold);
+    expect(getFirstClearGold(1)).toBe(50);
+    expect(getFirstClearGold(5)).toBe(180);
+    expect(getFirstClearGold(10)).toBe(320);
+    expect(getFirstClearGold(11)).toBeLessThan(getFirstClearGold(20));
+    expect(getFirstClearGold(20)).toBeGreaterThan(getFirstClearGold(10));
   });
 });
 
@@ -68,7 +78,7 @@ describe("tier-one class building economy", () => {
     );
     const totalGold = classGold + prerequisiteGold;
     const firstSevenFloorGold = Array.from({ length: 7 }, (_, index) =>
-      getFirstClearRewards(index + 1).gold
+      getFirstClearGold(index + 1)
     ).reduce((sum, gold) => sum + gold, 0);
 
     expect(classGold).toBe(1_400);
@@ -83,7 +93,7 @@ describe("tier-one class building economy", () => {
     const referenceGoldThroughFloorEight = Array.from({ length: 8 }, (_, index) => {
       const floor = index + 1;
       const roomGold = Math.round(getRegularEnemyBudget(floor).gold) * getDungeonRoomCount(floor);
-      return getFirstClearRewards(floor).gold + roomGold;
+      return getFirstClearGold(floor) + roomGold;
     }).reduce((sum, gold) => sum + gold, 0);
 
     expect(referenceGoldThroughFloorEight).toBe(2_100);

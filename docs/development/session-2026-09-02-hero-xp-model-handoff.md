@@ -1,5 +1,11 @@
 # Handoff — nouveau modèle de progression XP des héros
 
+> Document historique figé : ses identifiants de modèle, son économie de
+> récompenses et ses chiffres de simulation décrivent l'étape du 2 septembre,
+> pas le runtime courant. Les références à jour sont
+> `docs/architecture/dungeon-xp-economy.md` et
+> `docs/development/hero-xp-progression-simulation.md`.
+
 Date : 2026-09-02
 État : implémentation locale non publiée
 Objectif de reprise : réaliser un audit fonctionnel et technique complet, corriger tout écart réel, puis demander la confirmation explicite immédiatement avant le commit et le push.

@@ -56,6 +56,7 @@ export type CanonicalHeroStatus = "idle" | "exploring" | "resting";
 export const CANONICAL_HERO_PROGRESSION_MODEL_IDS = [
   "legacy-global-v1",
   "harmonized-t0-t1-v1",
+  "harmonized-level-bands-v2",
 ] as const;
 export type CanonicalHeroProgressionModelId = typeof CANONICAL_HERO_PROGRESSION_MODEL_IDS[number];
 

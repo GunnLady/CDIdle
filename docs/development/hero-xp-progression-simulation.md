@@ -2,37 +2,19 @@
 
 ## Objectif
 
-Le harness `tests/heroXpProgressionSimulation.test.ts` compare la courbe
-historique et plusieurs variantes en rejouant le résolveur autoritaire complet
-des rencontres. La variante harmonisée T0/T1 a ensuite été adoptée par
-l'application sous l'identifiant `harmonized-t0-t1-v1`.
+Les tests distinguent deux courbes canoniques complémentaires :
 
-Profils comparés :
+- `xpNeeded(level)` : coût du prochain niveau, modèle
+  `harmonized-level-bands-v2` ;
+- `xpGained(floor, source)` : budget attribué par le contenu, modèle
+  `level-aligned-v2`.
 
-- historique : croissance `1.50`, multiplicateur de tier 1 `1.25` ;
-- modérée : croissance `1.35`, multiplicateur de tier 1 `1.15` ;
-- fluide : croissance `1.30`, multiplicateur de tier 1 `1.10` ;
-- T0/T1 harmonisée : T0 à `1.30`, puis T1 ancré à `1 061 XP` pour
-  le passage 10 → 11 et à `1.20` à l'intérieur du tier.
+La première dépend uniquement du niveau du héros, jamais de sa classe ni de
+son tier. La seconde dépend de l'étage et de la source de récompense. Leur
+rapport doit produire un léger ralentissement de la progression, dans l'esprit
+des idle games, sans mur brutal avant le niveau 40.
 
-## Deux modes
-
-- `isolated` remet tous les héros à pleine vie et pleine mana avant chaque
-  rencontre. Il isole la vitesse d'XP du temps de récupération et de l'attrition.
-- `attrition` conserve les blessures, la mana et les incapacités entre les
-  rencontres. Après un wipe complet, le groupe est remis sur pied afin que la
-  campagne puisse continuer. Ce mode mesure la progression dans un parcours
-  continu, pas le temps réel d'une boucle ville-donjon.
-
-Chaque profil et chaque mode exécutent vingt campagnes déterministes avec quatre
-novices, de l'étage 1 à l'étage 30. Le rapport affiche les niveaux finaux, les
-étages auxquels tout le groupe atteint les jalons, les défaites, les wipes et
-une estimation de la durée visible fondée sur une seconde par rencontre et
-400 ms par événement de transcript. Une campagne est déclarée bloquée après 50
-rencontres consécutives sans avancer de salle, afin de rendre visible un mur de
-combat sans répéter indéfiniment le même affrontement.
-
-## Exécution
+## Commandes
 
 ```powershell
 npm.cmd run test:xp-simulation
@@ -40,107 +22,79 @@ npm.cmd run test:xp-tier1
 npm.cmd run test:xp-tier-projection
 ```
 
-La seconde commande exécute une campagne complète avec la candidate harmonisée
-jusqu'à ce que les quatre héros atteignent la cible T1 expérimentale au
-niveau 35. Elle utilise le second mode,
-la simulation complète : elle conserve l'attrition,
-`applyIdleAuthority` récupère réellement les héros au repos à 2 % des PV et
-PM max par seconde. Le temps simulé inclut les 400 ms de chaque étape du
-transcript et la seconde entre deux explorations automatiques. Les héros
-complètement remis sont ensuite réactivés comme le ferait le joueur. Après
-trois échecs sur la même salle de boss, le groupe rejoue l'étage précédent
-avec la même sémantique que
-`dungeon.select_floor`. Toutes les explorations, rencontres non-combat, élites,
-boss majeurs et primes de premier clear sont comptabilisées. L'historique des
-15 dernières rencontres est conservé comme dans la couche de commande.
-Chaque exploration et chaque choix de vocation consomment en outre un sous-flux
-créé par `forkCanonicalRng` depuis l'état RNG maître sauvegardé, comme les
-commandes autoritaires.
+`test:xp-tier1` est la preuve principale du contenu réel T0/T1. La commande
+lance 100 campagnes déterministes avec 100 seeds distinctes, réparties en dix
+processus de dix seeds, puis fusionne exactement leurs compteurs. Chaque
+campagne utilise quatre novices générés par l'autorité serveur, les vraies
+vocations T1, l'attrition, la récupération idle, le loot et la commande
+autoritaire d'équipement. Après trois échecs sur un boss, le groupe rejoue
+l'étage précédent.
 
-Les objets obtenus sont essayés avec la vraie commande autoritaire
-`hero.equip`. Le simulateur respecte les niveaux requis, les slots et les
-armes à deux mains. Il maximise gloutonnement un score de combat documenté dans
-le test (DPS, vie, défenses, vitesse, critique, esquive, mana et résistances),
-retente les objets déplacés sur les autres héros et réévalue le stockage lors
-des gains de niveau. Ce score est une stratégie automatique de simulation, pas
-une règle de gameplay ajoutée à la production.
+Le rapport agrégé trace les deux courbes, les jalons P10/médiane/P90, la part
+d'XP de chaque source et les réussites de défis par bande et par type. La
+commande échoue si :
 
-Tous les bâtiments de vocation T1 sont disponibles dans cette campagne ciblée
-sur l'XP. Les affinités réelles décident les transitions automatiques. En cas
-de prière, la stratégie choisit uniquement parmi les candidats autorisés et
-privilégie un rôle absent du groupe. Les coûts de recrutement et de
-construction ne sont pas simulés.
+- les 100 seeds ne sont pas présentes exactement une fois ;
+- le taux global des défis sort de `66,7 % ± 2 points` ;
+- une bande de niveaux sort de `66,7 % ± 4 points` ;
+- une cellule type × bande sort de `66,7 % ± 7,5 points` ;
+- le coût médian par niveau ne ralentit pas strictement entre les phases
+  1–10, 10–20, 20–30, 30–35 et 35–40.
 
-Le moteur actuel ne possède pas encore de politique de transition T1 vers T2
-ou T2 vers T3. La cible produit est un niveau maximal 99, avec T0 aux niveaux
-1–10, défi T2 disponible au niveau 30 et plafond T1 envisagé au niveau 35.
-Les bornes suivantes restent des projections tant que les quêtes et classes ne
-sont pas implémentées : T2 autour de 35–65, puis T3 autour de 65–99.
-Les bandes de coffre régulières plafonnent également aux objets de niveau
-requis 33 ; ces limites font partie du résultat mesuré.
+Le moteur de campagne réutilisable se trouve dans
+`tests/helpers/heroXpTier1Campaign.ts`. Le test Vitest porte les assertions et
+la sérialisation machine ; `scripts/run-xp-tier1-shards.mjs` distribue les
+seeds, fusionne les compteurs et vérifie les tolérances. Les variables
+`XP_SHARD_COUNT` et `XP_SEEDS_PER_SHARD` permettent un passage exploratoire
+plus court sans changer le défaut `10 × 10`. `XP_DIAGNOSTICS=1` ajoute les
+seuils isotones calculés depuis les distributions score/LUK par étage.
 
-## Résultat candidat T0/T1
+## Résultat canonique sur 100 seeds
 
-Avec la graine `0x515050`, le groupe atteint le niveau 10 après 209
-explorations, le niveau 20 après 843, le niveau 30 après 2 065 vers l'étage 45
-et le niveau 35 après 4 622 vers l'étage 95. La campagne complète représente
-8,1 heures de temps visible simulé, 2 741 combats, 1 881 rencontres non-combat,
-97 wipes, 114 objets obtenus et 62 changements d'équipement.
+Résultat du 3 septembre 2026, revalidé à l'identique le 4 septembre 2026 après
+correction de l'extrapolation des budgets ennemis au-delà de l'étage 50 :
 
-Le niveau 30 est la cible de progression normale où la future quête T2 devient
-disponible. La plage 30–35 mesure une marge de préparation ou de retard du
-joueur, pas cinq niveaux ordinaires supplémentaires à parcourir avant la quête.
-Cette courbe est désormais le modèle actif de l'application. Les sauvegardes
-du modèle historique conservent proportionnellement l'avancement de leur
-niveau courant lors de leur premier chargement.
+| Niveau de groupe | P10 | Médiane | P90 |
+|---:|---:|---:|---:|
+| 10 | 246 | 275 | 312 |
+| 20 | 876 | 930 | 1 041 |
+| 30 | 1 764 | 1 866 | 2 089 |
+| 35 | 2 423 | 2 621 | 2 962 |
+| 40 | 3 403 | 3 718 | 4 052 |
 
-## Projection des économies de gains T2/T3
+Le taux global des défis est `67,52 %`. Par bande de niveaux : `66,03 %`,
+`66,41 %`, `66,86 %`, `66,78 %` et `69,75 %`. Les 30 cellules type × bande
+respectent la tolérance annoncée.
 
-Le troisième script ne prétend pas résoudre des combats T2/T3 encore absents.
-Il part du rythme autoritaire observé entre les niveaux 20 et 30, conserve un
-coût de niveau composé à `1.20` et projette deux économies jusqu'au niveau 99.
-Les deux modèles donnent un saut de gains `×2` à chaque promotion.
+Parts d'XP observées : combat régulier `52,09 %`, défis `31,01 %`, premier
+clear `7,14 %`, élites `3,70 %`, trésors `3,19 %`, repos `2,13 %` et boss
+majeurs `0,74 %`.
 
-- `tier_steps` ne fait ensuite progresser les gains que linéairement de 6 % du
-  gain de départ par niveau local. Il exige 15 145 574 explorations entre les
-  niveaux 30 et 99 et atteint 2 256 595 explorations pour le dernier niveau.
-  Des paliers seuls ne peuvent donc pas suivre un coût exponentiel.
-- `progressive` compose les gains à `1.18` dans chaque tier. Il exige 5 660
-  explorations entre les niveaux 30 et 99, avec 60 à 114 explorations par
-  niveau, soit 7 725 explorations et environ 13,5 heures visibles depuis le
-  niveau 1 dans cette projection.
+La mesure `xpNeeded / xpGained moyen` passe d'environ 11,9 explorations au
+niveau 1 à 52,2 au niveau 9, 76,1 au niveau 19, 112,3 au niveau 29, 169,6 au
+niveau 34 et 216,0 au niveau 39. Les coûts médians par niveau des cinq phases
+sont strictement croissants ; c'est le léger ralentissement recherché. Les
+jalons agrégés, et non une seed isolée, constituent la preuve.
 
-La forme progressive et sa cible directionnelle d'environ 13,5 heures ont été
-retenues pour guider le contenu futur. Elles ne sont pas actives dans le
-runtime : les classes, quêtes et récompenses T2/T3 n'existent pas encore. Leur
-implémentation devra être validée par une simulation autoritaire complète du
-contenu réel, et non par cette projection seule.
+## Autres simulations
 
-## Ancien diagnostic T1 prolongé artificiellement au niveau 50
-
-Avant de fixer les bornes de tiers, une campagne diagnostique avec la courbe
-fluide a maintenu artificiellement les quatre héros T1 jusqu'au
-niveau 50 après **104 859 explorations** et 143,7 heures de temps visible
-simulé. Les jalons de groupe sont atteints aux explorations 209 (niveau 10),
-1 206 (niveau 20), 6 375 (niveau 30), 28 265 (niveau 40) et 104 859
-(niveau 50). La campagne comprend 62 314 combats, 42 545 rencontres
-non-combat, 1 907 rencontres d'élite, 263 rencontres de boss majeur,
-2 081 premiers clears, 2 318 objets obtenus et 102 changements d'équipement.
-
-Ce résultat n'est pas une cible produit. Il met en évidence le décalage
-entre l'XP nécessaire, encore exponentielle avec un facteur `1.30`, et les
-récompenses après l'étage 50, qui ne progressent que linéairement : `+3 %` du
-budget de l'étage 50 par étage pour un ennemi régulier et `+7,5 %` de la prime
-de l'étage 10 par étage pour un premier clear. Le groupe doit ainsi monter
-jusqu'à l'étage 2 082 malgré l'optimisation du loot.
+`test:xp-simulation` compare les modèles historiques sur des campagnes plus
+courtes et conserve un mode isolé ainsi qu'un mode avec attrition.
+`test:xp-tier-projection` projette les tiers T2/T3 encore absents ; ses
+résultats ne sont pas une règle runtime et devront être remplacés par une
+simulation autoritaire lorsque leur contenu existera. Avec les ancres finales
+L20/L30 et `8,785 s` visibles par exploration, le profil progressif donne
+`6 207` explorations et `15,1 h` du niveau 1 au niveau 99.
 
 ## Limites
 
-- Les vingt graines donnent un comparatif reproductible, pas un intervalle
-  statistique définitif.
-- Une vocation tier 1 unique est rendue disponible par le repaire pour éviter
-  qu'une prière de vocation non résolue ne brouille la comparaison.
-- L'estimation UI ignore le réseau, les décisions humaines, les retours en ville
-  et toute temporisation non représentée dans le résolveur.
-- Le simulateur prouve le comportement du moteur et permet de classer les
-  courbes. Le ressenti final doit ensuite être confirmé dans l'application.
+- Le harness modélise un groupe de quatre bien géré, avec tous les bâtiments
+  T1 disponibles et une stratégie gloutonne d'équipement. Il ne simule pas les
+  coûts de construction ou de recrutement.
+- Le temps simulé couvre les événements de transcript et la récupération,
+  mais pas la latence réseau, les décisions humaines ni les retours en ville.
+- Les chances nulles restent mesurées et visibles. Elles ne signifient pas que
+  le groupe échoue toujours : le héros le mieux adapté est choisi sur les six
+  types rencontrés et l'objectif porte sur la campagne réelle agrégée.
+- Le ressenti final doit encore être confirmé dans l'application ; le harness
+  prouve le comportement du moteur, pas le plaisir du joueur.

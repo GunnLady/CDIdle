@@ -64,7 +64,7 @@ const PROFILES: readonly CurveProfile[] = [
   },
   {
     id: "harmonized",
-    label: "T0/T1 harmonisee (T0 x1.30, T1 x1.20)",
+    label: "Harmonisee (niveaux 2-10 x1.30, 11+ x1.20)",
     curve: HARMONIZED_T0_T1_XP_CURVE,
   },
 ] as const;
@@ -245,7 +245,7 @@ describe("hero XP progression simulation", () => {
     expect(results.every((result) => result.encounters > 0)).toBe(true);
     expect(results.every((result) => result.encounters < MAX_ENCOUNTERS)).toBe(true);
     expect(results.every((result) => result.finalLevels.length === 4)).toBe(true);
-    expect(results.filter((result) => result.profile !== "legacy")
+    expect(results.filter((result) => result.profile === "fluid" || result.profile === "harmonized")
       .every((result) => result.completedTarget)).toBe(true);
 
     for (const mode of MODES) {

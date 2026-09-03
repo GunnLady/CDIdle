@@ -118,6 +118,9 @@ sont appliqués par le chemin temporel CDI-061.
   coffre et restauration, puis expose l'événement `hero.vocation_chosen`.
 - Une prière ne bloque ni le héros ni l'auto-donjon. Le Novice peut continuer
   à progresser et le joueur peut différer son choix.
+- Le seuil XP dépend uniquement du niveau, jamais de la classe ou de son tier.
+  Une vocation différée conserve donc exactement `xp` et `xpNeeded` : un héros
+  de même niveau suit la même courbe avant et après `hero.choose_vocation`.
 - Les candidats sont persistés pour le replay, puis réconciliés sans tirage RNG
   au bootstrap et après une construction. Un nouveau bâtiment de classe peut
   donc enrichir ou modifier une prière encore ouverte.
@@ -139,6 +142,15 @@ sont appliqués par le chemin temporel CDI-061.
 - `dungeon.auto_explore({ enabled })` modifie le mode d'exploration uniquement
   par commande authentifiée ; aucune mutation de donjon n'est exécutée hors
   ligne.
+- Les montants d'XP sont calculés par la politique canonique
+  `level-aligned-v2`. Chaque source produit ses événements autoritaires ; les
+  défis réussis attribuent à tous les héros actifs et vivants la part prévue
+  par la table de groupe, tandis qu'un échec n'attribue aucune XP. Chaque
+  événement d'XP expose explicitement sa `source` et son `floor`.
+- La difficulté effective des défis suit
+  `party-four-two-thirds-v1`. Ses ancres monotones par type sont interpolées
+  selon l'étage ; elles ne modifient ni la sélection probabiliste du meilleur
+  héros ni l'unique tirage RNG de la tentative.
 
 Les cinq commandes sont idempotentes via l'enveloppe commune et leurs
 événements sont commités avec l'état canonique.

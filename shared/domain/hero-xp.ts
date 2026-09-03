@@ -1,5 +1,5 @@
 import type { ClassType, Hero } from "../contracts/game.ts";
-import { CLASS_INFO_LIST } from "../data/game-data.ts";
+import { CLASS_INFO_LIST } from "../data/heroes.ts";
 import {
   CURRENT_HERO_PROGRESSION_MODEL,
   type HeroProgressionModel,
@@ -12,9 +12,23 @@ export function calculateXpNeeded(
   curve: XpProgressionCurve = CURRENT_HERO_PROGRESSION_MODEL.xpCurve,
 ): number {
   if (nextLevel < 2) return 100;
-  const tier = CLASS_INFO_LIST.find((entry) => entry.type === classType)?.tier ?? 0;
+  if (curve.kind === "level-banded") {
+    const destinationLevel = Math.max(2, Math.floor(nextLevel));
+    let band: (typeof curve.levelBands)[number] | undefined;
+    for (const candidate of curve.levelBands) {
+      if (candidate.firstDestinationLevel <= destinationLevel
+        && (!band || candidate.firstDestinationLevel > band.firstDestinationLevel)) {
+        band = candidate;
+      }
+    }
+    if (!band) throw new Error(`XP_LEVEL_BAND_NOT_CONFIGURED:${destinationLevel}`);
+    return Math.ceil(
+      band.firstLevelXp * Math.pow(band.growthFactor, destinationLevel - band.firstDestinationLevel),
+    );
+  }
 
-  if (curve.kind === "tiered") {
+  const tier = CLASS_INFO_LIST.find((entry) => entry.type === classType)?.tier ?? 0;
+  if (curve.kind === "class-tier-banded") {
     const band = curve.tierBands[tier];
     if (!band) throw new Error(`XP_TIER_BAND_NOT_CONFIGURED:${tier}`);
     const destinationLevel = Math.max(2, Math.floor(nextLevel));

@@ -1,10 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
   DUNGEON_CHALLENGE_DEFINITIONS,
-  getDungeonChallengeDifficulty,
+  DUNGEON_CHALLENGE_DIFFICULTY_ANCHORS,
+  DUNGEON_CHALLENGE_DIFFICULTY_MODEL_ID,
+  getCanonicalDungeonChallengeDifficulty,
   getDungeonChallengeSuccessProbability,
   rollDungeonChallenge,
   selectBestDungeonChallengeCandidate,
+  type DungeonChallengeKind,
 } from "../shared/domain/dungeon-challenges";
 
 const baseStats = {
@@ -18,34 +21,43 @@ const baseStats = {
 };
 
 describe("dungeon challenge rules", () => {
-  it("defines the six approved stat pairs and difficulty profiles", () => {
+  it("defines the six approved stat pairs", () => {
     expect(Object.fromEntries(Object.entries(DUNGEON_CHALLENGE_DEFINITIONS).map(([kind, definition]) => [
       kind,
-      [definition.statA, definition.statB, definition.difficultyProfile],
+      [definition.statA, definition.statB],
     ]))).toEqual({
-      trap: ["agi", "dex", "standard"],
-      enigma: ["int", "wiz", "standard"],
-      ambush: ["agi", "luk", "luck"],
-      ritual: ["dex", "wiz", "standard"],
-      obstacle: ["str", "agi", "standard"],
-      negotiation: ["wiz", "luk", "luck"],
+      trap: ["agi", "dex"],
+      enigma: ["int", "wiz"],
+      ambush: ["agi", "luk"],
+      ritual: ["dex", "wiz"],
+      obstacle: ["str", "agi"],
+      negotiation: ["wiz", "luk"],
     });
   });
 
-  it("uses the approved standard and LUK difficulty anchors", () => {
-    expect([1, 5, 10].map((floor) => getDungeonChallengeDifficulty(floor, "standard")))
-      .toEqual([12, 20, 30]);
-    expect([20, 30, 40, 50].map((floor) => getDungeonChallengeDifficulty(floor, "standard")))
-      .toEqual([90, 155, 220, 285]);
-    expect([20, 30, 40, 50].map((floor) => getDungeonChallengeDifficulty(floor, "luck")))
-      .toEqual([65, 103, 141, 180]);
+  it("applies the canonical party-of-four calibration anchors", () => {
+    expect(DUNGEON_CHALLENGE_DIFFICULTY_MODEL_ID).toBe("party-four-two-thirds-v1");
+    expect(DUNGEON_CHALLENGE_DIFFICULTY_ANCHORS.trap).toEqual([
+      { floor: 1, difficulty: 12 }, { floor: 10, difficulty: 29 },
+      { floor: 20, difficulty: 72 }, { floor: 25, difficulty: 80 },
+      { floor: 30, difficulty: 93 }, { floor: 40, difficulty: 110 },
+      { floor: 50, difficulty: 119 }, { floor: 60, difficulty: 132 },
+      { floor: 65, difficulty: 139 }, { floor: 99, difficulty: 139 },
+    ]);
+    expect([1, 10, 20, 25, 30, 40, 99].map((floor) => (
+      getCanonicalDungeonChallengeDifficulty(floor, "negotiation")
+    ))).toEqual([11, 29, 50, 53, 62, 67, 67]);
   });
 
-  it("interpolates and extrapolates deterministically", () => {
-    expect(getDungeonChallengeDifficulty(15, "standard")).toBe(60);
-    expect(getDungeonChallengeDifficulty(15, "luck")).toBe(48);
-    expect(getDungeonChallengeDifficulty(60, "standard")).toBe(350);
-    expect(getDungeonChallengeDifficulty(60, "luck")).toBe(219);
+  it("keeps every calibrated challenge curve monotonic through and beyond level 99", () => {
+    for (const kind of Object.keys(DUNGEON_CHALLENGE_DEFINITIONS) as DungeonChallengeKind[]) {
+      let previous = 0;
+      for (let floor = 1; floor <= 120; floor += 1) {
+        const difficulty = getCanonicalDungeonChallengeDifficulty(floor, kind);
+        expect(difficulty).toBeGreaterThanOrEqual(previous);
+        previous = difficulty;
+      }
+    }
   });
 
   it("keeps LUK in both the score and the die for LUK encounters", () => {

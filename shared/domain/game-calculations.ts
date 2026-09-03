@@ -132,7 +132,7 @@ export const getHeroStats = (
 };
 
 export { calculateXpNeeded, refreshHeroProgressionThreshold } from "./hero-xp.ts";
-export type { GlobalXpProgressionCurve, TierXpProgressionBand, TieredXpProgressionCurve, XpProgressionCurve } from "../data/hero-progression-models.ts";
+export type { ClassTierBandedXpProgressionCurve, GlobalXpProgressionCurve, LevelBandedXpProgressionCurve, LevelXpProgressionBand, XpProgressionCurve } from "../data/hero-progression-models.ts";
 export { CURRENT_HERO_PROGRESSION_MODEL as CURRENT_XP_PROGRESSION_MODEL } from "../data/hero-progression-models.ts";
 
 export const CURRENT_XP_PROGRESSION_CURVE = CURRENT_HERO_PROGRESSION_MODEL.xpCurve;

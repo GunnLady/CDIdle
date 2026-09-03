@@ -6,18 +6,26 @@ export type GlobalXpProgressionCurve = {
   tierMultipliers: Readonly<Record<number, number>>;
 };
 
-export type TierXpProgressionBand = {
+export type LevelXpProgressionBand = {
   firstDestinationLevel: number;
   firstLevelXp: number;
   growthFactor: number;
 };
 
-export type TieredXpProgressionCurve = {
-  kind: "tiered";
-  tierBands: Readonly<Record<number, TierXpProgressionBand>>;
+export type LevelBandedXpProgressionCurve = {
+  kind: "level-banded";
+  levelBands: readonly LevelXpProgressionBand[];
 };
 
-export type XpProgressionCurve = GlobalXpProgressionCurve | TieredXpProgressionCurve;
+export type ClassTierBandedXpProgressionCurve = {
+  kind: "class-tier-banded";
+  tierBands: Readonly<Record<number, LevelXpProgressionBand>>;
+};
+
+export type XpProgressionCurve =
+  | GlobalXpProgressionCurve
+  | ClassTierBandedXpProgressionCurve
+  | LevelBandedXpProgressionCurve;
 export type HeroProgressionModelId = CanonicalHeroProgressionModelId;
 
 export type HeroProgressionModel = {
@@ -38,11 +46,11 @@ export const LEGACY_HERO_PROGRESSION_MODEL: HeroProgressionModel = {
   },
 };
 
-export const HARMONIZED_T0_T1_HERO_PROGRESSION_MODEL: HeroProgressionModel = {
+export const PUBLISHED_TIER_DEPENDENT_HERO_PROGRESSION_MODEL: HeroProgressionModel = {
   id: "harmonized-t0-t1-v1",
   maxLevel: HERO_MAX_LEVEL,
   xpCurve: {
-    kind: "tiered",
+    kind: "class-tier-banded",
     tierBands: {
       0: { firstDestinationLevel: 2, firstLevelXp: 100, growthFactor: 1.3 },
       1: { firstDestinationLevel: 11, firstLevelXp: 1_061, growthFactor: 1.2 },
@@ -50,12 +58,25 @@ export const HARMONIZED_T0_T1_HERO_PROGRESSION_MODEL: HeroProgressionModel = {
   },
 };
 
-export const HERO_PROGRESSION_MODELS: Readonly<Record<HeroProgressionModelId, HeroProgressionModel>> = {
-  "legacy-global-v1": LEGACY_HERO_PROGRESSION_MODEL,
-  "harmonized-t0-t1-v1": HARMONIZED_T0_T1_HERO_PROGRESSION_MODEL,
+export const HARMONIZED_LEVEL_BANDS_HERO_PROGRESSION_MODEL: HeroProgressionModel = {
+  id: "harmonized-level-bands-v2",
+  maxLevel: HERO_MAX_LEVEL,
+  xpCurve: {
+    kind: "level-banded",
+    levelBands: [
+      { firstDestinationLevel: 2, firstLevelXp: 100, growthFactor: 1.3 },
+      { firstDestinationLevel: 11, firstLevelXp: 1_061, growthFactor: 1.2 },
+    ],
+  },
 };
 
-export const CURRENT_HERO_PROGRESSION_MODEL = HARMONIZED_T0_T1_HERO_PROGRESSION_MODEL;
+export const HERO_PROGRESSION_MODELS: Readonly<Record<HeroProgressionModelId, HeroProgressionModel>> = {
+  "legacy-global-v1": LEGACY_HERO_PROGRESSION_MODEL,
+  "harmonized-t0-t1-v1": PUBLISHED_TIER_DEPENDENT_HERO_PROGRESSION_MODEL,
+  "harmonized-level-bands-v2": HARMONIZED_LEVEL_BANDS_HERO_PROGRESSION_MODEL,
+};
+
+export const CURRENT_HERO_PROGRESSION_MODEL = HARMONIZED_LEVEL_BANDS_HERO_PROGRESSION_MODEL;
 export const CURRENT_HERO_PROGRESSION_MODEL_ID = CURRENT_HERO_PROGRESSION_MODEL.id;
 
 export function getHeroProgressionModel(id: HeroProgressionModelId): HeroProgressionModel {

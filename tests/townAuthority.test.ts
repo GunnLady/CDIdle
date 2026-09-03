@@ -365,6 +365,54 @@ describe("authoritative town commands", () => {
     expect(new Set(instanceIds).size).toBe(instanceIds.length);
   });
 
+  it("preserves XP progress when a Novice chooses a delayed vocation after level 10", () => {
+    const base = initialTownState();
+    const xpNeeded = calculateXpNeeded(21, "Novice");
+    const novice = refreshHeroDerivedStats(makeHero({
+      id: "hero-delayed-level-20-vocation",
+      level: 20,
+      xp: xpNeeded - 1,
+      xpNeeded,
+      baseStats: { str: 50, agi: 1, end: 50, int: 1, wiz: 1, dex: 1, luk: 1 },
+      isActive: true,
+      status: "idle",
+      activeSkills: ["heavy_blow"],
+      passiveSkills: ["survival_instinct"],
+    }));
+    const current = {
+      ...base,
+      heroes: [novice],
+      buildings: { ...base.buildings, caserne: 1 },
+      pendingClassTransitions: [{
+        heroId: novice.id,
+        fromClass: "Novice" as const,
+        fromTier: 0,
+        toTier: 1,
+        originLevel: 10,
+        wasActive: true,
+        previousStatus: "idle" as const,
+        reason: "Plusieurs vocations répondent à la prière du héros",
+        candidates: [{ classType: "Guerrier" as const, affinity: 1 }],
+      }],
+    };
+
+    const chosen = applyTownCommand(current, {
+      type: "hero.choose_vocation",
+      heroId: novice.id,
+      classType: "Guerrier",
+    });
+    const evolved = chosen.state.heroes[0];
+
+    expect(evolved).toMatchObject({
+      classType: "Guerrier",
+      level: novice.level,
+      xp: novice.xp,
+      xpNeeded: novice.xpNeeded,
+    });
+    expect(evolved.xp).toBeLessThan(evolved.xpNeeded);
+    expect(() => migrateTownState(chosen.state as unknown as Record<string, unknown>)).not.toThrow();
+  });
+
   it("refreshes a pending prayer when a new class building becomes available", () => {
     const base = initialTownState();
     let before: ReturnType<typeof migrateTownState> | null = null;

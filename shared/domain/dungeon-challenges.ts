@@ -10,10 +10,46 @@ export type DungeonChallengeKind =
   | "obstacle"
   | "negotiation";
 
+export type DungeonChallengeDifficultyResolver = (
+  floor: number,
+  kind: DungeonChallengeKind,
+) => number;
+
+export const DUNGEON_CHALLENGE_DIFFICULTY_MODEL_ID = "party-four-two-thirds-v1" as const;
+
+type DungeonChallengeDifficultyAnchor = { floor: number; difficulty: number };
+
+export const DUNGEON_CHALLENGE_DIFFICULTY_ANCHORS: Readonly<
+  Record<DungeonChallengeKind, readonly DungeonChallengeDifficultyAnchor[]>
+> = {
+  trap: [{ floor: 1, difficulty: 12 }, { floor: 10, difficulty: 29 }, { floor: 20, difficulty: 72 }, { floor: 25, difficulty: 80 }, { floor: 30, difficulty: 93 }, { floor: 40, difficulty: 110 }, { floor: 50, difficulty: 119 }, { floor: 60, difficulty: 132 }, { floor: 65, difficulty: 139 }, { floor: 99, difficulty: 139 }],
+  enigma: [{ floor: 1, difficulty: 11 }, { floor: 10, difficulty: 29 }, { floor: 20, difficulty: 58 }, { floor: 25, difficulty: 70 }, { floor: 30, difficulty: 82 }, { floor: 40, difficulty: 100 }, { floor: 50, difficulty: 113 }, { floor: 60, difficulty: 125 }, { floor: 65, difficulty: 130 }, { floor: 70, difficulty: 133 }, { floor: 99, difficulty: 133 }],
+  ambush: [{ floor: 1, difficulty: 12 }, { floor: 10, difficulty: 30 }, { floor: 20, difficulty: 53 }, { floor: 25, difficulty: 66 }, { floor: 30, difficulty: 77 }, { floor: 40, difficulty: 92 }, { floor: 50, difficulty: 106 }, { floor: 60, difficulty: 113 }, { floor: 99, difficulty: 113 }],
+  ritual: [{ floor: 1, difficulty: 11 }, { floor: 10, difficulty: 28 }, { floor: 20, difficulty: 63 }, { floor: 25, difficulty: 70 }, { floor: 30, difficulty: 84 }, { floor: 40, difficulty: 98 }, { floor: 50, difficulty: 113 }, { floor: 60, difficulty: 127 }, { floor: 70, difficulty: 135 }, { floor: 99, difficulty: 137 }],
+  obstacle: [{ floor: 1, difficulty: 12 }, { floor: 10, difficulty: 30 }, { floor: 20, difficulty: 58 }, { floor: 25, difficulty: 73 }, { floor: 30, difficulty: 81 }, { floor: 40, difficulty: 102 }, { floor: 50, difficulty: 116 }, { floor: 60, difficulty: 128 }, { floor: 70, difficulty: 142 }, { floor: 80, difficulty: 145 }, { floor: 99, difficulty: 145 }],
+  negotiation: [{ floor: 1, difficulty: 11 }, { floor: 10, difficulty: 29 }, { floor: 20, difficulty: 50 }, { floor: 25, difficulty: 53 }, { floor: 30, difficulty: 62 }, { floor: 40, difficulty: 67 }, { floor: 99, difficulty: 67 }],
+};
+
+export const getCanonicalDungeonChallengeDifficulty: DungeonChallengeDifficultyResolver = (floor, kind) => {
+  const safeFloor = Math.max(1, Math.floor(Number.isFinite(floor) ? floor : 1));
+  const anchors = DUNGEON_CHALLENGE_DIFFICULTY_ANCHORS[kind];
+  const upperIndex = anchors.findIndex((anchor) => safeFloor <= anchor.floor);
+  if (upperIndex === 0) return anchors[0].difficulty;
+  if (upperIndex < 0) {
+    const lower = anchors.at(-2)!;
+    const upper = anchors.at(-1)!;
+    const slope = (upper.difficulty - lower.difficulty) / (upper.floor - lower.floor);
+    return Math.round(upper.difficulty + (safeFloor - upper.floor) * slope);
+  }
+  const lower = anchors[upperIndex - 1];
+  const upper = anchors[upperIndex];
+  const ratio = (safeFloor - lower.floor) / (upper.floor - lower.floor);
+  return Math.round(lower.difficulty + (upper.difficulty - lower.difficulty) * ratio);
+};
+
 export type DungeonChallengeDefinition = {
   statA: DungeonChallengeStat;
   statB: DungeonChallengeStat;
-  difficultyProfile: "standard" | "luck";
   name: string;
   description: string;
 };
@@ -22,54 +58,40 @@ export const DUNGEON_CHALLENGE_DEFINITIONS: Readonly<Record<DungeonChallengeKind
   trap: {
     statA: "agi",
     statB: "dex",
-    difficultyProfile: "standard",
     name: "Salle Piégée",
     description: "La pièce est truffée de plaques de pression, de fléchettes dissimulées et de dalles instables.",
   },
   enigma: {
     statA: "int",
     statB: "wiz",
-    difficultyProfile: "standard",
     name: "Chambre des Énigmes",
     description: "Une porte scellée par un ancien mécanisme d'inscription runique magique bloque la voie.",
   },
   ambush: {
     statA: "agi",
     statB: "luk",
-    difficultyProfile: "luck",
     name: "Embuscade Impromptue",
     description: "Des créatures rôdent dans l'ombre et s'apprêtent à surprendre l'escouade.",
   },
   ritual: {
     statA: "dex",
     statB: "wiz",
-    difficultyProfile: "standard",
     name: "Autel de Rituel",
     description: "Un cercle runique et un cristal de mana instable vibrent d'une énergie occulte.",
   },
   obstacle: {
     statA: "str",
     statB: "agi",
-    difficultyProfile: "standard",
     name: "Obstacle de Taille",
     description: "Un éboulement de pierres massives et une grille en fer rouillé bloquent le passage.",
   },
   negotiation: {
     statA: "wiz",
     statB: "luk",
-    difficultyProfile: "luck",
     name: "Négociation Mystique",
     description: "Un esprit errant et un marchand suspect proposent un pacte mystérieux.",
   },
 };
-
-const STANDARD_DIFFICULTY_ANCHORS = [
-  [10, 30], [20, 90], [30, 155], [40, 220], [50, 285],
-] as const;
-
-const LUCK_DIFFICULTY_ANCHORS = [
-  [10, 30], [20, 65], [30, 103], [40, 141], [50, 180],
-] as const;
 
 export type DungeonChallengeCandidate<THero> = {
   hero: THero;
@@ -77,40 +99,6 @@ export type DungeonChallengeCandidate<THero> = {
   luck: number;
   successProbability: number;
 };
-
-export function getHistoricalDungeonChallengeDifficulty(floor: number): number {
-  const safeFloor = Math.max(1, Math.floor(Number.isFinite(floor) ? floor : 1));
-  return 10 + safeFloor * 2;
-}
-
-function interpolateDifficulty(
-  floor: number,
-  anchors: readonly (readonly [number, number])[],
-): number {
-  const upperIndex = anchors.findIndex(([anchorFloor]) => floor <= anchorFloor);
-  if (upperIndex < 0) {
-    const [previousFloor, previousDifficulty] = anchors.at(-2)!;
-    const [lastFloor, lastDifficulty] = anchors.at(-1)!;
-    return Math.round(lastDifficulty
-      + (floor - lastFloor) * ((lastDifficulty - previousDifficulty) / (lastFloor - previousFloor)));
-  }
-  const [lowerFloor, lowerDifficulty] = anchors[upperIndex - 1];
-  const [upperFloor, upperDifficulty] = anchors[upperIndex];
-  const ratio = (floor - lowerFloor) / (upperFloor - lowerFloor);
-  return Math.round(lowerDifficulty + (upperDifficulty - lowerDifficulty) * ratio);
-}
-
-export function getDungeonChallengeDifficulty(
-  floor: number,
-  profile: DungeonChallengeDefinition["difficultyProfile"],
-): number {
-  const safeFloor = Math.max(1, Math.floor(Number.isFinite(floor) ? floor : 1));
-  if (safeFloor <= 10) return getHistoricalDungeonChallengeDifficulty(safeFloor);
-  return interpolateDifficulty(
-    safeFloor,
-    profile === "luck" ? LUCK_DIFFICULTY_ANCHORS : STANDARD_DIFFICULTY_ANCHORS,
-  );
-}
 
 export function getDungeonChallengeSuccessProbability(
   score: number,

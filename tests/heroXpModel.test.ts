@@ -22,12 +22,21 @@ function countingRng() {
 
 describe("active hero XP model", () => {
   it("activates the harmonized T0/T1 anchors", () => {
-    expect(CURRENT_HERO_PROGRESSION_MODEL_ID).toBe("harmonized-t0-t1-v1");
+    expect(CURRENT_HERO_PROGRESSION_MODEL_ID).toBe("harmonized-level-bands-v2");
     expect(calculateXpNeeded(2, "Novice")).toBe(100);
     expect(calculateXpNeeded(10, "Novice")).toBe(816);
     expect(calculateXpNeeded(11, "Guerrier")).toBe(1_061);
     expect(calculateXpNeeded(30, "Guerrier")).toBe(33_897);
     expect(calculateXpNeeded(35, "Guerrier")).toBe(84_347);
+  });
+
+  it("uses the same active curve at every class tier", () => {
+    for (const destinationLevel of [2, 10, 11, 20, 21, 35, HERO_MAX_LEVEL]) {
+      expect(calculateXpNeeded(destinationLevel, "Novice"))
+        .toBe(calculateXpNeeded(destinationLevel, "Guerrier"));
+      expect(calculateXpNeeded(destinationLevel, "Mage"))
+        .toBe(calculateXpNeeded(destinationLevel, "Guerrier"));
+    }
   });
 
   it("keeps costs monotonic and finite through level 99", () => {

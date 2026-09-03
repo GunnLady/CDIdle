@@ -1,4 +1,4 @@
-import { RaceInfo, ClassInfo } from "../contracts/game.ts";
+import type { RaceInfo, ClassInfo } from "../contracts/game.ts";
 import { CANONICAL_HERO_CLASS_TIERS } from "../domain/hero-classes.ts";
 
 export const RACE_INFO_LIST: RaceInfo[] = [
@@ -178,4 +178,3 @@ export const FEMALE_FIRST_NAMES = [
   "Bronda", "Drusilla", "Elysia", "Fiona", "Hesper", "Lumina", "Nesta", "Rowan", "Talia", 
   "Vesper", "Ysolde", "Beatrix", "Aurelia", "Geneviève", "Morgane", "Sybille"
 ];
-

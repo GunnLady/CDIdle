@@ -24,11 +24,13 @@ de l équipement ou du déséquipement d un objet. La récupération 20 % PV / 3
 PM est appliquée une fois par récompense, même si elle provoque plusieurs
 niveaux.
 
-Le modèle actif `harmonized-t0-t1-v1` est déclaré dans
-`shared/data/hero-progression-models.ts`. T0 part de `100 XP` et croît à
-`1.30`; T1 est ancré à `1 061 XP` pour le passage 10 vers 11 puis croît à
-`1.20`. Le niveau maximal absolu est 99. Aucun plafond T1 au niveau 35 n'est
-appliqué tant que la quête et la transition T2 n'existent pas.
+Le modèle actif `harmonized-level-bands-v2` est déclaré dans
+`shared/data/hero-progression-models.ts`. La courbe dépend uniquement du niveau,
+jamais du tier de la classe : les passages vers les niveaux 2 à 10 partent de
+`100 XP` et croissent à `1.30`; le passage 10 vers 11 est ancré à `1 061 XP`,
+puis les seuils croissent à `1.20`. Un Novice et un héros T1 de même niveau ont
+donc toujours le même seuil. Le niveau maximal absolu est 99. Aucun plafond T1
+au niveau 35 n'est appliqué tant que la quête et la transition T2 n'existent pas.
 
 `xpNeeded` reste persisté pour la compatibilité du contrat, mais constitue un
 cache dérivé appartenant au domaine XP. Les statistiques de combat et le seuil
@@ -36,11 +38,15 @@ d'XP sont recalculés par deux fonctions distinctes. Le chargement d'un ancien
 modèle conserve le pourcentage de la barre courante, ne donne aucun niveau et
 ne consomme aucun RNG.
 
-Les récompenses d'XP des combats, boss, premiers clears et rencontres
-non-combat sont centralisées dans `shared/domain/dungeon-xp-rewards.ts`. Leur
-extraction ne change pas leurs valeurs. Les futures hausses de gains devront
-être portées par le contenu débloqué et non par un multiplicateur invisible du
-tier du héros.
+Les récompenses d'XP des combats, élites, boss majeurs, premiers clears et
+rencontres non-combat sont centralisées dans
+`shared/domain/dungeon-xp-rewards.ts`. Le modèle actif `level-aligned-v2`
+aligne leur budget sur l'étage et applique un multiplicateur explicite par
+source. Chaque héros actif et vivant reçoit la part prévue par la table de
+groupe historique (35 % du pool chacun à quatre) ; le bonus Humain de 15 %
+s'applique ensuite individuellement. Les détails et la validation des
+deux courbes sont documentés dans
+`docs/architecture/dungeon-xp-economy.md`.
 
 Pour un Novice, les statistiques prioritaires sont les trois `baseStats` les
 plus élevées au début de chaque niveau. Equipement, passifs et statistiques
@@ -86,9 +92,9 @@ champs déclarés ne donne pas un avantage structurel. Une fenêtre relative de
 si elle produit une prière.
 
 Une prière est un résultat explicite de `resolveClassTransition`, persisté
-dans `pendingClassTransitions`. Elle suspend uniquement le héros concerné et
-ne consomme pas les tirages réservés à la transition. La politique de tier est
-appliquée après `hero.choose_vocation`, à partir des candidats persistés. Le
+dans `pendingClassTransitions`. Elle ne suspend ni le héros concerné ni
+l'auto-donjon et ne consomme pas les tirages réservés à la transition. La
+politique de tier est appliquée après `hero.choose_vocation`, à partir des candidats persistés. Le
 registre de résolveurs et de politiques permet d'ajouter les transitions
 `1->2`, `2->3` et `3->4` sans déplacer la progression dans le donjon ni imposer
 une réécriture purement fonctionnelle des modules existants.
