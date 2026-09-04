@@ -28,17 +28,17 @@ export default function SelectedBuildingPanel({ building, canMutate, onUpgrade }
       <div><h4 className="font-serif text-base font-bold text-[#dfdbc7]">{building.name}</h4><p className="font-mono text-[10px] uppercase tracking-wider text-[#8f8376]">{building.level === 0 ? "Non bâti" : `Niveau ${building.level}/${building.maxLevel}`}</p></div>
     </div>}
     <div className="space-y-3">
-      <div className={`flex flex-col gap-3 ${building.unlocked && !building.atMaxLevel ? "sm:flex-row sm:items-stretch" : ""}`}>
+      <div className={`flex flex-col gap-3 ${building.upgradeUnlocked && !building.atMaxLevel ? "sm:flex-row sm:items-stretch" : ""}`}>
         <div className="ui-building-cost-vellum min-w-0 px-5 py-2 sm:flex-1">
           <p data-building-description className="text-[11px] leading-relaxed text-[#3f3529]">{building.description}</p>
-          {building.unlocked && !building.atMaxLevel && <div className="mt-2 border-t border-[#766044]/45 pt-1.5">
+          {building.upgradeUnlocked && !building.atMaxLevel && <div className="mt-2 border-t border-[#766044]/45 pt-1.5">
             <span className="mb-1 block font-mono text-[8.5px] font-bold uppercase tracking-widest text-[#57432d]">Coût {building.level === 0 ? "de construction" : "d'amélioration"} :</span>
             <div className="flex flex-wrap gap-x-5 gap-y-2 font-mono text-[10px]">{costs.map(([resource, value]) => <span key={resource} className="font-bold uppercase text-[#263b45]">{getResourceLabel(resource)} {formatResourceValue(value)}</span>)}</div>
           </div>}
         </div>
-        {building.unlocked && !building.atMaxLevel && <Button type="button" variant="primary" block onClick={() => onUpgrade(building.id)} disabled={!canMutate || !building.affordable} className="ui-building-upgrade-button sm:min-h-14 sm:w-48 sm:self-end">{building.level === 0 ? "Bâtir" : "Améliorer"}</Button>}
+        {building.upgradeUnlocked && !building.atMaxLevel && <Button type="button" variant="primary" block onClick={() => onUpgrade(building.id)} disabled={!canMutate || !building.affordable} className="ui-building-upgrade-button sm:min-h-14 sm:w-48 sm:self-end">{building.level === 0 ? "Bâtir" : "Améliorer"}</Button>}
       </div>
-      {!building.unlocked ? <Alert variant="locked" className="flex items-start gap-2 font-mono text-xs"><Lock className="h-4 w-4 shrink-0" /><span>Requis : {building.prerequisite}</span></Alert>
+      {!building.upgradeUnlocked && !building.atMaxLevel ? <Alert variant="locked" className="flex items-start gap-2 font-mono text-xs"><Lock className="h-4 w-4 shrink-0" /><span>Requis : {building.prerequisite}</span></Alert>
         : building.atMaxLevel ? <Alert variant="success" className="text-center font-serif text-xs font-extrabold uppercase tracking-wider">👑 Bâtiment au niveau maximum</Alert>
         : null}
     </div>

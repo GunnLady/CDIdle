@@ -29,7 +29,12 @@ export default function StorageToolbar(props: { filters: StorageFilters; onChang
       <div id="storage-advanced-filters" className={`${advancedOpen ? "grid" : "hidden"} col-span-full grid-cols-1 gap-2 sm:grid-cols-2 xl:contents`}>
         <Select aria-label="Type d’objet" value={props.filters.itemType} onChange={(event) => update("itemType", event.target.value)}><option value="all">Tous les types</option>{itemTypes.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</Select>
         <Select aria-label="Rareté" value={props.filters.rarity} onChange={(event) => update("rarity", event.target.value)}><option value="all">Toutes les raretés</option>{rarities.map((rarity) => <option key={rarity} value={rarity}>{rarity.toUpperCase()}</option>)}</Select>
-        <Select aria-label="Tranche de niveau requis" value={props.filters.levelRange} onChange={(event) => update("levelRange", event.target.value as StorageLevelRange)}><option value="all">Tous les niveaux</option><option value="1-9">Niveaux 1–9</option><option value="10-19">Niveaux 10–19</option><option value="20-29">Niveaux 20–29</option><option value="30+">Niveaux 30+</option></Select>
+        <Select aria-label="Tranche de niveau requis" value={props.filters.levelRange} onChange={(event) => update("levelRange", event.target.value as StorageLevelRange)}>
+          <option value="all">Tous les niveaux</option>
+          {['1-5', '6-10', '11-15', '16-20', '21-25', '26-30', '31-35', '36-40'].map((range) => (
+            <option key={range} value={range}>Niveaux {range.replace('-', '–')}</option>
+          ))}
+        </Select>
         <Select aria-label="Critère de tri" value={props.filters.sortKey} onChange={(event) => update("sortKey", event.target.value as StorageSortKey)}><option value="none">Ordre du coffre</option><option value="rarity">Trier par rareté</option><option value="requiredLevel">Trier par niveau requis</option><option value="name">Trier par nom</option></Select>
         <Select aria-label="Direction du tri" value={props.filters.sortDirection} onChange={(event) => update("sortDirection", event.target.value as StorageSortDirection)} disabled={props.filters.sortKey === "none"}><option value="asc">Croissant</option><option value="desc">Décroissant</option></Select>
         <Button type="button" size="sm" disabled={!hasActiveStorageFilters(props.filters)} onClick={() => props.onChange({ ...defaultStorageFilters })}>Réinitialiser</Button>

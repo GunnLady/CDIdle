@@ -1,6 +1,6 @@
 import { RARITY_ORDER, getItemById } from "../../shared/domain/items/items";
 import type { Hero, ItemInfo, StoredForgeMaterialStack, StoredItemInstance } from "../types";
-import { applyItemRarityScaling, FORGE_MATERIALS } from "../utils/gameCalculations";
+import { FORGE_MATERIALS } from "../utils/gameCalculations";
 import {
   createEquipmentCandidateTargetView,
   createEquipmentItemView,
@@ -13,7 +13,8 @@ import type { HeroPortraitView } from "./heroPortrait";
 
 export type StorageSortKey = "none" | "rarity" | "requiredLevel" | "name";
 export type StorageSortDirection = "asc" | "desc";
-export type StorageLevelRange = "all" | "1-9" | "10-19" | "20-29" | "30+";
+export type StorageLevelRange = 'all' | '1-5' | '6-10' | '11-15' | '16-20'
+  | '21-25' | '26-30' | '31-35' | '36-40';
 
 export interface StorageFilters {
   searchTerm: string;
@@ -69,8 +70,8 @@ export function resolveStorageItems(storedItems: StoredItemInstance[]): Resolved
   return storedItems.flatMap((instance): ResolvedStorageItem[] => {
     const baseItem = getItemById(instance.itemId);
     if (!baseItem) return [];
-    const item = applyItemRarityScaling(baseItem, instance.rarity);
-    if (instance.modifiers?.length) item.modifiers = instance.modifiers.map((modifier) => ({ ...modifier }));
+    const item = resolveStoredEquipmentItem(instance);
+    if (!item) return [];
     return [{ ...instance, item }];
   });
 }
@@ -133,11 +134,9 @@ export function createStorageSummaryView(
 }
 
 function matchesLevel(requiredLevel: number, range: StorageLevelRange): boolean {
-  if (range === "all") return true;
-  if (range === "1-9") return requiredLevel >= 1 && requiredLevel <= 9;
-  if (range === "10-19") return requiredLevel >= 10 && requiredLevel <= 19;
-  if (range === "20-29") return requiredLevel >= 20 && requiredLevel <= 29;
-  return requiredLevel >= 30;
+  if (range === 'all') return true;
+  const [minimum, maximum] = range.split('-').map(Number);
+  return requiredLevel >= minimum && requiredLevel <= maximum;
 }
 
 export function filterAndSortStorageItems(items: ResolvedStorageItem[], filters: StorageFilters): ResolvedStorageItem[] {

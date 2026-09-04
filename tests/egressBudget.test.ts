@@ -11,7 +11,7 @@ import {
   type CanonicalGameState,
 } from "../shared/contracts/authoritative";
 import { initialTownState } from "../supabase/functions/game-api/town-authority";
-import { makeHero } from "./fixtures/game";
+import { makeHero, makeStoredItem } from "./fixtures/game";
 
 const serverTime = "2026-08-20T12:00:00.000Z";
 const commitMetadata = {
@@ -64,7 +64,7 @@ function representativeState(options: {
       equipment: {},
       isActive: index < 3,
     })),
-    storedItems: Array.from({ length: storedItemCount }, (_, index) => ({
+    storedItems: Array.from({ length: storedItemCount }, (_, index) => makeStoredItem({
       instanceId: "stored-" + index,
       itemId: "starter_sword",
       rarity: "common" as const,

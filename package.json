@@ -62,6 +62,8 @@
     "test:dungeon-simulation": "vitest run tests/dungeonRulesSimulation.test.ts tests/dungeonEncounterRules.test.ts --reporter=verbose",
     "test:xp-simulation": "vitest run tests/heroXpProgressionSimulation.test.ts --reporter=verbose",
     "test:xp-tier1": "node --experimental-strip-types scripts/run-xp-tier1-shards.mjs",
+    "test:item-progression": "node --experimental-strip-types scripts/run-xp-tier1-shards.mjs",
+    "test:forge-progression": "node --experimental-strip-types scripts/run-forge-progression-shards.mjs",
     "test:xp-tier1:shard": "vitest run tests/heroXpTier1Simulation.test.ts --reporter=verbose",
     "test:xp-tier-projection": "vitest run tests/heroXpTierEconomyProjection.test.ts --reporter=verbose",
     "test:dungeon-challenge-simulation": "vitest run tests/dungeonChallengeRules.test.ts tests/dungeonChallengeSimulation.test.ts tests/dungeonChallengeAuthoritative.test.ts --reporter=verbose",

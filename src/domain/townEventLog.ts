@@ -60,11 +60,8 @@ export function formatCanonicalTownEvent(event: Record<string, unknown>): TownEv
   }
   if (event.type === "forge.preview_created") {
     const item = getItemById(String(event.itemId));
-    const opportunity = event.upgradeProc === "rare"
-      ? "amélioration rare disponible"
-      : event.upgradeProc === "uncommon"
-        ? "amélioration inhabituelle disponible"
-        : "aucune amélioration détectée";
+    const rarity = RARITY_LABELS[String(event.offeredRarity)] ?? event.offeredRarity;
+    const opportunity = rarity ? `qualité ${rarity} proposée` : "qualité standard proposée";
     return { message: `🔥 Forge : ${item?.name ?? event.itemId} prêt, ${opportunity}.`, type: "info" };
   }
   if (event.type === "forge.finalized") {

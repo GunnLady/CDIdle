@@ -9,7 +9,7 @@ import {
 } from "../src/domain/optimisticStateProjection";
 import { applyTownCommand, initialTownState } from "../supabase/functions/game-api/town-authority";
 import { refreshHeroDerivedStats } from "../src/utils/gameCalculations";
-import { makeHero } from "./fixtures/game";
+import { makeHero, makeStoredItem } from "./fixtures/game";
 
 type ParityScenarioMap = {
   [T in OptimisticCommandType]: {
@@ -19,7 +19,7 @@ type ParityScenarioMap = {
 };
 
 const richResources = { gold: 10_000, food: 10_000, wood: 10_000, stone: 10_000, ore: 10_000 };
-const storedSword = { instanceId: "item-parity-sword", itemId: "starter_sword", rarity: "common" as const };
+const storedSword = makeStoredItem({ instanceId: "item-parity-sword", itemId: "starter_sword", rarity: "common" });
 
 const PARITY_SCENARIOS = {
   "citizens.allocate": {
@@ -130,7 +130,7 @@ describe("optimistic and authoritative parity matrix", () => {
       currentHp: Math.max(1, Math.floor(baseline.calculatedStats.maxHp / 2)),
       currentMana: Math.floor(baseline.calculatedStats.maxMana / 2),
     };
-    const instance = { instanceId: `item-${itemId}`, itemId, rarity: "common" as const };
+    const instance = makeStoredItem({ instanceId: `item-${itemId}`, itemId, rarity: "common" });
     const state = { ...initialTownState(42), heroes: [hero], storedItems: [instance] };
 
     expectEquipmentParity(state, {
@@ -141,8 +141,8 @@ describe("optimistic and authoritative parity matrix", () => {
   });
 
   it("returns the off-hand item when equipping a two-handed weapon", () => {
-    const shield = { instanceId: "item-parity-shield", itemId: "wooden_shield", rarity: "common" as const };
-    const greatsword = { instanceId: "item-parity-greatsword", itemId: "basic_greatsword", rarity: "common" as const };
+    const shield = makeStoredItem({ instanceId: "item-parity-shield", itemId: "wooden_shield", rarity: "common" });
+    const greatsword = makeStoredItem({ instanceId: "item-parity-greatsword", itemId: "basic_greatsword", rarity: "common" });
     const hero = refreshHeroDerivedStats(makeHero({
       id: "hero-two-handed-parity",
       level: 10,
@@ -158,8 +158,8 @@ describe("optimistic and authoritative parity matrix", () => {
   });
 
   it("keeps optimistic and authoritative occupied-slot replacement aligned", () => {
-    const oldSword = { instanceId: "item-parity-old", itemId: "starter_sword", rarity: "common" as const };
-    const dagger = { instanceId: "item-parity-new", itemId: "quick_dagger", rarity: "common" as const };
+    const oldSword = makeStoredItem({ instanceId: "item-parity-old", itemId: "starter_sword", rarity: "common" });
+    const dagger = makeStoredItem({ instanceId: "item-parity-new", itemId: "quick_dagger", rarity: "common" });
     const hero = refreshHeroDerivedStats(makeHero({
       id: "hero-replacement-parity",
       equipment: { mainHand: oldSword, offHand: null, armor: null, accessory: null },

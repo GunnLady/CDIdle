@@ -29,8 +29,8 @@ describe("authoritative shared contracts", () => {
 
   it("rejects unsupported command types", () => {
     expect(validateCanonicalCommandEnvelope({ ...validEnvelope, command: { type: "building.upgrade_local" } })).toContain("unsupported command type");
-    expect(validateCanonicalCommandEnvelope({ ...validEnvelope, command: { type: "inventory.add", itemId: "starter_sword", rarity: "legendary", count: 1 } })).toContain("unsupported command type");
-    expect(validateCanonicalCommandEnvelope({ ...validEnvelope, command: { type: "inventory.remove", itemId: "starter_sword", rarity: "common", count: 1 } })).toContain("unsupported command type");
+    expect(validateCanonicalCommandEnvelope({ ...validEnvelope, command: { type: "inventory.add", itemId: "starter_sword", itemLevel: 1, powerModelId: "legacy-fixed-v1", rarity: "legendary", count: 1 } })).toContain("unsupported command type");
+    expect(validateCanonicalCommandEnvelope({ ...validEnvelope, command: { type: "inventory.remove", itemId: "starter_sword", itemLevel: 1, powerModelId: "legacy-fixed-v1", rarity: "common", count: 1 } })).toContain("unsupported command type");
   });
 
   it("validates the bounded automatic dungeon advance payload", () => {
@@ -60,7 +60,7 @@ describe("authoritative shared contracts", () => {
   });
 
   it("strictly validates forge and inventory payloads", () => {
-    expect(validateCanonicalCommandEnvelope({ ...validEnvelope, command: { type: "inventory.recycle", itemId: "starter_sword", rarity: "mythic" } })).toEqual(expect.arrayContaining(["command contains unsupported fields", "command.instanceId is required"]));
+    expect(validateCanonicalCommandEnvelope({ ...validEnvelope, command: { type: "inventory.recycle", itemId: "starter_sword", itemLevel: 1, powerModelId: "legacy-fixed-v1", rarity: "mythic" } })).toEqual(expect.arrayContaining(["command contains unsupported fields", "command.instanceId is required"]));
     expect(validateCanonicalCommandEnvelope({ ...validEnvelope, command: { type: "inventory.recycle", instanceId: "item-1" } })).toEqual([]);
     expect(validateCanonicalCommandEnvelope({ ...validEnvelope, command: { type: "hero.equip", heroId: "hero-1", instanceId: "item-1" } })).toEqual([]);
     expect(validateCanonicalCommandEnvelope({ ...validEnvelope, command: { type: "forge.finalize", previewId: "preview", accepted: false } })).toContain("command contains unsupported fields");
@@ -97,7 +97,7 @@ describe("authoritative shared contracts", () => {
         equipment: {
           mainHand: {
             instanceId: "invalid-modifier",
-            itemId: "starter_sword",
+            itemId: "starter_sword", itemLevel: 1, powerModelId: "legacy-fixed-v1",
             rarity: "common",
             modifiers: [{ stat: "physicalDamage", value: 1 }],
           },
@@ -161,10 +161,10 @@ describe("authoritative shared contracts", () => {
       stateVersion: CURRENT_CANONICAL_STATE_VERSION,
       heroProgressionModelId: "harmonized-level-bands-v2",
       resources: {}, buildings: {}, citizens: {}, districts: {}, heroes: [], encounterHistory: [],
-      storedItems: [{ itemId: "starter_sword", rarity: "mythic", count: 0, modifiers: [{ stat: "speed", value: Number.NaN }] }],
+      storedItems: [{ itemId: "starter_sword", itemLevel: 1, powerModelId: "legacy-fixed-v1", rarity: "mythic", count: 0, modifiers: [{ stat: "speed", value: Number.NaN }] }],
       forgeMaterials: [{ materialId: "metal_scrap", rarity: "common", count: -1 }],
       itemBlueprints: [{ itemId: "starter_sword", unlocked: "yes" }],
-      pendingForge: { previewId: "preview", recipeId: "starter_sword", itemId: "starter_sword", itemType: "trinket", upgradeProc: "forced" },
+      pendingForge: { previewId: "preview", recipeId: "starter_sword", itemId: "starter_sword", itemType: "trinket", offeredRarity: "forced" },
       totalCitizensCount: 3, activeDungeonFloor: 1, activeDungeonRoom: 1,
       highestFloorReached: 1, citizenGrowthProgress: 0, autoExplore: false,
       currentEncounter: null,
@@ -178,14 +178,14 @@ describe("authoritative shared contracts", () => {
       "forgeMaterials[0].count must be a positive integer",
       "itemBlueprints[0].unlocked must be a boolean",
       "pendingForge.itemType is invalid",
-      "pendingForge.upgradeProc is invalid",
+      "pendingForge.offeredRarity is invalid",
     ]));
   });
 
   it("rejects duplicate item instances across storage and hero equipment", () => {
     const hero = makeHero({
       equipment: {
-        mainHand: { instanceId: "item-duplicate", itemId: "starter_sword", rarity: "common" },
+        mainHand: { instanceId: "item-duplicate", itemId: "starter_sword", itemLevel: 1, powerModelId: "legacy-fixed-v1", rarity: "common" },
         offHand: null,
         armor: null,
         accessory: null,
@@ -193,7 +193,7 @@ describe("authoritative shared contracts", () => {
     });
     const errors = validateCanonicalGameState({
       resources: {}, buildings: {}, citizens: {}, districts: {}, heroes: [hero],
-      storedItems: [{ instanceId: "item-duplicate", itemId: "starter_sword", rarity: "common" }],
+      storedItems: [{ instanceId: "item-duplicate", itemId: "starter_sword", itemLevel: 1, powerModelId: "legacy-fixed-v1", rarity: "common" }],
       forgeMaterials: [], itemBlueprints: [], encounterHistory: [],
       totalCitizensCount: 3, activeDungeonFloor: 1, activeDungeonRoom: 1,
       highestFloorReached: 1, citizenGrowthProgress: 0, autoExplore: false,

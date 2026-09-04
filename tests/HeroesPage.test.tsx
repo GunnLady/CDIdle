@@ -89,7 +89,7 @@ describe("HeroesPage", () => {
       equipment: {
         mainHand: {
           instanceId: "item-equipped-12345678",
-          itemId: "starter_sword",
+          itemId: "starter_sword", itemLevel: 1, powerModelId: "legacy-fixed-v1" as const,
           rarity: "uncommon",
           modifiers: [{ stat: "criticalChance", type: "flat", value: 1 }],
         },
@@ -134,8 +134,8 @@ describe("HeroesPage", () => {
       onEquipItem={onEquipItem}
       onUnequipItem={vi.fn()}
       storedItems={[
-        { instanceId: "item-first", itemId: "starter_sword", rarity: "common" },
-        { instanceId: "item-second", itemId: "starter_sword", rarity: "common" },
+        { instanceId: "item-first", itemId: "starter_sword", itemLevel: 1, powerModelId: "legacy-fixed-v1" as const, rarity: "common" },
+        { instanceId: "item-second", itemId: "starter_sword", itemLevel: 1, powerModelId: "legacy-fixed-v1" as const, rarity: "common" },
       ]}
       {...navigationProps}
     />);
@@ -149,7 +149,7 @@ describe("HeroesPage", () => {
   it("shows and submits an atomic occupied-slot replacement", () => {
     const hero = makeHero({
       equipment: {
-        mainHand: { instanceId: "old-sword", itemId: "starter_sword", rarity: "common" },
+        mainHand: { instanceId: "old-sword", itemId: "starter_sword", itemLevel: 1, powerModelId: "legacy-fixed-v1" as const, rarity: "common" },
         offHand: null,
         armor: null,
         accessory: null,
@@ -165,7 +165,7 @@ describe("HeroesPage", () => {
       onRecruitHero={vi.fn()}
       onEquipItem={onEquipItem}
       onUnequipItem={vi.fn()}
-      storedItems={[{ instanceId: "new-dagger", itemId: "quick_dagger", rarity: "common" }]}
+      storedItems={[{ instanceId: "new-dagger", itemId: "quick_dagger", itemLevel: 1, powerModelId: "legacy-fixed-v1" as const, rarity: "common" }]}
       {...navigationProps}
     />);
 
@@ -214,7 +214,7 @@ describe("HeroesPage", () => {
       onToggleHeroActive: vi.fn(),
       onRecruitHero: vi.fn(),
       onEquipItem: vi.fn(),
-      storedItems: [{ instanceId: "stored-sword", itemId: "starter_sword", rarity: "common" as const }],
+      storedItems: [{ instanceId: "stored-sword", itemId: "starter_sword", itemLevel: 1, powerModelId: "legacy-fixed-v1" as const, rarity: "common" as const }],
       ...navigationProps,
     };
     const { rerender } = render(<HeroesPage {...baseProps} resources={makeResources({ gold: 100 })} />);

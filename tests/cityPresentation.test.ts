@@ -16,8 +16,10 @@ describe("createCityDashboardView", () => {
 
     for (const buildingId of ["guilde", "caserne", "forge"]) {
       expect(view.buildings.find((building) => building.id === buildingId)).toMatchObject({ unlocked: true });
-      expect(view.buildings.find((building) => building.id === buildingId)?.prerequisite).toBeUndefined();
     }
+    expect(view.buildings.find((building) => building.id === "caserne")?.prerequisite).toBeUndefined();
+    expect(view.buildings.find((building) => building.id === "guilde")?.prerequisite).toBe("Carrière Niv. 1");
+    expect(view.buildings.find((building) => building.id === "forge")?.prerequisite).toBe("Étage atteint 8");
   });
 
   it("projects precise building categories", () => {

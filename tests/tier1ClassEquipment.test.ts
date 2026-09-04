@@ -9,7 +9,7 @@ import {
 import { grantTier1ClassEquipment } from "../src/domain/tier1ClassEquipmentReward";
 import { getItemById } from "../shared/domain/items/items";
 import { getHeroStats } from "../src/utils/gameCalculations";
-import { makeHero } from "./fixtures/game";
+import { makeHero, makeStoredItem } from "./fixtures/game";
 
 const CLASS_TYPES = Object.keys(TIER1_CLASS_EQUIPMENT_POOLS) as Tier1ClassType[];
 
@@ -74,7 +74,13 @@ describe("Tier 1 class equipment pools", () => {
       expect(getHeroStats({
         ...hero,
         equipment: {
-          accessory: { instanceId: `test-${itemId}`, itemId, rarity: "common" },
+          accessory: {
+            instanceId: `test-${itemId}`,
+            itemId,
+            itemLevel: item!.requiredLevel,
+            powerModelId: item!.powerModelId,
+            rarity: "common",
+          },
         },
       }), itemId).not.toEqual(baseline);
     }
@@ -101,12 +107,12 @@ describe("Tier 1 class equipment pools", () => {
       level: 10,
       classType: "Guerrier",
       equipment: {
-        mainHand: { instanceId: "old-weapon", itemId: "starter_sword", rarity: "common" },
-        offHand: { instanceId: "old-shield", itemId: "wooden_shield", rarity: "common" },
-        accessory: { instanceId: "old-accessory", itemId: "lucky_charm", rarity: "common" },
+        mainHand: { instanceId: "old-weapon", itemId: "starter_sword", itemLevel: 1, powerModelId: "legacy-fixed-v1" as const, rarity: "common" },
+        offHand: { instanceId: "old-shield", itemId: "wooden_shield", itemLevel: 1, powerModelId: "legacy-fixed-v1" as const, rarity: "common" },
+        accessory: { instanceId: "old-accessory", itemId: "lucky_charm", itemLevel: 10, powerModelId: "legacy-fixed-v1" as const, rarity: "common" },
       },
     });
-    const storedItems: Array<{ instanceId: string; itemId: string; rarity: "common" }> = [];
+    const storedItems: Array<ReturnType<typeof makeStoredItem>> = [];
     const draws = [3, 0]; // basic_spear (two-handed), sturdy_travel_belt
     const result = grantTier1ClassEquipment(hero, "Guerrier", {
       nextInt: () => draws.shift() ?? 0,
@@ -131,8 +137,8 @@ describe("Tier 1 class equipment pools", () => {
   it("reuses deterministic reward instances already stored instead of duplicating them", () => {
     const hero = makeHero({ id: "hero-aede", level: 10, classType: "Aède", equipment: {} });
     const storedItems = [
-      { instanceId: "item:hero-aede:tier1:weapon", itemId: "basic_lute", rarity: "common" as const },
-      { instanceId: "item:hero-aede:tier1:accessory", itemId: "silver_ring", rarity: "common" as const },
+      { instanceId: "item:hero-aede:tier1:weapon", itemId: "basic_lute", itemLevel: 10, powerModelId: "legacy-fixed-v1" as const, rarity: "common" as const },
+      { instanceId: "item:hero-aede:tier1:accessory", itemId: "silver_ring", itemLevel: 10, powerModelId: "legacy-fixed-v1" as const, rarity: "common" as const },
     ];
     const result = grantTier1ClassEquipment(hero, "Aède", { nextInt: () => 0 }, storedItems);
 
@@ -145,8 +151,8 @@ describe("Tier 1 class equipment pools", () => {
   it("keeps another instance of the selected model and still grants the deterministic reward", () => {
     const hero = makeHero({ id: "hero-aede", level: 10, classType: "A\u00e8de", equipment: {} });
     const storedItems = [
-      { instanceId: "loot-lute", itemId: "basic_lute", rarity: "common" as const },
-      { instanceId: "loot-ring", itemId: "silver_ring", rarity: "common" as const },
+      { instanceId: "loot-lute", itemId: "basic_lute", itemLevel: 10, powerModelId: "legacy-fixed-v1" as const, rarity: "common" as const },
+      { instanceId: "loot-ring", itemId: "silver_ring", itemLevel: 10, powerModelId: "legacy-fixed-v1" as const, rarity: "common" as const },
     ];
     const result = grantTier1ClassEquipment(hero, "A\u00e8de", { nextInt: () => 0 }, storedItems);
 

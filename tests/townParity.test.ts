@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { createHash } from "node:crypto";
 import {
   applyTownCommand,
   initialTownState,
@@ -10,6 +11,7 @@ import {
   BUILDING_UNLOCKS,
   getBuildingMaxLevel,
   getBuildingUpgradeCost,
+  getBuildingUpgradeRequirement,
 } from "../src/data/buildings";
 import { validateAuthoritativeTownState } from "../src/domain/authoritativeTownValidation";
 import { makeHero } from "./fixtures/game";
@@ -23,6 +25,20 @@ const richState = () => {
 };
 
 describe("authoritative town parity", () => {
+  it("locks the consolidated building maxima, costs and target requirements", () => {
+    const snapshot = BUILDINGS_LIST.map((building) => {
+      const maxLevel = getBuildingMaxLevel(building.id);
+      return {
+        id: building.id,
+        maxLevel,
+        costs: Array.from({ length: maxLevel }, (_, level) => getBuildingUpgradeCost(building.id, level)),
+        requirements: Array.from({ length: maxLevel }, (_, level) => getBuildingUpgradeRequirement(building.id, level + 1)),
+      };
+    });
+    expect(createHash("sha256").update(JSON.stringify(snapshot)).digest("hex"))
+      .toBe("50c081d3e6fdd5d3abca313eafc26b1e740bd882647efb880a435547452fd4e5");
+  });
+
   it("uses the shared catalog cost and maximum for every building level", () => {
     for (const building of BUILDINGS_LIST) {
       const maxLevel = getBuildingMaxLevel(building.id);

@@ -2,6 +2,13 @@
 
 `src/domain/hero.ts` centralise les règles déterministes de recrutement et de progression :
 
+Les candidats d'onboarding, les offres de guilde et le recrutement direct
+utilisent tous `generateAuthoritativeNovice`. Leur équipement initial conserve
+les modèles historiques tirés par le serveur, avec des identités propres au
+héros, `itemLevel: 1` et `powerModelId: legacy-fixed-v1`. La progression des
+objets de donjon n'ajoute aucun tirage et ne modifie aucune statistique à ce
+parcours.
+
 - `recruitmentCost` calcule le coût selon le nombre de héros présents ;
 - `growHeroStats` reçoit un `Rng` injecté et ne dépend pas de `Math.random` ;
 - `applyHeroExperienceLevels` applique les niveaux multiples, récupère une

@@ -11,6 +11,9 @@ import { CLASS_INFO_LIST, RACE_INFO_LIST } from "../src/data/heroes";
 import {
   CHEST_LOOT_BANDS,
   ITEM_LIBRARY,
+  LEGACY_ITEM_EVOLUTION_TARGETS,
+  LEGACY_ITEM_LIBRARY,
+  PROGRESSION_ITEM_BASES,
   validateItemCatalog,
   validateUniqueItemIds,
 } from "../shared/domain/items/items";
@@ -24,10 +27,52 @@ import { OFF_HAND_INFO_LIST } from "../shared/domain/items/offhands";
 import { createAccessory, createArmor, createOffhand, createWeapon } from "../shared/domain/items/itemBuilders";
 import { buffEffect, damageEffect, debuffEffect, healEffect, lootModifierEffect, statModifierEffect } from "../src/data/skillBuilders";
 import { isHeroCombatModifierApplicable, isMonsterCombatModifierApplicable } from "../src/domain/combatEffects";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 
 const unique = (values: string[]) => new Set(values).size === values.length;
 
 describe("catalogue invariants", () => {
+  it("keeps every item in the frozen SQL v3 backfill snapshot resolvable", () => {
+    const migration = readFileSync(
+      resolve("supabase/migrations/20260904010000_item_level_progression_v3.sql"),
+      "utf8",
+    );
+    const synchronizedRegion = migration.match(
+      /-- ITEM_CATALOG_SYNC_START([\s\S]*?)-- ITEM_CATALOG_SYNC_END/,
+    )?.[1];
+    expect(synchronizedRegion, "missing SQL catalog synchronization markers").toBeTruthy();
+
+    const sqlLiterals = [...(synchronizedRegion ?? "").matchAll(/'([^']+)'/g)]
+      .map((match) => match[1])
+      .filter((value) => ![
+        "itemLevel", "powerModelId", "legacy-fixed-v1", "level-bands-v1",
+      ].includes(value));
+    const catalogIds = new Set(ITEM_LIBRARY.map((item) => item.id));
+
+    expect(sqlLiterals).toHaveLength(179);
+    expect(new Set(sqlLiterals).size).toBe(sqlLiterals.length);
+    expect(sqlLiterals.every((itemId) => catalogIds.has(itemId))).toBe(true);
+  });
+
+  it("keeps the SQL v4 legacy-plan mapping identical to the shared catalog", () => {
+    for (const migrationPath of [
+      "supabase/migrations/20260904020000_forge_progression_v4.sql",
+      "supabase/migrations/20260904030000_legacy_blueprint_evolution_catalog.sql",
+    ]) {
+      const migration = readFileSync(resolve(migrationPath), "utf8");
+      const synchronizedRegion = migration.match(
+        /-- LEGACY_BLUEPRINT_EVOLUTION_SYNC_START([\s\S]*?)-- LEGACY_BLUEPRINT_EVOLUTION_SYNC_END/,
+      )?.[1];
+      expect(synchronizedRegion, `missing SQL legacy blueprint synchronization markers in ${migrationPath}`).toBeTruthy();
+      const sqlMapping = Object.fromEntries(
+        [...(synchronizedRegion ?? "").matchAll(/\('([^']+)', '([^']+)'\)/g)]
+          .map((match) => [match[1], match[2]]),
+      );
+      expect(sqlMapping).toEqual(LEGACY_ITEM_EVOLUTION_TARGETS);
+    }
+  });
+
   it("keeps buildings unique, bounded and referenced consistently", () => {
     const ids = BUILDINGS_LIST.map((building) => building.id);
     expect(unique(ids)).toBe(true);
@@ -46,7 +91,13 @@ describe("catalogue invariants", () => {
   it("keeps item, race, class, skill and monster registries unique and valid", () => {
     expect(validateUniqueItemIds(ITEM_LIBRARY)).toEqual([]);
     expect(validateItemCatalog()).toEqual([]);
-    expect(ITEM_LIBRARY).toHaveLength(131);
+    expect(LEGACY_ITEM_LIBRARY).toHaveLength(131);
+    expect(PROGRESSION_ITEM_BASES).toHaveLength(48);
+    expect(ITEM_LIBRARY).toHaveLength(179);
+    expect(Object.keys(LEGACY_ITEM_EVOLUTION_TARGETS)).toHaveLength(LEGACY_ITEM_LIBRARY.length);
+    expect(Object.values(LEGACY_ITEM_EVOLUTION_TARGETS).every((itemId) => (
+      PROGRESSION_ITEM_BASES.some((item) => item.id === itemId)
+    ))).toBe(true);
     expect(ITEM_LIBRARY.every((item) => item.provenances.includes("chest") && item.provenances.includes("boss"))).toBe(true);
     for (const band of CHEST_LOOT_BANDS) {
       expect(Object.values(band.weights).reduce((sum, weight) => sum + weight, 0)).toBe(100);

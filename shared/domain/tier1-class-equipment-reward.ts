@@ -30,7 +30,15 @@ function takeExistingRewardInstance(
     if (stored.itemId !== itemId) throw new Error(`TIER1_REWARD_INSTANCE_COLLISION:${instanceId}`);
     return { ...stored };
   }
-  return { instanceId, itemId, rarity: "common" };
+  const definition = getItemById(itemId);
+  if (!definition) throw new Error(`INVALID_TIER1_REWARD_CATALOG:${itemId}`);
+  return {
+    instanceId,
+    itemId,
+    itemLevel: definition.requiredLevel,
+    powerModelId: definition.powerModelId,
+    rarity: 'common',
+  };
 }
 
 function storeDisplacedItem(

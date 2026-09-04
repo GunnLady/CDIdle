@@ -1,4 +1,5 @@
 import type { CitizenAllocation, DungeonEncounterType, Hero, Resources, StoredItemInstance } from "../../src/types";
+import { getItemById } from "../../shared/domain/items/items";
 
 export const makeResources = (overrides: Partial<Resources> = {}): Resources => ({
   gold: 100,
@@ -28,14 +29,32 @@ export const makeBuildings = (overrides: Record<string, number> = {}): Record<st
 
 export const makeEncounter = (type: DungeonEncounterType = "fight"): DungeonEncounterType => type;
 
-export const makeStoredItem = (overrides: Partial<StoredItemInstance> = {}): StoredItemInstance => ({
-  instanceId: "item-fixture",
-  itemId: "wooden_sword",
-  rarity: "common",
-  ...overrides,
-});
+const withCanonicalItemPower = <T extends { itemId: string }>(item: T): T & {
+  itemLevel: number;
+  powerModelId: "legacy-fixed-v1" | "level-bands-v1";
+} => {
+  const definition = getItemById(item.itemId);
+  return {
+    ...item,
+    itemLevel: "itemLevel" in item && Number.isInteger(item.itemLevel)
+      ? Number(item.itemLevel)
+      : definition?.requiredLevel ?? 1,
+    powerModelId: "powerModelId" in item && typeof item.powerModelId === "string"
+      ? item.powerModelId as "legacy-fixed-v1" | "level-bands-v1"
+      : definition?.powerModelId ?? "legacy-fixed-v1",
+  };
+};
 
-export const makeHero = (overrides: Partial<Hero> = {}): Hero => ({
+export const makeStoredItem = (overrides: Partial<StoredItemInstance> = {}): StoredItemInstance =>
+  withCanonicalItemPower({
+    instanceId: "item-fixture",
+    itemId: "wooden_sword",
+    rarity: "common",
+    ...overrides,
+  });
+
+export const makeHero = (overrides: Partial<Hero> = {}): Hero => {
+  const hero: Hero = ({
   id: "hero-fixture",
   name: "Héros fixture",
   race: "Humain",
@@ -71,4 +90,12 @@ export const makeHero = (overrides: Partial<Hero> = {}): Hero => ({
   },
   equipment: { mainHand: null, offHand: null, armor: null, accessory: null },
   ...overrides,
-});
+  });
+  hero.equipment = Object.fromEntries(
+    Object.entries(hero.equipment ?? {}).map(([slot, item]) => [
+      slot,
+      item ? withCanonicalItemPower(item) : null,
+    ]),
+  ) as Hero["equipment"];
+  return hero;
+};

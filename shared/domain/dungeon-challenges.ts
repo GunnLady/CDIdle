@@ -15,19 +15,19 @@ export type DungeonChallengeDifficultyResolver = (
   kind: DungeonChallengeKind,
 ) => number;
 
-export const DUNGEON_CHALLENGE_DIFFICULTY_MODEL_ID = "party-four-two-thirds-v1" as const;
+export const DUNGEON_CHALLENGE_DIFFICULTY_MODEL_ID = "party-four-two-thirds-v2" as const;
 
 type DungeonChallengeDifficultyAnchor = { floor: number; difficulty: number };
 
 export const DUNGEON_CHALLENGE_DIFFICULTY_ANCHORS: Readonly<
   Record<DungeonChallengeKind, readonly DungeonChallengeDifficultyAnchor[]>
 > = {
-  trap: [{ floor: 1, difficulty: 12 }, { floor: 10, difficulty: 29 }, { floor: 20, difficulty: 72 }, { floor: 25, difficulty: 80 }, { floor: 30, difficulty: 93 }, { floor: 40, difficulty: 110 }, { floor: 50, difficulty: 119 }, { floor: 60, difficulty: 132 }, { floor: 65, difficulty: 139 }, { floor: 99, difficulty: 139 }],
+  trap: [{ floor: 1, difficulty: 12 }, { floor: 10, difficulty: 29 }, { floor: 20, difficulty: 72 }, { floor: 25, difficulty: 80 }, { floor: 30, difficulty: 93 }, { floor: 40, difficulty: 110 }, { floor: 50, difficulty: 119 }, { floor: 60, difficulty: 133 }, { floor: 65, difficulty: 140 }, { floor: 99, difficulty: 140 }],
   enigma: [{ floor: 1, difficulty: 11 }, { floor: 10, difficulty: 29 }, { floor: 20, difficulty: 58 }, { floor: 25, difficulty: 70 }, { floor: 30, difficulty: 82 }, { floor: 40, difficulty: 100 }, { floor: 50, difficulty: 113 }, { floor: 60, difficulty: 125 }, { floor: 65, difficulty: 130 }, { floor: 70, difficulty: 133 }, { floor: 99, difficulty: 133 }],
   ambush: [{ floor: 1, difficulty: 12 }, { floor: 10, difficulty: 30 }, { floor: 20, difficulty: 53 }, { floor: 25, difficulty: 66 }, { floor: 30, difficulty: 77 }, { floor: 40, difficulty: 92 }, { floor: 50, difficulty: 106 }, { floor: 60, difficulty: 113 }, { floor: 99, difficulty: 113 }],
-  ritual: [{ floor: 1, difficulty: 11 }, { floor: 10, difficulty: 28 }, { floor: 20, difficulty: 63 }, { floor: 25, difficulty: 70 }, { floor: 30, difficulty: 84 }, { floor: 40, difficulty: 98 }, { floor: 50, difficulty: 113 }, { floor: 60, difficulty: 127 }, { floor: 70, difficulty: 135 }, { floor: 99, difficulty: 137 }],
+  ritual: [{ floor: 1, difficulty: 11 }, { floor: 10, difficulty: 28 }, { floor: 20, difficulty: 59 }, { floor: 25, difficulty: 70 }, { floor: 30, difficulty: 80 }, { floor: 40, difficulty: 97 }, { floor: 50, difficulty: 112 }, { floor: 60, difficulty: 126 }, { floor: 70, difficulty: 131 }, { floor: 99, difficulty: 131 }],
   obstacle: [{ floor: 1, difficulty: 12 }, { floor: 10, difficulty: 30 }, { floor: 20, difficulty: 58 }, { floor: 25, difficulty: 73 }, { floor: 30, difficulty: 81 }, { floor: 40, difficulty: 102 }, { floor: 50, difficulty: 116 }, { floor: 60, difficulty: 128 }, { floor: 70, difficulty: 142 }, { floor: 80, difficulty: 145 }, { floor: 99, difficulty: 145 }],
-  negotiation: [{ floor: 1, difficulty: 11 }, { floor: 10, difficulty: 29 }, { floor: 20, difficulty: 50 }, { floor: 25, difficulty: 53 }, { floor: 30, difficulty: 62 }, { floor: 40, difficulty: 67 }, { floor: 99, difficulty: 67 }],
+  negotiation: [{ floor: 1, difficulty: 11 }, { floor: 10, difficulty: 29 }, { floor: 20, difficulty: 50 }, { floor: 25, difficulty: 53 }, { floor: 30, difficulty: 62 }, { floor: 40, difficulty: 66 }, { floor: 99, difficulty: 66 }],
 };
 
 export const getCanonicalDungeonChallengeDifficulty: DungeonChallengeDifficultyResolver = (floor, kind) => {

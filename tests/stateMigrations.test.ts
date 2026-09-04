@@ -9,13 +9,19 @@ import {
   migrateCanonicalState,
 } from "../supabase/functions/game-api/state-migrations";
 import { initialTownState, migrateTownState } from "../supabase/functions/game-api/town-authority";
+import { applyForgeCommand } from "../supabase/functions/game-api/forge-authority";
 import {
   asLegacyUnversionedState,
-  currentV2GoldenAfter,
+  currentV4GoldenAfter,
   legacyV0GoldenBefore,
 } from "./fixtures/stateMigrations";
 import { makeHero } from "./fixtures/game";
 import { calculateXpNeeded } from "../shared/domain/hero-xp";
+import {
+  LEGACY_ITEM_EVOLUTION_TARGETS,
+  LEGACY_ITEM_LIBRARY,
+  PROGRESSION_ITEM_BASES,
+} from "../shared/domain/items/items";
 import {
   LEGACY_HERO_PROGRESSION_MODEL,
   PUBLISHED_TIER_DEPENDENT_HERO_PROGRESSION_MODEL,
@@ -24,23 +30,120 @@ import {
 const migrationContext = (seed = 42) => ({ defaults: initialTownState(seed), legacySeed: seed });
 
 describe("canonical state migrations", () => {
-  it("registers contiguous v0 -> v1 -> v2 migrations", () => {
-    expect(CURRENT_CANONICAL_STATE_VERSION).toBe(2);
+  it("registers contiguous v0 -> v1 -> v2 -> v3 -> v4 migrations", () => {
+    expect(CURRENT_CANONICAL_STATE_VERSION).toBe(4);
     expect(CANONICAL_STATE_MIGRATIONS.map(({ from, to }) => ({ from, to }))).toEqual([
       { from: 0, to: 1 },
       { from: 1, to: 2 },
+      { from: 2, to: 3 },
+      { from: 3, to: 4 },
     ]);
   });
 
   it("matches the anonymized golden pair for an unversioned alpha snapshot", () => {
     expect(migrateCanonicalState(legacyV0GoldenBefore, migrationContext()))
-      .toEqual(currentV2GoldenAfter);
+      .toEqual(currentV4GoldenAfter);
+  });
+
+  it("migrates v3 plans and pending previews to v4 without touching inventory", () => {
+    const inventory = [{ instanceId: "kept", itemId: "starter_sword", itemLevel: 1, powerModelId: "legacy-fixed-v1" as const, rarity: "common" as const }];
+    const v3 = {
+      ...initialTownState(42),
+      stateVersion: 3,
+      buildings: { ...initialTownState(42).buildings, forge: 1 },
+      storedItems: inventory,
+      itemBlueprints: [
+        { itemId: "starter_sword", unlocked: false },
+        { itemId: "progression_sword", unlocked: true },
+        { itemId: "steel_sword", unlocked: true },
+      ],
+      pendingForge: {
+        previewId: "legacy-preview",
+        recipeId: "steel_sword",
+        itemId: "steel_sword",
+        itemType: "weapon",
+        itemLevel: 20,
+        powerModelId: "legacy-fixed-v1",
+        upgradeProc: "none",
+      },
+    } as unknown as Record<string, unknown>;
+    const migrated = migrateCanonicalState(v3, migrationContext());
+    expect(migrated.stateVersion).toBe(4);
+    expect(migrated.storedItems).toEqual(inventory);
+    expect(migrated.itemBlueprints).toEqual([
+      { itemId: "progression_sword", unlocked: true },
+    ]);
+    expect(migrated.pendingForge).toMatchObject({
+      recipeId: "steel_sword",
+      offeredRarity: "uncommon",
+    });
+    expect(migrated.pendingForge).not.toHaveProperty("upgradeProc");
+    const finalized = applyForgeCommand(migrated, {
+      type: "forge.finalize",
+      previewId: "legacy-preview",
+      acceptUpgrade: false,
+    });
+    expect(finalized.state.storedItems.at(-1)).toMatchObject({
+      itemId: "steel_sword",
+      itemLevel: 20,
+      powerModelId: "legacy-fixed-v1",
+      rarity: "uncommon",
+    });
+  });
+
+  it("integrates every legacy plan into its evolving family", () => {
+    const v3 = {
+      ...initialTownState(42),
+      stateVersion: 3,
+      itemBlueprints: LEGACY_ITEM_LIBRARY.map((item) => ({ itemId: item.id, unlocked: true })),
+    } as unknown as Record<string, unknown>;
+
+    const migrated = migrateCanonicalState(v3, migrationContext());
+    expect(migrated.itemBlueprints).toHaveLength(PROGRESSION_ITEM_BASES.length);
+    expect(new Set(migrated.itemBlueprints.map((entry) => entry.itemId))).toEqual(
+      new Set(Object.values(LEGACY_ITEM_EVOLUTION_TARGETS)),
+    );
+    expect(migrated.itemBlueprints.every((entry) => entry.unlocked)).toBe(true);
+  });
+
+  it('migrates every persisted item bucket from v2 without changing legacy power', () => {
+    const equipment = (instanceId: string) => ({
+      mainHand: { instanceId, itemId: 'starter_sword', itemLevel: 1, powerModelId: 'legacy-fixed-v1', rarity: 'common' },
+    });
+    const legacyHero = makeHero({ equipment: equipment('equipped-v2') as never });
+    const v2 = {
+      ...initialTownState(42),
+      stateVersion: 2,
+      storedItems: [{ instanceId: 'stored-v2', itemId: 'quick_dagger', itemLevel: 1, powerModelId: 'legacy-fixed-v1', rarity: 'common' }],
+      heroes: [{ ...legacyHero, equipment: equipment('equipped-v2') }],
+      onboardingCandidates: [{ ...legacyHero, id: 'candidate-v2', equipment: equipment('candidate-equipped-v2') }],
+      pendingRecruit: { ...legacyHero, id: 'recruit-v2', equipment: equipment('recruit-equipped-v2') },
+      pendingForge: {
+        previewId: 'preview-v2', recipeId: 'starter_sword', itemId: 'starter_sword',
+        itemType: 'weapon', upgradeProc: 'none',
+      },
+      encounterHistory: [{
+        encounterId: 'loot-v2', kind: 'treasure', floor: 1, room: 1,
+        outcome: 'victory', roundCount: 0, enemy: null, transcript: [],
+        rewards: { gold: 0, loot: [{ type: 'item', instanceId: 'loot-instance-v2', itemId: 'wooden_shield', itemLevel: 1, powerModelId: 'legacy-fixed-v1', rarity: 'common', count: 1 }] },
+      }],
+    } as unknown as Record<string, unknown>;
+
+    const migrated = migrateCanonicalState(v2, migrationContext());
+    expect(migrated.stateVersion).toBe(4);
+    expect(migrated.storedItems[0]).toMatchObject({ itemLevel: 1, powerModelId: 'legacy-fixed-v1' });
+    for (const hero of [migrated.heroes[0], migrated.onboardingCandidates?.[0], migrated.pendingRecruit]) {
+      expect(hero?.equipment?.mainHand).toMatchObject({ itemLevel: 1, powerModelId: 'legacy-fixed-v1' });
+    }
+    expect(migrated.pendingForge).toMatchObject({ itemLevel: 1, powerModelId: 'legacy-fixed-v1', offeredRarity: 'common' });
+    expect(migrated.encounterHistory[0].rewards.loot[0]).toMatchObject({ itemLevel: 1, powerModelId: 'legacy-fixed-v1' });
+    expect(validateCanonicalGameState(migrated)).toEqual([]);
   });
 
   it("is pure, deterministic and idempotent", () => {
     const before = asLegacyUnversionedState({
       ...initialTownState(42),
-      storedItems: [{ instanceId: "fixture-item", itemId: "starter_sword", rarity: "common" as const }],
+      storedItems: [{ instanceId: "fixture-item", itemId: "starter_sword", itemLevel: 1, powerModelId: "legacy-fixed-v1", rarity: "common" as const }],
       encounterHistory: [{
         encounterId: "fixture-history",
         kind: "treasure" as const,
@@ -165,8 +268,8 @@ describe("canonical state migrations", () => {
       heroes: [makeHero({
         id: "fixture-aede",
         equipment: {
-          mainHand: { instanceId: "fixture-lute", itemId: "basic_lute", rarity: "common" },
-          offHand: { instanceId: "fixture-shield", itemId: "wooden_shield", rarity: "common" },
+          mainHand: { instanceId: "fixture-lute", itemId: "basic_lute", itemLevel: 10, powerModelId: "legacy-fixed-v1", rarity: "common" },
+          offHand: { instanceId: "fixture-shield", itemId: "wooden_shield", itemLevel: 1, powerModelId: "legacy-fixed-v1", rarity: "common" },
         },
       })],
     });
@@ -210,6 +313,26 @@ describe("canonical state migrations", () => {
       code: "INVALID_GAME_STATE",
       reason: expect.stringContaining("rngState is required"),
     }));
+  });
+
+  it("rejects current v4 item instances without progression metadata", () => {
+    for (const missingField of ["itemLevel", "powerModelId"] as const) {
+      const current = initialTownState(42) as unknown as Record<string, unknown>;
+      const incompleteItem: Record<string, unknown> = {
+        instanceId: `incomplete-${missingField}`,
+        itemId: "starter_sword",
+        itemLevel: 1,
+        powerModelId: "legacy-fixed-v1",
+        rarity: "common",
+      };
+      delete incompleteItem[missingField];
+      current.storedItems = [incompleteItem];
+
+      expect(() => migrateTownState(current, 42)).toThrowError(expect.objectContaining({
+        code: "INVALID_GAME_STATE",
+        reason: expect.stringContaining(`storedItems[0].${missingField} is invalid`),
+      }));
+    }
   });
 
   it("rejects malformed legacy collections instead of replacing them", () => {

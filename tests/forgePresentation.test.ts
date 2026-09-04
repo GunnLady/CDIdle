@@ -11,22 +11,39 @@ describe("createForgeWorkspaceView", () => {
   it("prepares recipes, weapon details and base affordability without UI state", () => {
     const view = createForgeWorkspaceView({
       materials,
-      blueprints: [{ itemId: "starter_sword", unlocked: true }],
-      selectedRecipeId: "starter_sword",
+      blueprints: [{ itemId: "progression_sword", unlocked: true }],
+      selectedRecipeId: "progression_sword",
     });
 
     expect(view.baseAffordable).toBe(true);
-    expect(view.selectedRecipe).toMatchObject({ id: "starter_sword", unlocked: true, rarityLabel: "Commune" });
+    expect(view.recipes).toHaveLength(48);
+    expect(view.selectedRecipe).toMatchObject({ id: "progression_sword", unlocked: true, rarityLabel: "Commune" });
+    expect(view.progression).toEqual({ openedRangeLabel: "1–5", nextRangeLabel: "6–10", nextRequiredFloor: 8 });
     expect(view.selectedRecipe?.weaponDetails).toContain("Caractéristique : Force");
     expect(view.materials.find((material) => material.id === "metal_scrap")?.count).toBe(6);
+  });
+
+  it("exposes legacy-derived families without publishing fixed legacy recipes", () => {
+    const view = createForgeWorkspaceView({
+      materials,
+      blueprints: [{ itemId: "progression_spellbook", unlocked: true }],
+      selectedRecipeId: "progression_spellbook",
+    });
+
+    expect(view.selectedRecipe).toMatchObject({
+      id: "progression_spellbook",
+      unlocked: true,
+      powerModelId: "level-bands-v1",
+    });
+    expect(view.recipes.some((recipe) => recipe.id === "eclipse_heart_spellbook")).toBe(false);
   });
 
   it("derives rare upgrade affordability and armor modifier compatibility", () => {
     const view = createForgeWorkspaceView({
       materials,
-      blueprints: [{ itemId: "traveler_clothes", unlocked: true }],
-      selectedRecipeId: "traveler_clothes",
-      pending: { previewId: "preview", itemId: "traveler_clothes", upgradeProc: "rare" },
+      blueprints: [{ itemId: "progression_cloth_armor", unlocked: true }],
+      selectedRecipeId: "progression_cloth_armor",
+      pending: { previewId: "preview", itemId: "progression_cloth_armor", offeredRarity: "rare" },
     });
 
     expect(view.pending?.upgradeAffordable).toBe(true);
@@ -35,9 +52,9 @@ describe("createForgeWorkspaceView", () => {
   });
 
   it("keeps locked recipes visible but unavailable", () => {
-    const view = createForgeWorkspaceView({ materials: [], blueprints: [], selectedRecipeId: "starter_sword" });
+    const view = createForgeWorkspaceView({ materials: [], blueprints: [], selectedRecipeId: "progression_sword" });
 
     expect(view.baseAffordable).toBe(false);
-    expect(view.selectedRecipe).toMatchObject({ id: "starter_sword", unlocked: false });
+    expect(view.selectedRecipe).toMatchObject({ id: "progression_sword", unlocked: false });
   });
 });

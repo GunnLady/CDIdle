@@ -7,7 +7,7 @@ afterEach(cleanup);
 
 describe("StoragePanel modifier stacks", () => {
   it("exposes shared panel and control semantics", () => {
-    render(<StoragePanel storedItems={[{ instanceId: "shared-control", itemId: "starter_sword", rarity: "common" }]} />);
+    render(<StoragePanel storedItems={[{ instanceId: "shared-control", itemId: "starter_sword", itemLevel: 1, powerModelId: "legacy-fixed-v1", rarity: "common" }]} />);
     for (const testId of ["storage-summary", "storage-toolbar", "item-inventory-panel", "storage-equipment-decision"]) {
       expect(screen.getByTestId(testId)).toHaveAttribute("aria-labelledby");
     }
@@ -17,7 +17,7 @@ describe("StoragePanel modifier stacks", () => {
 
   it("displays the guaranteed dual-wield profile from the catalog", () => {
     render(<StoragePanel
-      storedItems={[{ instanceId: "dual-profile", itemId: "basic_gauntlets", rarity: "common" }]}
+      storedItems={[{ instanceId: "dual-profile", itemId: "basic_gauntlets", itemLevel: 10, powerModelId: "legacy-fixed-v1", rarity: "common" }]}
     />);
 
     expect(screen.getByText("2 × 65 %")).toBeInTheDocument();
@@ -26,19 +26,19 @@ describe("StoragePanel modifier stacks", () => {
   it("filters items by required-level bands and resets the level filter", () => {
     render(<StoragePanel
       storedItems={[
-        { instanceId: "item-level-1", itemId: "starter_sword", rarity: "common" },
-        { instanceId: "item-level-10", itemId: "basic_sword", rarity: "common" },
-        { instanceId: "item-level-20", itemId: "steel_sword", rarity: "uncommon" },
-        { instanceId: "item-level-33", itemId: "eclipse_heart_spellbook", rarity: "legendary" },
+        { instanceId: "item-level-1", itemId: "starter_sword", itemLevel: 1, powerModelId: "legacy-fixed-v1", rarity: "common" },
+        { instanceId: "item-level-10", itemId: "basic_sword", itemLevel: 10, powerModelId: "legacy-fixed-v1", rarity: "common" },
+        { instanceId: "item-level-20", itemId: "steel_sword", itemLevel: 20, powerModelId: "legacy-fixed-v1", rarity: "uncommon" },
+        { instanceId: "item-level-33", itemId: "eclipse_heart_spellbook", itemLevel: 33, powerModelId: "legacy-fixed-v1", rarity: "legendary" },
       ]}
     />);
 
     const levelRange = screen.getByRole("combobox", { name: "Tranche de niveau requis" });
     const expectedByRange = [
-      ["1-9", "Épée de départ"],
-      ["10-19", "Épée simple"],
-      ["20-29", "Épée en acier"],
-      ["30+", "Grimoire du cœur d’éclipse"],
+      ["1-5", "Épée de départ"],
+      ["6-10", "Épée simple"],
+      ["16-20", "Épée en acier"],
+      ["31-35", "Grimoire du cœur d’éclipse"],
     ];
 
     for (const [range, expectedName] of expectedByRange) {
@@ -57,9 +57,9 @@ describe("StoragePanel modifier stacks", () => {
   it("sorts the displayed copy in both directions and resets the controls", () => {
     render(<StoragePanel
       storedItems={[
-        { instanceId: "item-basic", itemId: "basic_sword", rarity: "legendary" },
-        { instanceId: "item-starter", itemId: "starter_sword", rarity: "rare" },
-        { instanceId: "item-steel", itemId: "steel_sword", rarity: "common" },
+        { instanceId: "item-basic", itemId: "basic_sword", itemLevel: 10, powerModelId: "legacy-fixed-v1", rarity: "legendary" },
+        { instanceId: "item-starter", itemId: "starter_sword", itemLevel: 1, powerModelId: "legacy-fixed-v1", rarity: "rare" },
+        { instanceId: "item-steel", itemId: "steel_sword", itemLevel: 20, powerModelId: "legacy-fixed-v1", rarity: "common" },
       ]}
     />);
 
@@ -96,8 +96,8 @@ describe("StoragePanel modifier stacks", () => {
 
     render(<StoragePanel
       storedItems={[
-        { instanceId: "item-physical", itemId: "starter_sword", rarity: "uncommon", modifiers: physical },
-        { instanceId: "item-critical", itemId: "starter_sword", rarity: "uncommon", modifiers: critical },
+        { instanceId: "item-physical", itemId: "starter_sword", itemLevel: 1, powerModelId: "legacy-fixed-v1", rarity: "uncommon", modifiers: physical },
+        { instanceId: "item-critical", itemId: "starter_sword", itemLevel: 1, powerModelId: "legacy-fixed-v1", rarity: "uncommon", modifiers: critical },
       ]}
       isForgeUnlocked
       onScrapItem={onScrapItem}
@@ -126,8 +126,8 @@ describe("StoragePanel modifier stacks", () => {
     const onEquipItem = vi.fn();
     render(<StoragePanel
       storedItems={[
-        { instanceId: "item-first", itemId: "starter_sword", rarity: "common" },
-        { instanceId: "item-second", itemId: "starter_sword", rarity: "common" },
+        { instanceId: "item-first", itemId: "starter_sword", itemLevel: 1, powerModelId: "legacy-fixed-v1", rarity: "common" },
+        { instanceId: "item-second", itemId: "starter_sword", itemLevel: 1, powerModelId: "legacy-fixed-v1", rarity: "common" },
       ]}
       heroes={[makeHero({ id: "hero-target", name: "Cible" })]}
       onEquipItem={onEquipItem}
@@ -143,7 +143,7 @@ describe("StoragePanel modifier stacks", () => {
   it("allows a Tier 1 reward for a class outside its vocation pool", () => {
     const onEquipItem = vi.fn();
     render(<StoragePanel
-      storedItems={[{ instanceId: "item-lute", itemId: "basic_lute", rarity: "common" }]}
+      storedItems={[{ instanceId: "item-lute", itemId: "basic_lute", itemLevel: 10, powerModelId: "legacy-fixed-v1", rarity: "common" }]}
       heroes={[makeHero({ id: "hero-warrior", name: "Guerrier test", classType: "Guerrier", level: 10 })]}
       onEquipItem={onEquipItem}
     />);
@@ -159,7 +159,7 @@ describe("StoragePanel modifier stacks", () => {
   it("keeps item and hero consultation local in read-only mode", () => {
     const onEquipItem = vi.fn();
     render(<StoragePanel
-      storedItems={[{ instanceId: "item-readonly", itemId: "starter_sword", rarity: "common" }]}
+      storedItems={[{ instanceId: "item-readonly", itemId: "starter_sword", itemLevel: 1, powerModelId: "legacy-fixed-v1", rarity: "common" }]}
       heroes={[makeHero({ id: "hero-readonly", name: "Observatrice" })]}
       onEquipItem={onEquipItem}
       canMutate={false}
@@ -180,7 +180,7 @@ describe("StoragePanel modifier stacks", () => {
     expect(screen.getByText("Votre coffre est vide.")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Réinitialiser les filtres" })).not.toBeInTheDocument();
 
-    rerender(<StoragePanel storedItems={[{ instanceId: "filtered", itemId: "starter_sword", rarity: "common" }]} />);
+    rerender(<StoragePanel storedItems={[{ instanceId: "filtered", itemId: "starter_sword", itemLevel: 1, powerModelId: "legacy-fixed-v1", rarity: "common" }]} />);
     fireEvent.change(screen.getByRole("searchbox", { name: "Rechercher un objet" }), { target: { value: "introuvable" } });
     expect(screen.getByText("Aucun objet ne correspond aux filtres.")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Réinitialiser les filtres" })).toBeInTheDocument();

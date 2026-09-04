@@ -46,8 +46,10 @@ export interface CanonicalDungeonEncounterRecord {
 }
 
 export type CanonicalRarity = "common" | "uncommon" | "rare" | "epic" | "legendary";
+export const CANONICAL_ITEM_POWER_MODEL_IDS = ['legacy-fixed-v1', 'level-bands-v1'] as const;
+export type CanonicalItemPowerModelId = typeof CANONICAL_ITEM_POWER_MODEL_IDS[number];
 export type CanonicalDungeonLoot =
-  | { type: "item"; instanceId: string; itemId: string; rarity: CanonicalRarity; count: number }
+  | { type: 'item'; instanceId: string; itemId: string; itemLevel: number; powerModelId: CanonicalItemPowerModelId; rarity: CanonicalRarity; count: number }
   | { type: "material"; materialId: string; rarity: CanonicalRarity; count: number; name: string }
   | { type: "blueprint"; itemId: string; count: number };
 export type CanonicalHeroRace =
@@ -79,6 +81,8 @@ export interface CanonicalCitizenAllocation {
 export interface CanonicalStoredItemInstance {
   instanceId: string;
   itemId: string;
+  itemLevel: number;
+  powerModelId: CanonicalItemPowerModelId;
   rarity: CanonicalRarity;
   modifiers?: CanonicalStatModifier[];
 }
@@ -164,7 +168,9 @@ export interface CanonicalPendingForge {
   recipeId: string;
   itemId: string;
   itemType: "weapon" | "offhand" | "armor" | "accessory";
-  upgradeProc: "none" | "uncommon" | "rare";
+  itemLevel: number;
+  powerModelId: CanonicalItemPowerModelId;
+  offeredRarity: CanonicalRarity;
 }
 
 export interface CanonicalRngState {
@@ -176,7 +182,7 @@ export interface CanonicalRngState {
 }
 
 export const MAX_CANONICAL_RNG_DRAWS = Number.MAX_SAFE_INTEGER;
-export const CURRENT_CANONICAL_STATE_VERSION = 2 as const;
+export const CURRENT_CANONICAL_STATE_VERSION = 4 as const;
 
 export const CANONICAL_GAME_STATE_REQUIRED_FIELDS = [
   "stateVersion", "resources", "buildings", "citizens", "districts", "heroes", "storedItems",
@@ -249,7 +255,7 @@ export type CanonicalGameCommand =
   | { type: "hero.equip"; heroId: string; instanceId: string }
   | { type: "hero.unequip"; heroId: string; slot: "mainHand" | "offHand" | "armor" | "accessory" }
   | { type: "inventory.recycle"; instanceId: string }
-  | { type: "forge.start"; recipeId: string }
+  | { type: 'forge.start'; recipeId: string; levelBandMin?: number }
   | { type: "forge.finalize"; previewId: string; acceptUpgrade?: boolean; chosenModifierStat?: string }
   | { type: "forge.cancel"; previewId: string }
   | { type: "cheat.grant_resources"; amounts: Partial<Record<"gold" | "food" | "wood" | "stone" | "ore", number>> }
@@ -340,8 +346,12 @@ function validateCanonicalCommandPayload(command: Record<string, unknown>): stri
       requireString("instanceId");
       break;
     case "forge.start":
-      if (!hasOnlyKeys(command, ["type", "recipeId"])) errors.push("command contains unsupported fields");
+      if (!hasOnlyKeys(command, ["type", "recipeId", "levelBandMin"])) errors.push("command contains unsupported fields");
       requireString("recipeId");
+      if (command.levelBandMin !== undefined
+        && (![1, 6, 11, 16, 21, 26, 31, 36].includes(Number(command.levelBandMin)))) {
+        errors.push('command.levelBandMin must start a five-level item band');
+      }
       break;
     case "forge.finalize":
       if (!hasOnlyKeys(command, ["type", "previewId", "acceptUpgrade", "chosenModifierStat"])) errors.push("command contains unsupported fields");
@@ -514,9 +524,11 @@ export function validateCanonicalHero(input: unknown, path = "hero"): string[] {
           errors.push(`${path}.equipment.${slot} must be an object or null`);
           continue;
         }
-        if (!hasOnlyKeys(equipped, ["instanceId", "itemId", "rarity", "modifiers"])) errors.push(`${path}.equipment.${slot} contains unsupported fields`);
+        if (!hasOnlyKeys(equipped, ["instanceId", "itemId", "itemLevel", "powerModelId", "rarity", "modifiers"])) errors.push(`${path}.equipment.${slot} contains unsupported fields`);
         if (typeof equipped.instanceId !== "string" || !equipped.instanceId.trim()) errors.push(`${path}.equipment.${slot}.instanceId is required`);
         if (typeof equipped.itemId !== "string" || !equipped.itemId.trim()) errors.push(`${path}.equipment.${slot}.itemId is required`);
+        if (!Number.isInteger(equipped.itemLevel) || Number(equipped.itemLevel) < 1 || Number(equipped.itemLevel) > 40) errors.push(`${path}.equipment.${slot}.itemLevel is invalid`);
+        if (!CANONICAL_ITEM_POWER_MODEL_IDS.includes(equipped.powerModelId as CanonicalItemPowerModelId)) errors.push(`${path}.equipment.${slot}.powerModelId is invalid`);
         if (!CANONICAL_RARITIES.includes(equipped.rarity as typeof CANONICAL_RARITIES[number])) errors.push(`${path}.equipment.${slot}.rarity is invalid`);
         errors.push(...validateCanonicalModifiers(equipped.modifiers, `${path}.equipment.${slot}.modifiers`));
       }
@@ -607,9 +619,11 @@ export function validateCanonicalGameState(input: unknown): string[] {
         errors.push(`storedItems[${index}] must be an object`);
         return;
       }
-      if (!hasOnlyKeys(entry, ["instanceId", "itemId", "rarity", "modifiers"])) errors.push(`storedItems[${index}] contains unsupported fields`);
+      if (!hasOnlyKeys(entry, ["instanceId", "itemId", "itemLevel", "powerModelId", "rarity", "modifiers"])) errors.push(`storedItems[${index}] contains unsupported fields`);
       if (typeof entry.instanceId !== "string" || !entry.instanceId.trim()) errors.push(`storedItems[${index}].instanceId is required`);
       if (typeof entry.itemId !== "string" || !entry.itemId.trim()) errors.push(`storedItems[${index}].itemId is required`);
+      if (!Number.isInteger(entry.itemLevel) || Number(entry.itemLevel) < 1 || Number(entry.itemLevel) > 40) errors.push(`storedItems[${index}].itemLevel is invalid`);
+      if (!CANONICAL_ITEM_POWER_MODEL_IDS.includes(entry.powerModelId as CanonicalItemPowerModelId)) errors.push(`storedItems[${index}].powerModelId is invalid`);
       if (!CANONICAL_RARITIES.includes(entry.rarity as typeof CANONICAL_RARITIES[number])) errors.push(`storedItems[${index}].rarity is invalid`);
       errors.push(...validateCanonicalModifiers(entry.modifiers, `storedItems[${index}].modifiers`));
     });
@@ -701,12 +715,14 @@ export function validateCanonicalGameState(input: unknown): string[] {
   if ("pendingForge" in value && value.pendingForge !== null && value.pendingForge !== undefined) {
     if (!isRecord(value.pendingForge)) errors.push("pendingForge must be an object or null");
     else {
-      if (!hasOnlyKeys(value.pendingForge, ["previewId", "recipeId", "itemId", "itemType", "upgradeProc"])) errors.push("pendingForge contains unsupported fields");
+      if (!hasOnlyKeys(value.pendingForge, ["previewId", "recipeId", "itemId", "itemType", "itemLevel", "powerModelId", "offeredRarity"])) errors.push("pendingForge contains unsupported fields");
       for (const field of ["previewId", "recipeId", "itemId", "itemType"] as const) {
         if (typeof value.pendingForge[field] !== "string" || !String(value.pendingForge[field]).trim()) errors.push(`pendingForge.${field} is required`);
       }
       if (!["weapon", "offhand", "armor", "accessory"].includes(String(value.pendingForge.itemType))) errors.push("pendingForge.itemType is invalid");
-      if (!["none", "uncommon", "rare"].includes(String(value.pendingForge.upgradeProc))) errors.push("pendingForge.upgradeProc is invalid");
+      if (!CANONICAL_RARITIES.includes(value.pendingForge.offeredRarity as CanonicalRarity)) errors.push("pendingForge.offeredRarity is invalid");
+      if (!Number.isInteger(value.pendingForge.itemLevel) || Number(value.pendingForge.itemLevel) < 1 || Number(value.pendingForge.itemLevel) > 40) errors.push("pendingForge.itemLevel is invalid");
+      if (!CANONICAL_ITEM_POWER_MODEL_IDS.includes(value.pendingForge.powerModelId as CanonicalItemPowerModelId)) errors.push("pendingForge.powerModelId is invalid");
     }
   }
   if ("encounterHistory" in value) {
@@ -764,6 +780,8 @@ export function validateCanonicalGameState(input: unknown): string[] {
           if (loot.type === "item") {
             if (typeof loot.instanceId !== "string" || !loot.instanceId.trim()) errors.push(`${lootPath}.instanceId is required`);
             if (typeof loot.itemId !== "string" || !loot.itemId.trim()) errors.push(`${lootPath}.itemId is required`);
+            if (!Number.isInteger(loot.itemLevel) || Number(loot.itemLevel) < 1 || Number(loot.itemLevel) > 40) errors.push(`${lootPath}.itemLevel is invalid`);
+            if (!CANONICAL_ITEM_POWER_MODEL_IDS.includes(loot.powerModelId as CanonicalItemPowerModelId)) errors.push(`${lootPath}.powerModelId is invalid`);
             if (!CANONICAL_RARITIES.includes(loot.rarity as CanonicalRarity)) errors.push(`${lootPath}.rarity is invalid`);
           } else if (loot.type === "material") {
             if (typeof loot.materialId !== "string" || !loot.materialId.trim()) errors.push(`${lootPath}.materialId is required`);

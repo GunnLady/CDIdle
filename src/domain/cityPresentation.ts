@@ -1,12 +1,12 @@
 import type { BattleLogEntry, CitizenAllocation, ResourceRates, Resources } from "../types";
-import { BUILDINGS_LIST, BUILDING_UNLOCKS, checkBuildingUnlocked, getBuildingMaxLevel, getBuildingUpgradeCost } from "../data/gameData";
+import { BUILDINGS_LIST, checkBuildingUnlocked, getBuildingMaxLevel, getBuildingUpgradeCost, getBuildingUpgradeRequirement } from "../data/gameData";
 
 export type CityJobId = keyof Omit<CitizenAllocation, "unassigned">;
 
 export interface CityBuildingView {
   id: string; name: string; description: string; icon: string; categoryLabel: string;
   level: number; maxLevel: number; unlocked: boolean; prerequisite?: string;
-  cost: Resources; affordable: boolean; atMaxLevel: boolean;
+  cost: Resources; costLabel: string; affordable: boolean; atMaxLevel: boolean; upgradeUnlocked: boolean;
 }
 
 export interface CityJobView {
@@ -29,6 +29,14 @@ export interface CityHistoryView {
 }
 
 const categoryLabels = { housing: "Logement", production: "Production", military: "Vocation", social: "Communauté" } as const;
+const resourceLabels: Record<keyof Resources, string> = {
+  gold: "or", food: "nourriture", wood: "bois", stone: "pierre", ore: "minerai",
+};
+
+const formatBuildingCost = (cost: Resources) => (Object.entries(cost) as Array<[keyof Resources, number]>)
+  .filter(([, value]) => value > 0)
+  .map(([resource, value]) => `${value.toLocaleString("fr-FR")} ${resourceLabels[resource]}`)
+  .join(" · ");
 
 const affordable = (resources: Resources, cost: Resources) =>
   resources.gold >= cost.gold && resources.food >= cost.food && resources.wood >= cost.wood
@@ -41,14 +49,22 @@ export function createCityDashboardView(input: {
   const buildings = BUILDINGS_LIST.map((building): CityBuildingView => {
     const level = input.buildings[building.id] ?? 0;
     const maxLevel = getBuildingMaxLevel(building.id);
-    const unlocked = level > 0 || checkBuildingUnlocked(building.id, input.buildings, input.highestFloorReached);
+    const constructionUnlocked = checkBuildingUnlocked(building.id, input.buildings, input.highestFloorReached, 1);
+    const unlocked = level > 0 || constructionUnlocked;
     const cost = getBuildingUpgradeCost(building.id, level);
     const atMaxLevel = level >= maxLevel;
+    const targetLevel = Math.min(level + 1, maxLevel);
+    const upgradeUnlocked = !atMaxLevel
+      && checkBuildingUnlocked(building.id, input.buildings, input.highestFloorReached, targetLevel);
+    const upgradeRequirement = getBuildingUpgradeRequirement(building.id, targetLevel);
     return {
       id: building.id, name: building.name, description: building.description, icon: building.icon,
       categoryLabel: categoryLabels[building.category], level, maxLevel, unlocked,
-      ...(unlocked ? {} : { prerequisite: BUILDING_UNLOCKS[building.id]?.desc }),
-      cost, atMaxLevel, affordable: unlocked && !atMaxLevel && affordable(input.resources, cost),
+      ...(!atMaxLevel && !upgradeUnlocked ? {
+        prerequisite: upgradeRequirement?.desc,
+      } : {}),
+      cost, costLabel: formatBuildingCost(cost), atMaxLevel, upgradeUnlocked,
+      affordable: upgradeUnlocked && affordable(input.resources, cost),
     };
   });
   const formatRate = (rate: number) => rate.toLocaleString("fr-FR", { maximumFractionDigits: 2 });

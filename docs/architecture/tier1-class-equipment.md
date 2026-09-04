@@ -32,7 +32,8 @@ un contrat uniforme entre les neuf classes.
 | Artificier | `basic_gear_cannon`, `basic_rifle`, `basic_crossbow` | `copper_focus_ring`, `warm_ember_amulet`, `cracked_coin_charm` |
 | Pugiliste | `basic_knuckles`, `basic_gauntlets`, `basic_bo` | `ashwood_bracelet`, `knotted_leather_bracelet`, `sturdy_travel_belt` |
 
-Tous les cadeaux sont communs et utilisables au niveau 10. L appartenance a un
+Tous les cadeaux sont communs, portent `powerModelId: legacy-fixed-v1` et
+`itemLevel` égal au niveau historique du modèle, actuellement 10. L appartenance a un
 pool determine uniquement ce que la vocation peut offrir : elle ne constitue
 jamais une autorisation d equipement. Toute classe peut equiper tout modele si
 le niveau, le slot et le maniement sont compatibles.

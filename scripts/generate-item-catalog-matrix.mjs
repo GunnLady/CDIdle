@@ -2,12 +2,15 @@ import { readFile, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import {
   ITEM_LIBRARY,
+  LEGACY_ITEM_EVOLUTION_TARGETS,
+  PROGRESSION_ITEM_BASES,
+  RARITY_ORDER,
   getItemHandedness,
   getItemSlot,
   validateItemCatalog,
 } from "../shared/domain/items/items.ts";
 import { calculateHeroDerivedStats } from "../shared/domain/hero-stats.ts";
-import { applyItemRarityScaling } from "../shared/domain/items/scaling.ts";
+import { resolveItemInstance } from "../shared/domain/items/scaling.ts";
 
 const errors = validateItemCatalog();
 if (errors.length > 0) throw new Error(`Invalid item catalog:\n${errors.join("\n")}`);
@@ -39,7 +42,10 @@ const rows = ITEM_LIBRARY.map((item) => [
   getItemHandedness(item) ?? "—",
   item.itemType === "weapon" ? item.scaling.category : "—",
   item.itemType === "weapon" ? item.scaling.stat : "—",
-  String(item.requiredLevel),
+  item.catalogStatus,
+  item.powerModelId,
+  `${item.levelRange.min}-${item.levelRange.max}`,
+  String(item.powerReferenceLevel),
   item.minimumRarity,
   item.provenances.join(", "),
   item.blueprintAvailable ? "oui" : "non",
@@ -48,7 +54,12 @@ const rows = ITEM_LIBRARY.map((item) => [
 const weaponDpsData = ITEM_LIBRARY
   .filter((item) => item.itemType === "weapon")
   .map((item) => {
-    const scaled = applyItemRarityScaling(item, item.minimumRarity);
+    const scaled = resolveItemInstance(item, {
+      instanceId: `matrix:${item.id}`,
+      itemLevel: item.requiredLevel,
+      powerModelId: item.powerModelId,
+      rarity: item.minimumRarity,
+    });
     const derived = calculateHeroDerivedStats(
       DPS_REFERENCE_ATTRIBUTES,
       scaled.modifiers ?? [],
@@ -126,14 +137,84 @@ const groupedDpsRows = [...groupedDps.entries()]
     || left.handedness.localeCompare(right.handedness)
   ));
 
+const levelBands = Array.from({ length: 8 }, (_, index) => ({
+  min: index * 5 + 1,
+  max: index * 5 + 5,
+}));
+
+function itemPowerLabel(item, level, rarity) {
+  const resolved = resolveItemInstance(item, {
+    instanceId: `matrix:${item.id}:${level}:${rarity}`,
+    itemLevel: level,
+    powerModelId: item.powerModelId,
+    rarity,
+  });
+  const modifierMagnitude = (resolved.modifiers ?? [])
+    .reduce((sum, modifier) => sum + Math.abs(modifier.value), 0);
+  if (resolved.itemType !== "weapon") return `Σ bonus ${modifierMagnitude}`;
+  const derived = calculateHeroDerivedStats(
+    DPS_REFERENCE_ATTRIBUTES,
+    resolved.modifiers ?? [],
+    {
+      scaling: resolved.scaling,
+      attackProfile: resolved.attackProfile,
+      damageRange: resolved.damageRange,
+      attackSpeed: resolved.attackSpeed,
+    },
+  );
+  return `${resolved.damageRange.min}-${resolved.damageRange.max} dégâts · ${derived.estimatedDps.toFixed(1)} DPS`;
+}
+
+const progressionRows = PROGRESSION_ITEM_BASES.flatMap((item) => levelBands.map((band) => [
+  item.id,
+  item.name.replaceAll("|", "\\|"),
+  item.itemType,
+  `${band.min}-${band.max}`,
+  ...RARITY_ORDER.map((rarity) => {
+    const low = itemPowerLabel(item, band.min, rarity);
+    const high = itemPowerLabel(item, band.max, rarity);
+    return low === high ? low : `${low} → ${high}`;
+  }),
+].join(" | ")));
+
+const legacyEvolutionRows = Object.entries(LEGACY_ITEM_EVOLUTION_TARGETS).map(([legacyId, progressionId]) => {
+  const legacy = ITEM_LIBRARY.find((item) => item.id === legacyId);
+  const progression = ITEM_LIBRARY.find((item) => item.id === progressionId);
+  if (!legacy || !progression) throw new Error(`Invalid legacy evolution mapping: ${legacyId} -> ${progressionId}`);
+  return [legacyId, legacy.name, progressionId, progression.name]
+    .map((value) => value.replaceAll("|", "\\|"))
+    .join(" | ");
+});
+
 const document = `# Matrice du catalogue d'objets
 
 Fichier généré depuis la source autoritaire \`shared/domain/items\`.
 Ne pas modifier manuellement. Nombre de modèles : **${ITEM_LIBRARY.length}**.
 
-| ID | Nom | Type | Sous-type | Emplacement | Maniement | Catégorie | Scaling | Niveau | Rareté minimale | Provenances | Plan |
-|---|---|---|---|---|---|---|---|---:|---|---|---|
+| ID | Nom | Type | Sous-type | Emplacement | Maniement | Catégorie | Scaling | Statut | Modèle puissance | Plage niveaux | Niveau référence | Rareté minimale | Provenances | Plan |
+|---|---|---|---|---|---|---|---|---|---|---|---:|---|---|---|
 ${rows.map((row) => `| ${row} |`).join("\n")}
+
+## Intégration des plans historiques
+
+Chaque plan historique connu est converti vers la famille évolutive indiquée.
+L'identité et la puissance des objets historiques déjà possédés restent
+inchangées.
+
+| Objet/plan historique | Nom historique | Famille évolutive | Nom évolutif |
+|---|---|---|---|
+${legacyEvolutionRows.map((row) => `| ${row} |`).join("\n")}
+
+## Progression consolidée des ${PROGRESSION_ITEM_BASES.length} bases actives
+
+La rareté est appliquée après le niveau. Pour les armes, chaque cellule donne
+la plage de dégâts et le DPS neutre aux deux bornes de la tranche. Pour les
+autres objets, elle donne la somme absolue des bonus résolus ; les affixes
+additionnels restent déterministes par identité, niveau et rareté.
+
+| Base | Nom | Type | Tranche | Commune | Inhabituelle | Rare | Épique | Légendaire |
+|---|---|---|---|---|---|---|---|---|
+${progressionRows.map((row) => `| ${row} |`).join("\n")}
 
 ## Matrice DPS de référence
 

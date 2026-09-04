@@ -45,10 +45,67 @@ conserve `xp / xpNeeded`, arrondit vers le bas et ne consomme aucun tirage RNG.
 L'identifiant rend cette conversion idempotente.
 
 Les modèles de récompenses donjon `level-aligned-v2` et de difficulté des défis
-`party-four-two-thirds-v1` ne sont pas persistés dans le snapshot. Leur
+`party-four-two-thirds-v2` ne sont pas persistés dans le snapshot. Leur
 activation ne déclenche donc aucune migration et ne réécrit jamais l'XP déjà
 acquise. Un replay retourne le résultat de commande persisté au lieu de
 recalculer les récompenses avec la politique courante.
+
+## Version des objets
+
+Depuis l'état canonique v3, toute instance d'objet persistée porte
+`itemLevel` et `powerModelId`. La migration `v2 -> v3` couvre les objets du
+coffre, tous les équipements de héros, les candidats d'onboarding, la recrue
+en attente, la preview de forge et les objets de l'historique de rencontres.
+Elle conserve `instanceId`, `itemId`, rareté et modificateurs, ne consomme aucun
+RNG, puis réconcilie les prières de vocation comme les migrations historiques.
+
+Les 131 modèles existants sont marqués `legacy-fixed-v1` à leur niveau requis
+historique. Cela inclut les starters de recrutement niveau 1 et les cadeaux de
+rank-up T1 niveau 10. Les 48 nouvelles bases utilisent `level-bands-v1` et
+gardent leur niveau d'instance compris entre 1 et 40.
+
+Le backfill SQL
+`20260904010000_item_level_progression_v3.sql` applique la même résolution aux
+snapshots déjà stockés dans `public.games`. Il préserve la révision, l'ordre
+des tableaux, les métadonnées déjà valides et les champs inconnus. Il ne
+promeut que les snapshots structurels v2 vers v3 : les versions v0/v1 restent
+inchangées afin que le runtime exécute encore leurs migrations intermédiaires.
+Le test pgTAP `026_item_level_progression_v3.sql` couvre notamment les objets
+de recrutement niveau 1, les cadeaux de rank-up niveau 10, la forge,
+l'historique, les droits des helpers et l'idempotence.
+
+Les contrats TypeScript de l'état v3 rendent `itemLevel` et `powerModelId`
+obligatoires pour les objets stockés, équipés, forgés en attente et présents
+dans l'historique de loot. Le validateur runtime refuse également un snapshot
+v3 qui omet l'un de ces champs. La compatibilité avec les objets incomplets
+reste exclusivement dans la migration `v2 -> v3`.
+
+## Version de la Forge
+
+L’état canonique v4 remplace `pendingForge.upgradeProc` par
+`pendingForge.offeredRarity`. `none` devient la rareté minimale de la recette ;
+`uncommon` et `rare` sont conservés. Les 131 identifiants historiques de plans
+deviennent leurs 48 bases `progression_*`; les doublons fusionnent avec
+`unlocked=true` dès qu’une occurrence était ouverte. Une liste absente ou vide
+reçoit les six plans évolutifs.
+
+La migration corrective additive
+`20260904030000_legacy_blueprint_evolution_catalog.sql` reprend également les
+états déjà passés en v4 avant l'extension du mapping. Elle ne modifie que
+`itemBlueprints`, conserve les champs adjacents et reste idempotente.
+
+La migration TypeScript `v3 -> v4` reste pure et ne modifie ni inventaire,
+équipement, recrutement, rank-up, historique, révision ou RNG. Le backfill SQL
+additif `20260904020000_forge_progression_v4.sql` applique la même
+transformation dans `public.games` sans réécrire la migration v3. Le test pgTAP
+`027_forge_progression_v4.sql` prouve la correspondance des raretés minimales,
+la déduplication, la conservation des previews et l’idempotence.
+
+Le test de catalogue lit la zone `ITEM_CATALOG_SYNC_START/END` de la migration
+SQL et vérifie que ses 179 références figées sont uniques et toujours
+résolubles par le catalogue TypeScript. Ce nombre décrit l'instantané v3, pas
+la taille éternelle du catalogue : un futur objet s'ajoute dans une nouvelle
+évolution sans réécrire cette migration historique.
 
 ## Retirer une migration
 
@@ -66,5 +123,6 @@ npm.cmd run test:db
 npm.cmd run board:validate
 ```
 
-Le test DB et toute validation avec Supabase local sont exécutés depuis le
-terminal PowerShell utilisateur conformément aux règles du projet.
+Codex CLI exécute directement le test DB et les validations Supabase locales.
+Le terminal PowerShell utilisateur n'est requis que si Docker, Supabase local
+ou une autre capacité interactive est réellement indisponible dans la session.

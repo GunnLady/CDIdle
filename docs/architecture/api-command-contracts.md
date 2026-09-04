@@ -1,17 +1,24 @@
 # API et commandes
 
-## Forge, inventaire et recyclage (CDI-059)
+## Forge, inventaire et recyclage
 
 - `inventory.add` et `inventory.remove` ne font plus partie du contrat client.
-- `forge.start({ recipeId })` verifie le plan, consomme le cout, tire le proc
-  avec le RNG canonique et persiste la preview.
-- `forge.finalize({ previewId, acceptUpgrade, chosenModifierStat })` produit
-  toujours l objet standard avec un `instanceId` deterministe derive de la
-  preview ; `acceptUpgrade` ne concerne que l amelioration.
-- `forge.cancel({ previewId })` est la seule annulation sans objet final.
+- `forge.start({ recipeId, levelBandMin? })` vérifie Forge, publication, plan,
+  tranche et matériaux avant tout tirage. Il tire la rareté proposée puis le
+  niveau exact avec le RNG canonique, consomme le coût et persiste une preview
+  v4 avec `offeredRarity`, `itemLevel` et `powerModelId`.
+- `forge.finalize({ previewId, acceptUpgrade, chosenModifierStat })` ne tire
+  aucun RNG. Il produit la rareté minimale si l’offre est refusée, ou paie et
+  applique la qualité proposée jusqu’à légendaire si elle est acceptée.
+- `forge.cancel({ previewId })` est la seule annulation sans objet final et ne
+  rembourse pas le coût de fabrication.
+- Les 131 identifiants de plans historiques sont migrés vers leurs 48 familles
+  `level-bands-v1`. Ils ne publient pas de recette fixe concurrente ; seule une
+  preview historique déjà payée peut encore finaliser son objet original.
 - `hero.equip({ heroId, instanceId })` et
   `inventory.recycle({ instanceId })` ciblent une instance exacte. Le serveur
-  resout seul son modele, sa rarete et ses modificateurs.
+  resout seul son modele, son `itemLevel`, son `powerModelId`, sa rarete et ses
+  modificateurs.
 - Les payloads du perimetre refusent les champs inconnus et les identifiants
   vides avant dispatch.
 
@@ -148,7 +155,7 @@ sont appliqués par le chemin temporel CDI-061.
   par la table de groupe, tandis qu'un échec n'attribue aucune XP. Chaque
   événement d'XP expose explicitement sa `source` et son `floor`.
 - La difficulté effective des défis suit
-  `party-four-two-thirds-v1`. Ses ancres monotones par type sont interpolées
+  `party-four-two-thirds-v2`. Ses ancres monotones par type sont interpolées
   selon l'étage ; elles ne modifient ni la sélection probabiliste du meilleur
   héros ni l'unique tirage RNG de la tentative.
 

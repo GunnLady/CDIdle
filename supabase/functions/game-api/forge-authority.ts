@@ -1,6 +1,6 @@
 import type { CanonicalRng } from "./authoritative-rng.ts";
 import { resolveAuthoritativeNoviceItemModifiers } from "./novice-stats-authority.ts";
-import { ITEM_LIBRARY, rarityRank } from "../../../shared/domain/items/items.ts";
+import { ITEM_LIBRARY, getItemById, rarityRank } from "../../../shared/domain/items/items.ts";
 import type {
   CanonicalForgeMaterialStack,
   CanonicalGameState,
@@ -9,20 +9,37 @@ import type {
   CanonicalStoredItemInstance,
 } from "../../../shared/contracts/authoritative.ts";
 import type { CanonicalStatModifier } from "../../../shared/domain/hero-stats.ts";
+import {
+  scaleModifierByItemLevel,
+  scaleModifierByRarity,
+} from "../../../shared/domain/items/scaling.ts";
+import {
+  FORGE_PROGRESSION_LEVELS,
+  getForgeLevelForItemLevel,
+} from "../../../shared/data/forge-progression.ts";
+import {
+  FORGE_CRAFT_COST,
+  FORGE_RARITY_WEIGHTS,
+  FORGE_RECYCLE_REWARDS,
+  getForgeUpgradeCost,
+  scaleForgeMaterialsForItemLevel,
+} from "../../../shared/domain/forge-economy.ts";
+export { FORGE_RARITY_WEIGHTS } from "../../../shared/domain/forge-economy.ts";
 export { DEFAULT_NOVICE_ITEM_BLUEPRINTS } from "./forge-blueprints.ts";
 
 export type ForgeRarity = "common" | "uncommon" | "rare" | "epic" | "legendary";
-export type ForgeUpgradeProc = "none" | "uncommon" | "rare";
 export type ForgeMaterialStack = CanonicalForgeMaterialStack;
 type ItemInstance = CanonicalStoredItemInstance;
 type Recipe = {
   itemId: string;
   itemType: "weapon" | "offhand" | "armor" | "accessory";
   minimumRarity: ForgeRarity;
+  levelRange: { min: number; max: number };
+  powerModelId: 'legacy-fixed-v1' | 'level-bands-v1';
 };
 
 export type ForgeCommand =
-  | { type: "forge.start"; recipeId: string; commandId?: string }
+  | { type: 'forge.start'; recipeId: string; levelBandMin?: number; commandId?: string }
   | { type: "forge.finalize"; previewId: string; acceptUpgrade?: boolean; chosenModifierStat?: string }
   | { type: "forge.cancel"; previewId: string }
   | { type: "inventory.recycle"; instanceId: string };
@@ -34,27 +51,22 @@ export class ForgeCommandError extends Error {
 const clone = <T>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
 const RARITIES = new Set<ForgeRarity>(["common", "uncommon", "rare", "epic", "legendary"]);
 
-const CRAFT_COST: ForgeMaterialStack[] = [
-  { materialId: "metal_scrap", rarity: "common", count: 6 },
-  { materialId: "refined_metal", rarity: "uncommon", count: 1 },
-];
-
-const UPGRADE_COSTS: Record<Exclude<ForgeUpgradeProc, "none">, ForgeMaterialStack[]> = {
-  uncommon: [{ materialId: "refined_metal", rarity: "uncommon", count: 2 }],
-  rare: [
-    { materialId: "refined_metal", rarity: "uncommon", count: 4 },
-    { materialId: "enchanted_fragment", rarity: "rare", count: 1 },
-  ],
-};
-
-const RECIPES: Record<string, Recipe> = Object.fromEntries(
+const ALL_RECIPES: Record<string, Recipe> = Object.fromEntries(
   ITEM_LIBRARY
     .filter((item) => item.blueprintAvailable && item.provenances.includes("forge"))
     .map((item) => [item.id, {
       itemId: item.id,
       itemType: item.itemType,
       minimumRarity: item.minimumRarity,
+      levelRange: { ...item.levelRange },
+      powerModelId: item.powerModelId,
     }]),
+);
+const RECIPES: Record<string, Recipe> = Object.fromEntries(
+  Object.entries(ALL_RECIPES).filter(([itemId]) => {
+    const item = getItemById(itemId);
+    return item?.catalogStatus === "active" && item.powerModelId === "level-bands-v1";
+  }),
 );
 
 const WEAPON_MODIFIERS = new Set(["physicalDamage", "magicDamage", "criticalChance", "speed"]);
@@ -91,15 +103,7 @@ const MODIFIER_VALUES: Record<string, CanonicalStatModifier> = {
   radiantResistance: { stat: "radiantResistance", type: "flat", value: 2 },
 };
 
-const RECYCLE_REWARDS: Record<ForgeRarity, ForgeMaterialStack[]> = {
-  common: [{ materialId: "metal_scrap", rarity: "common", count: 2 }],
-  uncommon: [{ materialId: "metal_scrap", rarity: "common", count: 4 }, { materialId: "refined_metal", rarity: "uncommon", count: 2 }],
-  rare: [{ materialId: "metal_scrap", rarity: "common", count: 3 }, { materialId: "refined_metal", rarity: "uncommon", count: 4 }, { materialId: "enchanted_fragment", rarity: "rare", count: 2 }],
-  epic: [{ materialId: "refined_metal", rarity: "uncommon", count: 4 }, { materialId: "enchanted_fragment", rarity: "rare", count: 4 }, { materialId: "arcane_core", rarity: "epic", count: 2 }],
-  legendary: [{ materialId: "enchanted_fragment", rarity: "rare", count: 4 }, { materialId: "arcane_core", rarity: "epic", count: 2 }, { materialId: "legendary_essence", rarity: "legendary", count: 1 }],
-};
-
-const consume = (source: ForgeMaterialStack[], cost: ForgeMaterialStack[]) => {
+const consume = (source: ForgeMaterialStack[], cost: readonly ForgeMaterialStack[]) => {
   const next = clone(source);
   for (const entry of cost) {
     const stack = next.find((candidate) => candidate.materialId === entry.materialId && candidate.rarity === entry.rarity);
@@ -115,17 +119,56 @@ const addMaterial = (target: ForgeMaterialStack[], reward: ForgeMaterialStack) =
   else target.push({ ...reward });
 };
 
-const rollUpgradeProc = (rng: CanonicalRng): ForgeUpgradeProc => {
+export const rollOfferedRarity = (rng: CanonicalRng, forgeLevel: number): ForgeRarity => {
   const roll = rng.next() * 100;
-  if (roll < 85) return "none";
-  if (roll < 98) return "uncommon";
-  return "rare";
+  let ceiling = 0;
+  for (const [rarity, weight] of FORGE_RARITY_WEIGHTS[forgeLevel] ?? FORGE_RARITY_WEIGHTS[1]) {
+    ceiling += weight;
+    if (roll < ceiling) return rarity;
+  }
+  return "legendary";
 };
 
 const ensureRarity = (rarity: unknown): ForgeRarity => {
   if (!RARITIES.has(rarity as ForgeRarity)) throw new ForgeCommandError("INVALID_COMMAND", "rarity is invalid");
   return rarity as ForgeRarity;
 };
+
+const FORGE_LEVEL_BAND_STARTS = FORGE_PROGRESSION_LEVELS.map((entry) => entry.itemLevelRange.min);
+
+function resolveForgeItemLevelRange(
+  recipe: Recipe,
+  requestedBandMin: number | undefined,
+  forgeLevel: number,
+): { minimum: number; maximum: number } {
+  if (recipe.powerModelId === 'legacy-fixed-v1') {
+    if (forgeLevel < getForgeLevelForItemLevel(recipe.levelRange.min)) {
+      throw new ForgeCommandError('ITEM_LEVEL_LOCKED', 'forge level band is locked');
+    }
+    return { minimum: recipe.levelRange.min, maximum: recipe.levelRange.min };
+  }
+  const maximumUnlockedLevel = Math.min(40, Math.max(1, forgeLevel) * 5);
+  const defaultBandMin = [...FORGE_LEVEL_BAND_STARTS]
+    .reverse()
+    .find((start) => start <= maximumUnlockedLevel && start <= recipe.levelRange.max)
+    ?? 1;
+  const bandMin = requestedBandMin ?? defaultBandMin;
+  if (!FORGE_LEVEL_BAND_STARTS.includes(bandMin as typeof FORGE_LEVEL_BAND_STARTS[number])) {
+    throw new ForgeCommandError('INVALID_ITEM_LEVEL', 'forge level band is invalid');
+  }
+  const minimum = Math.max(recipe.levelRange.min, bandMin);
+  const maximum = Math.min(recipe.levelRange.max, bandMin + 4, maximumUnlockedLevel);
+  if (maximum < minimum) throw new ForgeCommandError('ITEM_LEVEL_LOCKED', 'forge level band is locked');
+  return { minimum, maximum };
+}
+
+function rollForgeItemLevel(
+  range: { minimum: number; maximum: number },
+  rng: CanonicalRng,
+): number {
+  const { minimum, maximum } = range;
+  return minimum === maximum ? minimum : minimum + rng.nextInt(maximum - minimum + 1);
+}
 
 export function applyForgeCommand(
   current: CanonicalGameState,
@@ -136,7 +179,8 @@ export function applyForgeCommand(
   const items = clone(current.storedItems);
   const pending: CanonicalPendingForge | null = clone(current.pendingForge ?? null);
   const typed = command as ForgeCommand;
-  const forgeUnlocked = Number(current.buildings.forge ?? 0) >= 1;
+  const forgeLevel = Number(current.buildings.forge ?? 0);
+  const forgeUnlocked = forgeLevel >= 1;
   if (!forgeUnlocked) throw new ForgeCommandError("FORGE_LOCKED", "forge building is required");
 
   if (typed.type === "forge.start") {
@@ -147,19 +191,36 @@ export function applyForgeCommand(
     }
     if (pending) throw new ForgeCommandError("FORGE_PENDING", "a forge preview is already pending");
     if (!rng) throw new ForgeCommandError("RNG_REQUIRED", "canonical RNG is required");
-    const nextMaterials = consume(materials, CRAFT_COST);
     const previewId = `preview-${typed.commandId ?? "command"}`;
-    const rolledUpgradeProc = rollUpgradeProc(rng);
-    const upgradeProc = rolledUpgradeProc !== "none" && rarityRank(rolledUpgradeProc) > rarityRank(recipe.minimumRarity)
-      ? rolledUpgradeProc
-      : "none";
+    const itemLevelRange = resolveForgeItemLevelRange(recipe, typed.levelBandMin, forgeLevel);
+    const requestedBandMin = typed.levelBandMin ?? (recipe.powerModelId === 'level-bands-v1'
+      ? FORGE_LEVEL_BAND_STARTS[Math.min(forgeLevel, FORGE_LEVEL_BAND_STARTS.length) - 1]
+      : recipe.levelRange.min);
+    const costLevel = recipe.powerModelId === 'level-bands-v1' ? requestedBandMin : recipe.levelRange.min;
+    const craftCost = recipe.powerModelId === 'level-bands-v1'
+      ? scaleForgeMaterialsForItemLevel(FORGE_CRAFT_COST, costLevel)
+      : FORGE_CRAFT_COST;
+    const nextMaterials = consume(materials, craftCost);
+    const rolledRarity = rollOfferedRarity(rng, forgeLevel);
+    const offeredRarity = rarityRank(rolledRarity) > rarityRank(recipe.minimumRarity)
+      ? rolledRarity
+      : recipe.minimumRarity;
+    const itemLevel = rollForgeItemLevel(itemLevelRange, rng);
     return {
       state: {
         ...current,
         forgeMaterials: nextMaterials,
-        pendingForge: { previewId, recipeId: typed.recipeId, itemId: recipe.itemId, itemType: recipe.itemType, upgradeProc },
+        pendingForge: {
+          previewId,
+          recipeId: typed.recipeId,
+          itemId: recipe.itemId,
+          itemType: recipe.itemType,
+          itemLevel,
+          powerModelId: recipe.powerModelId,
+          offeredRarity,
+        },
       },
-      events: [{ type: "forge.preview_created", previewId, itemId: recipe.itemId, upgradeProc }],
+      events: [{ type: 'forge.preview_created', previewId, itemId: recipe.itemId, itemLevel, powerModelId: recipe.powerModelId, offeredRarity, craftCost }],
     };
   }
 
@@ -170,32 +231,48 @@ export function applyForgeCommand(
 
   if (typed.type === "forge.finalize") {
     if (!pending || pending.previewId !== typed.previewId) throw new ForgeCommandError("PREVIEW_NOT_FOUND", "forge preview not found");
-    const recipe = RECIPES[String(pending.recipeId)];
+    const recipe = ALL_RECIPES[String(pending.recipeId)];
     if (!recipe) throw new ForgeCommandError("BLUEPRINT_LOCKED", "unknown forge blueprint");
-    const upgradeProc = pending.upgradeProc as ForgeUpgradeProc;
-    if (!(["none", "uncommon", "rare"] as string[]).includes(upgradeProc)) {
-      throw new ForgeCommandError("INVALID_GAME_STATE", "forge preview upgrade proc is invalid");
-    }
+    const itemDefinition = getItemById(recipe.itemId);
+    if (!itemDefinition) throw new ForgeCommandError('BLUEPRINT_LOCKED', 'unknown forge item');
+    const itemLevel = pending.itemLevel ?? itemDefinition.requiredLevel;
+    const powerModelId = pending.powerModelId ?? itemDefinition.powerModelId;
+    const offeredRarity = ensureRarity(pending.offeredRarity);
 
     let rarity: ForgeRarity = recipe.minimumRarity;
     let modifier: CanonicalStatModifier | undefined;
     let nextMaterials = materials;
     if (typed.acceptUpgrade) {
-      if (upgradeProc === "none") throw new ForgeCommandError("UPGRADE_UNAVAILABLE", "forge upgrade is unavailable");
+      if (rarityRank(offeredRarity) <= rarityRank(recipe.minimumRarity)) throw new ForgeCommandError("UPGRADE_UNAVAILABLE", "forge upgrade is unavailable");
       if (!typed.chosenModifierStat) throw new ForgeCommandError("INVALID_MODIFIER", "an upgrade modifier is required");
       const allowed = recipe.itemType === "weapon" ? WEAPON_MODIFIERS : ARMOR_MODIFIERS;
       if (!allowed.has(typed.chosenModifierStat) || !MODIFIER_VALUES[typed.chosenModifierStat]) {
         throw new ForgeCommandError("INVALID_MODIFIER", "modifier is incompatible with the crafted item");
       }
-      nextMaterials = consume(materials, UPGRADE_COSTS[upgradeProc]);
-      rarity = upgradeProc;
-      modifier = MODIFIER_VALUES[typed.chosenModifierStat];
+      const upgradeCost = powerModelId === 'level-bands-v1'
+        ? getForgeUpgradeCost(offeredRarity, itemLevel)
+        : getForgeUpgradeCost(offeredRarity, 1);
+      nextMaterials = consume(materials, upgradeCost);
+      rarity = offeredRarity;
+      modifier = powerModelId === 'level-bands-v1'
+        ? scaleModifierByRarity(
+            scaleModifierByItemLevel(MODIFIER_VALUES[typed.chosenModifierStat], itemLevel),
+            rarity,
+          )
+        : MODIFIER_VALUES[typed.chosenModifierStat];
     } else if (typed.chosenModifierStat) {
       throw new ForgeCommandError("INVALID_MODIFIER", "modifier requires an accepted upgrade");
     }
 
     const modifiers = modifier
-      ? [...resolveAuthoritativeNoviceItemModifiers(recipe.itemId, rarity), modifier]
+      ? [...resolveAuthoritativeNoviceItemModifiers(
+          recipe.itemId,
+          rarity,
+          undefined,
+          itemLevel,
+          powerModelId,
+          `item:forge:${typed.previewId}`,
+        ), modifier]
       : undefined;
     const instanceId = `item:forge:${typed.previewId}`;
     const equippedInstances = current.heroes
@@ -204,10 +281,10 @@ export function applyForgeCommand(
     if ([...items, ...equippedInstances].some((entry) => entry.instanceId === instanceId)) {
       throw new ForgeCommandError("INVALID_GAME_STATE", "forged item instance already exists");
     }
-    items.push({ instanceId, itemId: recipe.itemId, rarity, modifiers });
+    items.push({ instanceId, itemId: recipe.itemId, itemLevel, powerModelId, rarity, modifiers });
     return {
       state: { ...current, storedItems: items, forgeMaterials: nextMaterials, pendingForge: null },
-      events: [{ type: "forge.finalized", previewId: typed.previewId, instanceId, itemId: recipe.itemId, rarity, modifier: typed.chosenModifierStat ?? null }],
+      events: [{ type: 'forge.finalized', previewId: typed.previewId, instanceId, itemId: recipe.itemId, itemLevel, powerModelId, rarity, modifier: typed.chosenModifierStat ?? null }],
     };
   }
 
@@ -216,11 +293,16 @@ export function applyForgeCommand(
     if (index === -1) throw new ForgeCommandError("ITEM_NOT_FOUND", "item instance is unavailable");
     const [instance] = items.splice(index, 1);
     const rarity = ensureRarity(instance.rarity);
+    const definition = getItemById(instance.itemId);
+    const itemLevel = instance.itemLevel ?? definition?.requiredLevel ?? 1;
+    const rewards = instance.powerModelId === 'level-bands-v1'
+      ? scaleForgeMaterialsForItemLevel(FORGE_RECYCLE_REWARDS[rarity], itemLevel)
+      : FORGE_RECYCLE_REWARDS[rarity];
     const nextMaterials = clone(materials);
-    for (const reward of RECYCLE_REWARDS[rarity]) addMaterial(nextMaterials, reward);
+    for (const reward of rewards) addMaterial(nextMaterials, reward);
     return {
       state: { ...current, storedItems: items, forgeMaterials: nextMaterials },
-      events: [{ type: "inventory.recycled", instanceId: instance.instanceId, itemId: instance.itemId, rarity, rewards: RECYCLE_REWARDS[rarity] }],
+      events: [{ type: 'inventory.recycled', instanceId: instance.instanceId, itemId: instance.itemId, itemLevel, rarity, rewards }],
     };
   }
 

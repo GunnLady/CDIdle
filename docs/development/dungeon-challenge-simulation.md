@@ -42,18 +42,18 @@ du groupe.
 ## Courbe canonique du runtime
 
 Le runtime et la simulation dédiée appliquent la courbe versionnée
-`party-four-two-thirds-v1`, calibrée par type sur un groupe réel de quatre
+`party-four-two-thirds-v2`, calibrée par type sur un groupe réel de quatre
 héros. Les valeurs intermédiaires sont interpolées et arrondies ; chaque
 courbe reste monotone, y compris après la dernière ancre.
 
 | Défi | Ancres `étage:difficulté` |
 |---|---|
-| Piège | `1:12, 10:29, 20:72, 25:80, 30:93, 40:110, 50:119, 60:132, 65:139, 99:139` |
+| Piège | `1:12, 10:29, 20:72, 25:80, 30:93, 40:110, 50:119, 60:133, 65:140, 99:140` |
 | Énigme | `1:11, 10:29, 20:58, 25:70, 30:82, 40:100, 50:113, 60:125, 65:130, 70:133, 99:133` |
 | Embuscade | `1:12, 10:30, 20:53, 25:66, 30:77, 40:92, 50:106, 60:113, 99:113` |
-| Rituel | `1:11, 10:28, 20:63, 25:70, 30:84, 40:98, 50:113, 60:127, 70:135, 99:137` |
+| Rituel | `1:11, 10:28, 20:59, 25:70, 30:80, 40:97, 50:112, 60:126, 70:131, 99:131` |
 | Obstacle | `1:12, 10:30, 20:58, 25:73, 30:81, 40:102, 50:116, 60:128, 70:142, 80:145, 99:145` |
-| Négociation | `1:11, 10:29, 20:50, 25:53, 30:62, 40:67, 99:67` |
+| Négociation | `1:11, 10:29, 20:50, 25:53, 30:62, 40:66, 99:66` |
 
 La salle ne modifie pas la difficulté : le seuil reste lisible pendant un
 étage et la progression est portée uniquement par les paliers d'étage.
@@ -88,11 +88,12 @@ les tests de `DungeonPanel` ainsi que le build de production.
 
 Le harness de campagne `npm.cmd run test:xp-tier1` complète cette preuve avec
 100 seeds distinctes en dix processus. Sa cible est `66,7 %` de réussite
-globale, avec des tolérances explicites par bande et par type. Le résultat de
-référence du 3 septembre 2026, revalidé à l'identique le 4 septembre 2026, est
-`67,52 %` global ; les bandes de niveaux
-1–9, 10–19, 20–29, 30–34 et 35–40 donnent respectivement `66,03 %`,
-`66,41 %`, `66,86 %`, `66,78 %` et `69,75 %`.
+globale, avec des tolérances explicites par bande et par type. Le résultat
+final validé le 4 septembre 2026 est
+`66,65 %` global ; les bandes de niveaux
+1–9, 10–19, 20–29, 30–34 et 35–40 donnent respectivement `67,47 %`,
+`66,58 %`, `65,54 %`, `65,32 %` et `68,57 %`. Les 30 cellules type × bande
+respectent leur tolérance.
 
 Le choix du candidat et la résolution conservent exactement un tirage RNG par
 tentative. La calibration modifie uniquement le seuil effectif ; elle n'ajoute

@@ -20,7 +20,7 @@ describe("canonical town event log", () => {
   });
 
   it("formats forge, cancellation and exact recycle rewards", () => {
-    expect(formatCanonicalTownEvent({ type: "forge.preview_created", itemId: "starter_sword", upgradeProc: "rare" })?.message).toContain("amélioration rare disponible");
+    expect(formatCanonicalTownEvent({ type: "forge.preview_created", itemId: "starter_sword", offeredRarity: "rare" })?.message).toContain("qualité rare proposée");
     expect(formatCanonicalTownEvent({ type: "forge.finalized", instanceId: "item:forge:preview-1", itemId: "starter_sword", rarity: "rare", modifier: "physicalDamage" })?.message).toContain("bonus dégâts physiques");
     expect(formatCanonicalTownEvent({ type: "forge.finalized", instanceId: "item:forge:preview-1", itemId: "starter_sword", rarity: "rare", modifier: "physicalDamage" })?.message).not.toContain("item:forge:preview-1");
     expect(formatCanonicalTownEvent({ type: "forge.finalized", itemId: "starter_sword", rarity: "uncommon", modifier: null })?.message).toContain("qualité inhabituelle");

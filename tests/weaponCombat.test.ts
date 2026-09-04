@@ -128,8 +128,8 @@ describe("weapon-specific scaling", () => {
       id: "legacy-aede",
       level: 10,
       equipment: {
-        mainHand: { instanceId: "legacy-lute", itemId: "basic_lute", rarity: "common" },
-        offHand: { instanceId: "legacy-shield", itemId: "wooden_shield", rarity: "common" },
+        mainHand: { instanceId: "legacy-lute", itemId: "basic_lute", itemLevel: 10, powerModelId: "legacy-fixed-v1", rarity: "common" },
+        offHand: { instanceId: "legacy-shield", itemId: "wooden_shield", itemLevel: 1, powerModelId: "legacy-fixed-v1", rarity: "common" },
       },
     });
 
@@ -151,16 +151,16 @@ describe("weapon-specific scaling", () => {
 
   it("resolves physical and magical hero power from the equipped weapon", () => {
     const finesse = calculateAuthoritativeHeroStats(attributes, [], {
-      mainHand: { itemId: "quick_dagger", rarity: "common" },
+      mainHand: { itemId: "quick_dagger", itemLevel: 1, powerModelId: "legacy-fixed-v1", rarity: "common" },
     });
     const ranged = calculateAuthoritativeHeroStats(attributes, [], {
       mainHand: { itemId: "basic_longbow", rarity: "common" },
     });
     const arcane = calculateAuthoritativeHeroStats(attributes, [], {
-      mainHand: { itemId: "basic_staff", rarity: "common" },
+      mainHand: { itemId: "basic_staff", itemLevel: 10, powerModelId: "legacy-fixed-v1", rarity: "common" },
     });
     const spiritual = calculateAuthoritativeHeroStats(attributes, [], {
-      mainHand: { itemId: "basic_lute", rarity: "common" },
+      mainHand: { itemId: "basic_lute", itemLevel: 10, powerModelId: "legacy-fixed-v1", rarity: "common" },
     });
 
     expect(finesse.physicalDamage).toBe(16);

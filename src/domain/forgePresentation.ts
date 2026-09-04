@@ -1,10 +1,14 @@
 import { ITEM_LIBRARY } from "../data/gameData";
-import type { ItemBlueprint, ItemInfo, StoredForgeMaterialStack } from "../types";
+import type { ItemBlueprint, ItemInfo, Rarity, StoredForgeMaterialStack } from "../types";
 import {
-  BASIC_FORGE_CRAFTABLE_ITEMS,
   FORGE_MATERIALS,
-  type BasicForgeUpgradeProc,
 } from "../utils/gameCalculations";
+import {
+  FORGE_CRAFT_COST,
+  getForgeUpgradeCost,
+  scaleForgeMaterialsForItemLevel,
+} from "../../shared/domain/forge-economy";
+import { FORGE_PROGRESSION_LEVELS } from "../../shared/data/forge-progression";
 import {
   formatWeaponAttackSpeed,
   getWeaponAttackProfileLabel,
@@ -14,7 +18,8 @@ import {
 export interface ForgePendingViewInput {
   previewId: string;
   itemId: string;
-  upgradeProc?: BasicForgeUpgradeProc;
+  itemLevel?: number;
+  offeredRarity: Rarity;
 }
 
 export interface ForgeRecipeView {
@@ -23,6 +28,9 @@ export interface ForgeRecipeView {
   description: string;
   rarityLabel: string;
   unlocked: boolean;
+  powerModelId: 'legacy-fixed-v1' | 'level-bands-v1';
+  levelRangeLabel: string;
+  availableLevelBands: number[];
   weaponDetails: string[];
   modifierLines: string[];
 }
@@ -36,16 +44,25 @@ export interface ForgePendingView {
   previewId: string;
   itemId: string;
   itemName: string;
+  itemLevel: number;
   rarityLabel: string;
-  upgradeProc: BasicForgeUpgradeProc;
+  offeredRarity: Rarity;
+  upgradeAvailable: boolean;
   upgradeAffordable: boolean;
+  upgradeCostLabel: string;
   modifierOptions: ForgeModifierOptionView[];
 }
 
 export interface ForgeWorkspaceView {
+  progression: {
+    openedRangeLabel: string;
+    nextRangeLabel?: string;
+    nextRequiredFloor?: number;
+  };
   materials: Array<{ id: string; name: string; count: number }>;
   recipes: ForgeRecipeView[];
   selectedRecipe: ForgeRecipeView | null;
+  selectedLevelBandMin: number;
   baseAffordable: boolean;
   baseCostLabel: string;
   pending: ForgePendingView | null;
@@ -83,7 +100,23 @@ const rarityLabels = {
   legendary: "Légendaire",
 } as const;
 
-function toRecipeView(item: ItemInfo, unlockedIds: Set<string>): ForgeRecipeView {
+const rarityOrder: Rarity[] = ["common", "uncommon", "rare", "epic", "legendary"];
+const materialLabels: Record<string, { singular: string; plural: string }> = {
+  metal_scrap: { singular: "débris métallique", plural: "débris métalliques" },
+  refined_metal: { singular: "métal raffiné", plural: "métaux raffinés" },
+  enchanted_fragment: { singular: "fragment enchanté", plural: "fragments enchantés" },
+  arcane_core: { singular: "noyau arcanique", plural: "noyaux arcaniques" },
+  legendary_essence: { singular: "essence légendaire", plural: "essences légendaires" },
+};
+
+const formatMaterialCost = (cost: readonly { materialId: string; count: number }[]) => cost
+  .map((entry) => {
+    const labels = materialLabels[entry.materialId];
+    return `${entry.count} ${entry.count > 1 ? labels?.plural : labels?.singular}`;
+  })
+  .join(" · ");
+
+function toRecipeView(item: ItemInfo, unlockedIds: Set<string>, forgeLevel: number): ForgeRecipeView {
   const weaponDetails = item.itemType === "weapon"
     ? [
         ...(item.damageRange ? [`Dégâts de base : ${item.damageRange.min} - ${item.damageRange.max}`] : []),
@@ -98,6 +131,15 @@ function toRecipeView(item: ItemInfo, unlockedIds: Set<string>): ForgeRecipeView
     description: item.description,
     rarityLabel: rarityLabels[item.minimumRarity],
     unlocked: unlockedIds.has(item.id),
+    powerModelId: item.powerModelId,
+    levelRangeLabel: item.levelRange.min === item.levelRange.max
+      ? `Niveau ${item.levelRange.min}`
+      : `Niveaux ${item.levelRange.min}–${item.levelRange.max}`,
+    availableLevelBands: item.powerModelId === 'legacy-fixed-v1'
+      ? [Math.floor((item.requiredLevel - 1) / 5) * 5 + 1]
+      : [1, 6, 11, 16, 21, 26, 31, 36].filter((start) => (
+          start <= forgeLevel * 5 && start <= item.levelRange.max && start + 4 >= item.levelRange.min
+        )),
     weaponDetails,
     modifierLines: (item.modifiers ?? []).map((entry) =>
       `• ${entry.stat} : ${entry.type === "percent" ? `+${entry.value}%` : `+${entry.value}`}`),
@@ -108,40 +150,69 @@ export function createForgeWorkspaceView(input: {
   materials: StoredForgeMaterialStack[];
   blueprints: ItemBlueprint[];
   selectedRecipeId: string;
+  selectedLevelBandMin?: number;
+  forgeLevel?: number;
   pending?: ForgePendingViewInput | null;
 }): ForgeWorkspaceView {
   const materialCounts = new Map(input.materials.map((stack) => [stack.materialId, stack.count]));
   const count = (id: string) => materialCounts.get(id) ?? 0;
   const unlockedIds = new Set(input.blueprints.filter((entry) => entry.unlocked).map((entry) => entry.itemId));
-  const baseItems = [...BASIC_FORGE_CRAFTABLE_ITEMS];
-  const extraItems = input.blueprints
-    .filter((entry) => entry.unlocked && !baseItems.some((item) => item.id === entry.itemId))
-    .map((entry) => ITEM_LIBRARY.find((item) => item.id === entry.itemId))
-    .filter((item): item is ItemInfo => Boolean(item));
-  const recipes = [...baseItems, ...extraItems].map((item) => toRecipeView(item, unlockedIds));
+  const forgeItems = ITEM_LIBRARY.filter((item) => (
+    item.catalogStatus === "active"
+    && item.blueprintAvailable
+    && item.provenances.includes("forge")
+    && item.blueprintDiscovery.kind !== "none"
+  ));
+  const forgeLevel = Math.max(1, input.forgeLevel ?? 1);
+  const openedProgression = FORGE_PROGRESSION_LEVELS[Math.min(forgeLevel, FORGE_PROGRESSION_LEVELS.length) - 1]!;
+  const nextProgression = FORGE_PROGRESSION_LEVELS[forgeLevel];
+  const recipes = forgeItems.map((item) => toRecipeView(item, unlockedIds, forgeLevel));
   const selectedRecipe = recipes.find((recipe) => recipe.id === input.selectedRecipeId) ?? recipes[0] ?? null;
-  const upgradeProc = input.pending?.upgradeProc ?? "none";
+  const selectedLevelBandMin = selectedRecipe?.availableLevelBands.includes(input.selectedLevelBandMin ?? -1)
+    ? input.selectedLevelBandMin!
+    : selectedRecipe?.availableLevelBands.at(-1) ?? 1;
+  const baseCost = selectedRecipe?.powerModelId === 'level-bands-v1'
+    ? scaleForgeMaterialsForItemLevel(FORGE_CRAFT_COST, selectedLevelBandMin)
+    : [...FORGE_CRAFT_COST];
   const pendingItem = input.pending ? ITEM_LIBRARY.find((item) => item.id === input.pending?.itemId) : undefined;
+  const offeredRarity = input.pending?.offeredRarity ?? pendingItem?.minimumRarity ?? "common";
+  const upgradeAvailable = Boolean(pendingItem)
+    && rarityOrder.indexOf(offeredRarity) > rarityOrder.indexOf(pendingItem.minimumRarity);
   const compatibleModifiers = pendingItem?.itemType === "weapon" ? weaponModifiers : armorModifiers;
-  const upgradeAffordable = upgradeProc === "uncommon"
-    ? count("refined_metal") >= 2
-    : upgradeProc === "rare"
-      ? count("refined_metal") >= 4 && count("enchanted_fragment") >= 1
-      : false;
+  const upgradeCost = getForgeUpgradeCost(
+    offeredRarity,
+    pendingItem?.powerModelId === 'level-bands-v1' ? input.pending?.itemLevel ?? 1 : 1,
+  );
+  const upgradeAffordable = upgradeCost.length > 0
+    && upgradeCost.every((entry) => count(entry.materialId) >= entry.count);
+  const upgradeCostLabel = upgradeCost.length > 0
+    ? formatMaterialCost(upgradeCost)
+    : "Aucun coût supplémentaire";
 
   return {
+    progression: {
+      openedRangeLabel: `${openedProgression.itemLevelRange.min}–${openedProgression.itemLevelRange.max}`,
+      ...(nextProgression ? {
+        nextRangeLabel: `${nextProgression.itemLevelRange.min}–${nextProgression.itemLevelRange.max}`,
+        nextRequiredFloor: nextProgression.requiredFloor,
+      } : {}),
+    },
     materials: FORGE_MATERIALS.map((material) => ({ id: material.id, name: material.name, count: count(material.id) })),
     recipes,
     selectedRecipe,
-    baseAffordable: count("metal_scrap") >= 6 && count("refined_metal") >= 1,
-    baseCostLabel: "6 débris métalliques · 1 métal raffiné",
+    selectedLevelBandMin,
+    baseAffordable: baseCost.every((entry) => count(entry.materialId) >= entry.count),
+    baseCostLabel: formatMaterialCost(baseCost),
     pending: input.pending ? {
       previewId: input.pending.previewId,
       itemId: input.pending.itemId,
       itemName: pendingItem?.name ?? input.pending.itemId,
-      rarityLabel: pendingItem ? rarityLabels[pendingItem.minimumRarity] : "Standard",
-      upgradeProc,
-      upgradeAffordable,
+      itemLevel: input.pending.itemLevel ?? pendingItem?.requiredLevel ?? 1,
+      rarityLabel: rarityLabels[offeredRarity],
+      offeredRarity,
+      upgradeAvailable,
+      upgradeAffordable: upgradeAvailable && upgradeAffordable,
+      upgradeCostLabel,
       modifierOptions: compatibleModifiers.map((stat) => ({ stat, label: modifierLabels[stat] ?? stat })),
     } : null,
   };

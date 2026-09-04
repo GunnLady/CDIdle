@@ -283,7 +283,9 @@ describe("Supabase game-api adapter", () => {
         recipeId: "starter_sword",
         itemId: "starter_sword",
         itemType: "weapon",
-        upgradeProc: "none",
+        itemLevel: 1,
+        powerModelId: "legacy-fixed-v1",
+        offeredRarity: "common",
       },
     };
     let committedHash: string | undefined;

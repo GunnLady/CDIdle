@@ -29,6 +29,7 @@ import {
   SKILLS_LIBRARY,
   getSkillsByIds,
   NOVICE_BASIC_ITEM_LIST,
+  PROGRESSION_ITEM_BASES,
   getItemById,
   WEAPON_INFO_LIST
 } from "../data/game-data.ts";
@@ -38,7 +39,10 @@ import type { XpProgressionCurve } from "../data/hero-progression-models.ts";
 import type { Rng } from "./random.ts";
 import { calculateHeroDerivedStats } from "./hero-stats.ts";
 import { calculateXpNeeded, refreshHeroProgressionThreshold } from "./hero-xp.ts";
-import { applyItemRarityScaling as applyCanonicalItemRarityScaling } from "./items/scaling.ts";
+import {
+  applyItemRarityScaling as applyCanonicalItemRarityScaling,
+  resolveItemInstance as resolveCanonicalItemInstance,
+} from "./items/scaling.ts";
 export {
   ITEM_RARITY_DAMAGE_MULTIPLIERS,
   ITEM_RARITY_FLAT_MODIFIER_MULTIPLIERS,
@@ -72,11 +76,11 @@ export function resolveEquippedItem(equippedItemRef: EquippedItemRef | null | un
   if (!equippedItemRef || !equippedItemRef.itemId) return null;
   const baseItem = getItemById(equippedItemRef.itemId);
   if (!baseItem) return null;
-  const scaled = applyItemRarityScaling(baseItem, equippedItemRef.rarity);
-  if (equippedItemRef.modifiers && equippedItemRef.modifiers.length > 0) {
-    scaled.modifiers = equippedItemRef.modifiers;
-  }
-  return scaled;
+  return resolveCanonicalItemInstance(baseItem, {
+    ...equippedItemRef,
+    itemLevel: equippedItemRef.itemLevel ?? baseItem.requiredLevel,
+    powerModelId: equippedItemRef.powerModelId ?? baseItem.powerModelId,
+  }) as ItemInfo;
 }
 
 export function resolveWeaponDamageTypes(weaponItem: WeaponItemInfo | null | undefined): DamageType[] {
@@ -277,9 +281,9 @@ export const generateNoviceStarterEquipment = (rng: Rng, instanceScope = "local-
   const rolledShield = rng.next() < 0.15 ? getNoviceWoodenShield() : null;
 
   return {
-    mainHand: weapon ? { instanceId: `item:${instanceScope}:mainHand`, itemId: weapon.id, rarity: weapon.rarity } : null,
-    offHand: rolledShield ? { instanceId: `item:${instanceScope}:offHand`, itemId: rolledShield.id, rarity: rolledShield.rarity } : null,
-    armor: armor ? { instanceId: `item:${instanceScope}:armor`, itemId: armor.id, rarity: armor.rarity } : null,
+    mainHand: weapon ? { instanceId: `item:${instanceScope}:mainHand`, itemId: weapon.id, itemLevel: weapon.requiredLevel, powerModelId: weapon.powerModelId, rarity: weapon.rarity } : null,
+    offHand: rolledShield ? { instanceId: `item:${instanceScope}:offHand`, itemId: rolledShield.id, itemLevel: rolledShield.requiredLevel, powerModelId: rolledShield.powerModelId, rarity: rolledShield.rarity } : null,
+    armor: armor ? { instanceId: `item:${instanceScope}:armor`, itemId: armor.id, itemLevel: armor.requiredLevel, powerModelId: armor.powerModelId, rarity: armor.rarity } : null,
     accessory: null
   };
 };
@@ -597,16 +601,14 @@ export const FORGE_MATERIALS: ForgeMaterial[] = [
 
 
 
-// First version of the forge crafting system
-export type BasicForgeUpgradeProc = "none" | "uncommon" | "rare";
-
 export const DEFAULT_UNLOCKED_ITEM_BLUEPRINTS: ItemBlueprint[] = [
-  { itemId: "starter_sword", unlocked: true },
-  { itemId: "quick_dagger", unlocked: true },
-  { itemId: "woodcutter_axe", unlocked: true },
-  { itemId: "wooden_shield", unlocked: true },
-  { itemId: "traveler_clothes", unlocked: true },
-  { itemId: "simple_leather_armor", unlocked: true }
+  { itemId: "progression_sword", unlocked: true },
+  { itemId: "progression_dagger", unlocked: true },
+  { itemId: "progression_axe", unlocked: true },
+  { itemId: "progression_shield", unlocked: true },
+  { itemId: "progression_cloth_armor", unlocked: true },
+  { itemId: "progression_leather_armor", unlocked: true }
 ];
 
-export const BASIC_FORGE_CRAFTABLE_ITEMS = NOVICE_BASIC_ITEM_LIST;
+const DEFAULT_FORGE_BLUEPRINT_IDS = new Set(DEFAULT_UNLOCKED_ITEM_BLUEPRINTS.map((entry) => entry.itemId));
+export const BASIC_FORGE_CRAFTABLE_ITEMS = PROGRESSION_ITEM_BASES.filter((item) => DEFAULT_FORGE_BLUEPRINT_IDS.has(item.id));

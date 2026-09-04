@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { calculateXpNeeded } from "../shared/domain/game-calculations";
 import {
-  HARMONIZED_T0_T1_XP_CURVE,
+  HARMONIZED_HERO_XP_CURVE,
   OBSERVED_T1_LEVEL_20_EXPLORATIONS,
   OBSERVED_T1_LEVEL_30_EXPLORATIONS,
   OBSERVED_VISIBLE_SECONDS_PER_EXPLORATION,
@@ -33,7 +33,7 @@ const OBSERVED_T1_EXPLORATIONS_PER_LEVEL = (
 ) / 10;
 
 function projectedXpCost(destinationLevel: number): number {
-  return calculateXpNeeded(destinationLevel, "Guerrier", HARMONIZED_T0_T1_XP_CURVE);
+  return calculateXpNeeded(destinationLevel, "Guerrier", HARMONIZED_HERO_XP_CURVE);
 }
 
 function projectGainEconomy(profile: GainProfile): Projection {

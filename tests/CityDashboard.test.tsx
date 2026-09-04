@@ -18,7 +18,7 @@ const baseProps = () => ({
     { materialId: "metal_scrap", rarity: "common" as const, count: 6 },
     { materialId: "refined_metal", rarity: "uncommon" as const, count: 3 },
   ],
-  itemBlueprints: [{ itemId: "starter_sword", unlocked: true }],
+  itemBlueprints: [{ itemId: "progression_sword", unlocked: true }],
   canMutate: true,
   onStartForge: vi.fn(),
   onFinalizeForge: vi.fn(),
@@ -64,6 +64,9 @@ describe("CityDashboard city controls", () => {
 
     fireEvent.click(screen.getByTestId("building-forge"));
     expect(screen.getByTestId("selected-building-panel")).toHaveAttribute("aria-labelledby");
+    expect(screen.getByText("Tranche ouverte : niveaux 1–5")).toBeInTheDocument();
+    expect(screen.getByText("Prochaine : niveaux 6–10 · étage 8")).toBeInTheDocument();
+    expect(screen.getByText(/Coût : 600 or · 150 nourriture/)).toBeInTheDocument();
     expect(within(screen.getByTestId("selected-building-panel")).getByRole("button", { name: /forger/i })).toHaveAttribute("data-state", "ready");
   });
 
@@ -227,7 +230,7 @@ describe("CityDashboard city controls", () => {
 
   it("finalizes a standard forge preview without treating it as cancellation", async () => {
     const props = baseProps();
-    render(<CityDashboard {...props} pendingForge={{ previewId: "preview-standard", itemId: "starter_sword", upgradeProc: "none" }} />);
+    render(<CityDashboard {...props} pendingForge={{ previewId: "preview-standard", itemId: "starter_sword", offeredRarity: "common" }} />);
     fireEvent.click(screen.getByRole("button", { name: /forge/i }));
     fireEvent.click(await screen.findByRole("button", { name: /finaliser/i }));
     expect(props.onFinalizeForge).toHaveBeenCalledWith("preview-standard", false, undefined);
@@ -253,7 +256,7 @@ describe("CityDashboard city controls", () => {
 
   it("sends an explicit modifier for an accepted forge upgrade", async () => {
     const props = baseProps();
-    render(<CityDashboard {...props} pendingForge={{ previewId: "preview-upgrade", itemId: "starter_sword", upgradeProc: "uncommon" }} />);
+    render(<CityDashboard {...props} pendingForge={{ previewId: "preview-upgrade", itemId: "starter_sword", offeredRarity: "uncommon" }} />);
     fireEvent.click(screen.getByRole("button", { name: /forge/i }));
     fireEvent.click(await screen.findByRole("checkbox"));
     fireEvent.click(screen.getByRole("button", { name: /finaliser/i }));
@@ -265,7 +268,7 @@ describe("CityDashboard city controls", () => {
     render(<CityDashboard
       {...props}
       itemBlueprints={[{ itemId: "traveler_clothes", unlocked: true }]}
-      pendingForge={{ previewId: "preview-armor-upgrade", itemId: "traveler_clothes", upgradeProc: "uncommon" }}
+      pendingForge={{ previewId: "preview-armor-upgrade", itemId: "traveler_clothes", offeredRarity: "uncommon" }}
     />);
     fireEvent.click(screen.getByRole("button", { name: /forge/i }));
     fireEvent.click(await screen.findByRole("checkbox"));
@@ -275,7 +278,7 @@ describe("CityDashboard city controls", () => {
 
   it("cancels a forge preview without finalizing it", async () => {
     const props = baseProps();
-    render(<CityDashboard {...props} pendingForge={{ previewId: "preview-cancel", itemId: "starter_sword", upgradeProc: "none" }} />);
+    render(<CityDashboard {...props} pendingForge={{ previewId: "preview-cancel", itemId: "starter_sword", offeredRarity: "common" }} />);
     fireEvent.click(screen.getByRole("button", { name: /forge/i }));
     fireEvent.click(await screen.findByRole("button", { name: /abandonner/i }));
     expect(props.onCancelForge).toHaveBeenCalledWith("preview-cancel");
@@ -287,7 +290,7 @@ describe("CityDashboard city controls", () => {
     render(<CityDashboard
       {...props}
       itemBlueprints={[{ itemId: "embercleaver_greataxe", unlocked: true }]}
-      pendingForge={{ previewId: "preview-epic", itemId: "embercleaver_greataxe", upgradeProc: "none" }}
+      pendingForge={{ previewId: "preview-epic", itemId: "embercleaver_greataxe", offeredRarity: "epic" }}
     />);
     fireEvent.click(screen.getByRole("button", { name: /forge/i }));
     expect(await screen.findByText(/Épique/)).toBeInTheDocument();

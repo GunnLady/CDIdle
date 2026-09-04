@@ -12,6 +12,21 @@ export type CanonicalItemProvenance = "vocation" | "chest" | "boss" | "forge";
 export type CanonicalWeaponScalingCategory = "power" | "finesse" | "ranged" | "magic";
 export type CanonicalWeaponScalingStat = "str" | "agi" | "dex" | "int" | "wiz";
 
+export type CanonicalItemPowerModelId = 'legacy-fixed-v1' | 'level-bands-v1';
+export type CanonicalItemCatalogStatus = 'legacy' | 'active';
+export type CanonicalItemLevelRange = { min: number; max: number };
+export type CanonicalBlueprintDiscoveryPolicy =
+  | { kind: "none" }
+  | { kind: "initial" }
+  | {
+      kind: "random-drop";
+      sources: Array<"boss" | "treasure">;
+      floorMin: number;
+      floorMax: number;
+      weight: number;
+      bossIds?: string[];
+    };
+
 export type CanonicalWeaponScaling = {
   category: CanonicalWeaponScalingCategory;
   stat: CanonicalWeaponScalingStat;
@@ -71,10 +86,17 @@ export type CanonicalBaseItem = {
   rarity: CanonicalRarity;
   minimumRarity: CanonicalRarity;
   requiredLevel: number;
+  /** Inclusive levels at which a generated instance may exist. */
+  levelRange: CanonicalItemLevelRange;
+  powerModelId: CanonicalItemPowerModelId;
+  /** Catalog level whose raw values are the calibration source for the power curve. */
+  powerReferenceLevel: number;
+  catalogStatus: CanonicalItemCatalogStatus;
   description: string;
   modifiers?: CanonicalItemModifier[];
   provenances: CanonicalItemProvenance[];
   blueprintAvailable: boolean;
+  blueprintDiscovery: CanonicalBlueprintDiscoveryPolicy;
 };
 
 export type CanonicalWeaponItem = CanonicalBaseItem & {
@@ -95,6 +117,8 @@ export type CanonicalItem = CanonicalWeaponItem | CanonicalOffHandItem | Canonic
 export type CanonicalStoredItemInstance = {
   instanceId: string;
   itemId: string;
+  itemLevel: number;
+  powerModelId: CanonicalItemPowerModelId;
   rarity: CanonicalRarity;
   modifiers?: CanonicalItemModifier[];
 };

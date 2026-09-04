@@ -26,7 +26,6 @@ export type InventoryHero = CanonicalHero;
 
 type ItemDefinition = {
   slot: InventorySlot;
-  requiredLevel: number;
   twoHanded?: boolean;
 };
 
@@ -51,10 +50,22 @@ export function generateAuthoritativeNoviceEquipment(seedKey: string, ownerId = 
   const armorId = NOVICE_ARMOR_IDS[stableHash(`${seedKey}:armor`) % NOVICE_ARMOR_IDS.length];
   const hasShield = stableHash(`${seedKey}:shield`) % 100 < 15;
   return {
-    mainHand: { instanceId: `item:${ownerId}:mainHand`, itemId: weaponId, rarity: "common" },
-    offHand: hasShield ? { instanceId: `item:${ownerId}:offHand`, itemId: "wooden_shield", rarity: "common" } : null,
-    armor: { instanceId: `item:${ownerId}:armor`, itemId: armorId, rarity: "common" },
+    mainHand: createInventoryInstance(`item:${ownerId}:mainHand`, weaponId),
+    offHand: hasShield ? createInventoryInstance(`item:${ownerId}:offHand`, 'wooden_shield') : null,
+    armor: createInventoryInstance(`item:${ownerId}:armor`, armorId),
     accessory: null,
+  };
+}
+
+function createInventoryInstance(instanceId: string, itemId: string): InventoryEquipmentRef {
+  const item = getItemById(itemId);
+  if (!item) throw new InventoryCommandError('ITEM_NOT_FOUND', `unknown item ${itemId}`);
+  return {
+    instanceId,
+    itemId,
+    itemLevel: item.requiredLevel,
+    powerModelId: item.powerModelId,
+    rarity: 'common',
   };
 }
 
@@ -73,7 +84,6 @@ function ensureItem(itemId: string): ItemDefinition {
   const handedness = getItemHandedness(item);
   return {
     slot: getItemSlot(item),
-    requiredLevel: item.requiredLevel,
     twoHanded: handedness === "two_handed" || handedness === "dual_wield",
   };
 }
@@ -115,7 +125,8 @@ export function applyInventoryCommand(current: CanonicalGameState, command: Reco
     if (index === -1) throw new InventoryCommandError("ITEM_NOT_FOUND", "item instance is unavailable");
     const instance = storedItems[index];
     const definition = ensureItem(instance.itemId);
-    if ((hero.level ?? 1) < definition.requiredLevel) throw new InventoryCommandError("EQUIP_BLOCKED", "hero level is too low");
+    const requiredLevel = instance.itemLevel ?? getItemById(instance.itemId)?.requiredLevel ?? 1;
+    if ((hero.level ?? 1) < requiredLevel) throw new InventoryCommandError("EQUIP_BLOCKED", "hero level is too low");
     const equipment = { ...(hero.equipment ?? {}) };
     if (definition.slot === "offHand" && equipment.mainHand && ensureItem(equipment.mainHand.itemId).twoHanded) {
       throw new InventoryCommandError("EQUIP_BLOCKED", "off-hand is blocked by the main-hand item");

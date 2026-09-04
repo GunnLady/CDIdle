@@ -1,12 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { calculateXpNeeded } from "../shared/domain/hero-xp";
 import type { DungeonXpRewardSource } from "../shared/domain/dungeon-xp-rewards";
-import { HARMONIZED_T0_T1_XP_CURVE } from "./fixtures/xpProgression";
+import { HARMONIZED_HERO_XP_CURVE } from "./fixtures/xpProgression";
 import {
   ACTIVE_REWARD_PROFILES,
   CANONICAL_PROFILE,
   CHALLENGE_KINDS,
   CHALLENGE_LEVEL_BANDS,
+  ITEM_LEVEL_BANDS,
   MAX_EXPLORATIONS,
   MILESTONES,
   SEEDS,
@@ -59,6 +60,8 @@ describe("complete Tier 1 XP campaign", () => {
       expect(report.explorations).toBeLessThan(MAX_EXPLORATIONS);
       if (!report.blockedReason) {
         expect(report.finalLevels.every((level) => level >= TARGET_LEVEL)).toBe(true);
+      } else if (!report.forgeCandidate) {
+        expect(report.blockedReason).toBeUndefined();
       }
       expect(report.fights).toBeGreaterThan(0);
       expect(report.nonCombat).toBeGreaterThan(0);
@@ -67,6 +70,22 @@ describe("complete Tier 1 XP campaign", () => {
       expect(report.firstClears).toBeGreaterThan(0);
       expect(report.itemLoots).toBeGreaterThan(0);
       expect(report.equipmentChanges).toBeGreaterThan(0);
+      expect(ITEM_LEVEL_BANDS.reduce(
+        (sum, band) => sum + report.itemByLevelBand[band].drops,
+        0,
+      )).toBe(report.itemLoots);
+      expect(ITEM_LEVEL_BANDS.reduce(
+        (sum, band) => sum + report.equipmentByLevelBand[band].changes,
+        0,
+      )).toBe(report.equipmentChanges);
+      expect(ITEM_LEVEL_BANDS.reduce(
+        (sum, band) => sum + report.equipmentByLevelBand[band].exposures,
+        0,
+      )).toBe(report.explorations);
+      for (const band of ITEM_LEVEL_BANDS) {
+        const itemResult = report.itemByLevelBand[band];
+        expect(itemResult.immediatelyLevelUsable + itemResult.futureLevelLocked).toBe(itemResult.drops);
+      }
       expect(report.challengeAttempts).toBeGreaterThan(0);
       expect(report.challengeSuccesses).toBeLessThanOrEqual(report.challengeAttempts);
       for (const source of [
@@ -82,7 +101,9 @@ describe("complete Tier 1 XP campaign", () => {
         && !report.blockedReason
         && report.finalLevels.every((level) => level >= TARGET_LEVEL)
       ));
-      expect(completed.length).toBe(reports.filter((report) => report.profile === profile.id).length);
+      if (!reports.some((report) => report.forgeCandidate)) {
+        expect(completed.length).toBe(reports.filter((report) => report.profile === profile.id).length);
+      }
       expect(reports
         .filter((report) => report.profile === profile.id)
         .reduce((sum, report) => sum + report.challengeSuccesses, 0)).toBeGreaterThan(0);
@@ -168,7 +189,7 @@ describe("complete Tier 1 XP campaign", () => {
         }).sort((left, right) => left - right);
         const gainAt = (ratio: number) => gains[Math.round((gains.length - 1) * ratio)] ?? 0;
         const medianGain = gainAt(0.5);
-        const xpNeeded = calculateXpNeeded(level + 1, "Novice", HARMONIZED_T0_T1_XP_CURVE);
+        const xpNeeded = calculateXpNeeded(level + 1, "Novice", HARMONIZED_HERO_XP_CURVE);
         return {
           profil: profile.label,
           niveau_depart: level,
@@ -203,6 +224,13 @@ describe("complete Tier 1 XP campaign", () => {
         seed: report.seed,
         explorations: report.explorations,
         simulatedSeconds: report.simulatedSeconds,
+        highestFloor: report.highestFloor,
+        finalLevels: report.finalLevels,
+        blockedReason: report.blockedReason,
+        itemLoots: report.itemLoots,
+        equipmentChanges: report.equipmentChanges,
+        combatLimitRetreats: report.combatLimitRetreats,
+        forgeCandidate: report.forgeCandidate,
         milestones: report.milestoneExplorations,
       })),
       xpByHeroLevel: Object.fromEntries(Array.from({ length: TARGET_LEVEL - 1 }, (_, index) => [
@@ -258,6 +286,54 @@ describe("complete Tier 1 XP campaign", () => {
         }
         return combined;
       }, {}),
+      itemByLevelBand: Object.fromEntries(ITEM_LEVEL_BANDS.map((band) => [band, {
+        drops: reports.reduce((sum, report) => sum + report.itemByLevelBand[band].drops, 0),
+        immediatelyLevelUsable: reports.reduce(
+          (sum, report) => sum + report.itemByLevelBand[band].immediatelyLevelUsable,
+          0,
+        ),
+        futureLevelLocked: reports.reduce(
+          (sum, report) => sum + report.itemByLevelBand[band].futureLevelLocked,
+          0,
+        ),
+        requiredLevelSum: reports.reduce(
+          (sum, report) => sum + report.itemByLevelBand[band].requiredLevelSum,
+          0,
+        ),
+        rarity: Object.fromEntries([
+          "common", "uncommon", "rare", "epic", "legendary",
+        ].map((rarity) => [rarity, reports.reduce(
+          (sum, report) => sum + report.itemByLevelBand[band].rarity[
+            rarity as keyof typeof report.itemByLevelBand[typeof band]["rarity"]
+          ],
+          0,
+        )])),
+      }])),
+      equipmentByLevelBand: Object.fromEntries(ITEM_LEVEL_BANDS.map((band) => [band, {
+        changes: reports.reduce((sum, report) => sum + report.equipmentByLevelBand[band].changes, 0),
+        absoluteGain: reports.reduce(
+          (sum, report) => sum + report.equipmentByLevelBand[band].absoluteGain,
+          0,
+        ),
+        relativeGain: reports.reduce(
+          (sum, report) => sum + report.equipmentByLevelBand[band].relativeGain,
+          0,
+        ),
+        maxRelativeGain: Math.max(
+          ...reports.map((report) => report.equipmentByLevelBand[band].maxRelativeGain),
+        ),
+        maxRareOrBetterRelativeGain: Math.max(
+          ...reports.map((report) => report.equipmentByLevelBand[band].maxRareOrBetterRelativeGain),
+        ),
+        partyEquipmentScoreSum: reports.reduce(
+          (sum, report) => sum + report.equipmentByLevelBand[band].partyEquipmentScoreSum,
+          0,
+        ),
+        exposures: reports.reduce(
+          (sum, report) => sum + report.equipmentByLevelBand[band].exposures,
+          0,
+        ),
+      }])),
       xpBySource: Object.fromEntries((Object.keys(reports[0]!.xpBySource) as DungeonXpRewardSource[])
         .map((source) => [source, reports.reduce((sum, report) => sum + report.xpBySource[source], 0)])),
     };

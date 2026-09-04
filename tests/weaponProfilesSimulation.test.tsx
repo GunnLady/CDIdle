@@ -12,16 +12,16 @@ import {
   applyTownCommand,
   initialTownState,
 } from "../supabase/functions/game-api/town-authority";
-import { makeHero, makeResources } from "./fixtures/game";
+import { makeHero, makeResources, makeStoredItem } from "./fixtures/game";
 
 afterEach(cleanup);
 
 const storedItems = [
-  { instanceId: "simulation-sword", itemId: "basic_sword", rarity: "common" as const },
-  { instanceId: "simulation-shield", itemId: "wooden_shield", rarity: "common" as const },
-  { instanceId: "simulation-spear", itemId: "basic_spear", rarity: "common" as const },
-  { instanceId: "simulation-lute", itemId: "basic_lute", rarity: "common" as const },
-  { instanceId: "simulation-gauntlets", itemId: "basic_gauntlets", rarity: "common" as const },
+  makeStoredItem({ instanceId: "simulation-sword", itemId: "basic_sword" }),
+  makeStoredItem({ instanceId: "simulation-shield", itemId: "wooden_shield" }),
+  makeStoredItem({ instanceId: "simulation-spear", itemId: "basic_spear" }),
+  makeStoredItem({ instanceId: "simulation-lute", itemId: "basic_lute" }),
+  makeStoredItem({ instanceId: "simulation-gauntlets", itemId: "basic_gauntlets" }),
 ];
 
 function simulationHero(): Hero {
@@ -131,7 +131,7 @@ describe("weapon profile integration simulation", () => {
       equipment: {
         mainHand: {
           instanceId: "simulation-gauntlets",
-          itemId: "basic_gauntlets",
+          itemId: "basic_gauntlets", itemLevel: 10, powerModelId: "legacy-fixed-v1",
           rarity: "common",
         },
       },

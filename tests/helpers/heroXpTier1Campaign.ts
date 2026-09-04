@@ -9,9 +9,12 @@ import {
   type DungeonXpRewardSource,
 } from "../../shared/domain/dungeon-xp-rewards";
 import { refreshHeroProgressionThreshold } from "../../shared/domain/hero-xp";
+import { refreshHeroCombatStats } from "../../shared/domain/game-calculations";
+import { getItemById } from "../../shared/domain/items/items";
 import type { ClassType, DungeonEncounterType, Hero } from "../../src/types";
 import {
   forkCanonicalRng,
+  initialCanonicalRngState,
   restoreCanonicalRng,
   type CanonicalRng,
 } from "../../supabase/functions/game-api/authoritative-rng";
@@ -19,7 +22,17 @@ import { applyInventoryCommand } from "../../supabase/functions/game-api/invento
 import { applyIdleAuthority } from "../../supabase/functions/game-api/idle-authority";
 import { generateAuthoritativeNovice } from "../../supabase/functions/game-api/novice-authority";
 import { initialTownState } from "../../supabase/functions/game-api/town-authority";
-import { HARMONIZED_T0_T1_XP_CURVE } from "../fixtures/xpProgression";
+import { HARMONIZED_HERO_XP_CURVE } from "../fixtures/xpProgression";
+import {
+  FORGE_CANDIDATE_ENABLED,
+  advanceForgeCandidate,
+  allocateForgeCandidateWorkers,
+  createForgeCandidateContext,
+  finalizeForgeCandidateReport,
+  prepareForgeCandidateTown,
+  trackForgeCandidateHeroBand,
+  type ForgeCandidateReport,
+} from "./forgeProgressionCandidate";
 
 export const TARGET_LEVEL = 40;
 export const MAX_EXPLORATIONS = 100_000;
@@ -33,6 +46,8 @@ export const SEEDS = Array.from(
 export const MILESTONES = [10, 20, 30, 35, 40] as const;
 export const CHALLENGE_LEVEL_BANDS = ["1-9", "10-19", "20-29", "30-34", "35-40"] as const;
 export type ChallengeLevelBand = (typeof CHALLENGE_LEVEL_BANDS)[number];
+export const ITEM_LEVEL_BANDS = ["1-5", "6-10", "11-15", "16-20", "21-25", "26-30", "31-35", "36-40"] as const;
+export type ItemLevelBand = (typeof ITEM_LEVEL_BANDS)[number];
 export type ChallengeBandResult = { attempts: number; successes: number; zeroChance: number };
 export type ChallengeCalibrationResult = ChallengeBandResult & {
   partyLevelSum: number;
@@ -40,6 +55,23 @@ export type ChallengeCalibrationResult = ChallengeBandResult & {
   probabilitySum: number;
 };
 export type XpLevelResult = { xp: number; exposures: number };
+export type ItemProgressionBandResult = {
+  drops: number;
+  immediatelyLevelUsable: number;
+  futureLevelLocked: number;
+  requiredLevelSum: number;
+  rarity: Record<"common" | "uncommon" | "rare" | "epic" | "legendary", number>;
+};
+type ItemRarity = keyof ItemProgressionBandResult["rarity"];
+export type EquipmentProgressionBandResult = {
+  changes: number;
+  absoluteGain: number;
+  relativeGain: number;
+  maxRelativeGain: number;
+  maxRareOrBetterRelativeGain: number;
+  partyEquipmentScoreSum: number;
+  exposures: number;
+};
 export const CHALLENGE_KINDS = ["trap", "enigma", "ambush", "ritual", "obstacle", "negotiation"] as const;
 export type ChallengeKind = (typeof CHALLENGE_KINDS)[number];
 
@@ -65,6 +97,7 @@ export type LongCampaignReport = {
   transcriptEvents: number;
   itemLoots: number;
   equipmentChanges: number;
+  combatLimitRetreats: number;
   vocationChoices: number;
   finalLevels: number[];
   finalClasses: ClassType[];
@@ -81,6 +114,9 @@ export type LongCampaignReport = {
   challengeByFloorAndKind: Record<string, ChallengeCalibrationResult>;
   challengeCandidateHistogram: Record<string, number>;
   xpByHeroLevel: Record<number, XpLevelResult>;
+  itemByLevelBand: Record<ItemLevelBand, ItemProgressionBandResult>;
+  equipmentByLevelBand: Record<ItemLevelBand, EquipmentProgressionBandResult>;
+  forgeCandidate?: ForgeCandidateReport;
   blockedReason?: string;
 };
 
@@ -90,6 +126,12 @@ function challengeLevelBand(level: number): ChallengeLevelBand {
   if (level < 30) return "20-29";
   if (level < 35) return "30-34";
   return "35-40";
+}
+
+function itemLevelBand(level: number): ItemLevelBand {
+  const boundedLevel = Math.max(1, Math.min(TARGET_LEVEL, Math.floor(level)));
+  const firstLevel = Math.floor((boundedLevel - 1) / 5) * 5 + 1;
+  return `${firstLevel}-${firstLevel + 4}` as ItemLevelBand;
 }
 
 function initialState(seed: number): AuthoritativeDungeonState {
@@ -207,7 +249,7 @@ function choosePendingVocations(
       state.storedItems ?? [],
     );
     const heroes = [...state.heroes!];
-    heroes[heroIndex] = refreshHeroProgressionThreshold(applied.hero, HARMONIZED_T0_T1_XP_CURVE);
+    heroes[heroIndex] = refreshHeroProgressionThreshold(applied.hero, HARMONIZED_HERO_XP_CURVE);
     state = {
       ...state,
       heroes,
@@ -220,7 +262,7 @@ function choosePendingVocations(
   return { state, choices };
 }
 
-function combatEquipmentScore(hero: Hero): number {
+function combatScore(hero: Hero): number {
   const stats = hero.calculatedStats;
   const resistances = Object.values(stats.resistances).reduce((sum, value) => sum + value, 0);
   return stats.estimatedDps * 12
@@ -234,20 +276,27 @@ function combatEquipmentScore(hero: Hero): number {
     + resistances;
 }
 
-function optimizeEquipment(
+function equipmentContributionScore(hero: Hero): number {
+  const nakedHero = refreshHeroCombatStats({ ...hero, equipment: {} });
+  return Math.max(0, combatScore(hero) - combatScore(nakedHero));
+}
+
+export function optimizeEquipment(
   source: AuthoritativeDungeonState,
   candidateInstanceIds: readonly string[],
-): { state: AuthoritativeDungeonState; changes: number } {
+  preventDpsLoss = false,
+): { state: AuthoritativeDungeonState; gains: Array<{ absolute: number; relative: number; rarity: ItemRarity }> } {
   let state = source;
-  let changes = 0;
+  const gains: Array<{ absolute: number; relative: number; rarity: ItemRarity }> = [];
   const queue = [...new Set(candidateInstanceIds)];
   let attempts = 0;
 
   while (queue.length > 0 && attempts < 1_000) {
     attempts += 1;
     const instanceId = queue.shift()!;
-    if (!state.storedItems?.some((item) => item.instanceId === instanceId)) continue;
-    let best: { state: AuthoritativeDungeonState; gain: number } | null = null;
+    const candidate = state.storedItems?.find((item) => item.instanceId === instanceId);
+    if (!candidate) continue;
+    let best: { state: AuthoritativeDungeonState; gain: number; previousScore: number; rarity: ItemRarity } | null = null;
 
     for (const hero of state.heroes ?? []) {
       try {
@@ -259,9 +308,14 @@ function optimizeEquipment(
         const nextState = transition.state as AuthoritativeDungeonState;
         const equippedHero = nextState.heroes?.find((entry) => entry.id === hero.id);
         if (!equippedHero) continue;
-        const gain = combatEquipmentScore(equippedHero as Hero) - combatEquipmentScore(hero as Hero);
+        if (
+          preventDpsLoss
+          && equippedHero.calculatedStats.estimatedDps + 0.001 < hero.calculatedStats.estimatedDps
+        ) continue;
+        const previousScore = equipmentContributionScore(hero as Hero);
+        const gain = equipmentContributionScore(equippedHero as Hero) - previousScore;
         if (gain > 0.01 && (!best || gain > best.gain)) {
-          best = { state: nextState, gain };
+          best = { state: nextState, gain, previousScore, rarity: candidate.rarity };
         }
       } catch {
         // The authoritative command rejects level, slot and handedness conflicts.
@@ -271,13 +325,17 @@ function optimizeEquipment(
     if (!best) continue;
     const storedBefore = new Set((state.storedItems ?? []).map((item) => item.instanceId));
     state = best.state;
-    changes += 1;
+    gains.push({
+      absolute: best.gain,
+      relative: best.previousScore > 0 ? best.gain / best.previousScore : 0,
+      rarity: best.rarity,
+    });
     for (const stored of state.storedItems ?? []) {
       if (!storedBefore.has(stored.instanceId)) queue.push(stored.instanceId);
     }
   }
 
-  return { state, changes };
+  return { state, gains };
 }
 
 function rewardSource(
@@ -296,6 +354,10 @@ function rewardSource(
 export function runLevel40Campaign(profile: RewardProfile, seed: number): LongCampaignReport {
   let state = initialState(seed);
   const masterRng = restoreCanonicalRng(state.rngState);
+  const forgeContext = FORGE_CANDIDATE_ENABLED
+    ? createForgeCandidateContext(restoreCanonicalRng(initialCanonicalRngState((seed ^ 0x464f5247) >>> 0)))
+    : null;
+  if (forgeContext) state = prepareForgeCandidateTown(state) as AuthoritativeDungeonState;
   const clock = { nowMs: Date.UTC(2026, 0, 1), lastProcessedAt: new Date(Date.UTC(2026, 0, 1)).toISOString() };
   let stalledBossAttempts = 0;
   const report: LongCampaignReport = {
@@ -316,6 +378,7 @@ export function runLevel40Campaign(profile: RewardProfile, seed: number): LongCa
     transcriptEvents: 0,
     itemLoots: 0,
     equipmentChanges: 0,
+    combatLimitRetreats: 0,
     vocationChoices: 0,
     finalLevels: [],
     finalClasses: [],
@@ -358,9 +421,34 @@ export function runLevel40Campaign(profile: RewardProfile, seed: number): LongCa
     xpByHeroLevel: Object.fromEntries(Array.from({ length: TARGET_LEVEL - 1 }, (_, index) => (
       [index + 1, { xp: 0, exposures: 0 }]
     ))) as Record<number, XpLevelResult>,
+    itemByLevelBand: Object.fromEntries(ITEM_LEVEL_BANDS.map((band) => (
+      [band, {
+        drops: 0,
+        immediatelyLevelUsable: 0,
+        futureLevelLocked: 0,
+        requiredLevelSum: 0,
+        rarity: { common: 0, uncommon: 0, rare: 0, epic: 0, legendary: 0 },
+      }]
+    ))) as Record<ItemLevelBand, ItemProgressionBandResult>,
+    equipmentByLevelBand: Object.fromEntries(ITEM_LEVEL_BANDS.map((band) => (
+      [band, {
+        changes: 0,
+        absoluteGain: 0,
+        relativeGain: 0,
+        maxRelativeGain: 0,
+        maxRareOrBetterRelativeGain: 0,
+        partyEquipmentScoreSum: 0,
+        exposures: 0,
+      }]
+    ))) as Record<ItemLevelBand, EquipmentProgressionBandResult>,
   };
 
   while (!allHeroesReached(state, TARGET_LEVEL) && report.explorations < MAX_EXPLORATIONS) {
+    if (forgeContext) {
+      const partyLevel = Math.min(...(state.heroes ?? []).map((hero) => hero.level));
+      trackForgeCandidateHeroBand(forgeContext, partyLevel, report.explorations);
+      state = allocateForgeCandidateWorkers(state, forgeContext) as AuthoritativeDungeonState;
+    }
     if (!state.heroes?.some((hero) => hero.isActive && hero.currentHp > 0)) {
       const recoverySeconds = secondsUntilPartyRecovered(state);
       state = applySimulatedIdle(state, clock, recoverySeconds * 1_000);
@@ -383,11 +471,17 @@ export function runLevel40Campaign(profile: RewardProfile, seed: number): LongCa
         `xp-level-40-${profile.id}-${seed}-${report.explorations}`,
         forkCanonicalRng(masterRng),
         {
-          xpCurve: HARMONIZED_T0_T1_XP_CURVE,
+          xpCurve: HARMONIZED_HERO_XP_CURVE,
         },
       );
     } catch (error) {
       if (!(error instanceof Error) || error.message !== "COMBAT_LIMIT_REACHED") throw error;
+      if (forgeContext) {
+        state = reactivateRecoveredHeroes(selectPreviousFloor(state));
+        report.combatLimitRetreats += 1;
+        report.grindRuns += 1;
+        continue;
+      }
       report.blockedReason = error.message;
       break;
     }
@@ -412,6 +506,20 @@ export function runLevel40Campaign(profile: RewardProfile, seed: number): LongCa
       loot.type === "item" && loot.instanceId ? [loot.instanceId] : []
     ));
     report.itemLoots += itemLootIds.length;
+    const equipmentProgressionBand = itemLevelBand(partyLevelBefore);
+    const itemBand = report.itemByLevelBand[equipmentProgressionBand];
+    const highestHeroLevel = Math.max(...(state.heroes ?? []).map((hero) => hero.level));
+    for (const loot of encounter.rewards.loot) {
+      if (loot.type !== "item") continue;
+      const model = getItemById(loot.itemId);
+      if (!model) throw new Error(`UNKNOWN_LOOT_ITEM:${loot.itemId}`);
+      itemBand.drops += 1;
+      const itemLevel = loot.itemLevel ?? model.requiredLevel;
+      itemBand.requiredLevelSum += itemLevel;
+      itemBand.rarity[loot.rarity] += 1;
+      if (itemLevel <= highestHeroLevel) itemBand.immediatelyLevelUsable += 1;
+      else itemBand.futureLevelLocked += 1;
+    }
     const progressionChanged = encounter.transcript.some((event) => (
       event.type === "hero.level_up" || event.type === "hero.class_changed"
     ));
@@ -419,10 +527,40 @@ export function runLevel40Campaign(profile: RewardProfile, seed: number): LongCa
       ? (state.storedItems ?? []).map((item) => item.instanceId)
       : itemLootIds;
     if (equipmentCandidates.length > 0) {
-      const optimized = optimizeEquipment(state, equipmentCandidates);
+      const optimized = optimizeEquipment(state, equipmentCandidates, forgeContext !== null);
       state = optimized.state;
-      report.equipmentChanges += optimized.changes;
+      report.equipmentChanges += optimized.gains.length;
+      const equipmentBand = report.equipmentByLevelBand[equipmentProgressionBand];
+      for (const gain of optimized.gains) {
+        equipmentBand.changes += 1;
+        equipmentBand.absoluteGain += gain.absolute;
+        equipmentBand.relativeGain += gain.relative;
+        equipmentBand.maxRelativeGain = Math.max(equipmentBand.maxRelativeGain, gain.relative);
+        if (gain.rarity === "rare" || gain.rarity === "epic" || gain.rarity === "legendary") {
+          equipmentBand.maxRareOrBetterRelativeGain = Math.max(
+            equipmentBand.maxRareOrBetterRelativeGain,
+            gain.relative,
+          );
+        }
+      }
     }
+    if (forgeContext) {
+      state = advanceForgeCandidate(
+        state,
+        encounter,
+        forgeContext,
+        report.explorations,
+        (candidateState, candidateIds) => optimizeEquipment(
+          candidateState as AuthoritativeDungeonState,
+          candidateIds,
+          true,
+        ),
+      ) as AuthoritativeDungeonState;
+    }
+    const equipmentBand = report.equipmentByLevelBand[equipmentProgressionBand];
+    equipmentBand.partyEquipmentScoreSum += (state.heroes ?? [])
+      .reduce((sum, hero) => sum + equipmentContributionScore(hero as Hero), 0);
+    equipmentBand.exposures += 1;
     report.explorations += 1;
     report.kinds[encounter.kind] += 1;
     report.transcriptEvents += encounter.transcript.length;
@@ -524,5 +662,8 @@ export function runLevel40Campaign(profile: RewardProfile, seed: number): LongCa
 
   report.finalLevels = (state.heroes ?? []).map((hero) => hero.level);
   report.finalClasses = (state.heroes ?? []).map((hero) => hero.classType);
+  if (forgeContext) {
+    report.forgeCandidate = finalizeForgeCandidateReport(forgeContext, report.explorations);
+  }
   return report;
 }

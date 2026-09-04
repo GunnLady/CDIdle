@@ -52,6 +52,14 @@ function validateCatalogReferences(state: Record<string, unknown>): string[] {
     const model = checkModel(value, path);
     if (!model || !value || typeof value !== "object") return model;
     const rarity = (value as Record<string, unknown>).rarity;
+    const record = value as Record<string, unknown>;
+    const itemLevel = Number.isInteger(record.itemLevel) ? Number(record.itemLevel) : model.requiredLevel;
+    if (itemLevel < model.levelRange.min || itemLevel > model.levelRange.max) {
+      errors.push(`${path}.itemLevel ${itemLevel} is outside ${model.id} range ${model.levelRange.min}-${model.levelRange.max}`);
+    }
+    if (typeof record.powerModelId === 'string' && record.powerModelId !== model.powerModelId) {
+      errors.push(`${path}.powerModelId ${record.powerModelId} does not match ${model.id}`);
+    }
     if (typeof rarity === "string" && RARITY_ORDER.includes(rarity as typeof RARITY_ORDER[number])) {
       if (rarityRank(rarity as typeof RARITY_ORDER[number]) < rarityRank(model.minimumRarity)) {
         errors.push(`${path}.rarity is below ${model.id} minimum rarity ${model.minimumRarity}`);
@@ -60,8 +68,8 @@ function validateCatalogReferences(state: Record<string, unknown>): string[] {
     if (slot && getItemSlot(model) !== slot) {
       errors.push(`${path}.itemId ${model.id} is incompatible with slot ${slot}`);
     }
-    if (heroLevel !== undefined && Number.isFinite(heroLevel) && heroLevel < model.requiredLevel) {
-      errors.push(`${path}.itemId ${model.id} requires level ${model.requiredLevel}`);
+    if (heroLevel !== undefined && Number.isFinite(heroLevel) && heroLevel < itemLevel) {
+      errors.push(`${path}.itemId ${model.id} requires level ${itemLevel}`);
     }
     return model;
   };
@@ -72,7 +80,7 @@ function validateCatalogReferences(state: Record<string, unknown>): string[] {
       errors.push(`itemBlueprints[${index}].itemId ${model.id} is not forgeable`);
     }
   });
-  const pendingModel = checkModel(state.pendingForge, "pendingForge");
+  const pendingModel = checkInstance(state.pendingForge, "pendingForge");
   if (pendingModel && state.pendingForge && typeof state.pendingForge === "object") {
     const pending = state.pendingForge as Record<string, unknown>;
     if (typeof pending.recipeId === "string" && pending.recipeId !== pendingModel.id) {

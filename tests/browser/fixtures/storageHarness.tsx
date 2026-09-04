@@ -6,14 +6,14 @@ import "../../../src/index.css";
 
 const readOnly = new URLSearchParams(window.location.search).get("readonly") === "1";
 const storedItems = [
-  { instanceId: "sword", itemId: "starter_sword", rarity: "common" as const },
-  { instanceId: "dagger", itemId: "quick_dagger", rarity: "uncommon" as const },
-  { instanceId: "axe", itemId: "woodcutter_axe", rarity: "rare" as const },
-  { instanceId: "shield", itemId: "wooden_shield", rarity: "common" as const },
-  { instanceId: "clothes", itemId: "traveler_clothes", rarity: "common" as const },
-  { instanceId: "leather", itemId: "simple_leather_armor", rarity: "uncommon" as const },
-  { instanceId: "robe", itemId: "novice_mystic_robe", rarity: "rare" as const },
-  { instanceId: "lute", itemId: "basic_lute", rarity: "epic" as const },
+  { instanceId: "sword", itemId: "starter_sword", itemLevel: 1, powerModelId: "legacy-fixed-v1" as const, rarity: "common" as const },
+  { instanceId: "dagger", itemId: "quick_dagger", itemLevel: 1, powerModelId: "legacy-fixed-v1" as const, rarity: "uncommon" as const },
+  { instanceId: "axe", itemId: "woodcutter_axe", itemLevel: 1, powerModelId: "legacy-fixed-v1" as const, rarity: "rare" as const },
+  { instanceId: "shield", itemId: "wooden_shield", itemLevel: 1, powerModelId: "legacy-fixed-v1" as const, rarity: "common" as const },
+  { instanceId: "clothes", itemId: "traveler_clothes", itemLevel: 1, powerModelId: "legacy-fixed-v1" as const, rarity: "common" as const },
+  { instanceId: "leather", itemId: "simple_leather_armor", itemLevel: 1, powerModelId: "legacy-fixed-v1" as const, rarity: "uncommon" as const },
+  { instanceId: "robe", itemId: "novice_mystic_robe", itemLevel: 1, powerModelId: "legacy-fixed-v1" as const, rarity: "rare" as const },
+  { instanceId: "lute", itemId: "basic_lute", itemLevel: 10, powerModelId: "legacy-fixed-v1" as const, rarity: "epic" as const },
 ];
 
 function Harness() {

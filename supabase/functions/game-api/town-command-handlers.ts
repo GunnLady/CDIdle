@@ -1,6 +1,7 @@
 import {
   BUILDINGS_LIST,
   BUILDING_UNLOCKS,
+  checkBuildingUnlocked,
   getBuildingMaxLevel,
   getBuildingUpgradeCost,
 } from "../../../shared/data/buildings.ts";
@@ -39,13 +40,14 @@ export const upgradeBuilding: TownCommandHandler<"building.upgrade"> = (context,
       throw new TownCommandError("BUILDING_REQUIRED", "building prerequisite is missing");
     }
   }
-  if (requirement?.requiredFloor && (town.highestFloorReached ?? 1) < requirement.requiredFloor) {
-    throw new TownCommandError("FLOOR_REQUIRED", "dungeon floor prerequisite is missing");
-  }
   let resources = { ...town.resources };
   for (let index = 0; index < levels; index += 1) {
     if (level >= getBuildingMaxLevel(id)) {
       throw new TownCommandError("MAX_LEVEL", "building reached its maximum level");
+    }
+    const targetLevel = level + 1;
+    if (!checkBuildingUnlocked(id, town.buildings, town.highestFloorReached ?? 1, targetLevel)) {
+      throw new TownCommandError("FLOOR_REQUIRED", "dungeon floor prerequisite is missing");
     }
     const cost = getBuildingUpgradeCost(id, level);
     if (!affordable(resources, cost)) {

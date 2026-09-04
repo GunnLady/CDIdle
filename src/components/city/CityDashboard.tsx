@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import type { BattleLogEntry, CitizenAllocation, ItemBlueprint, ResourceRates, Resources, StoredForgeMaterialStack } from "../../types";
-import type { BasicForgeUpgradeProc } from "../../utils/gameCalculations";
+import type { BattleLogEntry, CitizenAllocation, ItemBlueprint, Rarity, ResourceRates, Resources, StoredForgeMaterialStack } from "../../types";
 import { createCityDashboardView, createCityHistoryView } from "../../domain/cityPresentation";
 import AssignmentPanel from "./AssignmentPanel";
 import BuildingListPanel from "./BuildingListPanel";
@@ -13,9 +12,9 @@ interface CityDashboardProps {
   citizenGrowthProgress: number; highestFloorReached: number; canMutate: boolean; rates?: ResourceRates;
   forgeMaterials: StoredForgeMaterialStack[]; itemBlueprints: ItemBlueprint[];
   battleLogs?: BattleLogEntry[]; onClearCityLogs?: () => void;
-  pendingForge?: { previewId: string; itemId: string; upgradeProc?: BasicForgeUpgradeProc } | null;
+  pendingForge?: { previewId: string; itemId: string; itemLevel?: number; offeredRarity: Rarity } | null;
   onUpgradeBuilding: (id: string) => void; onAllocateCitizen: (role: keyof Omit<CitizenAllocation, "unassigned">, amount: number) => void;
-  onStartForge: (recipeId: string) => void; onFinalizeForge: (previewId: string, acceptUpgrade: boolean, chosenModifierStat?: string) => void; onCancelForge: (previewId: string) => void;
+  onStartForge: (recipeId: string, levelBandMin?: number) => void; onFinalizeForge: (previewId: string, acceptUpgrade: boolean, chosenModifierStat?: string) => void; onCancelForge: (previewId: string) => void;
 }
 
 export default function CityDashboard(props: CityDashboardProps) {
@@ -30,7 +29,7 @@ export default function CityDashboard(props: CityDashboardProps) {
     <h2 id="city-page-title" className="sr-only">Cité</h2>
     <div className="grid grid-cols-1 items-start gap-4 xl:flex xl:items-stretch">
       <div data-testid="city-primary-column" className="contents xl:flex xl:min-w-0 xl:flex-[2.2_1_0%] xl:flex-col xl:gap-4">
-        {selected.id === "forge" && selected.level > 0 ? <ForgeWorkspace canMutate={props.canMutate} materials={props.forgeMaterials} blueprints={props.itemBlueprints} pending={props.pendingForge} onStart={props.onStartForge} onFinalize={props.onFinalizeForge} onCancel={props.onCancelForge} /> : <SelectedBuildingPanel building={selected} canMutate={props.canMutate} onUpgrade={props.onUpgradeBuilding} />}
+        {selected.id === "forge" && selected.level > 0 ? <ForgeWorkspace building={selected} forgeLevel={selected.level} canMutate={props.canMutate} materials={props.forgeMaterials} blueprints={props.itemBlueprints} pending={props.pendingForge} onUpgrade={props.onUpgradeBuilding} onStart={props.onStartForge} onFinalize={props.onFinalizeForge} onCancel={props.onCancelForge} /> : <SelectedBuildingPanel building={selected} canMutate={props.canMutate} onUpgrade={props.onUpgradeBuilding} />}
         <AssignmentPanel view={view} canMutate={props.canMutate} onAllocate={props.onAllocateCitizen} />
       </div>
       <div data-testid="city-building-column" className="city-building-column order-2 xl:relative xl:min-h-0 xl:min-w-80 xl:flex-[1_1_0%] xl:self-stretch">

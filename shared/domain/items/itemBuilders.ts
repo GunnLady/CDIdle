@@ -21,6 +21,9 @@ function catalogMetadata(rarity: Rarity) {
     minimumRarity: rarity,
     provenances: [...DEFAULT_PROVENANCES],
     blueprintAvailable: true,
+    blueprintDiscovery: { kind: 'none' as const },
+    powerModelId: 'legacy-fixed-v1' as const,
+    catalogStatus: 'legacy' as const,
   };
 }
 
@@ -48,6 +51,8 @@ export function createWeapon(
     rarity,
     ...catalogMetadata(rarity),
     requiredLevel,
+    levelRange: { min: requiredLevel, max: requiredLevel },
+    powerReferenceLevel: requiredLevel,
     description,
     scaling: { ...scaling },
     attackProfile: { ...attackProfile },
@@ -76,6 +81,8 @@ export function createOffhand(
     rarity,
     ...catalogMetadata(rarity),
     requiredLevel,
+    levelRange: { min: requiredLevel, max: requiredLevel },
+    powerReferenceLevel: requiredLevel,
     description,
     modifiers: createModifiers(modifiers)
   };
@@ -99,6 +106,8 @@ export function createArmor(
     rarity,
     ...catalogMetadata(rarity),
     requiredLevel,
+    levelRange: { min: requiredLevel, max: requiredLevel },
+    powerReferenceLevel: requiredLevel,
     description,
     modifiers: createModifiers(modifiers)
   };
@@ -122,6 +131,8 @@ export function createAccessory(
     rarity,
     ...catalogMetadata(rarity),
     requiredLevel,
+    levelRange: { min: requiredLevel, max: requiredLevel },
+    powerReferenceLevel: requiredLevel,
     description,
     modifiers: createModifiers(modifiers)
   };

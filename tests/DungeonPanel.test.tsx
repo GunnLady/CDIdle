@@ -103,7 +103,7 @@ describe("DungeonPanel authoritative structure", () => {
     const hero = makeHero({
       isActive: true,
       currentMana: 4,
-      equipment: { mainHand: { instanceId: "magic-main-hand", itemId: "basic_staff", rarity: "common" } },
+      equipment: { mainHand: { instanceId: "magic-main-hand", itemId: "basic_staff", itemLevel: 10, powerModelId: "legacy-fixed-v1", rarity: "common" } },
       calculatedStats: { ...makeHero().calculatedStats, physicalDamage: 5, magicDamage: 99, estimatedDps: 123.45 },
     });
     render(<DungeonPanel {...props} heroes={[hero]} />);

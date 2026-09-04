@@ -13,6 +13,7 @@ import type {
 import type { CanonicalDungeonLoot, CanonicalGameState } from "../contracts/authoritative.ts";
 import { BOSSES_LIBRARY, ITEM_LIBRARY, MONSTERS_LIBRARY, getSkillById } from "../data/game-data.ts";
 import { BOSS_LOOT_TABLES_REGISTRY } from "./items/boss-loot-tables.ts";
+import { rollBlueprintReward } from "./items/blueprint-rewards.ts";
 import {
   getChestLootBand,
   resolveEligibleCatalogDrop,
@@ -132,6 +133,18 @@ export type AuthoritativeDungeonResolutionOptions = {
   /** Simulation seam. Undefined uses the canonical runtime challenge difficulty. */
   challengeDifficultyResolver?: DungeonChallengeDifficultyResolver;
 };
+
+function rollGeneratedItemLevel(
+  item: { levelRange: { min: number; max: number } },
+  levelMin: number,
+  levelMax: number,
+  rng: Pick<Rng, 'nextInt'>,
+): number {
+  const minimum = Math.max(item.levelRange.min, Math.ceil(levelMin), 1);
+  const maximum = Math.min(item.levelRange.max, Math.floor(levelMax), 40);
+  if (maximum < minimum) throw new Error(`EMPTY_ITEM_LEVEL_RANGE:${minimum}:${maximum}`);
+  return minimum === maximum ? minimum : minimum + rng.nextInt(maximum - minimum + 1);
+}
 
 function calculatePolicyPartyXp(
   eligibleCount: number,
@@ -812,28 +825,41 @@ function resolveFight(
         });
         if (!drop) continue;
         const item = drop.candidates[rng.nextInt(drop.candidates.length)];
+        const itemLevel = rollGeneratedItemLevel(
+          item,
+          reward.levelMin ?? 1,
+          reward.levelMax ?? 40,
+          rng,
+        );
         const instanceId = `item:dungeon:${encounterId}:loot:${loot.length}`;
-        addItemToStorage(storedItems, { instanceId, itemId: item.id, rarity: drop.rarity });
-        loot.push({ type: "item", instanceId, itemId: item.id, rarity: drop.rarity, count: 1 });
+        const itemInstance = {
+          instanceId,
+          itemId: item.id,
+          itemLevel,
+          powerModelId: item.powerModelId,
+          rarity: drop.rarity,
+        };
+        addItemToStorage(storedItems, itemInstance);
+        loot.push({ type: 'item', ...itemInstance, count: 1 });
         log("reward.item", `${item.name} [${drop.rarity}] obtenu.`, "loot", {
-          instanceId, itemId: item.id, itemName: item.name, rarity: drop.rarity, count: 1,
+          ...itemInstance, itemName: item.name, count: 1,
         });
       }
       for (const reward of bossTable.blueprints) {
-        if (rng.next() >= reward.chance) continue;
-        const unlocked = new Set(itemBlueprints.filter((entry) => entry.unlocked).map((entry) => entry.itemId));
-        const candidates = ITEM_LIBRARY.filter((item) => (
-          item.blueprintAvailable
-          && item.provenances.includes("forge")
-          && item.requiredLevel >= (reward.levelMin ?? 1)
-          && item.requiredLevel <= (reward.levelMax ?? Number.MAX_SAFE_INTEGER)
-          && !unlocked.has(item.id)
-        ));
-        if (candidates.length === 0) continue;
-        const item = candidates[rng.nextInt(candidates.length)];
-        itemBlueprints = [...itemBlueprints.filter((entry) => entry.itemId !== item.id), { itemId: item.id, unlocked: true }];
-        loot.push({ type: "blueprint", itemId: item.id, count: 1 });
-        log("reward.blueprint", `Plan de forge obtenu : ${item.name}.`, "loot", { itemId: item.id, itemName: item.name });
+        const result = rollBlueprintReward({
+          blueprints: itemBlueprints,
+          source: "boss",
+          floor,
+          bossId: monster.name,
+          chance: reward.chance,
+          levelMin: reward.levelMin,
+          levelMax: reward.levelMax,
+          rng,
+        });
+        itemBlueprints = result.blueprints;
+        if (!result.itemId) continue;
+        loot.push({ type: "blueprint", itemId: result.itemId, count: 1 });
+        log("reward.blueprint", `Plan de forge obtenu : ${result.itemName}.`, "loot", { itemId: result.itemId, itemName: result.itemName });
       }
     } else if (rng.next() < 0.35) {
       const material = rollEncounterForgeMaterial(floor, rng);
@@ -958,7 +984,7 @@ function resolveNonFight(
   };
   let storedItems = clone(source.storedItems ?? []);
   let forgeMaterials = clone(source.forgeMaterials ?? []);
-  const itemBlueprints = clone(source.itemBlueprints ?? []);
+  let itemBlueprints = clone(source.itemBlueprints ?? []);
   const pendingClassTransitions = clone(source.pendingClassTransitions ?? []);
   const transcript: AuthoritativeDungeonTranscriptEvent[] = [];
   const loot: CanonicalDungeonLoot[] = [];
@@ -1005,14 +1031,20 @@ function resolveNonFight(
       if (!drop) throw new Error(`EMPTY_CHEST_ITEM_POOL:${floor}:${rarity}`);
       const item = drop.candidates[rng.nextInt(drop.candidates.length)];
       const effectiveRarity = drop.rarity;
+      const itemLevel = rollGeneratedItemLevel(item, band.levelMin, band.levelMax, rng);
       const instanceId = `item:dungeon:${encounterId}:loot:${loot.length}`;
-      addItemToStorage(storedItems, { instanceId, itemId: item.id, rarity: effectiveRarity });
-      loot.push({ type: "item", instanceId, itemId: item.id, rarity: effectiveRarity, count: 1 });
-      log("reward.item", `${item.name} [${effectiveRarity}] obtenu.`, "loot", {
+      const itemInstance = {
         instanceId,
         itemId: item.id,
-        itemName: item.name,
+        itemLevel,
+        powerModelId: item.powerModelId,
         rarity: effectiveRarity,
+      };
+      addItemToStorage(storedItems, itemInstance);
+      loot.push({ type: 'item', ...itemInstance, count: 1 });
+      log("reward.item", `${item.name} [${effectiveRarity}] obtenu.`, "loot", {
+        ...itemInstance,
+        itemName: item.name,
         count: 1,
       });
     } else {
@@ -1027,6 +1059,21 @@ function resolveNonFight(
       "loot",
       material,
     );
+    const blueprint = rollBlueprintReward({
+      blueprints: itemBlueprints,
+      source: "treasure",
+      floor,
+      chance: 0.05,
+      rng,
+    });
+    itemBlueprints = blueprint.blueprints;
+    if (blueprint.itemId) {
+      loot.push({ type: "blueprint", itemId: blueprint.itemId, count: 1 });
+      log("reward.blueprint", `Plan de forge obtenu : ${blueprint.itemName}.`, "loot", {
+        itemId: blueprint.itemId,
+        itemName: blueprint.itemName,
+      });
+    }
     const totalXp = getPolicyXpPool(xpRewardPolicy, "treasure", floor);
     const eligible = active().length;
     heroes = heroes.map((hero) => {

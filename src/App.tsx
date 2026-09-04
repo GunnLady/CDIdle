@@ -606,7 +606,7 @@ export default function App() {
                 onClearCityLogs={() => clearBattleLogs("colony")}
                 canMutate={canMutate}
                 pendingForge={pendingForge}
-                onStartForge={(recipeId) => { void dispatchAuthoritativeCommand({ type: "forge.start", recipeId }); }}
+                onStartForge={(recipeId, levelBandMin) => { void dispatchAuthoritativeCommand({ type: 'forge.start', recipeId, levelBandMin }); }}
                 onFinalizeForge={(previewId, acceptUpgrade, chosenModifierStat) => { void dispatchAuthoritativeCommand({ type: "forge.finalize", previewId, acceptUpgrade, chosenModifierStat }); }}
                 onCancelForge={(previewId) => { void dispatchAuthoritativeCommand({ type: "forge.cancel", previewId }); }}
               />

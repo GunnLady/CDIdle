@@ -12,7 +12,7 @@ import { seededRng } from "../shared/domain/random";
 import type { Hero } from "../src/types";
 import { generateAuthoritativeNovice } from "../supabase/functions/game-api/novice-authority";
 import { initialTownState } from "../supabase/functions/game-api/town-authority";
-import { HARMONIZED_T0_T1_XP_CURVE } from "./fixtures/xpProgression";
+import { HARMONIZED_HERO_XP_CURVE } from "./fixtures/xpProgression";
 
 type RecoveryMode = "isolated" | "attrition";
 type ProfileId = "legacy" | "moderate" | "fluid" | "harmonized";
@@ -65,7 +65,7 @@ const PROFILES: readonly CurveProfile[] = [
   {
     id: "harmonized",
     label: "Harmonisee (niveaux 2-10 x1.30, 11+ x1.20)",
-    curve: HARMONIZED_T0_T1_XP_CURVE,
+    curve: HARMONIZED_HERO_XP_CURVE,
   },
 ] as const;
 
@@ -228,10 +228,10 @@ function summarize(results: readonly CampaignResult[]) {
 
 describe("hero XP progression simulation", () => {
   it("locks the deterministic T0/T1 candidate anchors", () => {
-    expect(calculateXpNeeded(10, "Novice", HARMONIZED_T0_T1_XP_CURVE)).toBe(816);
-    expect(calculateXpNeeded(11, "Guerrier", HARMONIZED_T0_T1_XP_CURVE)).toBe(1_061);
-    expect(calculateXpNeeded(30, "Guerrier", HARMONIZED_T0_T1_XP_CURVE)).toBe(33_897);
-    expect(calculateXpNeeded(35, "Guerrier", HARMONIZED_T0_T1_XP_CURVE)).toBe(84_347);
+    expect(calculateXpNeeded(10, "Novice", HARMONIZED_HERO_XP_CURVE)).toBe(816);
+    expect(calculateXpNeeded(11, "Guerrier", HARMONIZED_HERO_XP_CURVE)).toBe(1_061);
+    expect(calculateXpNeeded(30, "Guerrier", HARMONIZED_HERO_XP_CURVE)).toBe(33_897);
+    expect(calculateXpNeeded(35, "Guerrier", HARMONIZED_HERO_XP_CURVE)).toBe(84_347);
   });
 
   it("compares the historical global curves with the harmonized T0/T1 curve", () => {

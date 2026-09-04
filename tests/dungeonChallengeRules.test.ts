@@ -36,17 +36,20 @@ describe("dungeon challenge rules", () => {
   });
 
   it("applies the canonical party-of-four calibration anchors", () => {
-    expect(DUNGEON_CHALLENGE_DIFFICULTY_MODEL_ID).toBe("party-four-two-thirds-v1");
+    expect(DUNGEON_CHALLENGE_DIFFICULTY_MODEL_ID).toBe("party-four-two-thirds-v2");
     expect(DUNGEON_CHALLENGE_DIFFICULTY_ANCHORS.trap).toEqual([
       { floor: 1, difficulty: 12 }, { floor: 10, difficulty: 29 },
       { floor: 20, difficulty: 72 }, { floor: 25, difficulty: 80 },
       { floor: 30, difficulty: 93 }, { floor: 40, difficulty: 110 },
-      { floor: 50, difficulty: 119 }, { floor: 60, difficulty: 132 },
-      { floor: 65, difficulty: 139 }, { floor: 99, difficulty: 139 },
+      { floor: 50, difficulty: 119 }, { floor: 60, difficulty: 133 },
+      { floor: 65, difficulty: 140 }, { floor: 99, difficulty: 140 },
     ]);
+    expect([1, 10, 20, 25, 30, 40, 50, 60, 70, 99].map((floor) => (
+      getCanonicalDungeonChallengeDifficulty(floor, "ritual")
+    ))).toEqual([11, 28, 59, 70, 80, 97, 112, 126, 131, 131]);
     expect([1, 10, 20, 25, 30, 40, 99].map((floor) => (
       getCanonicalDungeonChallengeDifficulty(floor, "negotiation")
-    ))).toEqual([11, 29, 50, 53, 62, 67, 67]);
+    ))).toEqual([11, 29, 50, 53, 62, 66, 66]);
   });
 
   it("keeps every calibrated challenge curve monotonic through and beyond level 99", () => {

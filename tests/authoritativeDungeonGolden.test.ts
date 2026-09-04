@@ -212,10 +212,11 @@ describe("authoritative dungeon golden behavior characterized from 640f89f", () 
       0.10, // treasure -> gold
       0.10, // material rarity
       0.00, // material count
+      0.99, // blueprint skipped
     ]);
     const result = resolveAuthoritativeDungeonEncounter(state(), "golden-treasure", tape.rng);
 
-    expect(tape.draws()).toBe(4);
+    expect(tape.draws()).toBe(5);
     expect(result.encounter).toMatchObject({
       kind: "treasure",
       outcome: "victory",
@@ -252,10 +253,11 @@ describe("authoritative dungeon golden behavior characterized from 640f89f", () 
       0.00, // first eligible item
       0.10, // material rarity
       0.00, // material count
+      0.99, // blueprint skipped
     ]);
     const result = resolveAuthoritativeDungeonEncounter(state(), "golden-treasure-item", tape.rng);
 
-    expect(tape.draws()).toBe(6);
+    expect(tape.draws()).toBe(7);
     expect(result.encounter.rewards.loot).toEqual(expect.arrayContaining([
       expect.objectContaining({ type: "item", instanceId: "item:dungeon:golden-treasure-item:loot:0", rarity: "common", count: 1 }),
       expect.objectContaining({ type: "material", count: 1 }),
@@ -272,12 +274,13 @@ describe("authoritative dungeon golden behavior characterized from 640f89f", () 
       0.10, // treasure -> gold
       0.10, // material rarity
       0.00, // material count
+      0.99, // blueprint skipped
     ]);
     const result = resolveAuthoritativeDungeonEncounter(state({
       heroes: [makeHero({ passiveSkills: ["small_profit"] })],
     }), "golden-treasure-small-profit", tape.rng);
 
-    expect(tape.draws()).toBe(4);
+    expect(tape.draws()).toBe(5);
     expect(result.encounter.rewards.gold).toBe(9);
     expect(result.state.resources?.gold).toBe(9);
     expect(result.encounter.transcript).toContainEqual(expect.objectContaining({
@@ -727,7 +730,7 @@ describe("authoritative dungeon golden behavior characterized from 640f89f", () 
     const magicalHero = makeHero({
       activeSkills: [],
       equipment: {
-        mainHand: { instanceId: "magic-staff", itemId: "basic_staff", rarity: "common" },
+        mainHand: { instanceId: 'magic-staff', itemId: 'basic_staff', itemLevel: 10, powerModelId: 'legacy-fixed-v1', rarity: 'common' },
       },
       calculatedStats: {
         ...makeHero().calculatedStats,
@@ -1157,7 +1160,7 @@ describe("authoritative dungeon golden behavior characterized from 640f89f", () 
   it("guarantees two independently rolled strikes for a dual-wield weapon", () => {
     const dualWieldHero = makeHero({
       equipment: {
-        mainHand: { instanceId: "dual-gauntlets", itemId: "basic_gauntlets", rarity: "common" },
+        mainHand: { instanceId: 'dual-gauntlets', itemId: 'basic_gauntlets', itemLevel: 10, powerModelId: 'legacy-fixed-v1', rarity: 'common' },
       },
       calculatedStats: {
         ...makeHero().calculatedStats,

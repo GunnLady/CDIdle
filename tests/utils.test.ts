@@ -31,7 +31,7 @@ describe("gameCalculations", () => {
     expect(getBuildingMaxLevel("habitation")).toBe(10);
     expect(getBuildingMaxLevel("maison_chef")).toBe(5);
     expect(getBuildingMaxLevel("guilde")).toBe(5);
-    expect(getBuildingMaxLevel("forge")).toBe(1);
+    expect(getBuildingMaxLevel("forge")).toBe(8);
     expect(getBuildingMaxLevel("inconnu")).toBe(10);
   });
   it("calcule l'XP de base et applique le multiplicateur de classe", () => {

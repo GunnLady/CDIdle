@@ -22,12 +22,19 @@ import { makeHero, makeResources } from "./fixtures/game";
 describe("authoritative item catalog", () => {
   it("keeps the approved chest bands contiguous and weighted to 100", () => {
     expect(CHEST_LOOT_BANDS.map((band) => [band.floorMin, band.floorMax, band.levelMin, band.levelMax])).toEqual([
-      [1, 5, 1, 10],
-      [6, 10, 10, 20],
-      [11, 20, 10, 25],
-      [21, 30, 20, 33],
-      [31, Number.POSITIVE_INFINITY, 24, 33],
+      [1, 2, 1, 1],
+      [3, 7, 1, 5],
+      [8, 10, 6, 10],
+      [11, 17, 11, 15],
+      [18, 25, 16, 20],
+      [26, 35, 21, 25],
+      [36, 48, 26, 30],
+      [49, 61, 31, 35],
+      [62, Number.POSITIVE_INFINITY, 36, 40],
     ]);
+    for (const band of CHEST_LOOT_BANDS.slice(1)) {
+      expect(band.levelMax - band.levelMin + 1).toBe(5);
+    }
     for (const band of CHEST_LOOT_BANDS) {
       expect(Object.values(band.weights).reduce((sum, value) => sum + value, 0)).toBe(100);
       expect(getChestLootBand(band.floorMin)).toBe(band);
@@ -58,24 +65,25 @@ describe("authoritative item catalog", () => {
           provenance: "chest",
         });
         expect(candidates.every((item) => (
-          item.requiredLevel >= band.levelMin
-          && item.requiredLevel <= band.levelMax
+          item.catalogStatus === 'active'
+          && item.levelRange.max >= band.levelMin
+          && item.levelRange.min <= band.levelMax
           && rarityRank(item.minimumRarity) <= rarityRank(rarity)
         ))).toBe(true);
       }
     }
   });
 
-  it("promotes an impossible late-floor rarity without violating minimum rarity", () => {
+  it("keeps every late-floor rarity viable through scalable common bases", () => {
     const drop = resolveEligibleCatalogDrop({
       rarity: "uncommon",
       levelMin: 24,
       levelMax: 33,
       provenance: "chest",
     });
-    expect(drop?.rarity).toBe("epic");
-    expect(drop?.candidates).toHaveLength(10);
-    expect(drop?.candidates.every((item) => item.minimumRarity === "epic")).toBe(true);
+    expect(drop?.rarity).toBe('uncommon');
+    expect(drop?.candidates).toHaveLength(48);
+    expect(drop?.candidates.every((item) => item.powerModelId === 'level-bands-v1')).toBe(true);
   });
 
   it("lets every model be equipped by any class when level and slot permit it", () => {
@@ -86,7 +94,13 @@ describe("authoritative item catalog", () => {
         level: 100,
         equipment: {},
       });
-      const instance = { instanceId: `instance-${item.id}`, itemId: item.id, rarity: item.minimumRarity };
+      const instance = {
+        instanceId: `instance-${item.id}`,
+        itemId: item.id,
+        itemLevel: item.levelRange.min,
+        powerModelId: item.powerModelId,
+        rarity: item.minimumRarity,
+      };
       const result = applyInventoryCommand({ ...initialTownState(42), heroes: [hero], storedItems: [instance] }, {
         type: "hero.equip",
         heroId: hero.id,
@@ -107,7 +121,7 @@ describe("authoritative item catalog", () => {
         recipeId: "unknown-pending-model",
         itemId: "unknown-pending-model",
         itemType: "weapon",
-        upgradeProc: "none",
+        offeredRarity: "common",
       },
     })).toThrow(/unknown-pending-model/);
   });
@@ -147,13 +161,13 @@ describe("authoritative item catalog", () => {
     const aboveCommon = ITEM_LIBRARY.find((item) => rarityRank(item.minimumRarity) > 0)!;
     expect(() => migrateTownState({
       ...initialTownState(),
-      storedItems: [{ instanceId: "below-minimum", itemId: aboveCommon.id, rarity: "common" }],
+      storedItems: [{ instanceId: 'below-minimum', itemId: aboveCommon.id, itemLevel: aboveCommon.requiredLevel, powerModelId: aboveCommon.powerModelId, rarity: 'common' }],
     })).toThrow(/minimum rarity/);
 
     expect(() => migrateTownState({
       ...initialTownState(),
       heroes: [makeHero({
-        equipment: { armor: { instanceId: "wrong-slot", itemId: "starter_sword", rarity: "common" } },
+        equipment: { armor: { instanceId: 'wrong-slot', itemId: 'starter_sword', itemLevel: 1, powerModelId: 'legacy-fixed-v1', rarity: 'common' } },
       })],
     })).toThrow(/incompatible with slot armor/);
 
@@ -161,7 +175,7 @@ describe("authoritative item catalog", () => {
       ...initialTownState(),
       heroes: [makeHero({
         level: 1,
-        equipment: { mainHand: { instanceId: "too-high", itemId: "basic_staff", rarity: "common" } },
+        equipment: { mainHand: { instanceId: 'too-high', itemId: 'basic_staff', itemLevel: 10, powerModelId: 'legacy-fixed-v1', rarity: 'common' } },
       })],
     })).toThrow(/requires level 10/);
 
@@ -171,8 +185,8 @@ describe("authoritative item catalog", () => {
         level: 10,
         xpNeeded: 1_061,
         equipment: {
-          mainHand: { instanceId: "two-handed", itemId: "basic_staff", rarity: "common" },
-          offHand: { instanceId: "shield", itemId: "wooden_shield", rarity: "common" },
+          mainHand: { instanceId: 'two-handed', itemId: 'basic_staff', itemLevel: 10, powerModelId: 'legacy-fixed-v1', rarity: 'common' },
+          offHand: { instanceId: 'shield', itemId: 'wooden_shield', itemLevel: 1, powerModelId: 'legacy-fixed-v1', rarity: 'common' },
         },
       })],
     })).toThrow(/conflicts with two-handed mainHand/);
@@ -184,7 +198,9 @@ describe("authoritative item catalog", () => {
         recipeId: "quick_dagger",
         itemId: "starter_sword",
         itemType: "weapon",
-        upgradeProc: "none",
+        itemLevel: 1,
+        powerModelId: 'legacy-fixed-v1',
+        offeredRarity: "common",
       },
     })).toThrow(/does not match itemId/);
   });
@@ -199,10 +215,10 @@ describe("authoritative item catalog", () => {
     })).toThrow(/itemId must be unique/);
   });
 
-  it.each([1, 5, 6, 10, 11, 20, 21, 30, 31])(
+  it.each([1, 2, 3, 7, 8, 10, 11, 17, 18, 25, 26, 35, 36, 48, 49, 61, 62])(
     "resolves a canonical treasure item at chest-band boundary floor %i",
     (floor) => {
-    const values = [0.94, 0.90, 0.00, 0.00, 0.10, 0.00];
+    const values = [0.94, 0.90, 0.00, 0.00, 0.10, 0.00, 0.50, 0.99];
     let cursor = 0;
     const consume = () => values[cursor++];
     const rng: Rng = { next: consume, nextInt: (max) => Math.floor(consume() * max) };
@@ -224,12 +240,14 @@ describe("authoritative item catalog", () => {
       },
     });
     const instance = result.state.storedItems?.[0];
-    expect(cursor).toBe(6);
-    if (floor === 31) expect(instance?.rarity).toBe("epic");
+    expect(cursor).toBe(floor <= 2 ? 7 : 8);
     const model = ITEM_LIBRARY.find((item) => item.id === instance?.itemId)!;
     const band = getChestLootBand(floor);
-    expect(model.requiredLevel).toBeGreaterThanOrEqual(band.levelMin);
-    expect(model.requiredLevel).toBeLessThanOrEqual(band.levelMax);
+    expect(instance?.itemLevel).toBeGreaterThanOrEqual(band.levelMin);
+    expect(instance?.itemLevel).toBeLessThanOrEqual(band.levelMax);
+    expect(instance?.itemLevel).toBeGreaterThanOrEqual(model.levelRange.min);
+    expect(instance?.itemLevel).toBeLessThanOrEqual(model.levelRange.max);
+    expect(instance?.powerModelId).toBe(model.powerModelId);
     expect(rarityRank(instance!.rarity)).toBeGreaterThanOrEqual(rarityRank(model.minimumRarity));
   });
 

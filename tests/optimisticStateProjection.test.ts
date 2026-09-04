@@ -28,7 +28,7 @@ describe("projectOptimisticCommands", () => {
       resources: { gold: 1_000, food: 1_000, wood: 1_000, stone: 1_000, ore: 1_000 },
       buildings: { ferme: 0 },
       heroes: [hero],
-      storedItems: [{ instanceId: "item-optimistic", itemId: "starter_sword", rarity: "common" }],
+      storedItems: [{ instanceId: "item-optimistic", itemId: "starter_sword", itemLevel: 1, powerModelId: "legacy-fixed-v1", rarity: "common" }],
       autoExplore: false,
     };
     const projected = projectOptimisticCommands(canonical, [

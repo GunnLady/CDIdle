@@ -11,7 +11,10 @@ import {
 import { getDungeonRoomCount } from "../../../shared/domain/dungeon-progression.ts";
 import { getItemById } from "../../../shared/domain/items/items.ts";
 import { migrateCanonicalRngState } from "./authoritative-rng.ts";
-import { DEFAULT_NOVICE_ITEM_BLUEPRINTS } from "./forge-blueprints.ts";
+import {
+  DEFAULT_NOVICE_ITEM_BLUEPRINTS,
+  LEGACY_NOVICE_BLUEPRINT_REPLACEMENTS,
+} from "./forge-blueprints.ts";
 import {
   calculateAuthoritativeHeroStats,
   type AuthoritativeEquipment,
@@ -182,9 +185,135 @@ function migrateV1ToV2(current: Record<string, unknown>): Record<string, unknown
     : migrated;
 }
 
+function migrateItemInstanceToV3(input: unknown): unknown {
+  if (!isRecord(input) || typeof input.itemId !== 'string') return input;
+  const definition = getItemById(input.itemId);
+  if (!definition) {
+    return {
+      ...input,
+      itemLevel: Number.isInteger(input.itemLevel) ? input.itemLevel : 1,
+      powerModelId: typeof input.powerModelId === 'string' ? input.powerModelId : 'legacy-fixed-v1',
+    };
+  }
+  return {
+    ...input,
+    itemLevel: Number.isInteger(input.itemLevel) ? input.itemLevel : definition.requiredLevel,
+    powerModelId: typeof input.powerModelId === 'string'
+      ? input.powerModelId
+      : definition.powerModelId,
+  };
+}
+
+function migrateHeroItemsToV3(input: unknown): unknown {
+  if (!isRecord(input) || !isRecord(input.equipment)) return input;
+  return {
+    ...input,
+    equipment: Object.fromEntries(Object.entries(input.equipment).map(([slot, item]) => [
+      slot,
+      item === null ? null : migrateItemInstanceToV3(item),
+    ])),
+  };
+}
+
+function migrateEncounterHistoryItemsToV3(input: unknown): unknown {
+  if (!isRecord(input) || !isRecord(input.rewards) || !Array.isArray(input.rewards.loot)) return input;
+  return {
+    ...input,
+    rewards: {
+      ...input.rewards,
+      loot: input.rewards.loot.map((loot) => (
+        isRecord(loot) && loot.type === 'item' ? migrateItemInstanceToV3(loot) : loot
+      )),
+    },
+  };
+}
+
+function migrateV2ToV3(current: Record<string, unknown>): Record<string, unknown> {
+  const pendingForge = isRecord(current.pendingForge) && typeof current.pendingForge.itemId === 'string'
+    ? (() => {
+        const definition = getItemById(current.pendingForge.itemId as string);
+        return {
+          ...current.pendingForge,
+          itemLevel: Number.isInteger(current.pendingForge.itemLevel)
+            ? current.pendingForge.itemLevel
+            : definition?.requiredLevel ?? 1,
+          powerModelId: typeof current.pendingForge.powerModelId === 'string'
+            ? current.pendingForge.powerModelId
+            : definition?.powerModelId ?? 'legacy-fixed-v1',
+        };
+      })()
+    : current.pendingForge;
+  const migrated = {
+    ...current,
+    stateVersion: 3,
+    storedItems: Array.isArray(current.storedItems)
+      ? current.storedItems.map(migrateItemInstanceToV3)
+      : current.storedItems,
+    heroes: Array.isArray(current.heroes) ? current.heroes.map(migrateHeroItemsToV3) : current.heroes,
+    onboardingCandidates: Array.isArray(current.onboardingCandidates)
+      ? current.onboardingCandidates.map(migrateHeroItemsToV3)
+      : current.onboardingCandidates,
+    pendingRecruit: current.pendingRecruit ? migrateHeroItemsToV3(current.pendingRecruit) : current.pendingRecruit,
+    pendingForge,
+    encounterHistory: Array.isArray(current.encounterHistory)
+      ? current.encounterHistory.map(migrateEncounterHistoryItemsToV3)
+      : current.encounterHistory,
+  };
+  return validateCanonicalGameState(migrated).length === 0
+    ? reconcileExistingVocations(migrated as CanonicalGameState)
+    : migrated;
+}
+
+function migrateBlueprintsToV4(input: unknown): unknown {
+  if (input !== undefined && !Array.isArray(input)) return input;
+  if (Array.isArray(input) && input.some((entry) => (
+    !isRecord(entry)
+    || typeof entry.itemId !== "string"
+    || typeof entry.unlocked !== "boolean"
+  ))) return input;
+  const source = Array.isArray(input) && input.length > 0 ? input : DEFAULT_NOVICE_ITEM_BLUEPRINTS;
+  const merged = new Map<string, boolean>();
+  for (const entry of source) {
+    if (!isRecord(entry) || typeof entry.itemId !== "string") continue;
+    const itemId = LEGACY_NOVICE_BLUEPRINT_REPLACEMENTS[entry.itemId] ?? entry.itemId;
+    merged.set(itemId, (merged.get(itemId) ?? false) || entry.unlocked === true);
+  }
+  return [...merged].map(([itemId, unlocked]) => ({ itemId, unlocked }));
+}
+
+function migrateV3ToV4(current: Record<string, unknown>): Record<string, unknown> {
+  const pendingForge = isRecord(current.pendingForge)
+    ? (() => {
+        const recipeId = typeof current.pendingForge.recipeId === "string"
+          ? current.pendingForge.recipeId
+          : typeof current.pendingForge.itemId === "string"
+            ? current.pendingForge.itemId
+            : "";
+        const recipe = getItemById(recipeId);
+        const legacyProc = current.pendingForge.upgradeProc;
+        const offeredRarity = legacyProc === "uncommon" || legacyProc === "rare"
+          ? legacyProc
+          : recipe?.minimumRarity ?? "common";
+        const { upgradeProc: _legacyUpgradeProc, ...rest } = current.pendingForge;
+        return { ...rest, offeredRarity };
+      })()
+    : current.pendingForge;
+  const migrated = {
+    ...current,
+    stateVersion: 4,
+    itemBlueprints: migrateBlueprintsToV4(current.itemBlueprints),
+    pendingForge,
+  };
+  return validateCanonicalGameState(migrated).length === 0
+    ? reconcileExistingVocations(migrated as CanonicalGameState)
+    : migrated;
+}
+
 export const CANONICAL_STATE_MIGRATIONS: readonly CanonicalStateMigration[] = [
   { from: LEGACY_UNVERSIONED_STATE_VERSION, to: 1, migrate: migrateV0ToV1 },
   { from: 1, to: 2, migrate: migrateV1ToV2 },
+  { from: 2, to: 3, migrate: migrateV2ToV3 },
+  { from: 3, to: 4, migrate: migrateV3ToV4 },
 ];
 
 export function migrateCanonicalState(

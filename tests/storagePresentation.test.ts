@@ -4,14 +4,14 @@ import { makeHero } from "./fixtures/game";
 
 describe("storage presentation", () => {
   it("projects current equipment, displaced items and before/after statistics", () => {
-    const selected = { instanceId: "lute", itemId: "basic_lute", rarity: "common" as const };
+    const selected = { instanceId: "lute", itemId: "basic_lute", itemLevel: 10, powerModelId: "legacy-fixed-v1" as const, rarity: "common" as const };
     const hero = makeHero({
       id: "target",
       name: "Cible",
       level: 20,
       equipment: {
-        mainHand: { instanceId: "old-main", itemId: "starter_sword", rarity: "common" },
-        offHand: { instanceId: "old-off", itemId: "wooden_shield", rarity: "common" },
+        mainHand: { instanceId: "old-main", itemId: "starter_sword", itemLevel: 1, powerModelId: "legacy-fixed-v1" as const, rarity: "common" },
+        offHand: { instanceId: "old-off", itemId: "wooden_shield", itemLevel: 1, powerModelId: "legacy-fixed-v1" as const, rarity: "common" },
         armor: null,
         accessory: null,
       },
@@ -26,8 +26,8 @@ describe("storage presentation", () => {
 
   it("filters a display copy without changing canonical storage order", () => {
     const canonical = [
-      { instanceId: "late", itemId: "basic_sword", rarity: "legendary" as const },
-      { instanceId: "early", itemId: "starter_sword", rarity: "common" as const },
+      { instanceId: "late", itemId: "basic_sword", itemLevel: 10, powerModelId: "legacy-fixed-v1" as const, rarity: "legendary" as const },
+      { instanceId: "early", itemId: "starter_sword", itemLevel: 1, powerModelId: "legacy-fixed-v1" as const, rarity: "common" as const },
     ];
     const result = filterAndSortStorageItems(resolveStorageItems(canonical), {
       searchTerm: "",
@@ -42,11 +42,11 @@ describe("storage presentation", () => {
   });
 
   it("explains an off-hand blocked by a two-handed main weapon", () => {
-    const selected = { instanceId: "shield", itemId: "wooden_shield", rarity: "common" as const };
+    const selected = { instanceId: "shield", itemId: "wooden_shield", itemLevel: 1, powerModelId: "legacy-fixed-v1" as const, rarity: "common" as const };
     const hero = makeHero({
       level: 20,
       equipment: {
-        mainHand: { instanceId: "lute-equipped", itemId: "basic_lute", rarity: "common" },
+        mainHand: { instanceId: "lute-equipped", itemId: "basic_lute", itemLevel: 10, powerModelId: "legacy-fixed-v1" as const, rarity: "common" },
         offHand: null,
         armor: null,
         accessory: null,
@@ -59,7 +59,7 @@ describe("storage presentation", () => {
 
   it("prepares inventory and forge summary models outside presentation panels", () => {
     const inventory = createStorageInventoryItemViews(resolveStorageItems([
-      { instanceId: "sword", itemId: "starter_sword", rarity: "common" },
+      { instanceId: "sword", itemId: "starter_sword", itemLevel: 1, powerModelId: "legacy-fixed-v1" as const, rarity: "common" },
     ]));
     expect(inventory[0]).toMatchObject({ instanceId: "sword", itemTypeLabel: "Arme" });
     expect(inventory[0].item.facts).toContainEqual({ id: "attack-profile", label: "Profil d’attaque", value: "1 × 100 %" });

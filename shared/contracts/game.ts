@@ -159,6 +159,8 @@ export type StoredItemInstance = CanonicalStoredItemInstance;
 
 export interface EquippedItemRef {
   instanceId: string;
+  itemLevel: number;
+  powerModelId: 'legacy-fixed-v1' | 'level-bands-v1';
   itemId: ItemInfo["id"];
   rarity: Rarity;
   modifiers?: Modifier[];
@@ -266,10 +268,15 @@ export interface BaseItemInfo {
   rarity: Rarity;
   minimumRarity: Rarity;
   requiredLevel: number;
+  levelRange: { min: number; max: number };
+  powerModelId: 'legacy-fixed-v1' | 'level-bands-v1';
+  powerReferenceLevel: number;
+  catalogStatus: 'legacy' | 'active';
   description: string;
   modifiers?: Modifier[];
   provenances: Array<"vocation" | "chest" | "boss" | "forge">;
   blueprintAvailable: boolean;
+  blueprintDiscovery: import("../domain/items/types.ts").CanonicalBlueprintDiscoveryPolicy;
 }
 
 export interface WeaponItemInfo extends BaseItemInfo {
