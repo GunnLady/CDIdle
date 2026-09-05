@@ -1,4 +1,5 @@
-import { defineConfig } from "vitest/config";
+import { configDefaults, defineConfig } from "vitest/config";
+import { SIMULATION_TEST_FILES } from "./scripts/simulation-tests";
 import react from "@vitejs/plugin-react";
 
 export default defineConfig({
@@ -7,6 +8,7 @@ export default defineConfig({
     environment: "jsdom",
     setupFiles: ["./tests/setup.ts"],
     include: ["tests/**/*.test.{ts,tsx}"],
+    exclude: [...configDefaults.exclude, ...SIMULATION_TEST_FILES],
     css: true,
     coverage: {
       provider: "v8",

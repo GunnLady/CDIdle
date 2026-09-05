@@ -48,6 +48,11 @@ npm.cmd test -- --run
 npm.cmd run check
 ```
 
+La suite par défaut et sa couverture exécutent les régressions rapides.
+Les calibrations longues sont séparées : `npm.cmd run test:simulations`.
+Les campagnes complètes restent accessibles via `test:item-progression` et
+`test:forge-progression`. Voir la [politique CI et tests](docs/development/ci-quality.md).
+
 Pour les tests nécessitant Docker, Supabase ou plusieurs essais interactifs,
 lancer la commande indiquée dans le ticket et communiquer le résultat avant de
 poursuivre.

@@ -1,0 +1,57 @@
+name: CDIdle simulations
+
+on:
+  workflow_dispatch:
+    inputs:
+      suite:
+        description: Simulation suite (no coverage)
+        type: choice
+        required: true
+        default: simulations
+        options:
+          - simulations
+          - item-progression
+          - forge-progression
+
+permissions:
+  contents: read
+
+concurrency:
+  group: simulations-${{ github.ref }}-${{ inputs.suite }}
+  cancel-in-progress: true
+
+jobs:
+  simulations:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24.18.0
+          package-manager-cache: false
+      - name: Install pinned npm
+        working-directory: ${{ runner.temp }}
+        run: npm install --global npm@12.0.1 --ignore-scripts
+      - name: Verify npm
+        run: test "$(npm --version)" = "12.0.1"
+      - run: npm ci
+      - name: Run selected simulation
+        shell: bash
+        env:
+          SUITE: ${{ inputs.suite }}
+          XP_SHARD_COUNT: 2
+          XP_SEEDS_PER_SHARD: 50
+          FORGE_SHARD_COUNT: 2
+          FORGE_SEEDS_PER_SHARD: 50
+        run: |
+          set -o pipefail
+          npm run "test:$SUITE" 2>&1 | tee simulation-results.log
+      - name: Upload simulation results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: simulation-${{ inputs.suite }}
+          path: simulation-results.log
+          if-no-files-found: warn
+          retention-days: 14

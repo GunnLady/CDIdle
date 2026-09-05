@@ -45,7 +45,8 @@ scénario complet de 10 000 héros :
 
 Toute modification de génération, de croissance, de formule ou d'offset doit
 donc mettre à jour explicitement cette table et conserver les contraintes du
-test `tests/classAffinity.test.ts`.
+test `tests/classAffinitySimulation.test.ts`, via `npm.cmd run test:class-calibration`.
+Les régressions fonctionnelles rapides restent dans `tests/classAffinity.test.ts`.
 
 Une seule vocation dans la fenêtre de 1 % est appliquée automatiquement dans la
 même récompense canonique. Plusieurs vocations dans cette fenêtre créent une
