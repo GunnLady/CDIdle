@@ -9,6 +9,7 @@ import {
   scaleForgeMaterialsForItemLevel,
 } from "../../shared/domain/forge-economy";
 import { FORGE_PROGRESSION_LEVELS } from "../../shared/data/forge-progression";
+import { applyItemLevelScaling, applyItemRarityScaling } from "../../shared/domain/items/scaling";
 import {
   formatWeaponAttackSpeed,
   getWeaponAttackProfileLabel,
@@ -24,12 +25,14 @@ export interface ForgePendingViewInput {
 
 export interface ForgeRecipeView {
   id: string;
+  category: ItemInfo['itemType'];
+  categoryLabel: string;
+  discoveryLabel: string;
   name: string;
   description: string;
   rarityLabel: string;
   unlocked: boolean;
   powerModelId: 'legacy-fixed-v1' | 'level-bands-v1';
-  levelRangeLabel: string;
   availableLevelBands: number[];
   weaponDetails: string[];
   modifierLines: string[];
@@ -46,11 +49,35 @@ export interface ForgePendingView {
   itemName: string;
   itemLevel: number;
   rarityLabel: string;
+  baseRarityLabel: string;
   offeredRarity: Rarity;
   upgradeAvailable: boolean;
   upgradeAffordable: boolean;
-  upgradeCostLabel: string;
+  upgradeCosts: ForgeCostView[];
   modifierOptions: ForgeModifierOptionView[];
+}
+
+export interface ForgeCostView {
+  id: string;
+  name: string;
+  owned: number;
+  required: number;
+  missing: number;
+}
+
+export type ForgeCategory = 'all' | ItemInfo['itemType'];
+export const FORGE_CATEGORIES: Array<{ id: ForgeCategory; label: string }> = [
+  { id: 'all', label: 'Tout' }, { id: 'weapon', label: 'Armes' },
+  { id: 'offhand', label: 'Mains gauches' }, { id: 'armor', label: 'Armures' },
+  { id: 'accessory', label: 'Accessoires' },
+];
+
+export function filterForgeRecipes(recipes: ForgeRecipeView[], query: string, category: ForgeCategory, knownOnly: boolean): ForgeRecipeView[] {
+  const normalize = (text: string) => text.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('fr');
+  const search = normalize(query.trim());
+  return recipes.filter((recipe) => (!knownOnly || recipe.unlocked)
+    && (category === 'all' || recipe.category === category)
+    && normalize(recipe.name).includes(search));
 }
 
 export interface ForgeWorkspaceView {
@@ -64,7 +91,7 @@ export interface ForgeWorkspaceView {
   selectedRecipe: ForgeRecipeView | null;
   selectedLevelBandMin: number;
   baseAffordable: boolean;
-  baseCostLabel: string;
+  baseCosts: ForgeCostView[];
   pending: ForgePendingView | null;
 }
 
@@ -78,18 +105,14 @@ const armorModifiers = [
 const weaponModifiers = ["physicalDamage", "magicDamage", "criticalChance", "speed"];
 
 const modifierLabels: Record<string, string> = {
-  physicalDamage: "⚔️ +1 Dégâts Physiques", magicDamage: "🔮 +1 Dégâts Magiques",
-  criticalChance: "✨ +1% Chances de Critique", speed: "👟 +2% Vitesse",
-  maxHp: "❤️ +3% PV Max", maxMana: "🧪 +3% Mana Max",
-  physicalDefense: "🛡️ +1 Défense Physique", magicDefense: "🧼 +1 Défense Magique",
-  dodgeChance: "💨 +1% Chances d'Esquive", fireResistance: "🔥 +2 Résistance Feu",
-  iceResistance: "❄️ +2 Résistance Glace", waterResistance: "💧 +2 Résistance Eau",
-  earthResistance: "🪨 +2 Résistance Terre", windResistance: "🌀 +2 Résistance Vent",
-  lightningResistance: "⚡ +2 Résistance Foudre", holyResistance: "☀️ +2 Résistance Sacré",
-  darkResistance: "🌙 +2 Résistance Ombre", natureResistance: "🍃 +2 Résistance Nature",
-  arcaneResistance: "🔯 +2 Résistance Arcanes", poisonResistance: "🧪 +2 Résistance Poison",
-  bloodResistance: "🩸 +2 Résistance Sang", soundResistance: "🔊 +2 Résistance Son",
-  radiantResistance: "🌟 +2 Résistance Radiant",
+  physicalDamage: 'Dégâts physiques', magicDamage: 'Dégâts magiques',
+  criticalChance: 'Chances de critique', speed: 'Vitesse', maxHp: 'PV max', maxMana: 'Mana max',
+  physicalDefense: 'Défense physique', magicDefense: 'Défense magique', dodgeChance: 'Chances d’esquive',
+  fireResistance: 'Résistance Feu', iceResistance: 'Résistance Glace', waterResistance: 'Résistance Eau',
+  earthResistance: 'Résistance Terre', windResistance: 'Résistance Vent', lightningResistance: 'Résistance Foudre',
+  holyResistance: 'Résistance Sacré', darkResistance: 'Résistance Ombre', natureResistance: 'Résistance Nature',
+  arcaneResistance: 'Résistance Arcanes', poisonResistance: 'Résistance Poison', bloodResistance: 'Résistance Sang',
+  soundResistance: 'Résistance Son', radiantResistance: 'Résistance Radiant',
 };
 
 const rarityLabels = {
@@ -101,25 +124,21 @@ const rarityLabels = {
 } as const;
 
 const rarityOrder: Rarity[] = ["common", "uncommon", "rare", "epic", "legendary"];
-const materialLabels: Record<string, { singular: string; plural: string }> = {
-  metal_scrap: { singular: "débris métallique", plural: "débris métalliques" },
-  refined_metal: { singular: "métal raffiné", plural: "métaux raffinés" },
-  enchanted_fragment: { singular: "fragment enchanté", plural: "fragments enchantés" },
-  arcane_core: { singular: "noyau arcanique", plural: "noyaux arcaniques" },
-  legendary_essence: { singular: "essence légendaire", plural: "essences légendaires" },
-};
-
-const formatMaterialCost = (cost: readonly { materialId: string; count: number }[]) => cost
-  .map((entry) => {
-    const labels = materialLabels[entry.materialId];
-    return `${entry.count} ${entry.count > 1 ? labels?.plural : labels?.singular}`;
-  })
-  .join(" · ");
-
-function toRecipeView(item: ItemInfo, unlockedIds: Set<string>, forgeLevel: number): ForgeRecipeView {
+function toRecipeView(item: ItemInfo, unlockedIds: Set<string>, forgeLevel: number, selectedBand?: number): ForgeRecipeView {
+  const availableLevelBands = item.powerModelId === 'legacy-fixed-v1'
+    ? [Math.floor((item.requiredLevel - 1) / 5) * 5 + 1]
+    : [1, 6, 11, 16, 21, 26, 31, 36].filter((start) => (
+        start <= forgeLevel * 5 && start <= item.levelRange.max && start + 4 >= item.levelRange.min
+      ));
+  const band = availableLevelBands.includes(selectedBand ?? -1) ? selectedBand! : availableLevelBands.at(-1);
+  const lowLevel = item.powerModelId === 'legacy-fixed-v1' ? item.requiredLevel : Math.max(item.levelRange.min, band ?? item.levelRange.min);
+  const highLevel = item.powerModelId === 'legacy-fixed-v1' ? lowLevel : Math.min(item.levelRange.max, lowLevel + 4);
+  const low = applyItemRarityScaling(applyItemLevelScaling(item, lowLevel), item.minimumRarity, true);
+  const high = applyItemRarityScaling(applyItemLevelScaling(item, highLevel), item.minimumRarity, true);
   const weaponDetails = item.itemType === "weapon"
     ? [
-        ...(item.damageRange ? [`Dégâts de base : ${item.damageRange.min} - ${item.damageRange.max}`] : []),
+        ...(low.itemType === 'weapon' && low.damageRange && high.itemType === 'weapon' && high.damageRange
+          ? [`Dégâts niv. ${lowLevel} : ${low.damageRange.min}–${low.damageRange.max}`, ...(highLevel !== lowLevel ? [`Dégâts niv. ${highLevel} : ${high.damageRange.min}–${high.damageRange.max}`] : [])] : []),
         `Caractéristique : ${getWeaponScalingLabel(item)}`,
         `Profil d’attaque : ${getWeaponAttackProfileLabel(item)}`,
         `Vitesse d’attaque : ${formatWeaponAttackSpeed(item.attackSpeed ?? 1)}`,
@@ -127,22 +146,24 @@ function toRecipeView(item: ItemInfo, unlockedIds: Set<string>, forgeLevel: numb
     : [];
   return {
     id: item.id,
+    category: item.itemType,
+    categoryLabel: FORGE_CATEGORIES.find((entry) => entry.id === item.itemType)!.label,
+    discoveryLabel: item.blueprintDiscovery.kind === 'random-drop'
+      ? `Plan à découvrir · ${item.blueprintDiscovery.sources.map((source) => source === 'boss' ? 'boss' : 'coffres').join(' / ')} · étages ${item.blueprintDiscovery.floorMin}–${item.blueprintDiscovery.floorMax}`
+      : 'Plan de départ',
     name: item.name,
     description: item.description,
     rarityLabel: rarityLabels[item.minimumRarity],
     unlocked: unlockedIds.has(item.id),
     powerModelId: item.powerModelId,
-    levelRangeLabel: item.levelRange.min === item.levelRange.max
-      ? `Niveau ${item.levelRange.min}`
-      : `Niveaux ${item.levelRange.min}–${item.levelRange.max}`,
-    availableLevelBands: item.powerModelId === 'legacy-fixed-v1'
-      ? [Math.floor((item.requiredLevel - 1) / 5) * 5 + 1]
-      : [1, 6, 11, 16, 21, 26, 31, 36].filter((start) => (
-          start <= forgeLevel * 5 && start <= item.levelRange.max && start + 4 >= item.levelRange.min
-        )),
+    availableLevelBands,
     weaponDetails,
-    modifierLines: (item.modifiers ?? []).map((entry) =>
-      `• ${entry.stat} : ${entry.type === "percent" ? `+${entry.value}%` : `+${entry.value}`}`),
+    modifierLines: (low.modifiers ?? []).map((entry, index) => {
+      const end = high.modifiers?.[index]?.value ?? entry.value;
+      const label = modifierLabels[entry.stat] ?? entry.stat;
+      const value = (n: number) => `${n >= 0 ? '+' : ''}${n}${entry.type === 'percent' ? ' %' : ''}`;
+      return `${label} : ${value(entry.value)}${end !== entry.value ? ` → ${value(end)}` : ''}`;
+    }),
   };
 }
 
@@ -156,6 +177,12 @@ export function createForgeWorkspaceView(input: {
 }): ForgeWorkspaceView {
   const materialCounts = new Map(input.materials.map((stack) => [stack.materialId, stack.count]));
   const count = (id: string) => materialCounts.get(id) ?? 0;
+  const costViews = (cost: readonly { materialId: string; count: number }[]): ForgeCostView[] => cost.map((entry) => ({
+    id: entry.materialId,
+    name: FORGE_MATERIALS.find((material) => material.id === entry.materialId)?.name ?? entry.materialId,
+    owned: count(entry.materialId), required: entry.count,
+    missing: Math.max(0, entry.count - count(entry.materialId)),
+  }));
   const unlockedIds = new Set(input.blueprints.filter((entry) => entry.unlocked).map((entry) => entry.itemId));
   const forgeItems = ITEM_LIBRARY.filter((item) => (
     item.catalogStatus === "active"
@@ -166,7 +193,7 @@ export function createForgeWorkspaceView(input: {
   const forgeLevel = Math.max(1, input.forgeLevel ?? 1);
   const openedProgression = FORGE_PROGRESSION_LEVELS[Math.min(forgeLevel, FORGE_PROGRESSION_LEVELS.length) - 1]!;
   const nextProgression = FORGE_PROGRESSION_LEVELS[forgeLevel];
-  const recipes = forgeItems.map((item) => toRecipeView(item, unlockedIds, forgeLevel));
+  const recipes = forgeItems.map((item) => toRecipeView(item, unlockedIds, forgeLevel, input.selectedLevelBandMin));
   const selectedRecipe = recipes.find((recipe) => recipe.id === input.selectedRecipeId) ?? recipes[0] ?? null;
   const selectedLevelBandMin = selectedRecipe?.availableLevelBands.includes(input.selectedLevelBandMin ?? -1)
     ? input.selectedLevelBandMin!
@@ -185,9 +212,6 @@ export function createForgeWorkspaceView(input: {
   );
   const upgradeAffordable = upgradeCost.length > 0
     && upgradeCost.every((entry) => count(entry.materialId) >= entry.count);
-  const upgradeCostLabel = upgradeCost.length > 0
-    ? formatMaterialCost(upgradeCost)
-    : "Aucun coût supplémentaire";
 
   return {
     progression: {
@@ -202,17 +226,18 @@ export function createForgeWorkspaceView(input: {
     selectedRecipe,
     selectedLevelBandMin,
     baseAffordable: baseCost.every((entry) => count(entry.materialId) >= entry.count),
-    baseCostLabel: formatMaterialCost(baseCost),
+    baseCosts: costViews(baseCost),
     pending: input.pending ? {
       previewId: input.pending.previewId,
       itemId: input.pending.itemId,
       itemName: pendingItem?.name ?? input.pending.itemId,
       itemLevel: input.pending.itemLevel ?? pendingItem?.requiredLevel ?? 1,
       rarityLabel: rarityLabels[offeredRarity],
+      baseRarityLabel: rarityLabels[pendingItem?.minimumRarity ?? 'common'],
       offeredRarity,
       upgradeAvailable,
       upgradeAffordable: upgradeAvailable && upgradeAffordable,
-      upgradeCostLabel,
+      upgradeCosts: costViews(upgradeCost),
       modifierOptions: compatibleModifiers.map((stat) => ({ stat, label: modifierLabels[stat] ?? stat })),
     } : null,
   };

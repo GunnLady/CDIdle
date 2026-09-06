@@ -9,6 +9,8 @@ import type { Hero } from "../src/types";
 import type { CanonicalHero } from "../shared/contracts/authoritative";
 import { makeHero, makeStoredItem } from "./fixtures/game";
 import { asLegacyUnversionedState } from "./fixtures/stateMigrations";
+import { nameItem } from "../shared/domain/items/naming";
+import { getItemById } from "../shared/domain/items/items";
 
 const withoutIdentity = (hero: CanonicalHero) => {
   const { id: _id, name: _name, ...profile } = hero;
@@ -362,6 +364,11 @@ describe("authoritative town commands", () => {
     expect(evolved.equipment?.accessory?.instanceId).toBe(`item:${novice.id}:tier1:accessory`);
     expect(evolved.equipment?.mainHand).toMatchObject({ itemLevel: 10, powerModelId: "legacy-fixed-v1" });
     expect(evolved.equipment?.accessory).toMatchObject({ itemLevel: 10, powerModelId: "legacy-fixed-v1" });
+    const vocationEvent = chosen.events.find((event) => event.type === 'hero.vocation_chosen');
+    const weapon = evolved.equipment!.mainHand!;
+    const accessory = evolved.equipment!.accessory!;
+    expect(vocationEvent?.weaponName).toBe(nameItem(getItemById(weapon.itemId), weapon).name);
+    expect(vocationEvent?.accessoryName).toBe(nameItem(getItemById(accessory.itemId), accessory).name);
     expect(chosen.state.pendingClassTransitions).toEqual([]);
     expect((chosen.state.rngState as { draws: number }).draws).toBe(base.rngState.draws + 1);
     expect(authoritativeReplay).toEqual(chosen);

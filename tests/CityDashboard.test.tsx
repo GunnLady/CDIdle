@@ -25,6 +25,124 @@ const baseProps = () => ({
   onCancelForge: vi.fn(),
 });
 
+describe('Forge workshop interaction', () => {
+  it('filters the catalog without mutating the game, and resets empty searches', () => {
+    const props = baseProps();
+    render(<CityDashboard {...props} />);
+    fireEvent.click(screen.getByTestId('building-forge'));
+    const catalog = within(screen.getByRole('region', { name: 'Catalogue des plans' }));
+    expect(catalog.getByRole('status')).toHaveTextContent('1 plan affiché');
+    fireEvent.click(catalog.getByRole('checkbox', { name: 'Plans connus uniquement' }));
+    expect(catalog.getByRole('status')).toHaveTextContent('48 plans affichés');
+    fireEvent.click(catalog.getByRole('button', { name: 'Armures' }));
+    expect(catalog.getByRole('status')).toHaveTextContent('5 plans affichés');
+    fireEvent.change(catalog.getByRole('searchbox'), { target: { value: 'zzzintrouvable' } });
+    expect(catalog.getByText('Aucun plan ne correspond à ces filtres.')).toBeInTheDocument();
+    fireEvent.click(catalog.getByRole('button', { name: 'Voir tous les plans' }));
+    expect(catalog.getByRole('status')).toHaveTextContent('48 plans affichés');
+    expect(props.onStartForge).not.toHaveBeenCalled();
+  });
+
+  it('lets keyboard users inspect locked plans while blocking their craft', async () => {
+    const props = baseProps();
+    const user = userEvent.setup();
+    render(<CityDashboard {...props} />);
+    fireEvent.click(screen.getByTestId('building-forge'));
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Plans connus uniquement' }));
+    const locked = screen.getAllByRole('button', { name: /plan verrouillé/ })[0];
+    locked.focus();
+    await user.keyboard('{Enter}');
+    expect(locked).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByText(/Ce plan est consultable/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Forger' })).toBeDisabled();
+    expect(props.onStartForge).not.toHaveBeenCalled();
+  });
+
+  it('sends the selected level band and updates material requirements', () => {
+    const props = baseProps();
+    render(<CityDashboard {...props} buildings={{ ...props.buildings, forge: 3 }} forgeMaterials={props.forgeMaterials.map((entry) => ({ ...entry, count: 30 }))} />);
+    fireEvent.click(screen.getByTestId('building-forge'));
+    fireEvent.change(screen.getByRole('combobox', { name: 'Tranche de niveau' }), { target: { value: '11' } });
+    expect(screen.getByLabelText('30 possédés sur 12 requis')).toBeInTheDocument();
+    expect(screen.getByText(/^Dégâts niv. 11/)).toBeInTheDocument();
+    expect(screen.getByText(/^Dégâts niv. 15/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Forger' }));
+    expect(props.onStartForge).toHaveBeenCalledWith('progression_sword', 11);
+  });
+
+  it('explains missing materials and preserves browsing in read-only mode', () => {
+    const props = baseProps();
+    render(<CityDashboard {...props} forgeMaterials={[]} canMutate={false} />);
+    fireEvent.click(screen.getByTestId('building-forge'));
+    expect(screen.getByText('Il manque 6')).toBeInTheDocument();
+    expect(screen.getByText(/Lecture seule/)).toBeInTheDocument();
+    expect(screen.getByRole('searchbox')).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Forger' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Améliorer' })).toBeDisabled();
+  });
+
+  it('keeps the base result recoverable when the proposed rarity is unaffordable', () => {
+    const props = baseProps();
+    render(<CityDashboard {...props} forgeMaterials={[]} pendingForge={{ previewId: 'rare', itemId: 'progression_sword', offeredRarity: 'rare', itemLevel: 4 }} />);
+    expect(screen.getByRole('checkbox', { name: 'Accepter l’amélioration' })).toBeDisabled();
+    expect(screen.getByText('Qualité finale : Commune')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Finaliser · Commune' }));
+    expect(props.onFinalizeForge).toHaveBeenCalledWith('rare', false, undefined);
+  });
+
+  it('revalidates upgrade materials and allows declining a previously selected upgrade', () => {
+    const props = baseProps();
+    const pendingForge = { previewId: 'upgrade', itemId: 'progression_sword', offeredRarity: 'uncommon' as const, itemLevel: 2 };
+    const { rerender } = render(<CityDashboard {...props} pendingForge={pendingForge} />);
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Accepter l’amélioration' }));
+    expect(screen.getByText('Qualité finale : Inhabituelle')).toBeInTheDocument();
+    rerender(<CityDashboard {...props} pendingForge={pendingForge} forgeMaterials={[]} />);
+    expect(screen.getByRole('button', { name: 'Finaliser · Inhabituelle' })).toBeDisabled();
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Accepter l’amélioration' }));
+    expect(screen.getByRole('button', { name: 'Finaliser · Commune' })).toBeEnabled();
+    expect(props.onFinalizeForge).not.toHaveBeenCalled();
+  });
+
+  it('resets upgrade and cancellation choices when a new preview arrives', () => {
+    const props = baseProps();
+    const pendingForge = { previewId: 'first', itemId: 'progression_sword', offeredRarity: 'uncommon' as const, itemLevel: 2 };
+    const { rerender } = render(<CityDashboard {...props} pendingForge={pendingForge} />);
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Accepter l’amélioration' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Abandonner la fabrication' }));
+    rerender(<CityDashboard {...props} pendingForge={{ ...pendingForge, previewId: 'second' }} />);
+    expect(screen.getByRole('checkbox', { name: 'Accepter l’amélioration' })).not.toBeChecked();
+    expect(screen.queryByRole('button', { name: 'Confirmer l’abandon' })).not.toBeInTheDocument();
+  });
+
+  it('allows backing out of abandonment without any mutation', () => {
+    const props = baseProps();
+    render(<CityDashboard {...props} pendingForge={{ previewId: 'keep', itemId: 'starter_sword', offeredRarity: 'common' }} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Abandonner la fabrication' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Garder l’objet' }));
+    expect(screen.queryByRole('button', { name: 'Confirmer l’abandon' })).not.toBeInTheDocument();
+    expect(props.onCancelForge).not.toHaveBeenCalled();
+    expect(props.onFinalizeForge).not.toHaveBeenCalled();
+  });
+
+  it('blocks result mutations in read-only mode', () => {
+    const props = baseProps();
+    render(<CityDashboard {...props} canMutate={false} pendingForge={{ previewId: 'readonly', itemId: 'progression_sword', offeredRarity: 'uncommon', itemLevel: 1 }} />);
+    expect(screen.getByRole('checkbox', { name: 'Accepter l’amélioration' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /Finaliser/ })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Abandonner la fabrication' })).toBeDisabled();
+  });
+
+  it('shows the maximum forge without an upgrade action', () => {
+    const props = baseProps();
+    render(<CityDashboard {...props} buildings={{ ...props.buildings, forge: 8 }} />);
+    fireEvent.click(screen.getByTestId('building-forge'));
+    const panel = within(screen.getByTestId('selected-building-panel'));
+    expect(panel.getByText('Maîtrise maximale')).toBeInTheDocument();
+    expect(panel.queryByRole('button', { name: 'Améliorer' })).not.toBeInTheDocument();
+    expect(panel.getAllByRole('option')).toHaveLength(8);
+  });
+});
+
 describe("CityDashboard city controls", () => {
   it("allows keyboard users to select a building without triggering a mutation", async () => {
     const user = userEvent.setup();
@@ -281,6 +399,9 @@ describe("CityDashboard city controls", () => {
     render(<CityDashboard {...props} pendingForge={{ previewId: "preview-cancel", itemId: "starter_sword", offeredRarity: "common" }} />);
     fireEvent.click(screen.getByRole("button", { name: /forge/i }));
     fireEvent.click(await screen.findByRole("button", { name: /abandonner/i }));
+    expect(props.onCancelForge).not.toHaveBeenCalled();
+    expect(screen.getByText(/ne seront pas remboursés/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Confirmer l’abandon' }));
     expect(props.onCancelForge).toHaveBeenCalledWith("preview-cancel");
     expect(props.onFinalizeForge).not.toHaveBeenCalled();
   });
@@ -293,7 +414,7 @@ describe("CityDashboard city controls", () => {
       pendingForge={{ previewId: "preview-epic", itemId: "embercleaver_greataxe", offeredRarity: "epic" }}
     />);
     fireEvent.click(screen.getByRole("button", { name: /forge/i }));
-    expect(await screen.findByText(/Épique/)).toBeInTheDocument();
+    expect(await screen.findByText('Qualité finale : Épique')).toBeInTheDocument();
     expect(screen.queryByText("Commune")).not.toBeInTheDocument();
   });
 });

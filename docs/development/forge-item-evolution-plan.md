@@ -8,9 +8,10 @@ Les règles ont été raccordées au runtime et le harness final a été validé
 d'objets évolutifs 1–40 sans modifier les courbes XP, la difficulté des défis,
 les récompenses de recrutement ou les cadeaux de rank-up.
 
-Le moteur de nommage dynamique et le contenu supérieur au niveau 40 restent
-hors périmètre. Leur ajout devra utiliser les extensions prévues ici sans
-condition spéciale dans l'autorité ou React.
+Le moteur de nommage dynamique et le contenu supérieur au niveau 40 étaient
+hors périmètre de cette refonte. Le [nommage V1](../architecture/item-naming.md)
+est désormais intégré dans un lot séparé ; le contenu supérieur au niveau 40
+reste différé, sans changement des extensions prévues ici.
 
 ## Décisions produit figées
 

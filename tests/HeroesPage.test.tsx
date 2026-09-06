@@ -1,5 +1,4 @@
-import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import HeroesPage from "../src/components/heroes/HeroesPage";
 import { makeHero, makeResources } from "./fixtures/game";
@@ -121,67 +120,8 @@ describe("HeroesPage", () => {
     expect(onUnequipItem).toHaveBeenCalledWith(hero.id, "mainHand");
   });
 
-  it("equips the selected stored instance", () => {
-    const hero = makeHero({ equipment: {} });
-    const onEquipItem = vi.fn();
-    render(<HeroesPage
-      heroes={[hero]}
-      resources={makeResources()}
-      buildings={{ guilde: 1 }}
-      onDismissHero={vi.fn()}
-      onToggleHeroActive={vi.fn()}
-      onRecruitHero={vi.fn()}
-      onEquipItem={onEquipItem}
-      onUnequipItem={vi.fn()}
-      storedItems={[
-        { instanceId: "item-first", itemId: "starter_sword", itemLevel: 1, powerModelId: "legacy-fixed-v1" as const, rarity: "common" },
-        { instanceId: "item-second", itemId: "starter_sword", itemLevel: 1, powerModelId: "legacy-fixed-v1" as const, rarity: "common" },
-      ]}
-      {...navigationProps}
-    />);
-
-    fireEvent.click(screen.getAllByRole("button", { name: /^Équiper$/i })[0]);
-    fireEvent.click(within(screen.getByRole("dialog")).getAllByRole("button", { name: /^Équiper$/i })[1]);
-    expect(onEquipItem).toHaveBeenCalledOnce();
-    expect(onEquipItem).toHaveBeenCalledWith(hero.id, "item-second");
-  });
-
-  it("shows and submits an atomic occupied-slot replacement", () => {
-    const hero = makeHero({
-      equipment: {
-        mainHand: { instanceId: "old-sword", itemId: "starter_sword", itemLevel: 1, powerModelId: "legacy-fixed-v1" as const, rarity: "common" },
-        offHand: null,
-        armor: null,
-        accessory: null,
-      },
-    });
-    const onEquipItem = vi.fn();
-    render(<HeroesPage
-      heroes={[hero]}
-      resources={makeResources()}
-      buildings={{ guilde: 1 }}
-      onDismissHero={vi.fn()}
-      onToggleHeroActive={vi.fn()}
-      onRecruitHero={vi.fn()}
-      onEquipItem={onEquipItem}
-      onUnequipItem={vi.fn()}
-      storedItems={[{ instanceId: "new-dagger", itemId: "quick_dagger", itemLevel: 1, powerModelId: "legacy-fixed-v1" as const, rarity: "common" }]}
-      {...navigationProps}
-    />);
-
-    const changeButton = screen.getByRole("button", { name: "Changer" });
-    const removeButton = within(screen.getByTestId("hero-equipment-panel")).getByRole("button", { name: "Retirer" });
-    expect(changeButton.compareDocumentPosition(removeButton) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(changeButton.parentElement).toHaveClass("self-stretch", "justify-center");
-    fireEvent.click(changeButton);
-    expect(screen.getByText("Retour au Coffre")).toBeInTheDocument();
-    expect(screen.getAllByText("Épée de départ").length).toBeGreaterThanOrEqual(2);
-    fireEvent.click(screen.getByRole("button", { name: "Remplacer" }));
-    expect(onEquipItem).toHaveBeenCalledWith(hero.id, "new-dagger");
-  });
-
-  it("closes the equipment dialog with Escape and restores the trigger focus", async () => {
-    const user = userEvent.setup();
+  it("routes equipment management to the Storage page", () => {
+    const onGoToTab = vi.fn();
     render(<HeroesPage
       heroes={[makeHero({ equipment: {} })]}
       resources={makeResources()}
@@ -189,39 +129,16 @@ describe("HeroesPage", () => {
       onDismissHero={vi.fn()}
       onToggleHeroActive={vi.fn()}
       onRecruitHero={vi.fn()}
-      onEquipItem={vi.fn()}
-      storedItems={[]}
+      onUnequipItem={vi.fn()}
+      onGoToTab={onGoToTab}
+      storedItems={[{ instanceId: "stored-sword", itemId: "starter_sword", itemLevel: 1, powerModelId: "legacy-fixed-v1" as const, rarity: "common" }]}
       {...navigationProps}
     />);
 
-    const trigger = screen.getAllByRole("button", { name: "Équiper" })[0];
-    fireEvent.click(trigger);
-    const closeButton = screen.getByRole("button", { name: "Fermer la sélection d’équipement" });
-    expect(closeButton).toHaveFocus();
-    await user.keyboard("{Shift>}{Tab}{/Shift}");
-    expect(closeButton).toHaveFocus();
-    await user.keyboard("{Escape}");
-    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-    await waitFor(() => expect(trigger).toHaveFocus());
-  });
-
-  it("preserves dialog focus across an unrelated page rerender", () => {
-    const hero = makeHero({ equipment: {} });
-    const baseProps = {
-      heroes: [hero],
-      buildings: { guilde: 1 },
-      onDismissHero: vi.fn(),
-      onToggleHeroActive: vi.fn(),
-      onRecruitHero: vi.fn(),
-      onEquipItem: vi.fn(),
-      storedItems: [{ instanceId: "stored-sword", itemId: "starter_sword", itemLevel: 1, powerModelId: "legacy-fixed-v1" as const, rarity: "common" as const }],
-      ...navigationProps,
-    };
-    const { rerender } = render(<HeroesPage {...baseProps} resources={makeResources({ gold: 100 })} />);
-    fireEvent.click(screen.getAllByRole("button", { name: "Équiper" })[0]);
-    const candidate = within(screen.getByRole("dialog")).getByRole("button", { name: "Équiper" });
-    candidate.focus();
-    rerender(<HeroesPage {...baseProps} resources={makeResources({ gold: 101 })} />);
-    expect(candidate).toHaveFocus();
+    expect(screen.queryByRole("button", { name: "Équiper" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Changer" })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Gérer dans le Coffre" }));
+    expect(onGoToTab).toHaveBeenCalledOnce();
+    expect(onGoToTab).toHaveBeenCalledWith("storage");
   });
 });

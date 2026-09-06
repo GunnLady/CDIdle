@@ -14,6 +14,7 @@ import type { CanonicalDungeonLoot, CanonicalGameState } from "../contracts/auth
 import { BOSSES_LIBRARY, ITEM_LIBRARY, MONSTERS_LIBRARY, getSkillById } from "../data/game-data.ts";
 import { BOSS_LOOT_TABLES_REGISTRY } from "./items/boss-loot-tables.ts";
 import { rollBlueprintReward } from "./items/blueprint-rewards.ts";
+import { nameItem } from "./items/naming.ts";
 import {
   getChestLootBand,
   resolveEligibleCatalogDrop,
@@ -43,6 +44,7 @@ import {
   type DungeonChallengeDifficultyResolver,
 } from "./dungeon-challenges.ts";
 import { CANONICAL_HERO_STAT_PRESENTATION } from "./hero-stats.ts";
+import { createDungeonItemRewardRng, shouldAwardDungeonItem } from "./dungeon-loot-policy.ts";
 import type { Rng } from "./random.ts";
 import {
   applyHeroProgression,
@@ -144,6 +146,34 @@ function rollGeneratedItemLevel(
   const maximum = Math.min(item.levelRange.max, Math.floor(levelMax), 40);
   if (maximum < minimum) throw new Error(`EMPTY_ITEM_LEVEL_RANGE:${minimum}:${maximum}`);
   return minimum === maximum ? minimum : minimum + rng.nextInt(maximum - minimum + 1);
+}
+
+function rollCatalogItemReward(
+  floor: number,
+  encounterId: string,
+  lootIndex: number,
+  provenance: "boss" | "chest",
+  rng: Rng,
+) {
+  const band = getChestLootBand(floor);
+  const rarity = rollWeightedRarity(band.weights, rng.next());
+  const drop = resolveEligibleCatalogDrop({
+    rarity,
+    levelMin: band.levelMin,
+    levelMax: band.levelMax,
+    provenance,
+  });
+  if (!drop) throw new Error(`EMPTY_DUNGEON_ITEM_POOL:${floor}:${rarity}:${provenance}`);
+  const item = drop.candidates[rng.nextInt(drop.candidates.length)];
+  const itemLevel = rollGeneratedItemLevel(item, band.levelMin, band.levelMax, rng);
+  const instance = {
+    instanceId: `item:dungeon:${encounterId}:loot:${lootIndex}`,
+    itemId: item.id,
+    itemLevel,
+    powerModelId: item.powerModelId,
+    rarity: drop.rarity,
+  };
+  return { item, instance, itemName: nameItem(item, instance).name };
 }
 
 function calculatePolicyPartyXp(
@@ -361,7 +391,7 @@ function scaleMonster(
   room: number,
   rng: Rng,
   xpRewardPolicy: DungeonXpRewardPolicy,
-): Monster {
+): { monster: Monster; itemRewardEntropy: number } {
   const bossRoom = isDungeonFinalRoom(floor, room);
   const majorBossIndex = bossRoom ? getMajorBossIndex(floor) : null;
   const majorBoss = majorBossIndex !== null;
@@ -409,11 +439,11 @@ function scaleMonster(
     : Math.max(1, Math.round(budget.gold * archetypeFactor("goldYield") * (bossRoom ? 2.5 : 1)));
 
   // The characterized 640f89f behavior consumed a gameplay RNG draw for this visual ID.
-  const id = rng.next().toString();
-  return {
+  const itemRewardEntropy = rng.next();
+  const monster = {
     ...selected,
     ...(bossRoom && !majorBoss ? { name: `${selected.name} d'élite`, isBoss: true } : {}),
-    id,
+    id: itemRewardEntropy.toString(),
     hp: maxHp,
     maxHp,
     atk: attack,
@@ -423,6 +453,7 @@ function scaleMonster(
     xpYield,
     goldYield,
   };
+  return { monster, itemRewardEntropy };
 }
 
 function resolveFight(
@@ -435,7 +466,8 @@ function resolveFight(
   xpRewardPolicy: DungeonXpRewardPolicy,
 ): AuthoritativeDungeonResolution {
   let heroes = clone(source.heroes ?? []);
-  let monster = scaleMonster(floor, room, rng, xpRewardPolicy);
+  const scaledMonster = scaleMonster(floor, room, rng, xpRewardPolicy);
+  let monster = scaledMonster.monster;
   const resources: Resources = {
     gold: 0,
     food: 0,
@@ -841,8 +873,9 @@ function resolveFight(
         };
         addItemToStorage(storedItems, itemInstance);
         loot.push({ type: 'item', ...itemInstance, count: 1 });
-        log("reward.item", `${item.name} [${drop.rarity}] obtenu.`, "loot", {
-          ...itemInstance, itemName: item.name, count: 1,
+        const itemName = nameItem(item, itemInstance).name;
+        log("reward.item", `${itemName} [${drop.rarity}] obtenu.`, "loot", {
+          ...itemInstance, itemName, count: 1,
         });
       }
       for (const reward of bossTable.blueprints) {
@@ -873,6 +906,32 @@ function resolveFight(
       );
     } else {
       log("reward.material.none", "Aucun materiau exploitable.", "info");
+    }
+
+    const itemRewardSource = finalRoom ? "final-fight" : "ordinary-fight";
+    const itemRewardRng = createDungeonItemRewardRng(scaledMonster.itemRewardEntropy, floor, room);
+    const existingItemCount = loot.filter((entry) => entry.type === "item").length;
+    const itemRoll = itemRewardSource === "ordinary-fight" ? itemRewardRng.next() : undefined;
+    if (shouldAwardDungeonItem({
+      source: itemRewardSource,
+      existingItemCount,
+      heroes,
+      roll: itemRoll,
+    })) {
+      const reward = rollCatalogItemReward(
+        floor,
+        encounterId,
+        loot.length,
+        finalRoom ? "boss" : "chest",
+        itemRewardRng,
+      );
+      addItemToStorage(storedItems, reward.instance);
+      loot.push({ type: "item", ...reward.instance, count: 1 });
+      log("reward.item", `${reward.itemName} [${reward.instance.rarity}] obtenu.`, "loot", {
+        ...reward.instance,
+        itemName: reward.itemName,
+        count: 1,
+      });
     }
 
     const eligibleCount = heroes.filter((hero) => hero.isActive && hero.currentHp > 0).length;
@@ -1011,7 +1070,8 @@ function resolveNonFight(
       "Coffre déverrouillé : l'escouade examine son contenu.",
       "victory",
     );
-    if (rng.next() < 0.5) {
+    const treasureRewardRoll = rng.next();
+    if (treasureRewardRoll < 0.5) {
       goldReward = applyLootModifiers(
         "goldGain",
         getDungeonGoldReward(floor, "treasure"),
@@ -1020,31 +1080,12 @@ function resolveNonFight(
       resources.gold = Number(resources.gold ?? 0) + goldReward;
       log("reward.gold", `+${goldReward} or.`, "loot", { gold: goldReward });
     } else if (ITEM_LIBRARY.length > 0) {
-      const band = getChestLootBand(floor);
-      const rarity = rollWeightedRarity(band.weights, rng.next());
-      const drop = resolveEligibleCatalogDrop({
-        rarity,
-        levelMin: band.levelMin,
-        levelMax: band.levelMax,
-        provenance: "chest",
-      });
-      if (!drop) throw new Error(`EMPTY_CHEST_ITEM_POOL:${floor}:${rarity}`);
-      const item = drop.candidates[rng.nextInt(drop.candidates.length)];
-      const effectiveRarity = drop.rarity;
-      const itemLevel = rollGeneratedItemLevel(item, band.levelMin, band.levelMax, rng);
-      const instanceId = `item:dungeon:${encounterId}:loot:${loot.length}`;
-      const itemInstance = {
-        instanceId,
-        itemId: item.id,
-        itemLevel,
-        powerModelId: item.powerModelId,
-        rarity: effectiveRarity,
-      };
-      addItemToStorage(storedItems, itemInstance);
-      loot.push({ type: 'item', ...itemInstance, count: 1 });
-      log("reward.item", `${item.name} [${effectiveRarity}] obtenu.`, "loot", {
-        ...itemInstance,
-        itemName: item.name,
+      const reward = rollCatalogItemReward(floor, encounterId, loot.length, "chest", rng);
+      addItemToStorage(storedItems, reward.instance);
+      loot.push({ type: "item", ...reward.instance, count: 1 });
+      log("reward.item", `${reward.itemName} [${reward.instance.rarity}] obtenu.`, "loot", {
+        ...reward.instance,
+        itemName: reward.itemName,
         count: 1,
       });
     } else {
@@ -1072,6 +1113,21 @@ function resolveNonFight(
       log("reward.blueprint", `Plan de forge obtenu : ${blueprint.itemName}.`, "loot", {
         itemId: blueprint.itemId,
         itemName: blueprint.itemName,
+      });
+    }
+    if (shouldAwardDungeonItem({
+      source: "treasure",
+      existingItemCount: loot.filter((entry) => entry.type === "item").length,
+      heroes,
+    })) {
+      const itemRewardRng = createDungeonItemRewardRng(treasureRewardRoll, floor, room);
+      const reward = rollCatalogItemReward(floor, encounterId, loot.length, "chest", itemRewardRng);
+      addItemToStorage(storedItems, reward.instance);
+      loot.push({ type: "item", ...reward.instance, count: 1 });
+      log("reward.item", `${reward.itemName} [${reward.instance.rarity}] obtenu.`, "loot", {
+        ...reward.instance,
+        itemName: reward.itemName,
+        count: 1,
       });
     }
     const totalXp = getPolicyXpPool(xpRewardPolicy, "treasure", floor);

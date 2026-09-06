@@ -102,6 +102,32 @@ describe("authoritative dungeon golden behavior characterized from 640f89f", () 
     });
   });
 
+  it("can award the banded idle item on an ordinary victory", () => {
+    const tape = tapeRng([
+      0.10, // encounter -> fight
+      0.00, // first monster
+      0.04, // visual id and entropy for the separate item-reward stream
+      0.99, // residual multi-strike check
+      0.99, // critical check
+      0.99, // material drop check -> none
+    ]);
+    const result = resolveAuthoritativeDungeonEncounter(state(), "idle-item-fight", tape.rng);
+
+    expect(tape.draws()).toBe(6);
+    expect(result.encounter.rewards.loot).toContainEqual(expect.objectContaining({
+      type: "item",
+      instanceId: "item:dungeon:idle-item-fight:loot:0",
+      itemLevel: 1,
+      powerModelId: "level-bands-v1",
+      count: 1,
+    }));
+    expect(result.state.storedItems).toHaveLength(1);
+    expect(result.encounter.transcript).toContainEqual(expect.objectContaining({
+      type: "reward.item",
+      itemName: expect.any(String),
+    }));
+  });
+
   it("forces a major boss at floor 10 without encounter or monster selection rolls", () => {
     const tape = tapeRng([
       0.50, // legacy visual monster id roll retained for deterministic parity
@@ -159,6 +185,8 @@ describe("authoritative dungeon golden behavior characterized from 640f89f", () 
     expect(result.encounter.transcript).toContainEqual(expect.objectContaining({
       type: "reward.xp", source: "major_boss", floor: 10, xp: 193,
     }));
+    expect(result.encounter.rewards.loot.filter((entry) => entry.type === "item")).toHaveLength(1);
+    expect(result.state.storedItems).toHaveLength(1);
   });
 
   it("awards the floor-clear bonus only on the first completion", () => {
@@ -224,12 +252,22 @@ describe("authoritative dungeon golden behavior characterized from 640f89f", () 
       enemy: null,
       rewards: {
         gold: 8,
-        loot: [{
-          type: "material",
-          materialId: "refined_metal",
-          rarity: "uncommon",
-          count: 1,
-        }],
+        loot: [
+          {
+            type: "material",
+            materialId: "refined_metal",
+            rarity: "uncommon",
+            count: 1,
+          },
+          {
+            type: "item",
+            instanceId: "item:dungeon:golden-treasure:loot:1",
+            itemLevel: 1,
+            powerModelId: "level-bands-v1",
+            rarity: "common",
+            count: 1,
+          },
+        ],
       },
     });
     expect(result.encounter.transcript.map((event) => event.type)).toEqual([
@@ -238,6 +276,7 @@ describe("authoritative dungeon golden behavior characterized from 640f89f", () 
       "treasure.opened",
       "reward.gold",
       "reward.material",
+      "reward.item",
       "reward.xp",
     ]);
     expect(result.encounter.transcript).toContainEqual(expect.objectContaining({

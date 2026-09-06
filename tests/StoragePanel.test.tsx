@@ -113,11 +113,18 @@ describe("StoragePanel modifier stacks", () => {
 
     const recycleButtons = screen.getAllByRole("button", { name: /recycler/i });
     expect(recycleButtons).toHaveLength(2);
+    const recycledCard = screen.getByTestId("storage-item-item-critical");
     fireEvent.click(recycleButtons[1]);
-    fireEvent.click(screen.getByRole("button", { name: "Annuler" }));
+    expect(within(recycledCard).queryByRole("button", { name: "Équiper" })).not.toBeInTheDocument();
+    expect(within(recycledCard).queryByRole("button", { name: "Recycler" })).not.toBeInTheDocument();
+    expect(within(recycledCard).getAllByRole("button", { name: /^(Oui|Non)$/ })).toHaveLength(2);
+    expect(within(recycledCard).getByRole("button", { name: "Oui" })).toHaveAttribute("data-button-variant", "primary");
+    expect(within(recycledCard).getByRole("button", { name: "Non" })).toHaveAttribute("data-button-variant", "danger");
+    fireEvent.click(within(recycledCard).getByRole("button", { name: "Non" }));
     expect(onScrapItem).not.toHaveBeenCalled();
     fireEvent.click(screen.getAllByRole("button", { name: /recycler/i })[1]);
-    fireEvent.click(screen.getByRole("button", { name: "Confirmer" }));
+    expect(within(recycledCard).queryByRole("button", { name: "Équiper" })).not.toBeInTheDocument();
+    fireEvent.click(within(recycledCard).getByRole("button", { name: "Oui" }));
     expect(onScrapItem).toHaveBeenCalledOnce();
     expect(onScrapItem).toHaveBeenCalledWith("item-critical");
   });

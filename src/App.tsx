@@ -627,9 +627,6 @@ export default function App() {
                 onUnequipItem={(heroId, slot) => {
                   enqueueOptimisticCommand(`equipment:${heroId}:${slot}`, { type: "hero.unequip", heroId, slot });
                 }}
-                onEquipItem={(heroId, instanceId) => {
-                  enqueueOptimisticCommand(`equipment:${heroId}`, { type: "hero.equip", heroId, instanceId });
-                }}
                 storedItems={dungeon.storedItems}
                 onGoToTab={setActiveTab}
               />
@@ -694,10 +691,10 @@ export default function App() {
               <StoragePanel
                 storedItems={dungeon.storedItems}
                 heroes={dungeon.heroes}
+                isForgeUnlocked={(town.buildings["forge"] || 0) >= 1}
                 onEquipItem={(heroId, instanceId) => {
                   enqueueOptimisticCommand(`equipment:${heroId}`, { type: "hero.equip", heroId, instanceId });
                 }}
-                isForgeUnlocked={(town.buildings["forge"] || 0) >= 1}
                 onScrapItem={(instanceId) => { void dispatchAuthoritativeCommand({ type: "inventory.recycle", instanceId }); }}
                 forgeMaterials={dungeon.forgeMaterials}
                 canMutate={canMutate}

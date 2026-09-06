@@ -1,5 +1,6 @@
 import type { ClassType, EquippedItemRef, Hero, StoredItemInstance } from "../contracts/game.ts";
 import { getItemById } from "./items/items.ts";
+import { nameItem } from "./items/naming.ts";
 import {
   getTier1ClassItemDefinition,
   rollTier1ClassEquipment,
@@ -109,8 +110,10 @@ export function describeTier1EquipmentReward(reward: ClassEquipmentReward): {
   weaponName: string;
   accessoryName: string;
 } {
-  const weaponName = getItemById(reward.weapon.itemId)?.name;
-  const accessoryName = getItemById(reward.accessory.itemId)?.name;
-  if (!weaponName || !accessoryName) throw new Error("INVALID_TIER1_REWARD_CATALOG");
+  const weapon = getItemById(reward.weapon.itemId);
+  const accessory = getItemById(reward.accessory.itemId);
+  if (!weapon || !accessory) throw new Error("INVALID_TIER1_REWARD_CATALOG");
+  const weaponName = nameItem(weapon, reward.weapon).name;
+  const accessoryName = nameItem(accessory, reward.accessory).name;
   return { weaponName, accessoryName };
 }

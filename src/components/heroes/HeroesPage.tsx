@@ -19,7 +19,6 @@ export interface HeroesPageProps {
   onToggleHeroActive: (heroId: string) => void;
   onRecruitHero: () => void;
   onUnequipItem?: (heroId: string, slot: keyof HeroEquipment) => void;
-  onEquipItem?: (heroId: string, instanceId: string) => void;
   onGoToTab?: (tab: ActiveTab) => void;
 }
 
@@ -46,7 +45,7 @@ export default function HeroesPage(props: HeroesPageProps) {
         <div className="grid min-w-0 items-stretch gap-5 xl:min-h-full xl:grid-cols-[minmax(20rem,1fr)_minmax(22rem,1.1fr)]">
           <SelectedHeroPanel view={selectedHeroView} canMutate={props.canMutate} onDismissHero={props.onDismissHero} />
           <div data-testid="heroes-right-column" className="space-y-4 xl:flex xl:min-h-0 xl:flex-col xl:space-y-0 xl:gap-4">
-            <HeroEquipmentPanel view={equipmentView} canMutate={props.canMutate} onUnequipItem={props.onUnequipItem} onEquipItem={props.onEquipItem} onOpenStorage={() => props.onGoToTab?.("storage")} />
+            <HeroEquipmentPanel view={equipmentView} canMutate={props.canMutate} onUnequipItem={props.onUnequipItem} onOpenStorage={() => props.onGoToTab?.("storage")} />
             <HeroSkillsPanel view={skillsView} />
           </div>
         </div>

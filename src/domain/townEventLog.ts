@@ -68,7 +68,8 @@ export function formatCanonicalTownEvent(event: Record<string, unknown>): TownEv
     const item = getItemById(String(event.itemId));
     const modifier = typeof event.modifier === "string" ? `, bonus ${MODIFIER_LABELS[event.modifier] ?? event.modifier}` : "";
     const rarity = RARITY_LABELS[String(event.rarity)] ?? event.rarity;
-    return { message: `🔨 Forge : ${item?.name ?? event.itemId} obtenu en qualité ${rarity}${modifier}.`, type: "victory" };
+    const itemName = typeof event.itemName === 'string' && event.itemName ? event.itemName : item?.name ?? event.itemId;
+    return { message: `🔨 Forge : ${itemName} obtenu en qualité ${rarity}${modifier}.`, type: "victory" };
   }
   if (event.type === "forge.preview_cancelled") {
     return { message: "🔥 Forge annulée : les matériaux de base restent consumés.", type: "info" };
@@ -79,7 +80,8 @@ export function formatCanonicalTownEvent(event: Record<string, unknown>): TownEv
       return `${entry.count} ${MATERIAL_LABELS[String(entry.materialId)] ?? entry.materialId}`;
     }).join(", ");
     const item = getItemById(String(event.itemId));
-    return { message: `♻️ ${item?.name ?? event.itemId} recyclé : ${rewards}.`, type: "loot" };
+    const itemName = typeof event.itemName === 'string' && event.itemName ? event.itemName : item?.name ?? event.itemId;
+    return { message: `♻️ ${itemName} recyclé : ${rewards}.`, type: "loot" };
   }
   return null;
 }

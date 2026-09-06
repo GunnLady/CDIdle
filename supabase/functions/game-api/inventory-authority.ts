@@ -1,6 +1,7 @@
 import {
   calculateAuthoritativeHeroStats,
 } from "./novice-stats-authority.ts";
+import { nameItem } from "../../../shared/domain/items/naming.ts";
 import {
   getItemById,
   getItemHandedness,
@@ -139,7 +140,7 @@ export function applyInventoryCommand(current: CanonicalGameState, command: Reco
       }
       storedItems.push(displaced);
       equipment[definition.slot] = undefined;
-      events.push({ type: "hero.unequipped", heroId: typed.heroId, instanceId: displaced.instanceId, itemId: displaced.itemId, slot: definition.slot });
+      events.push({ type: "hero.unequipped", heroId: typed.heroId, instanceId: displaced.instanceId, itemId: displaced.itemId, itemName: nameItem(getItemById(displaced.itemId), displaced).name, slot: definition.slot });
     }
     if (definition.slot === "mainHand" && definition.twoHanded && equipment.offHand) {
       if (storedItems.some((entry) => entry.instanceId === equipment.offHand?.instanceId)) {
@@ -148,11 +149,11 @@ export function applyInventoryCommand(current: CanonicalGameState, command: Reco
       const displacedOffHand = equipment.offHand;
       storedItems.push(equipment.offHand);
       equipment.offHand = undefined;
-      events.push({ type: "hero.unequipped", heroId: typed.heroId, instanceId: displacedOffHand.instanceId, itemId: displacedOffHand.itemId, slot: "offHand" });
+      events.push({ type: "hero.unequipped", heroId: typed.heroId, instanceId: displacedOffHand.instanceId, itemId: displacedOffHand.itemId, itemName: nameItem(getItemById(displacedOffHand.itemId), displacedOffHand).name, slot: "offHand" });
     }
     storedItems.splice(index, 1);
     equipment[definition.slot] = instance;
-    events.push({ type: "hero.equipped", heroId: typed.heroId, instanceId: instance.instanceId, itemId: instance.itemId, slot: definition.slot });
+    events.push({ type: "hero.equipped", heroId: typed.heroId, instanceId: instance.instanceId, itemId: instance.itemId, itemName: nameItem(getItemById(instance.itemId), instance).name, slot: definition.slot });
     return { state: { ...current, heroes: heroes.map((entry) => entry.id === typed.heroId ? withEquipment(entry, equipment) : entry), storedItems }, events };
   }
 
@@ -167,7 +168,7 @@ export function applyInventoryCommand(current: CanonicalGameState, command: Reco
     }
     storedItems.push(equipped);
     equipment[typed.slot] = undefined;
-    return { state: { ...current, heroes: heroes.map((entry) => entry.id === typed.heroId ? withEquipment(entry, equipment) : entry), storedItems }, events: [{ type: "hero.unequipped", heroId: typed.heroId, instanceId: equipped.instanceId, itemId: equipped.itemId, slot: typed.slot }] };
+    return { state: { ...current, heroes: heroes.map((entry) => entry.id === typed.heroId ? withEquipment(entry, equipment) : entry), storedItems }, events: [{ type: "hero.unequipped", heroId: typed.heroId, instanceId: equipped.instanceId, itemId: equipped.itemId, itemName: nameItem(getItemById(equipped.itemId), equipped).name, slot: typed.slot }] };
   }
 
   throw new InventoryCommandError("INVALID_COMMAND", "unsupported inventory command");

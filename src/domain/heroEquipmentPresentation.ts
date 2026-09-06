@@ -1,6 +1,7 @@
-import { getItemHandedness, getItemSlot } from "../../shared/domain/items/items";
+import { getItemById, getItemHandedness, getItemSlot } from "../../shared/domain/items/items";
+import { resolveNamedItemInstance, type NamingInstance } from "../../shared/domain/items/naming";
 import type { Hero, HeroEquipment, ItemInfo, Modifier, Rarity, StoredItemInstance } from "../types";
-import { equipItem, isMainHandTwoHanded, resolveEquippedItem, resolveWeaponDamageTypes } from "../utils/gameCalculations";
+import { equipItem, isMainHandTwoHanded, resolveWeaponDamageTypes } from "../utils/gameCalculations";
 import { formatWeaponAttackSpeed, getWeaponAttackProfileLabel, getWeaponScalingLabel } from "./weaponPresentation";
 
 export type EquipmentSlot = keyof HeroEquipment;
@@ -130,6 +131,11 @@ export function createEquipmentItemView(item: ItemInfo, rarity?: Rarity): Equipm
 
 export function resolveStoredEquipmentItem(instance: StoredItemInstance): ItemInfo | null {
   return resolveEquippedItem(instance);
+}
+
+function resolveEquippedItem(instance: NamingInstance | null | undefined): ItemInfo | null {
+  const base = instance ? getItemById(instance.itemId) : undefined;
+  return base && instance ? resolveNamedItemInstance(base, instance) : null;
 }
 
 function displacedItemNames(hero: Hero, slot: EquipmentSlot, candidate: ItemInfo): string[] {

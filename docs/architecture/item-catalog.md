@@ -24,10 +24,11 @@ modèle `legacy-fixed-v1` conserve exactement la puissance et le niveau requis
 historiques. Le modèle `level-bands-v1` résout une base entre les niveaux 1 et
 40, puis applique la rareté en dernier.
 
-Le futur moteur de nommage est explicitement différé. Il devra produire le nom
-d'affichage depuis la base, le niveau, la rareté et les affixes sans modifier
-`itemId`, `instanceId`, la puissance ni les règles de loot. Sa clôture exigera
-des noms stables au replay, localisés et distincts des identifiants techniques.
+Le [moteur de nommage V1](item-naming.md) produit désormais le nom d’affichage
+depuis l’instance et ses propriétés résolues, sans modifier `itemId`,
+`instanceId`, les sauvegardes, la puissance ni les règles de loot. Les bases
+historiques gardent leur nom ; les instances évolutives déjà possédées utilisent
+le nom dérivé. Recettes et plans conservent leurs noms de catalogue.
 
 ## Courbe de niveau et rareté
 
@@ -77,7 +78,24 @@ et plans filtrent sur la provenance, le statut actif, la plage
 de niveau et la rareté minimale. Les plans utilisent aussi une politique
 `none`, `initial` ou `random-drop`, avec sources, bornes d’étage, poids et boss
 optionnels indépendants de `levelRange`. Chaque choix et chaque niveau aléatoire
-consomment le RNG canonique et sont persistés dans la transition autoritaire.
+des lignes natives consomment le RNG canonique et sont persistés dans la
+transition autoritaire. Les récompenses idle supplémentaires utilisent le
+sous-flux décrit ci-dessous.
+
+La cadence idle des objets est définie dans
+`shared/domain/dungeon-loot-policy.ts`. Un coffre ou une salle finale fournit
+un objet lorsqu'aucune autre ligne d'objet n'a réussi. Une victoire de combat
+ordinaire a une chance de 5 % dans la première tranche de héros, puis gagne un
+point par tranche de cinq niveaux jusqu'à 12 %. La tranche est celle du héros
+le moins avancé du groupe ; le nombre d'objets déjà reçu dans un étage ou un
+passage n'intervient jamais.
+
+Les objets supplémentaires utilisent les mêmes fenêtres de niveau, poids de
+rareté et filtres de provenance que le catalogue. Leur sous-flux RNG est dérivé
+de l'entropie déjà consommée pour l'encounter ainsi que de l'étage et de la
+salle. Il est donc déterministe au replay sans décaler les tirages de combat,
+de matériaux, de plans ou de progression. Le résolveur autoritaire reste seul
+responsable du stockage, de l'identité d'instance et du transcript.
 
 ## Équipement, recrutement et rank-up
 

@@ -342,6 +342,7 @@ describe("authoritative novice forge", () => {
       type: "inventory.recycled",
       instanceId: "item-physical",
       itemId: "starter_sword",
+      itemName: "Épée de départ",
       itemLevel: 1,
       rarity: "uncommon",
       rewards: [

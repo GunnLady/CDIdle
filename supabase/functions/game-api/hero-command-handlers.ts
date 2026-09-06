@@ -3,6 +3,7 @@ import type {
   CanonicalStoredItemInstance as StoredItemInstance,
 } from "../../../shared/contracts/authoritative.ts";
 import { applyClassTransition } from "../../../shared/domain/class-transition.ts";
+import { describeTier1EquipmentReward } from "../../../shared/domain/tier1-class-equipment-reward.ts";
 import type { CanonicalHeroClass as ClassType } from "../../../shared/domain/hero-classes.ts";
 import {
   ACTIVE_HERO_LIMIT,
@@ -65,6 +66,7 @@ export const chooseHeroVocation: TownCommandHandler<"hero.choose_vocation"> = (c
       previousTier: pending.fromTier,
       classTier: pending.toTier,
       equipmentReward: applied.equipmentReward,
+      ...(applied.equipmentReward ? describeTier1EquipmentReward(applied.equipmentReward) : {}),
     }],
   });
 };

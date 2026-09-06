@@ -1,6 +1,7 @@
 import type { CanonicalRng } from "./authoritative-rng.ts";
 import { resolveAuthoritativeNoviceItemModifiers } from "./novice-stats-authority.ts";
 import { ITEM_LIBRARY, getItemById, rarityRank } from "../../../shared/domain/items/items.ts";
+import { nameItem } from "../../../shared/domain/items/naming.ts";
 import type {
   CanonicalForgeMaterialStack,
   CanonicalGameState,
@@ -281,10 +282,12 @@ export function applyForgeCommand(
     if ([...items, ...equippedInstances].some((entry) => entry.instanceId === instanceId)) {
       throw new ForgeCommandError("INVALID_GAME_STATE", "forged item instance already exists");
     }
-    items.push({ instanceId, itemId: recipe.itemId, itemLevel, powerModelId, rarity, modifiers });
+    const instance = { instanceId, itemId: recipe.itemId, itemLevel, powerModelId, rarity, modifiers };
+    items.push(instance);
+    const itemName = nameItem(itemDefinition, instance).name;
     return {
       state: { ...current, storedItems: items, forgeMaterials: nextMaterials, pendingForge: null },
-      events: [{ type: 'forge.finalized', previewId: typed.previewId, instanceId, itemId: recipe.itemId, itemLevel, powerModelId, rarity, modifier: typed.chosenModifierStat ?? null }],
+      events: [{ type: 'forge.finalized', previewId: typed.previewId, instanceId, itemId: recipe.itemId, itemName, itemLevel, powerModelId, rarity, modifier: typed.chosenModifierStat ?? null }],
     };
   }
 
@@ -302,7 +305,7 @@ export function applyForgeCommand(
     for (const reward of rewards) addMaterial(nextMaterials, reward);
     return {
       state: { ...current, storedItems: items, forgeMaterials: nextMaterials },
-      events: [{ type: 'inventory.recycled', instanceId: instance.instanceId, itemId: instance.itemId, itemLevel, rarity, rewards }],
+      events: [{ type: 'inventory.recycled', instanceId: instance.instanceId, itemId: instance.itemId, itemName: nameItem(definition, instance).name, itemLevel, rarity, rewards }],
     };
   }
 

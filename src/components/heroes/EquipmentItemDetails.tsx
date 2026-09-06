@@ -4,7 +4,7 @@ const rarityClass = (rarity?: string) => ({ legendary: "text-amber-400", epic: "
 
 export default function EquipmentItemDetails({ item, showDescription = false, levelBlocked = false }: { item: EquipmentItemView; showDescription?: boolean; levelBlocked?: boolean }) {
   return <>
-    <span className="flex items-baseline justify-between gap-3"><strong className="font-serif text-[13px] text-[#eadabc]">{item.name}</strong>{item.rarity && <span className={`shrink-0 text-[10px] uppercase ${rarityClass(item.rarity)}`}>{item.rarityLabel}</span>}</span>
+    <span className="flex items-baseline justify-between gap-3"><strong className="min-w-0 break-words font-serif text-[13px] text-[#eadabc]">{item.name}</strong>{item.rarity && <span className={`shrink-0 text-[10px] uppercase ${rarityClass(item.rarity)}`}>{item.rarityLabel}</span>}</span>
     {showDescription && item.description && <p className="mt-1 text-[11px] leading-relaxed text-[#8f7a67]">{item.description}</p>}
     {item.facts.length > 0 && <dl className="mt-2 grid gap-1 text-[10px]">{item.facts.map((fact) => {
       const blockedLevel = levelBlocked && fact.id === "required-level";

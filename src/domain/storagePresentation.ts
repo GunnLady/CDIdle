@@ -144,6 +144,7 @@ export function filterAndSortStorageItems(items: ResolvedStorageItem[], filters:
   const filtered = items.filter(({ item, rarity }) => {
     const matchesSearch = !search
       || item.name.toLocaleLowerCase("fr").includes(search)
+      || getItemById(item.id)?.name.toLocaleLowerCase("fr").includes(search)
       || item.description?.toLocaleLowerCase("fr").includes(search);
     return Boolean(matchesSearch)
       && (filters.rarity === "all" || rarity === filters.rarity)

@@ -40,3 +40,57 @@ Quand une action est bloquée, le compte rendu doit distinguer :
 Un `EPERM` sur `node_modules/.vite-temp` ne suffit pas à conclure à un défaut
 du projet : vérifier les processus Node/Vite et retester dans le PowerShell
 utilisateur.
+
+## Incident du sandbox Windows : exécution du harness
+
+Le 5 septembre 2026, les commandes normales échouaient avant même le
+démarrage du shell : `helper_unknown_error: setup refresh had errors`.
+Le journal `C:\Users\mathr\.codex\.sandbox\sandbox.2026-09-05.log`
+précise un refus Windows (`SetNamedSecurityInfoW`, code 5) lors de
+l'application des ACL de protection sur `D:\codex\CDIdle\.git` et
+`D:\codex\CDIdle\.codex`. Cela identifie l'opération refusée, pas
+l'origine complète du problème de droits.
+
+L'exécution avec élévation ciblée a de nouveau fonctionné dans cette session.
+Preuves : `node scripts/test-loot-town-policy.mjs` réussi, contrôle syntaxique
+du harness réussi et quatre campagnes courtes terminées (deux seeds appariées,
+deux profils, deux workers), sans écart de conservation de l'or :
+
+```powershell
+node scripts/run-loot-economy-harness.mjs --stage=early --seeds=2 --workers=2 --profiles=baseline,loot15 --town=progressive
+```
+
+Ce contournement ne répare pas le sandbox normal et n'autorise aucune
+élévation générale. Aucune ACL, aucun mode de sécurité et aucun fichier
+interne du sandbox n'ont été modifiés. Une réparation durable reste distincte :
+identifier pourquoi la configuration ne peut pas appliquer ces ACL, puis
+vérifier une commande normale sans élévation. Consulter la
+[documentation officielle du sandbox Windows](https://learn.chatgpt.com/docs/windows/windows-sandbox).
+
+## Supabase local : nouveaux imports partagés
+
+Incident observé le 5 septembre 2026 après intégration du nommage : le runtime
+Edge montait individuellement les fichiers partagés connus lors de son lancement.
+Les nouveaux imports `shared/domain/items/naming.ts` et
+`shared/data/item-naming-v1.ts` étaient absents du conteneur, provoquant
+`worker boot error` / `Module not found` et le mode hors connexion du frontend.
+
+Relancer uniquement les fonctions depuis la racine du projet pour reconstruire
+les montages, sans réinitialiser la base ni arrêter toute la stack :
+
+```powershell
+npm.cmd exec --offline -- supabase functions serve game-api --env-file supabase/functions/.env
+```
+
+Le lanceur Windows Supabase/Bun peut planter après création du conteneur.
+Ne pas en déduire que le runtime est arrêté : vérifier `docker ps`, les montages
+du conteneur `supabase_edge_runtime_cdidle-local` et une requête atteignant
+réellement `game-api` avant toute nouvelle relance.
+
+Une réponse 401 sans bearer peut venir de la passerelle avant chargement de la
+fonction ; le preflight OPTIONS peut également être traité par la passerelle.
+Ces réponses seules ne prouvent pas que les imports de la fonction sont valides.
+Lors de cet incident, un POST avec la clé anonyme locale, gardée en mémoire,
+a atteint l’application : HTTP 401, `error.code: UNAUTHENTICATED` et
+`x-request-id`, sans erreur de chargement. Ce contrôle ne valide pas une session
+utilisateur authentifiée ; sa reconnexion reste à confirmer dans le navigateur.

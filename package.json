@@ -60,6 +60,7 @@
     "lint": "eslint src tests",
     "test": "vitest",
     "test:simulations": "vitest run --config vitest.simulation.config.ts",
+    "test:item-naming": "node --experimental-strip-types scripts/run-item-naming-harness.mjs",
     "test:class-calibration": "vitest run --config vitest.simulation.config.ts tests/classAffinitySimulation.test.ts",
     "test:combat-simulation": "vitest run --config vitest.simulation.config.ts tests/combatTacticsSimulation.test.ts",
     "test:dungeon-simulation": "vitest run tests/dungeonRulesSimulation.test.ts tests/dungeonEncounterRules.test.ts --reporter=verbose",

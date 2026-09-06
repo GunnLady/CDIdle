@@ -53,7 +53,7 @@ for (const viewport of viewports) {
     expect(await actionsOverflow()).toBe(false);
     await itemCard.getByRole("button", { name: "Recycler" }).click();
     expect(await actionsOverflow()).toBe(false);
-    await itemCard.getByRole("button", { name: "Annuler" }).click();
+    await itemCard.getByRole("button", { name: "Non" }).click();
     await expect(page.getByTestId("mutation-count")).toHaveText("0");
   });
 }

@@ -127,6 +127,10 @@ préserver les coins et les tracés marginaux lorsque le bloc change de largeur.
 
 ## Reports explicites
 
+La [forge en atelier](forge-workshop-ui.md) réutilise les primitives existantes
+pour son catalogue de plans, ses coûts et son résultat de fabrication.
+La disposition et les limites de validation visuelle y sont documentées.
+
 Les patterns metier `AssignmentControl`, `UpgradeAction` et
 `EquipmentPicker` restent en v0.2 comme decide dans CDI-069. Leur critere
 d'entree est deux consommateurs reels ou un besoin transversal documente,

@@ -293,6 +293,7 @@ describe("authoritative item catalog", () => {
     expect(result.encounter.rewards.gold).toBeGreaterThan(0);
     expect(result.encounter.rewards.loot.some((entry) => entry.type === "material")).toBe(true);
     expect(result.encounter.rewards.loot.some((entry) => entry.type === "item")).toBe(true);
+    expect(result.encounter.rewards.loot.filter((entry) => entry.type === "item")).toHaveLength(3);
     expect(result.encounter.rewards.loot.some((entry) => entry.type === "blueprint")).toBe(true);
     const blueprintIds = result.state.itemBlueprints?.map((entry) => entry.itemId) ?? [];
     expect(new Set(blueprintIds).size).toBe(blueprintIds.length);

@@ -35,6 +35,12 @@ supérieure paie son coût et ajoute le bonus compatible ; la refuser produit la
 rareté minimale. L’annulation ne rembourse pas le craft. L’instance finale est
 `item:forge:<previewId>`, donc stable au replay.
 
+Le [nommage V1](item-naming.md) intervient après finalisation : l’événement
+capture `itemName` depuis l’instance définitive, avec la rareté acceptée/refusée
+et ses modificateurs. Le recyclage capture également ce nom avant retrait.
+Les recettes et l’offre non finalisée restent au nom de catalogue ; le front
+ne devine pas un nom individuel avant la décision. Aucun coût ou tirage changé.
+
 ## Rareté et économie
 
 Les probabilités Commune/Inhabituelle/Rare/Épique/Légendaire par Forge sont :
@@ -66,7 +72,13 @@ a 5 % de chance, exclut les plans connus, tire selon les poids et ne donne ni
 compensation ni garantie lorsque le pool est vide. Le jet reste indépendant
 des objets et des futures signatures.
 
-## Compatibilité
+## Interface de l’atelier
+
+La présentation est décrite dans [Forge : interface de l’atelier](../development/forge-workshop-ui.md).
+Le catalogue en cartes, les filtres et les décisions de résultat ne modifient
+ni les commandes autoritaires ni les probabilités, les coûts ou les objets.
+
+## Compatibilité des sauvegardes
 
 L’état canonique v4 remplace `pendingForge.upgradeProc` par
 `pendingForge.offeredRarity`. La migration v3→v4 convertit et déduplique les

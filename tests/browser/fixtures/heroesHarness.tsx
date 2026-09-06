@@ -27,7 +27,6 @@ function Harness() {
       onToggleHeroActive={recordMutation}
       onRecruitHero={recordMutation}
       onUnequipItem={recordMutation}
-      onEquipItem={recordMutation}
     />
   </main>;
 }
