@@ -14,6 +14,10 @@ export type EncounterPlaybackRuntimeOptions = {
   wait: (durationMs: number) => Promise<void>;
 };
 
+export function getEncounterPlaybackTranscript(encounter: CanonicalDungeonEncounterRecord) {
+  return encounter.transcript.filter((event) => event.type !== "enemy.intent");
+}
+
 export class EncounterPlaybackRuntime {
   private generation = 0;
 
@@ -25,7 +29,7 @@ export class EncounterPlaybackRuntime {
 
   async play(encounter: CanonicalDungeonEncounterRecord): Promise<void> {
     const generation = ++this.generation;
-    const total = encounter.transcript.length;
+    const total = getEncounterPlaybackTranscript(encounter).length;
     const complete = () => this.options.onChange({
       encounterId: encounter.encounterId,
       visibleCount: total,

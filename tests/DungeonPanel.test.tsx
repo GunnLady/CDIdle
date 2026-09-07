@@ -18,9 +18,10 @@ const encounter: CanonicalDungeonEncounterRecord = {
   outcome: "victory",
   roundCount: 1,
   enemy: { hp: 0, maxHp: 12 },
+  enemies: [{ id: "enemy-1", name: "Rat", hp: 0, maxHp: 12 }],
   transcript: [
-    { sequence: 0, type: "hero.hit", round: 1, heroId: "hero-1", heroName: "Ragnor", damage: 6, enemyHp: 6 },
-    { sequence: 1, type: "hero.hit", round: 1, heroId: "hero-1", heroName: "Ragnor", damage: 6, enemyHp: 0 },
+    { sequence: 0, type: "hero.hit", round: 1, heroId: "hero-1", heroName: "Ragnor", monsterId: "enemy-1", damage: 6, enemyHp: 6 },
+    { sequence: 1, type: "hero.hit", round: 1, heroId: "hero-1", heroName: "Ragnor", monsterId: "enemy-1", damage: 6, enemyHp: 0 },
   ],
   rewards: { gold: 7, loot: [] },
 };
@@ -82,6 +83,7 @@ describe("DungeonPanel authoritative structure", () => {
     const { rerender } = render(<DungeonPanel {...props} />);
     const current = within(screen.getByTestId("dungeon-current-encounter"));
     expect(current.getAllByText("Tour 1 — Ragnor inflige 6 dégâts.")).toHaveLength(1);
+    expect(current.getByText("6/12 PV")).toBeInTheDocument();
     expect(current.getByText("Combat en cours")).toBeInTheDocument();
     expect(screen.getByText("Étage 2 · Salle 8/10")).toBeInTheDocument();
     expect(screen.queryByText(/Résoudre/i)).not.toBeInTheDocument();
@@ -90,6 +92,7 @@ describe("DungeonPanel authoritative structure", () => {
 
     rerender(<DungeonPanel {...props} encounterPlayback={{ encounterId: encounter.encounterId, visibleCount: 2, complete: true }} isExploring={false} />);
     expect(within(screen.getByTestId("dungeon-current-encounter")).getAllByText("Tour 1 — Ragnor inflige 6 dégâts.")).toHaveLength(2);
+    expect(within(screen.getByTestId("dungeon-current-encounter")).getByText("0/12 PV")).toBeInTheDocument();
     expect(within(screen.getByTestId("dungeon-current-encounter")).getByText("Victoire en 1 tour(s) · +7 or")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Explorer la salle" })).toBeDisabled();
   });

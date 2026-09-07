@@ -16,7 +16,8 @@ const encounter: CanonicalDungeonEncounterRecord = {
   enemy: null,
   transcript: [
     { sequence: 0, type: "combat.start", category: "combat-hero", message: "DÃ©but" },
-    { sequence: 1, type: "combat.end", category: "combat-enemy", message: "Fin" },
+    { sequence: 1, type: "enemy.intent", category: "combat-enemy", message: "Attaque annoncée" },
+    { sequence: 2, type: "combat.end", category: "combat-enemy", message: "Fin" },
   ],
   rewards: { gold: 0, loot: [] },
 };
@@ -54,7 +55,7 @@ describe("encounter playback runtime", () => {
     });
 
     const playback = runtime.play(encounter);
-    await vi.advanceTimersByTimeAsync(encounter.transcript.length * ENCOUNTER_PLAYBACK_STEP_MS);
+    await vi.advanceTimersByTimeAsync(2 * ENCOUNTER_PLAYBACK_STEP_MS);
     expect(states.at(-1)?.complete).toBe(false);
     await vi.advanceTimersByTimeAsync(ENCOUNTER_PLAYBACK_STEP_MS);
     await playback;

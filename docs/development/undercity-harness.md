@@ -10,11 +10,11 @@ Le Roi des Rats est un souverain intelligent devenu monstrueux, protecteur des e
 
 | Étages | Zone | Rencontres ordinaires | Boss |
 | --- | --- | --- | --- |
-| 1–10 | Égouts infestés | Meute de rats (3), Nuée de scarabées (3), Limon des conduits (1), Rat colossal (1) | La Mère des nuisibles (1) |
+| 1–10 | Égouts infestés | Meute de rats (3), Nuée de scarabées (3), Slime des égouts (1), Rat colossal (1) | La Mère des nuisibles (1) |
 | 11–20 | Galeries des contrebandiers | Escorte des passeurs (3), Récupérateurs gobelins (2), Dresseur et molosse (2), Coupe-jarret du tribut (1) | Le Collecteur du tribut et son escorte (3) |
-| 21–30 | Citernes oubliées | Colonie de parasites (3), Limon des réservoirs (1), Gardien des refuges (1), Sangsues des citernes (2) | Le Gardien des eaux mortes (1) |
-| 31–40 | Bastion des Exclus | Sentinelle bannie (1), Patrouille des exilés (2), Défenseurs du bastion (3), Colosse des barricades (1) | Le Porte-étendard des Exclus et son escorte (3) |
-| 41–50 | Cour du Roi des Rats | Garde des exclus (3), Vermine de la Cour (3), Escorte du chambellan (3), Champion de la Cour (1) | Le Roi des Rats et ses deux gardes (3) |
+| 21–30 | Citernes oubliées | Couvée des eaux croupies (3), Slime des eaux mortes (1), Veilleur noyé (1), Sangsues des citernes (2) | Le Gardien des eaux mortes (1) |
+| 31–40 | Bastion des Exclus | Veilleur sans-bannière (1), Patrouille des exilés (2), Défenseurs du bastion (3), Brise-siège des barricades (1) | Le Porte-étendard des Exclus et son escorte (3) |
+| 41–50 | Cour du Roi des Rats | Garde des sans-couronne (3), Vermine de la Cour (2), Escorte du chambellan (3), Champion de la Cour (1) | Le Roi des Rats et ses deux gardes (3) |
 
 20 modèles de rencontres ordinaires et cinq rencontres de boss. Les chiffres indiquent le nombre de cibles indépendantes. Chaque zone contient des solos et des groupes. Les élites utilisent les mêmes compositions, avec le budget élite canonique. Les noms individuels sont explicites et propres à leur région ; aucun suffixe numérique générique ni réemploi des passeurs dans la Cour.
 

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { calculateXpNeeded } from "../shared/domain/hero-xp";
+import { CLASS_INFO_LIST } from "../shared/data/game-data";
 import type { DungeonXpRewardSource } from "../shared/domain/dungeon-xp-rewards";
 import { HARMONIZED_HERO_XP_CURVE } from "./fixtures/xpProgression";
 import {
@@ -64,6 +65,11 @@ describe("complete Tier 1 XP campaign", () => {
         expect(report.blockedReason).toBeUndefined();
       }
       expect(report.fights).toBeGreaterThan(0);
+      expect(report.vocationChoices + report.automaticClassTransitions)
+        .toBe(report.finalClasses.length);
+      expect(report.finalClasses.every((classType) => (
+        CLASS_INFO_LIST.some((classInfo) => classInfo.type === classType && classInfo.tier === 1)
+      ))).toBe(true);
       expect(report.nonCombat).toBeGreaterThan(0);
       expect(report.elites).toBeGreaterThan(0);
       expect(report.majorBosses).toBeGreaterThan(0);

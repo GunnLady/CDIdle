@@ -113,7 +113,7 @@ function resolveEncounter(state: DungeonState, rng: DungeonRng) {
     encounterHistory,
   } as unknown as DungeonState;
   next.dungeonProgress = ensureUndercityHeroes(next.dungeonProgress, next.heroes.map((hero) => hero.id));
-  if (encounter.outcome === "defeat") {
+  if (encounter.kind === "fight" && encounter.outcome === "defeat") {
     next = stoppedAtRestart(next, "wipe", participantHeroIds);
   } else {
     const expedition = { ...next.dungeonProgress.expedition };

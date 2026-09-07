@@ -117,6 +117,89 @@ describe("dungeon presentation projections", () => {
     expect(view).toMatchObject({ state: "playing", statusLabel: "Rencontre en cours" });
   });
 
+  it("hides redundant enemy intents while keeping the resolved enemy action", () => {
+    const record = {
+      encounterId: "enemy-action",
+      kind: "fight" as const,
+      floor: 1,
+      room: 1,
+      outcome: "victory" as const,
+      roundCount: 1,
+      enemy: { id: "rat", name: "Rat", hp: 0, maxHp: 10 },
+      transcript: [
+        { sequence: 0, type: "enemy.intent", message: "Rat : attaque." },
+        { sequence: 1, type: "enemy.hit", message: "Rat attaque Ariane et inflige 3 dégâts." },
+      ],
+      rewards: { gold: 1, loot: [] },
+    };
+
+    const view = createCurrentEncounterView(null, [record], null, []);
+
+    expect(view?.transcript.map((event) => event.message)).toEqual(["Rat attaque Ariane et inflige 3 dégâts."]);
+  });
+
+  it("translates every canonical enemy role for presentation", () => {
+    const roles = ["ordinary", "protector", "ranged", "support", "guard", "king"] as const;
+    const record = {
+      encounterId: "translated-roles",
+      kind: "fight" as const,
+      floor: 1,
+      room: 1,
+      outcome: "victory" as const,
+      roundCount: 1,
+      enemy: { id: "ordinary", name: "Ennemi", hp: 0, maxHp: 1 },
+      enemies: roles.map((role) => ({ id: role, name: role, hp: 0, maxHp: 1, role })),
+      transcript: [],
+      rewards: { gold: 0, loot: [] },
+    };
+
+    const view = createCurrentEncounterView(null, [record], null, []);
+
+    expect(view?.enemies.map((enemy) => enemy.role)).toEqual([
+      "Combattant",
+      "Protecteur",
+      "Tireur",
+      "Soutien",
+      "Garde",
+      "Souverain",
+    ]);
+  });
+
+  it("reconstructs each enemy health from the visible playback events", () => {
+    const record = {
+      encounterId: "group-playback",
+      kind: "fight" as const,
+      floor: 10,
+      room: 5,
+      outcome: "victory" as const,
+      roundCount: 2,
+      enemy: { id: "guard", name: "Garde", hp: 0, maxHp: 10 },
+      enemies: [
+        { id: "guard", name: "Garde", hp: 0, maxHp: 10 },
+        { id: "support", name: "Soigneur", hp: 0, maxHp: 8 },
+      ],
+      transcript: [
+        { sequence: 0, type: "hero.hit", monsterId: "guard", enemyHp: 4 },
+        { sequence: 1, type: "enemy.support", monsterId: "support", targetMonsterId: "guard", enemyHp: 7 },
+        { sequence: 2, type: "hero.hit", monsterId: "guard", enemyHp: 0 },
+        { sequence: 3, type: "hero.hit", monsterId: "support", enemyHp: 0 },
+      ],
+      rewards: { gold: 4, loot: [] },
+    };
+
+    const damaged = createCurrentEncounterView(null, [record], { encounterId: record.encounterId, visibleCount: 1, complete: false }, []);
+    expect(damaged?.enemies).toEqual([
+      expect.objectContaining({ id: "guard", hp: 4 }),
+      expect.objectContaining({ id: "support", hp: 8 }),
+    ]);
+
+    const healed = createCurrentEncounterView(null, [record], { encounterId: record.encounterId, visibleCount: 2, complete: false }, []);
+    expect(healed?.enemies[0]).toMatchObject({ id: "guard", hp: 7 });
+
+    const completed = createCurrentEncounterView(null, [record], { encounterId: record.encounterId, visibleCount: 4, complete: true }, []);
+    expect(completed?.enemies.map((enemy) => enemy.hp)).toEqual([0, 0]);
+  });
+
   it("keeps only dungeon notes beside canonical history", () => {
     const notes = [
       { id: "dungeon", timestamp: "10:00", message: "Texte libre sans numéro de salle", type: "info" as const, category: "dungeon" as const },

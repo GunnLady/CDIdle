@@ -19,8 +19,8 @@ export function createEnemyGroup(monster,profile) {
  const blueprint=monster.__undercity?.members;
  const count=Math.min(monster.maxHp,monster.atk,blueprint?.length??(behavior==='surge'?1:3));
  const hp=partition(monster.maxHp,count),atk=partition(monster.atk,count);
- const names=behavior==='king'?['Garde des exclus gauche','Garde des exclus droite','Le Roi des Rats']:
-  behavior==='cover'?['Protecteur des passeurs','Tireur des passeurs','Soutien des passeurs']:Array.from({length:count},(_,i)=>monster.name+' '+(i+1));
+ const names=behavior==='king'?['Lame senestre du Roi','Lame dextre du Roi','Le Roi des Rats']:
+  behavior==='cover'?['Brise-lames des passeurs','Arbalétrier des passeurs','Médecin des tunnels']:Array.from({length:count},(_,i)=>monster.name+' '+(i+1));
  return {profile,original:monster,behavior,members:hp.map((value,i)=>({
   ...monster,id:monster.id+':member:'+i,name:blueprint?.[i].name??names[i],hp:value,maxHp:value,atk:atk[i],
   __undercity:undefined,__base:{atk:atk[i],def:monster.def,magicDef:monster.magicDef},

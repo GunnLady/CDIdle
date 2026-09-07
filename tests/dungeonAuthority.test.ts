@@ -48,6 +48,34 @@ describe("authoritative dungeon commands", () => {
     expect(resolved.events[0]).toMatchObject({ type: "dungeon.encounter_resolved", encounter: { outcome: "victory", transcript: expect.any(Array), rewards: { gold: expect.any(Number) } } });
   });
 
+  it("continues the expedition after a failed non-combat encounter without wiping living heroes", () => {
+    const progress = createUndercityProgress(["hero-1"], 19);
+    progress.expedition.floor = 20;
+    progress.expedition.room = 1;
+    const source: DungeonState = {
+      ...state(),
+      activeDungeonFloor: 20,
+      highestFloorReached: 20,
+      dungeonProgress: progress,
+      heroes: [makeHero({
+        id: "hero-1",
+        isActive: true,
+        currentHp: 10_000,
+        calculatedStats: { ...makeHero().calculatedStats, maxHp: 10_000, hp: 10_000 },
+      })],
+    };
+    const started = applyDungeonCommand(source, { type: "dungeon.explore", floor: 20, commandId: "failed-challenge" });
+    const failedChallengeRng: DungeonRng = { next: () => 0.6, nextInt: () => 0 };
+
+    const resolved = applyDungeonCommand(started.state, { type: "dungeon.resolve" }, failedChallengeRng);
+
+    expect(resolved.state.encounterHistory.at(-1)).toMatchObject({ kind: "trap", outcome: "defeat" });
+    expect(resolved.state).toMatchObject({ activeDungeonFloor: 20, activeDungeonRoom: 2, autoExplore: true });
+    expect(resolved.state.dungeonProgress.expedition).toMatchObject({ floor: 20, room: 2, halted: false, haltReason: null });
+    expect(resolved.state.heroes[0]).toMatchObject({ id: "hero-1", isActive: true });
+    expect(resolved.state.heroes[0].currentHp).toBeGreaterThan(0);
+  });
+
   it("resolves with only the heroes captured when the encounter started", () => {
     const participant = makeHero({ id: "captured", isActive: true });
     const lateHero = makeHero({ id: "late", isActive: false, status: "resting" });

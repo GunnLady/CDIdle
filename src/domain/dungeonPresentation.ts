@@ -21,6 +21,7 @@ import type { BattleLogEntry, Hero } from "../types";
 import { getHeroMainHandWeapon } from "../utils/gameCalculations";
 import type { HeroRosterEntryView } from "./heroPresentation";
 import { HERO_MAX_LEVEL } from "../../shared/data/hero-progression-models";
+import { getEncounterPlaybackTranscript } from "./encounterPlayback";
 
 export interface DungeonProgressView {
   floor: number;
@@ -231,15 +232,58 @@ function formatTranscriptEvent(event: CanonicalDungeonTranscriptEvent, heroNames
   return `Tour ${event.round} — L'ennemi inflige ${event.damage} dégâts à ${heroName}.`;
 }
 
+const enemyRoleLabels = {
+  ordinary: "Combattant",
+  protector: "Protecteur",
+  ranged: "Tireur",
+  support: "Soutien",
+  guard: "Garde",
+  king: "Souverain",
+} as const;
+
+function formatEnemyRole(role?: string): string {
+  return role && role in enemyRoleLabels
+    ? enemyRoleLabels[role as keyof typeof enemyRoleLabels]
+    : "Ennemi";
+}
+
+function createPlaybackEnemies(
+  record: CanonicalDungeonEncounterRecord,
+  visibleTranscript: CanonicalDungeonTranscriptEvent[],
+  complete: boolean,
+): DungeonEncounterView["enemies"] {
+  const enemies = (record.enemies ?? []).map((enemy) => ({
+    ...enemy,
+    role: formatEnemyRole(enemy.role),
+    effects: enemy.effects ?? [],
+  }));
+  if (complete) return enemies;
+
+  const playbackEnemies = enemies.map((enemy) => ({ ...enemy, hp: enemy.maxHp }));
+  const enemiesById = new Map(playbackEnemies.map((enemy) => [enemy.id, enemy]));
+  for (const event of visibleTranscript) {
+    if (typeof event.enemyHp !== "number" || !Number.isFinite(event.enemyHp)) continue;
+    const targetMonsterId = typeof event.targetMonsterId === "string"
+      ? event.targetMonsterId
+      : event.monsterId;
+    const target = targetMonsterId
+      ? enemiesById.get(targetMonsterId)
+      : playbackEnemies.length === 1 ? playbackEnemies[0] : undefined;
+    if (target) target.hp = Math.max(0, Math.min(target.maxHp, event.enemyHp));
+  }
+  return playbackEnemies;
+}
+
 export function createEncounterView(
   record: CanonicalDungeonEncounterRecord,
   heroNames: Map<string, string>,
   playback?: { visibleCount: number; complete: boolean } | null,
 ): DungeonEncounterView {
   const complete = playback?.complete ?? true;
+  const playbackTranscript = getEncounterPlaybackTranscript(record);
   const visibleTranscript = playback
-    ? record.transcript.slice(0, playback.visibleCount)
-    : record.transcript;
+    ? playbackTranscript.slice(0, playback.visibleCount)
+    : playbackTranscript;
   const state = complete ? record.outcome : "playing";
   const title = record.enemy?.name ?? encounterKindLabels[record.kind];
   return {
@@ -250,7 +294,7 @@ export function createEncounterView(
       ? record.kind === "fight" ? "Combat en cours" : "Rencontre en cours"
       : record.outcome === "victory" ? "Victoire" : "Défaite",
     state,
-    enemies: (record.enemies ?? []).map((enemy) => ({ ...enemy, effects: enemy.effects ?? [] })),
+    enemies: createPlaybackEnemies(record, visibleTranscript, complete),
     transcript: visibleTranscript.map((event) => ({
       id: `${record.encounterId}-${event.sequence}`,
       message: formatTranscriptEvent(event, heroNames),

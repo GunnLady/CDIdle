@@ -99,6 +99,7 @@ export type LongCampaignReport = {
   equipmentChanges: number;
   combatLimitRetreats: number;
   vocationChoices: number;
+  automaticClassTransitions: number;
   finalLevels: number[];
   finalClasses: ClassType[];
   milestoneExplorations: Partial<Record<(typeof MILESTONES)[number], number>>;
@@ -380,6 +381,7 @@ export function runLevel40Campaign(profile: RewardProfile, seed: number): LongCa
     equipmentChanges: 0,
     combatLimitRetreats: 0,
     vocationChoices: 0,
+    automaticClassTransitions: 0,
     finalLevels: [],
     finalClasses: [],
     milestoneExplorations: {},
@@ -502,6 +504,9 @@ export function runLevel40Campaign(profile: RewardProfile, seed: number): LongCa
     state = vocation.state;
     state.rngState = masterRng.snapshot();
     report.vocationChoices += vocation.choices;
+    report.automaticClassTransitions += encounter.transcript.filter(
+      (event) => event.type === "hero.class_changed",
+    ).length;
     const itemLootIds = encounter.rewards.loot.flatMap((loot) => (
       loot.type === "item" && loot.instanceId ? [loot.instanceId] : []
     ));
