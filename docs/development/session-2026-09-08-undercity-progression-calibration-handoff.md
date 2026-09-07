@@ -19,15 +19,13 @@ Ce handoff distingue :
 ## État Git et publication
 
 - Branche : `main`.
-- HEAD publié au moment de la rédaction :
-  `e778ec8a71b301b43d49227e9c5385eebb6dad9c`.
-- Le workflow CI GitHub du commit `e778ec8` avait réussi
-  (run `34159152005`).
-- Les changements listés ci-dessous étaient locaux et non commités lors de la
-  rédaction de cet état.
-- Après rédaction du handoff, l'utilisateur a explicitement autorisé le commit
-  et le push de l'ensemble audité. Cette autorisation ne couvre aucun
-  déploiement.
+- Commit fonctionnel publié : `eeb1da5f4725bdc0a236d3d7d377d03f308d111a`
+  (`fix: stabilize undercity encounter flow`).
+- Le workflow CI GitHub de ce commit a réussi : run `34167400468`, vérifié
+  `completed / success` par Codex.
+- La version publiée de ce handoff confirme la formule d'or validée ; son commit
+  documentaire postérieur à `eeb1da5` est identifiable dans l'historique Git.
+- Aucun déploiement n'a été autorisé ni lancé.
 
 Fichiers modifiés au moment de l'arrêt :
 
@@ -50,7 +48,7 @@ Le dossier temporaire `.audit/xp-669f722` et sa jonction `node_modules`,
 créés pour comparer le jalon vert, ont été supprimés après autorisation
 explicite. Leur absence a été vérifiée.
 
-## Corrections locales déjà réalisées
+## Corrections réalisées et publiées dans `eeb1da5`
 
 Ces corrections précèdent la calibration interrompue et doivent être
 préservées :
@@ -105,11 +103,10 @@ son fallback de groupes et la documentation.
   - obstacle : petite perte non létale de PV pour l'équipe ; sa valeur exacte
     reste à calibrer ;
   - énigme et rituel : perte de **10 % du mana actuel du héros sélectionné** ;
-  - négociation : perte d'or perceptible mais incapable de ruiner le joueur.
-- Proposition de travail pour la négociation, non encore codée :
-  **3 % de l'or actuel, plafonné au gain de trois combats ordinaires du même
-  étage**. L'utilisateur a rejeté 1 % comme trop faible. Confirmer la formule
-  exacte pendant l'implémentation si son comportement réel surprend.
+  - négociation : perte de **3 % de l'or actuel, plafonnée au gain de trois
+    combats ordinaires du même étage**. Cette formule est validée : la perte
+    doit être perceptible sans pouvoir ruiner le joueur. La valeur de 1 % a été
+    rejetée comme trop faible.
 
 ### Équipement et profils de simulation
 
@@ -174,7 +171,7 @@ Les fonctions centrales de level-up, de croissance et de transition n'ont pas
 Ils couvrent notamment XP multi-niveaux, vocation, équipement T1, persistance,
 idle, donjon et migrations.
 
-### Validation du sous-lot UnderCity local
+### Validation du sous-lot UnderCity publié
 
 Après la rédaction initiale du handoff :
 
