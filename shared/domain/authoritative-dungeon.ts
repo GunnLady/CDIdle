@@ -13,8 +13,15 @@ import type {
 import type { CanonicalDungeonLoot, CanonicalGameState } from "../contracts/authoritative.ts";
 import { BOSSES_LIBRARY, ITEM_LIBRARY, MONSTERS_LIBRARY, getSkillById } from "../data/game-data.ts";
 import { BOSS_LOOT_TABLES_REGISTRY } from "./items/boss-loot-tables.ts";
+import {
+  RAT_KING_MARK_ID,
+  RAT_KING_SIGNATURE_IDS,
+  RAT_KING_SIGNATURE_PARAMETERS,
+  createRatKingSignatureInstance,
+} from "./items/items_rat_king.ts";
 import { rollBlueprintReward } from "./items/blueprint-rewards.ts";
 import { nameItem } from "./items/naming.ts";
+import { resolveItemInstance } from "./items/scaling.ts";
 import {
   getChestLootBand,
   resolveEligibleCatalogDrop,
@@ -75,6 +82,27 @@ import {
 } from "./monster-combat.ts";
 import { chooseHeroAction } from "./combat-tactics.ts";
 import {
+  UNDERCITY_PERSONAL_REWARD_PARAMETERS,
+  settleUndercityVictory,
+} from "./undercity-progression.ts";
+import {
+  UNDERCITY_DUNGEON_ID,
+  UNDERCITY_MAX_FLOOR,
+  getUndercityEncounterBlueprint,
+  getUndercityZone,
+  resolveUndercityThemeModifier,
+} from "./undercity.ts";
+import {
+  chooseUndercityEnemyTarget,
+  createUndercityCombatGroup,
+  damageUndercityEnemy,
+  livingUndercityEnemies,
+  performUndercitySupport,
+  prepareUndercityEnemyRound,
+  primaryUndercityEnemy,
+  summarizeUndercityGroup,
+} from "./undercity-combat.ts";
+import {
   UNARMED_WEAPON_CONTEXT,
   calculateWeaponStrikePower,
   rollWeaponStrikeCount,
@@ -117,6 +145,16 @@ export type AuthoritativeDungeonEncounter = {
   outcome: "victory" | "defeat";
   roundCount: number;
   enemy: { id?: string; name?: string; hp: number; maxHp: number; isBoss?: boolean } | null;
+  enemies?: Array<{
+    id: string;
+    name: string;
+    hp: number;
+    maxHp: number;
+    isBoss?: boolean;
+    role?: "ordinary" | "protector" | "support" | "ranged" | "guard" | "king";
+    intent?: string;
+    effects?: string[];
+  }>;
   transcript: AuthoritativeDungeonTranscriptEvent[];
   rewards: { gold: number; loot: CanonicalDungeonLoot[] };
 };
@@ -148,12 +186,27 @@ function rollGeneratedItemLevel(
   return minimum === maximum ? minimum : minimum + rng.nextInt(maximum - minimum + 1);
 }
 
+function applyUndercityThemeToItem(
+  item: (typeof ITEM_LIBRARY)[number],
+  baseInstance: StoredItemInstance,
+  floor: number,
+): StoredItemInstance {
+  const resolved = resolveItemInstance(item, baseInstance);
+  const zone = getUndercityZone(floor);
+  return {
+    ...baseInstance,
+    modifiers: [...(resolved.modifiers ?? []).map((modifier) => ({ ...modifier })), resolveUndercityThemeModifier(floor, baseInstance.instanceId, item)],
+    sourceDungeonId: UNDERCITY_DUNGEON_ID,
+    sourceZoneId: zone.id,
+  };
+}
 function rollCatalogItemReward(
   floor: number,
   encounterId: string,
   lootIndex: number,
   provenance: "boss" | "chest",
   rng: Rng,
+  themed = false,
 ) {
   const band = getChestLootBand(floor);
   const rarity = rollWeightedRarity(band.weights, rng.next());
@@ -166,13 +219,15 @@ function rollCatalogItemReward(
   if (!drop) throw new Error(`EMPTY_DUNGEON_ITEM_POOL:${floor}:${rarity}:${provenance}`);
   const item = drop.candidates[rng.nextInt(drop.candidates.length)];
   const itemLevel = rollGeneratedItemLevel(item, band.levelMin, band.levelMax, rng);
-  const instance = {
+  const baseInstance = {
     instanceId: `item:dungeon:${encounterId}:loot:${lootIndex}`,
     itemId: item.id,
     itemLevel,
     powerModelId: item.powerModelId,
     rarity: drop.rarity,
   };
+  if (!themed) return { item, instance: baseInstance, itemName: nameItem(item, baseInstance).name };
+  const instance = applyUndercityThemeToItem(item, baseInstance, floor);
   return { item, instance, itemName: nameItem(item, instance).name };
 }
 
@@ -467,7 +522,14 @@ function resolveFight(
 ): AuthoritativeDungeonResolution {
   let heroes = clone(source.heroes ?? []);
   const scaledMonster = scaleMonster(floor, room, rng, xpRewardPolicy);
-  let monster = scaledMonster.monster;
+  const canonicalMonsterName = scaledMonster.monster.name;
+  const isUndercity = source.currentEncounter?.dungeonId === UNDERCITY_DUNGEON_ID;
+  const encounterBlueprint = isUndercity
+    ? getUndercityEncounterBlueprint(floor, room, getDungeonRoomCount(floor), scaledMonster.itemRewardEntropy)
+    : { id: "legacy-single", name: canonicalMonsterName, behavior: "swarm" as const, members: [{ name: canonicalMonsterName, role: "ordinary" as const }] };
+  let monster = { ...scaledMonster.monster, name: encounterBlueprint.name };
+  const enemyGroup = createUndercityCombatGroup(monster, encounterBlueprint);
+  monster = primaryUndercityEnemy(enemyGroup);
   const resources: Resources = {
     gold: 0,
     food: 0,
@@ -479,6 +541,9 @@ function resolveFight(
   let forgeMaterials = clone(source.forgeMaterials ?? []);
   let storedItems = clone(source.storedItems ?? []);
   let itemBlueprints = clone(source.itemBlueprints ?? []);
+  let dungeonProgress = clone(source.dungeonProgress);
+  const participantHeroIds = source.currentEncounter?.participantHeroIds
+    ?? heroes.filter((hero) => hero.isActive && hero.currentHp > 0).map((hero) => hero.id);
   const pendingClassTransitions = clone(source.pendingClassTransitions ?? []);
   const transcript: AuthoritativeDungeonTranscriptEvent[] = [];
   const loot: CanonicalDungeonLoot[] = [];
@@ -486,8 +551,6 @@ function resolveFight(
   let round = 0;
   let activeEffects: TemporaryCombatEffect[] = [];
   const majorBossEncounter = isDungeonFinalRoom(floor, room) && isMajorBossFloor(floor);
-  const monsterRank = resolveMonsterCombatRank(monster.isBoss, majorBossEncounter);
-  const monsterAttackProfile = resolveMonsterAttackProfile(monsterRank, floor);
   const log = (
     type: string,
     message: string,
@@ -508,9 +571,14 @@ function resolveFight(
     },
   );
 
-  while (monster.hp > 0 && heroes.some((hero) => hero.isActive && hero.currentHp > 0)) {
+  while (livingUndercityEnemies(enemyGroup).length > 0 && heroes.some((hero) => hero.isActive && hero.currentHp > 0)) {
     round += 1;
     if (round > 100) throw new Error("COMBAT_LIMIT_REACHED");
+    for (const enemy of prepareUndercityEnemyRound(enemyGroup, round)) {
+      if (!isUndercity) continue;
+      log("enemy.intent", enemy.name + " : " + enemy.intent + ".", "combat-enemy", { round, monsterId: enemy.id, monsterName: enemy.name, intent: enemy.intent });
+    }
+    monster = primaryUndercityEnemy(enemyGroup);
 
     heroes = heroes.map((hero) => {
       if (!hero.isActive || hero.currentHp <= 0) return hero;
@@ -523,6 +591,7 @@ function resolveFight(
     for (let heroIndex = 0; heroIndex < heroes.length && monster.hp > 0; heroIndex += 1) {
       const hero = heroes[heroIndex];
       if (!hero.isActive || hero.currentHp <= 0) continue;
+      monster = chooseUndercityEnemyTarget(enemyGroup, hero, activeEffects);
       const calculatedStats = getEffectiveHeroStats(hero, activeEffects);
       let skillUsed = false;
       let totalDamage = 0;
@@ -530,6 +599,7 @@ function resolveFight(
         hero,
         heroes,
         monster,
+        enemies: livingUndercityEnemies(enemyGroup),
         activeEffects,
         floor,
         room,
@@ -549,39 +619,67 @@ function resolveFight(
 
         if (effect.type === "damage") {
           const hitCount = effect.hitCount ?? 1;
-          const rawDamagePerHit = Math.floor(
-            requiredCalculatedStat(calculatedStats, effect.scalingStat) * effect.power,
-          );
-          const hitResults = Array.from({ length: hitCount }, (_, hitIndex) => {
-            const critical = rng.next() < calculatedStats.criticalChance / 100;
-            const rawDamage = critical ? Math.floor(rawDamagePerHit * 1.5) : rawDamagePerHit;
-            const damage = applyMonsterDefenseOrResistance(
-              rawDamage,
-              effect.damageType,
-              getEffectiveMonster(monster, activeEffects),
+          if (isUndercity && skill.target === "all_enemies") {
+            for (const target of [...livingUndercityEnemies(enemyGroup)]) {
+              for (let hit = 1; hit <= hitCount && target.hp > 0; hit += 1) {
+                const critical = rng.next() < calculatedStats.criticalChance / 100;
+                const rawBase = Math.floor(requiredCalculatedStat(calculatedStats, effect.scalingStat) * effect.power);
+                const rawDamage = critical ? Math.floor(rawBase * 1.5) : rawBase;
+                const damage = applyMonsterDefenseOrResistance(rawDamage, effect.damageType, getEffectiveMonster(target, activeEffects));
+                const applied = isUndercity ? damageUndercityEnemy(enemyGroup, target.id, damage) : damage;
+          if (!isUndercity) totalDamage += damage;
+                log(
+                  "hero.skill.damage",
+                  (critical ? "[Coup critique] " : "") + hero.name + " utilise " + skill.name + " sur " + target.name + " et inflige " + applied + " dégâts " + effect.damageType + ".",
+                  "combat-hero",
+                  {
+                    round, heroId: hero.id, heroName: hero.name, monsterId: target.id, monsterName: target.name,
+                    skillId, skillName: skill.name, hit, hitCount, critical, damage: applied, damageType: effect.damageType,
+                    enemyHp: isUndercity ? target.hp : Math.max(0, target.hp - totalDamage), enemyMaxHp: target.maxHp, decisionReason: chosenAction.reason,
+                  },
+                );
+              }
+            }
+            monster = primaryUndercityEnemy(enemyGroup);
+          } else {
+            const rawDamagePerHit = Math.floor(
+              requiredCalculatedStat(calculatedStats, effect.scalingStat) * effect.power,
             );
-            return { hit: hitIndex + 1, damage, critical };
-          });
-          const damage = hitResults.reduce((sum, hit) => sum + hit.damage, 0);
-          const criticalHitCount = hitResults.filter((hit) => hit.critical).length;
-          const impactSummary = hitResults
-            .map((hit) => `${hit.damage}${hit.critical ? " [critique]" : ""}`)
-            .join(", ");
-          totalDamage = damage;
-          log(
-            "hero.skill.damage",
-            hitCount > 1
-              ? `${hero.name} declenche ${skill.name} et frappe ${hitCount} fois : ${impactSummary} degats ${effect.damageType} (${damage} au total).`
-              : `${criticalHitCount > 0 ? "[Coup critique] " : ""}${hero.name} declenche ${skill.name} et inflige ${damage} degats ${effect.damageType}.`,
-            "combat-hero",
-            {
-              round, heroId: hero.id, heroName: hero.name, monsterId: monster.id,
-              monsterName: monster.name, skillId, skillName: skill.name, hitCount,
-              hitResults, criticalHitCount, damage, damageType: effect.damageType,
-              enemyHp: Math.max(0, monster.hp - damage), enemyMaxHp: monster.maxHp,
-              decisionReason: chosenAction.reason,
-            },
-          );
+            const hitResults = Array.from({ length: hitCount }, (_, hitIndex) => {
+              const critical = rng.next() < calculatedStats.criticalChance / 100;
+              const rawDamage = critical ? Math.floor(rawDamagePerHit * 1.5) : rawDamagePerHit;
+              const damage = applyMonsterDefenseOrResistance(
+                rawDamage,
+                effect.damageType,
+                getEffectiveMonster(monster, activeEffects),
+              );
+              return { hit: hitIndex + 1, damage, critical };
+            });
+            const damage = hitResults.reduce((sum, hit) => sum + hit.damage, 0);
+            const criticalHitCount = hitResults.filter((hit) => hit.critical).length;
+            const impactSummary = hitResults
+              .map((hit) => `${hit.damage}${hit.critical ? " [critique]" : ""}`)
+              .join(", ");
+            totalDamage = damage;
+            if (isUndercity) {
+              damageUndercityEnemy(enemyGroup, monster.id, damage);
+              monster = primaryUndercityEnemy(enemyGroup);
+            }
+            log(
+              "hero.skill.damage",
+              hitCount > 1
+                ? `${hero.name} declenche ${skill.name} et frappe ${hitCount} fois : ${impactSummary} degats ${effect.damageType} (${damage} au total).`
+                : `${criticalHitCount > 0 ? "[Coup critique] " : ""}${hero.name} declenche ${skill.name} et inflige ${damage} degats ${effect.damageType}.`,
+              "combat-hero",
+              {
+                round, heroId: hero.id, heroName: hero.name, monsterId: monster.id,
+                monsterName: monster.name, skillId, skillName: skill.name, hitCount,
+                hitResults, criticalHitCount, damage, damageType: effect.damageType,
+                enemyHp: isUndercity ? monster.hp : Math.max(0, monster.hp - damage), enemyMaxHp: monster.maxHp,
+                decisionReason: chosenAction.reason,
+              },
+            );
+          }
         } else if (effect.type === "heal") {
           const healAmount = Math.floor(
             requiredCalculatedStat(calculatedStats, effect.scalingStat)
@@ -613,7 +711,8 @@ function resolveFight(
           }
         } else if (effect.type === "buff" || effect.type === "debuff") {
           const targets = effect.type === "debuff"
-            ? [{ id: monster.id, side: "monster" as const }]
+            ? (skill.target === "all_enemies" ? livingUndercityEnemies(enemyGroup) : [monster])
+              .map((target) => ({ id: target.id, side: "monster" as const }))
             : skill.target === "all_allies"
               ? heroes.filter((candidate) => candidate.isActive && candidate.currentHp > 0)
                 .map((candidate) => ({ id: candidate.id, side: "hero" as const }))
@@ -647,65 +746,40 @@ function resolveFight(
         const weapon = getHeroMainHandWeapon(hero);
         const attackSpeed = weapon?.attackSpeed ?? 1;
         const attackProfile = weapon?.attackProfile ?? UNARMED_WEAPON_CONTEXT.attackProfile;
-        const strikes = rollWeaponStrikeCount(
-          attackSpeed,
-          calculatedStats.speed,
-          attackProfile,
-          () => rng.next(),
-        );
+        const strikes = rollWeaponStrikeCount(attackSpeed, calculatedStats.speed, attackProfile, () => rng.next());
 
-        for (let strike = 1; strike <= strikes; strike += 1) {
+        for (let strike = 1; strike <= strikes && (isUndercity ? livingUndercityEnemies(enemyGroup).length > 0 : true); strike += 1) {
+          const target = primaryUndercityEnemy(enemyGroup);
           const weaponDamage = rollWeaponDamage(weapon, rng);
           const scaling = weapon?.scaling ?? UNARMED_WEAPON_CONTEXT.scaling;
           const attackPower = selectWeaponAttackPower(calculatedStats, scaling);
           const rawDamage = calculateWeaponStrikePower(attackPower, attackProfile) + weaponDamage;
           const critical = rng.next() < calculatedStats.criticalChance / 100;
           const criticalDamage = critical ? Math.floor(rawDamage * 1.5) : rawDamage;
-          const damageTypes = weapon && getWeaponDamageTypes(weapon).length > 0
-            ? getWeaponDamageTypes(weapon)
-            : ["physical" as DamageType];
-          const damage = applySplitDamageDefenseOrResistance(
-            criticalDamage,
-            damageTypes,
-            getEffectiveMonster(monster, activeEffects),
-          );
-          totalDamage += damage;
-          const nextHp = Math.max(0, monster.hp - totalDamage);
+          const damageTypes = weapon && getWeaponDamageTypes(weapon).length > 0 ? getWeaponDamageTypes(weapon) : ["physical" as DamageType];
+          const damage = applySplitDamageDefenseOrResistance(criticalDamage, damageTypes, getEffectiveMonster(target, activeEffects));
+          const applied = isUndercity ? damageUndercityEnemy(enemyGroup, target.id, damage) : damage;
+          if (!isUndercity) totalDamage += damage;
           const hitLabels = [
-            strike > attackProfile.baseStrikes
-              ? "[Frappe bonus]"
-              : attackProfile.baseStrikes > 1 && strike > 1
-                ? "[Seconde arme]"
-                : null,
+            strike > attackProfile.baseStrikes ? "[Frappe bonus]" : attackProfile.baseStrikes > 1 && strike > 1 ? "[Seconde arme]" : null,
             critical ? "[Coup critique]" : null,
           ].filter((label): label is string => label !== null);
-          const hitPrefix = hitLabels.length > 0 ? `${hitLabels.join(" ")} ` : "";
+          const hitPrefix = hitLabels.length > 0 ? hitLabels.join(" ") + " " : "";
           log(
             critical ? "hero.hit.critical" : "hero.hit",
-            `${hitPrefix}${hero.name} inflige ${damage} dégâts à ${monster.name}.`,
+            hitPrefix + hero.name + " inflige " + applied + " dégâts à " + target.name + ".",
             "combat-hero",
             {
-              round,
-              heroId: hero.id,
-              heroName: hero.name,
-              monsterId: monster.id,
-              monsterName: monster.name,
-              strike,
-              strikeCount: strikes,
-              weaponDamage,
-              rawDamage,
-              damageTypes,
-              critical,
-              damage,
-              enemyHp: nextHp,
-              enemyMaxHp: monster.maxHp,
-              decisionReason: chosenAction.reason,
+              round, heroId: hero.id, heroName: hero.name, monsterId: target.id, monsterName: target.name,
+              strike, strikeCount: strikes, weaponDamage, rawDamage, damageTypes, critical, damage: applied,
+              enemyHp: isUndercity ? target.hp : Math.max(0, target.hp - totalDamage), enemyMaxHp: target.maxHp, decisionReason: chosenAction.reason,
             },
           );
         }
       }
 
-      monster = { ...monster, hp: Math.max(0, monster.hp - totalDamage) };
+      if (!isUndercity && totalDamage > 0) damageUndercityEnemy(enemyGroup, monster.id, totalDamage);
+      monster = primaryUndercityEnemy(enemyGroup);
       heroes[heroIndex] = {
         ...heroes[heroIndex],
         currentMana: hero.currentMana,
@@ -721,85 +795,113 @@ function resolveFight(
       }
     }
 
-    if (monster.hp === 0) break;
+    if (livingUndercityEnemies(enemyGroup).length === 0) break;
 
-    const strikes = rollMonsterStrikeCount(monsterAttackProfile, () => rng.next());
-
-    for (let strike = 1; strike <= strikes; strike += 1) {
-      const living = heroes.filter((hero) => hero.isActive && hero.currentHp > 0);
-      if (living.length === 0) break;
-      const strikePrefix = strike > 1 ? "[Frappe bonus] " : "";
-      const forcedTargetIds = new Set(getForcedTargetHeroIds(activeEffects));
-      const forcedTargets = living.filter((candidate) => forcedTargetIds.has(candidate.id));
-      const targetPool = forcedTargets.length > 0 ? forcedTargets : living;
-      const target = targetPool[Math.min(
-        targetPool.length - 1,
-        Math.floor(rng.next() * targetPool.length),
-      )];
-      const targetIndex = heroes.findIndex((hero) => hero.id === target.id);
-      const targetStats = getEffectiveHeroStats(target, activeEffects);
-      const effectiveMonster = getEffectiveMonster(monster, activeEffects);
-      const defense = getHeroDefenseAgainstDamageType(
-        target.calculatedStats,
-        targetStats,
-        effectiveMonster.damageType,
-      );
-      const damage = Math.max(1, effectiveMonster.atk - defense);
-      const dodged = rng.next() < targetStats.dodgeChance / 100;
-      if (dodged) {
+    for (const actingEnemy of [...livingUndercityEnemies(enemyGroup)]) {
+      const support = performUndercitySupport(enemyGroup, actingEnemy, round);
+      if (support) {
         log(
-          "enemy.dodged",
-          `${strikePrefix}${target.name} esquive l'attaque de ${monster.name}.`,
+          "enemy.support",
+          `${actingEnemy.name} soigne ${support.target.name} de ${support.healing} PV.`,
           "combat-enemy",
           {
             round,
-            heroId: target.id,
-            heroName: target.name,
-            monsterId: monster.id,
-            monsterName: monster.name,
-            strike,
-            strikeCount: strikes,
-            dodgeChance: targetStats.dodgeChance,
+            monsterId: actingEnemy.id,
+            monsterName: actingEnemy.name,
+            targetMonsterId: support.target.id,
+            targetMonsterName: support.target.name,
+            healing: support.healing,
+            enemyHp: support.target.hp,
+            enemyMaxHp: support.target.maxHp,
           },
         );
         continue;
       }
 
-      const hp = Math.max(0, target.currentHp - damage);
-      heroes[targetIndex] = hp === 0
-        ? { ...target, currentHp: 0, isActive: false, status: "resting" }
-        : { ...target, currentHp: hp };
-      log(
-        hp === 0 ? "hero.defeated" : "enemy.hit",
-        hp === 0
-          ? `${strikePrefix}${monster.name} inflige ${damage} dégâts à ${target.name} `
-            + `(${target.currentHp} → 0/${targetStats.maxHp} PV). `
-            + `${target.name} s'écroule et retourne aux dortoirs.`
-          : `${strikePrefix}${monster.name} inflige ${damage} dégâts à ${target.name}.`,
-        hp === 0 ? "defeat" : "combat-enemy",
-        {
-          round,
-          heroId: target.id,
-          heroName: target.name,
-          monsterId: monster.id,
-          monsterName: monster.name,
-          strike,
-          strikeCount: strikes,
-          damage,
-          damageType: monster.damageType,
-          defense,
-          heroHpBefore: target.currentHp,
-          heroHp: hp,
-          heroMaxHp: targetStats.maxHp,
-        },
-      );
+      const attackRank = resolveMonsterCombatRank(actingEnemy.isBoss, majorBossEncounter && actingEnemy.isBoss);
+      const attackProfile = resolveMonsterAttackProfile(attackRank, floor);
+      const strikes = rollMonsterStrikeCount(attackProfile, () => rng.next());
+
+      for (let strike = 1; strike <= strikes; strike += 1) {
+        const living = heroes.filter((hero) => hero.isActive && hero.currentHp > 0);
+        if (living.length === 0) break;
+        const strikePrefix = strike > 1 ? "[Frappe bonus] " : "";
+        const forcedTargetIds = new Set(getForcedTargetHeroIds(activeEffects));
+        const forcedTargets = living.filter((candidate) => forcedTargetIds.has(candidate.id));
+        const targetPool = forcedTargets.length > 0 ? forcedTargets : living;
+        const target = targetPool[Math.min(
+          targetPool.length - 1,
+          Math.floor(rng.next() * targetPool.length),
+        )];
+        const targetIndex = heroes.findIndex((hero) => hero.id === target.id);
+        const targetStats = getEffectiveHeroStats(target, activeEffects);
+        const effectiveMonster = getEffectiveMonster(actingEnemy, activeEffects);
+        const defense = getHeroDefenseAgainstDamageType(
+          target.calculatedStats,
+          targetStats,
+          effectiveMonster.damageType,
+        );
+        const damage = Math.max(1, effectiveMonster.atk - defense);
+        const dodged = rng.next() < targetStats.dodgeChance / 100;
+        if (dodged) {
+          log(
+            "enemy.dodged",
+            `${strikePrefix}${target.name} esquive l'attaque de ${actingEnemy.name}.`,
+            "combat-enemy",
+            {
+              round,
+              heroId: target.id,
+              heroName: target.name,
+              monsterId: actingEnemy.id,
+              monsterName: actingEnemy.name,
+              strike,
+              strikeCount: strikes,
+              dodgeChance: targetStats.dodgeChance,
+            },
+          );
+          continue;
+        }
+
+        const hp = Math.max(0, target.currentHp - damage);
+        heroes[targetIndex] = hp === 0
+          ? { ...target, currentHp: 0, isActive: false, status: "resting" }
+          : { ...target, currentHp: hp };
+        log(
+          hp === 0 ? "hero.defeated" : "enemy.hit",
+          hp === 0
+            ? `${strikePrefix}${actingEnemy.name} inflige ${damage} dégâts à ${target.name} (${target.currentHp} → 0/${targetStats.maxHp} PV). ${target.name} s'écroule et retourne aux dortoirs.`
+            : `${strikePrefix}${actingEnemy.name} inflige ${damage} dégâts à ${target.name}.`,
+          hp === 0 ? "defeat" : "combat-enemy",
+          {
+            round,
+            heroId: target.id,
+            heroName: target.name,
+            monsterId: actingEnemy.id,
+            monsterName: actingEnemy.name,
+            strike,
+            strikeCount: strikes,
+            damage,
+            damageType: actingEnemy.damageType,
+            defense,
+            heroHpBefore: target.currentHp,
+            heroHp: hp,
+            heroMaxHp: targetStats.maxHp,
+          },
+        );
+      }
     }
     activeEffects = advanceTemporaryCombatEffects(activeEffects);
   }
 
+  monster = { ...summarizeUndercityGroup(enemyGroup), name: encounterBlueprint.name };
   const victory = monster.hp === 0;
   const finalRoom = isDungeonFinalRoom(floor, room);
-  const firstClear = finalRoom && floor === Number(source.highestFloorReached ?? floor);
+  const accountCompletedFloor = isUndercity
+    ? Object.values(dungeonProgress.heroes).reduce((maximum, progress) => Math.max(maximum, progress.completedFloor), 0)
+    : -1;
+  const firstClear = finalRoom
+    && floor === Number(source.highestFloorReached ?? floor)
+    && (!isUndercity || accountCompletedFloor < floor);
   const majorBoss = finalRoom && isMajorBossFloor(floor);
   if (!victory) {
     log(
@@ -813,7 +915,7 @@ function resolveFight(
   if (victory) {
     const goblinBonus = heroes.some((hero) => hero.race === "Gobelin") ? 1.25 : 1;
     const leaderBonus = 1 + Number(source.buildings?.maison_chef ?? 0) * 0.03;
-    const bossTable = majorBoss ? BOSS_LOOT_TABLES_REGISTRY[monster.name] : undefined;
+    const bossTable = majorBoss ? BOSS_LOOT_TABLES_REGISTRY[canonicalMonsterName] : undefined;
     if (majorBoss && !bossTable) throw new Error(`BOSS_LOOT_TABLE_NOT_FOUND:${monster.name}`);
     const bossGold = bossTable?.goldRange
       ? bossTable.goldRange[0] + rng.nextInt(bossTable.goldRange[1] - bossTable.goldRange[0] + 1)
@@ -864,13 +966,14 @@ function resolveFight(
           rng,
         );
         const instanceId = `item:dungeon:${encounterId}:loot:${loot.length}`;
-        const itemInstance = {
+        const baseItemInstance: StoredItemInstance = {
           instanceId,
           itemId: item.id,
           itemLevel,
           powerModelId: item.powerModelId,
           rarity: drop.rarity,
         };
+        const itemInstance = isUndercity ? applyUndercityThemeToItem(item, baseItemInstance, floor) : baseItemInstance;
         addItemToStorage(storedItems, itemInstance);
         loot.push({ type: 'item', ...itemInstance, count: 1 });
         const itemName = nameItem(item, itemInstance).name;
@@ -883,7 +986,7 @@ function resolveFight(
           blueprints: itemBlueprints,
           source: "boss",
           floor,
-          bossId: monster.name,
+          bossId: canonicalMonsterName,
           chance: reward.chance,
           levelMin: reward.levelMin,
           levelMax: reward.levelMax,
@@ -924,6 +1027,7 @@ function resolveFight(
         loot.length,
         finalRoom ? "boss" : "chest",
         itemRewardRng,
+        isUndercity,
       );
       addItemToStorage(storedItems, reward.instance);
       loot.push({ type: "item", ...reward.instance, count: 1 });
@@ -951,6 +1055,107 @@ function resolveFight(
       });
       return award.hero;
     });
+    if (isUndercity) {
+      const settlement = settleUndercityVictory(
+        dungeonProgress,
+        participantHeroIds,
+        floor,
+        room,
+        getDungeonRoomCount(floor),
+      );
+      dungeonProgress = settlement.progress;
+      const personalKind = floor % 10 === 0 ? "boss" : "elite";
+      for (const heroId of settlement.firstVictoryHeroIds) {
+        const heroIndex = heroes.findIndex((hero) => hero.id === heroId);
+        if (heroIndex < 0 || !settlement.fixedVictoryId) continue;
+        const original = heroes[heroIndex];
+        const personalXp = Math.max(1, Math.floor(monster.xpYield * (
+          personalKind === "boss"
+            ? UNDERCITY_PERSONAL_REWARD_PARAMETERS.bossXpFactor
+            : UNDERCITY_PERSONAL_REWARD_PARAMETERS.eliteXpFactor
+        )));
+        const award = awardExperience(original, personalXp, rng, source.buildings ?? {}, storedItems, xpCurve);
+        storedItems = award.storedItems;
+        appendPendingTransition(pendingClassTransitions, award);
+        heroes[heroIndex] = award.hero;
+        logExperienceAward(log, original, personalXp, award, { source: "floor_first_clear", floor });
+
+        const material = {
+          materialId: personalKind === "boss" ? "refined_metal" : "metal_scrap",
+          rarity: personalKind === "boss" ? "uncommon" as const : "common" as const,
+          count: Math.ceil(floor / 10) * UNDERCITY_PERSONAL_REWARD_PARAMETERS.materialPerBand,
+          name: personalKind === "boss" ? "Métal raffiné" : "Débris métalliques",
+        };
+        forgeMaterials = appendMaterial(forgeMaterials, material);
+        loot.push({ type: "material", ...material });
+        log("reward.personal_first", "Prime personnelle de première victoire.", "loot", {
+          heroId,
+          fixedVictoryId: settlement.fixedVictoryId,
+          xp: personalXp,
+          materialId: material.materialId,
+          rarity: material.rarity,
+          count: material.count,
+        });
+
+        if (personalKind === "boss") {
+          const personalItemIds = [
+            "progression_ring",
+            "progression_amulet",
+            "progression_bracelet",
+            "progression_belt",
+            "progression_cloak",
+            "progression_charm",
+          ] as const;
+          const itemId = personalItemIds[Math.max(0, Math.min(personalItemIds.length - 1, Math.floor(floor / 10) - 1))];
+          const item = ITEM_LIBRARY.find((candidate) => candidate.id === itemId);
+          if (!item) throw new Error(`PERSONAL_REWARD_ITEM_NOT_FOUND:${itemId}`);
+          const itemLevel = Math.max(1, Math.min(original.level, getChestLootBand(floor).levelMax));
+          const instance = {
+            instanceId: `personal-item:${settlement.fixedVictoryId}:${heroId}`,
+            itemId,
+            itemLevel,
+            powerModelId: item.powerModelId,
+            rarity: "rare" as const,
+          };
+          addItemToStorage(storedItems, instance);
+          loot.push({ type: "item", ...instance, count: 1 });
+          log("reward.personal_first_item", "Équipement personnel de première victoire.", "loot", {
+            heroId,
+            fixedVictoryId: settlement.fixedVictoryId,
+            ...instance,
+          });
+        }
+      }
+
+      if (majorBoss && floor === 50) {
+        const markCount = RAT_KING_SIGNATURE_PARAMETERS.marksPerVictory[0]
+          + rng.nextInt(RAT_KING_SIGNATURE_PARAMETERS.marksPerVictory[1] - RAT_KING_SIGNATURE_PARAMETERS.marksPerVictory[0] + 1);
+        const mark = { materialId: RAT_KING_MARK_ID, rarity: "epic" as const, count: markCount, name: "Marque du Roi" };
+        forgeMaterials = appendMaterial(forgeMaterials, mark);
+        loot.push({ type: "material", ...mark });
+        log("reward.rat_king_mark", "Marque du Roi obtenue.", "loot", mark);
+
+        const knownBlueprints = new Set(itemBlueprints.filter((entry) => entry.unlocked).map((entry) => entry.itemId));
+        const missingSignatures = RAT_KING_SIGNATURE_IDS.filter((itemId) => !knownBlueprints.has(itemId));
+        if (missingSignatures.length > 0 && rng.next() < RAT_KING_SIGNATURE_PARAMETERS.blueprintChance) {
+          const itemId = missingSignatures[rng.nextInt(missingSignatures.length)];
+          itemBlueprints = [...itemBlueprints.filter((entry) => entry.itemId !== itemId), { itemId, unlocked: true }];
+          loot.push({ type: "blueprint", itemId, count: 1 });
+          log("reward.rat_king_blueprint", "Plan de signature du Roi obtenu.", "loot", { itemId });
+        }
+
+        if (rng.next() < RAT_KING_SIGNATURE_PARAMETERS.directDropChance) {
+          const itemId = RAT_KING_SIGNATURE_IDS[rng.nextInt(RAT_KING_SIGNATURE_IDS.length)];
+          const rarity = rng.next() < RAT_KING_SIGNATURE_PARAMETERS.legendaryDirectChance ? "legendary" : "epic";
+          const instance = createRatKingSignatureInstance(itemId, rarity, `rat-king-drop:${encounterId}`);
+          addItemToStorage(storedItems, instance);
+          loot.push({ type: "item", ...instance, count: 1 });
+          log("reward.rat_king_signature", "Signature du Roi obtenue.", "loot", { itemId, rarity, instanceId: instance.instanceId });
+        }
+      }
+
+      }
+
     if (firstClear) {
       const xpPool = getPolicyXpPool(xpRewardPolicy, "floor_first_clear", floor);
       const bonusEligibleCount = heroes.filter((hero) => hero.isActive && hero.currentHp > 0).length;
@@ -971,20 +1176,29 @@ function resolveFight(
     if (firstClear) {
       log(
         "dungeon.floor_completed",
-        `Étage ${floor} sécurisé : l'étage ${floor + 1} est désormais accessible.`,
+        floor === UNDERCITY_MAX_FLOOR
+          ? 'Les Dessous de la Cité sont sécurisés. Choisissez une zone à farmer.'
+          : `Étage ${floor} sécurisé : l'étage ${floor + 1} est désormais accessible.`,
         "victory",
-        { completedFloor: floor, unlockedFloor: floor + 1 },
+        { completedFloor: floor, unlockedFloor: Math.min(UNDERCITY_MAX_FLOOR, floor + 1) },
       );
     }
   }
 
-  const progress = victory
+  const resolvedProgress = victory
     ? nextProgress(floor, room, Number(source.highestFloorReached ?? floor))
     : {
         activeDungeonFloor: floor,
         activeDungeonRoom: room,
         highestFloorReached: Number(source.highestFloorReached ?? floor),
       };
+  const progress = isUndercity
+    ? {
+        ...resolvedProgress,
+        activeDungeonFloor: Math.min(UNDERCITY_MAX_FLOOR, resolvedProgress.activeDungeonFloor),
+        highestFloorReached: Math.min(UNDERCITY_MAX_FLOOR, resolvedProgress.highestFloorReached),
+      }
+    : resolvedProgress;
   const goldReward = victory
     ? Number(resources.gold ?? 0) - Number(source.resources?.gold ?? 0)
     : 0;
@@ -998,8 +1212,13 @@ function resolveFight(
       storedItems,
       forgeMaterials,
       itemBlueprints,
+      dungeonProgress,
       pendingClassTransitions,
-      autoExplore: victory ? source.autoExplore ?? false : false,
+      autoExplore: victory
+        ? (isUndercity && finalRoom && floor === UNDERCITY_MAX_FLOOR && dungeonProgress.expedition.mode === 'progression'
+            ? false
+            : source.autoExplore ?? false)
+        : false,
     },
     encounter: {
       encounterId,
@@ -1008,6 +1227,7 @@ function resolveFight(
       room,
       outcome: victory ? "victory" : "defeat",
       roundCount: round,
+      enemies: enemyGroup.members.map((enemy) => ({ id: enemy.id, name: enemy.name, hp: enemy.hp, maxHp: enemy.maxHp, isBoss: enemy.isBoss, role: enemy.role, intent: enemy.intent, effects: [] })),
       enemy: {
         id: monster.id,
         name: monster.name,
@@ -1033,6 +1253,7 @@ function resolveNonFight(
   challengeDifficultyResolver: DungeonChallengeDifficultyResolver,
 ): AuthoritativeDungeonResolution {
   let heroes = clone(source.heroes ?? []);
+  const isUndercity = source.currentEncounter?.dungeonId === UNDERCITY_DUNGEON_ID;
   const resources: Resources = {
     gold: 0,
     food: 0,
@@ -1080,7 +1301,7 @@ function resolveNonFight(
       resources.gold = Number(resources.gold ?? 0) + goldReward;
       log("reward.gold", `+${goldReward} or.`, "loot", { gold: goldReward });
     } else if (ITEM_LIBRARY.length > 0) {
-      const reward = rollCatalogItemReward(floor, encounterId, loot.length, "chest", rng);
+      const reward = rollCatalogItemReward(floor, encounterId, loot.length, "chest", rng, isUndercity);
       addItemToStorage(storedItems, reward.instance);
       loot.push({ type: "item", ...reward.instance, count: 1 });
       log("reward.item", `${reward.itemName} [${reward.instance.rarity}] obtenu.`, "loot", {
@@ -1121,7 +1342,7 @@ function resolveNonFight(
       heroes,
     })) {
       const itemRewardRng = createDungeonItemRewardRng(treasureRewardRoll, floor, room);
-      const reward = rollCatalogItemReward(floor, encounterId, loot.length, "chest", itemRewardRng);
+      const reward = rollCatalogItemReward(floor, encounterId, loot.length, "chest", itemRewardRng, isUndercity);
       addItemToStorage(storedItems, reward.instance);
       loot.push({ type: "item", ...reward.instance, count: 1 });
       log("reward.item", `${reward.itemName} [${reward.instance.rarity}] obtenu.`, "loot", {
@@ -1443,7 +1664,17 @@ export function resolveAuthoritativeDungeonEncounter(
       throw new Error("INVALID_GAME_STATE");
     }
   }
-  const activeHeroes = source.heroes.filter((hero) => hero.isActive && hero.currentHp > 0);
+  const participantHeroIds = source.currentEncounter?.participantHeroIds;
+  const participantHeroIdSet = participantHeroIds ? new Set(participantHeroIds) : null;
+  const resolutionSource = participantHeroIdSet
+    ? {
+        ...source,
+        heroes: source.heroes.map((hero) => participantHeroIdSet.has(hero.id)
+          ? hero
+          : { ...hero, isActive: false }),
+      }
+    : source;
+  const activeHeroes = resolutionSource.heroes.filter((hero) => hero.isActive && hero.currentHp > 0);
   if (activeHeroes.length === 0) throw new Error("NO_ACTIVE_HERO");
   const previousKind = source.encounterHistory?.at(-1)?.kind;
   const excludedType = previousKind && previousKind !== "fight"
@@ -1452,10 +1683,10 @@ export function resolveAuthoritativeDungeonEncounter(
   const kind: DungeonEncounterType = isDungeonFinalRoom(floor, room)
     ? "fight"
     : getRandomDungeonEncounterType(rng, excludedType);
-  return kind === "fight"
-    ? resolveFight(source, floor, room, encounterId, rng, options.xpCurve, xpRewardPolicy)
+  const resolution = kind === "fight"
+    ? resolveFight(resolutionSource, floor, room, encounterId, rng, options.xpCurve, xpRewardPolicy)
     : resolveNonFight(
-        source,
+        resolutionSource,
         kind,
         floor,
         room,
@@ -1465,4 +1696,15 @@ export function resolveAuthoritativeDungeonEncounter(
         xpRewardPolicy,
         challengeDifficultyResolver,
       );
+  if (!participantHeroIdSet) return resolution;
+  const resolvedHeroes = new Map(resolution.state.heroes.map((hero) => [hero.id, hero]));
+  return {
+    ...resolution,
+    state: {
+      ...resolution.state,
+      heroes: source.heroes.map((hero) => participantHeroIdSet.has(hero.id)
+        ? (resolvedHeroes.get(hero.id) ?? hero)
+        : hero),
+    },
+  };
 }

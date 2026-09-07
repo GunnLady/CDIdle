@@ -82,6 +82,25 @@ describe("HeroesPage", () => {
     expect(onDismissHero).toHaveBeenCalledWith("active");
   });
 
+  it("locks party composition during an encounter without blocking recruitment", () => {
+    render(<HeroesPage
+      heroes={[makeHero({ id: "active", name: "Ariane", isActive: true }), makeHero({ id: "reserve", name: "Borin", isActive: false })]}
+      resources={makeResources({ gold: 1_000 })}
+      buildings={{ guilde: 3 }}
+      onDismissHero={vi.fn()}
+      onToggleHeroActive={vi.fn()}
+      onRecruitHero={vi.fn()}
+      {...navigationProps}
+      canChangeComposition={false}
+    />);
+
+    expect(screen.getByRole("button", { name: /Recruter/ })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Retirer Ariane" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Déployer Borin" })).toBeDisabled();
+    expect(screen.getByLabelText("Pourquoi Borin ne peut pas être déployé")).toHaveAccessibleDescription("Rencontre en cours");
+    expect(screen.getByRole("button", { name: "Congédier définitivement" })).toBeDisabled();
+  });
+
   it("keeps the equipped instance technical while targeting it on unequip", () => {
     const onUnequipItem = vi.fn();
     const hero = makeHero({

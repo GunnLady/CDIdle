@@ -1,3 +1,4 @@
+import { synchronizeUndercityParty } from "../../../shared/domain/undercity-progression.ts";
 import type {
   CanonicalHero as Hero,
   CanonicalStoredItemInstance as StoredItemInstance,
@@ -22,6 +23,7 @@ function throwRecruitmentError(error: HeroEligibilityError): never {
 
 export const chooseHeroVocation: TownCommandHandler<"hero.choose_vocation"> = (context, command) => {
   const town = context.town;
+  if (town.currentEncounter) throw new TownCommandError("ENCOUNTER_ACTIVE", "hero vocation cannot change during an encounter");
   const heroes = town.heroes ?? [];
   const pending = town.pendingClassTransitions.find((entry) => entry.heroId === command.heroId);
   if (!pending) throw new TownCommandError("VOCATION_NOT_PENDING", "hero has no pending vocation");
@@ -135,6 +137,7 @@ export const dismissHero: TownCommandHandler<"hero.dismiss"> = (context, command
   const town = context.town;
   const dismissed = town.heroes.find((hero) => hero.id === command.heroId);
   if (!dismissed) throw new TownCommandError("HERO_NOT_FOUND", "hero not found");
+  if (town.currentEncounter) throw new TownCommandError("ENCOUNTER_ACTIVE", "hero cannot be dismissed during an encounter");
   const returnedItems = Object.values(dismissed.equipment ?? {})
     .filter((item): item is NonNullable<typeof item> => Boolean(item));
   return {
@@ -156,15 +159,25 @@ export const changeHeroActivity: TownCommandHandler<"hero.activity"> = (context,
   const town = context.town;
   const hero = town.heroes.find((entry) => entry.id === command.heroId);
   if (!hero) throw new TownCommandError("HERO_NOT_FOUND", "hero not found");
+  if (town.currentEncounter) throw new TownCommandError("ENCOUNTER_ACTIVE", "hero activity cannot change during an encounter");
   if (command.active && Number(hero.currentHp ?? 0) <= 0) throw new TownCommandError("INVALID_HEALTH", "hero has no health");
   const occupiedSlots = town.heroes.filter((entry) => entry.isActive).length;
-  if (command.active && occupiedSlots >= ACTIVE_HERO_LIMIT) throw new TownCommandError("ACTIVE_LIMIT", "active hero limit reached");
+  if (command.active && !hero.isActive && occupiedSlots >= ACTIVE_HERO_LIMIT) {
+    throw new TownCommandError("ACTIVE_LIMIT", "active hero limit reached");
+  }
+  const heroes = town.heroes.map((entry) => entry.id === command.heroId
+    ? { ...entry, isActive: command.active, status: command.active ? "idle" as const : "resting" as const }
+    : entry);
+  const activeHeroIds = heroes.filter((entry) => entry.isActive && entry.currentHp > 0).map((entry) => entry.id);
+  const dungeonProgress = synchronizeUndercityParty(town.dungeonProgress, activeHeroIds);
   return {
     state: {
       ...town,
-      heroes: town.heroes.map((entry) => entry.id === command.heroId
-        ? { ...entry, isActive: command.active, status: command.active ? "idle" : "resting" }
-        : entry),
+      heroes,
+      dungeonProgress,
+      activeDungeonFloor: dungeonProgress.expedition.floor,
+      activeDungeonRoom: dungeonProgress.expedition.room,
+      autoExplore: false,
     },
     events: [{ type: "hero.activity_changed", heroId: command.heroId, active: command.active }],
   };

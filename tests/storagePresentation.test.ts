@@ -66,8 +66,16 @@ describe("storage presentation", () => {
 
     const summary = createStorageSummaryView(1, true, [
       { materialId: "metal_scrap", rarity: "common", count: 7 },
+      { materialId: "rat_king_mark", rarity: "epic", count: 2 },
     ]);
     expect(summary.itemCount).toBe(1);
     expect(summary.materials.find((material) => material.id === "metal_scrap")?.count).toBe(7);
+    expect(summary.bossComponents).toEqual([
+      expect.objectContaining({
+        bossId: "undercity:boss:50",
+        bossName: "Roi des Rats",
+        materials: [expect.objectContaining({ id: "rat_king_mark", count: 2 })],
+      }),
+    ]);
   });
 });

@@ -30,13 +30,14 @@ import {
 const migrationContext = (seed = 42) => ({ defaults: initialTownState(seed), legacySeed: seed });
 
 describe("canonical state migrations", () => {
-  it("registers contiguous v0 -> v1 -> v2 -> v3 -> v4 migrations", () => {
-    expect(CURRENT_CANONICAL_STATE_VERSION).toBe(4);
+  it("registers contiguous v0 -> v1 -> v2 -> v3 -> v4 -> v5 migrations", () => {
+    expect(CURRENT_CANONICAL_STATE_VERSION).toBe(5);
     expect(CANONICAL_STATE_MIGRATIONS.map(({ from, to }) => ({ from, to }))).toEqual([
       { from: 0, to: 1 },
       { from: 1, to: 2 },
       { from: 2, to: 3 },
       { from: 3, to: 4 },
+      { from: 4, to: 5 },
     ]);
   });
 
@@ -68,7 +69,7 @@ describe("canonical state migrations", () => {
       },
     } as unknown as Record<string, unknown>;
     const migrated = migrateCanonicalState(v3, migrationContext());
-    expect(migrated.stateVersion).toBe(4);
+    expect(migrated.stateVersion).toBe(5);
     expect(migrated.storedItems).toEqual(inventory);
     expect(migrated.itemBlueprints).toEqual([
       { itemId: "progression_sword", unlocked: true },
@@ -130,7 +131,7 @@ describe("canonical state migrations", () => {
     } as unknown as Record<string, unknown>;
 
     const migrated = migrateCanonicalState(v2, migrationContext());
-    expect(migrated.stateVersion).toBe(4);
+    expect(migrated.stateVersion).toBe(5);
     expect(migrated.storedItems[0]).toMatchObject({ itemLevel: 1, powerModelId: 'legacy-fixed-v1' });
     for (const hero of [migrated.heroes[0], migrated.onboardingCandidates?.[0], migrated.pendingRecruit]) {
       expect(hero?.equipment?.mainHand).toMatchObject({ itemLevel: 1, powerModelId: 'legacy-fixed-v1' });
@@ -168,7 +169,8 @@ describe("canonical state migrations", () => {
     expect(replayed).toEqual(first);
     expect(first.rngState).toEqual(before.rngState);
     expect(first.storedItems[0].instanceId).toBe("fixture-item");
-    expect(first.encounterHistory).toEqual(before.encounterHistory);
+    expect(first.encounterHistory[0]).toMatchObject(before.encounterHistory[0]);
+    expect(first.encounterHistory[0]).toMatchObject({ dungeonId: "undercity", enemies: [] });
     expect(validateCanonicalGameState(first)).toEqual([]);
   });
 

@@ -2,9 +2,9 @@
 
 ## Statut
 
-Décisions validées : Croc du Roi, Manteau des Exclus et Chaîne des tributs, chacun avec son blueprint ; un composant commun à leurs recettes. Niveau 35, rareté épique minimale, statistiques fixes, malus sur la version épique et aucun malus sur la version légendaire. Le harness applique ces règles ; leur équilibrage reste expérimental. Le jeu de production n'est pas modifié.
+Décisions validées et intégrées : Croc du Roi, Manteau des Exclus et Chaîne des tributs, chacun avec son blueprint ; un composant commun à leurs recettes. Niveau 35, rareté épique minimale, statistiques fixes, malus sur la version épique et aucun malus sur la version légendaire. Le harness et le jeu appliquent ces règles ; leur équilibrage reste configurable.
 
-Référence : [prompt de progression](undercity-progression-prompt.md). Le périmètre reste harness et documentation uniquement.
+Référence : [prompt de progression](undercity-progression-prompt.md). L'intégration produit est décrite dans [l'architecture des Dessous de la Cité](../architecture/undercity.md).
 
 ## Référence au boss réellement simulé
 
@@ -64,7 +64,7 @@ Composant commun : Marque du Roi, pièce de tribut frappée de son sceau. Param�
 2. Fait : types, emplacements, niveau 35, restrictions de dague et de cuir passent la validation du catalogue injecté. Les héros de campagne atteignent le Roi aux niveaux 35 à 40.
 3. Fait dans le harness : comparaison avec 100 affixes déterministes par base ordinaire comparable, au niveau 35 et à rareté égale, sur un Voleur représentatif. Le score reprend les statistiques de combat canoniques et isole le rôle de chaque objet : offense du Croc, robustesse du Manteau, survie mobile de la Chaîne. Le seuil retenu pour qualifier une signature de puissante est le 90e percentile des objets ordinaires de même rôle.
 4. Fait en déterministe : trois plans séparés, conservation du plan, composant commun, consommation exacte, première victoire/farm et tirage unique par rencontre. Sur dix parcours naturels, quatre plans et trois signatures directes apparaissent ; aucune fabrication, car le seul parcours réunissant plan et six Marques reçoit le plan à sa dernière victoire.
-5. Le moteur de combat et les classes restent inchangés. Une intégration produit devra remplacer l'injection du bundle et la couche de craft du harness par des contrats du domaine partagé, puis couvrir sauvegarde, replay et idempotence backend.
+5. Fait dans le produit : les objets, plans, Marques et recettes utilisent le domaine partagé, la résolution canonique et la persistance v5. Les effets avancés restent différés ; les tests automatisés couvrent le catalogue, la forge et la résolution du Roi.
 
 ## Comparaison de puissance
 
@@ -79,3 +79,8 @@ Après recalibrage, les six variantes dépassent le 90e percentile ordinaire de 
 | Chaîne des tributs | percentile 91,2 | percentile 91 |
 
 Cette preuve établit une puissance élevée dans l'identité prévue, pas une domination de toutes les constructions. Elle ne mesure pas encore la durée d'un parcours complet équipé de chaque signature.
+
+
+## Intégration produit autorisée — 2026-09-06
+
+Les trois signatures, leurs plans et la Marque du Roi sont maintenant définis dans le domaine partagé et raccordés au loot canonique du Roi et à la forge. Les effets avancés restent différés. Voir [l'architecture des Dessous de la Cité](../architecture/undercity.md) et [le domaine de forge](../architecture/forge-domain.md).

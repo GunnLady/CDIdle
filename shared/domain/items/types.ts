@@ -121,4 +121,6 @@ export type CanonicalStoredItemInstance = {
   powerModelId: CanonicalItemPowerModelId;
   rarity: CanonicalRarity;
   modifiers?: CanonicalItemModifier[];
+  sourceDungeonId?: string;
+  sourceZoneId?: string;
 };

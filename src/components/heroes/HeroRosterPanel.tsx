@@ -14,6 +14,7 @@ interface HeroRosterPanelProps {
   canRecruit: boolean;
   recruitmentBlockReason?: string;
   canMutate: boolean;
+  canChangeComposition: boolean;
   onSelectHero: (heroId: string) => void;
   onToggleHeroActive: (heroId: string) => void;
   onRecruitHero: () => void;
@@ -27,8 +28,8 @@ export default function HeroRosterPanel(props: HeroRosterPanelProps) {
     {recruitReason && <Alert variant="locked" className="mb-3 text-center text-[13px]">{recruitReason}</Alert>}
     {props.roster.length === 0 ? <Alert variant="info" className="text-center">Aucun aventurier recruté.</Alert> : <div className="max-h-[28rem] space-y-2 overflow-y-auto pr-1 xl:min-h-0 xl:max-h-none xl:flex-1">
       {props.roster.map((hero) => {
-        const activityDisabled = !props.canMutate || (!hero.isActive && !hero.canDeploy);
-        const activityUnavailableReason = !props.canMutate ? "Lecture seule" : !hero.isActive ? hero.deploymentBlockReason : undefined;
+        const activityDisabled = !props.canChangeComposition || (!hero.isActive && !hero.canDeploy);
+        const activityUnavailableReason = !props.canMutate ? "Lecture seule" : !props.canChangeComposition ? "Rencontre en cours" : !hero.isActive ? hero.deploymentBlockReason : undefined;
         const selected = props.selectedHeroId === hero.id;
         const activityAction = <Button type="button" size="xs" variant={hero.isActive ? "secondary" : "primary"} aria-label={`${hero.isActive ? "Retirer" : "Déployer"} ${hero.name}`} disabled={activityDisabled} onClick={() => props.onToggleHeroActive(hero.id)}>{hero.isActive ? "Retirer" : "Déployer"}</Button>;
         return <article key={hero.id} data-selected={selected || undefined}><HeroDetailFrame compact className={selected ? "shadow-[inset_0_0_18px_rgba(202,160,80,0.18)]" : undefined}>

@@ -15,6 +15,7 @@ import { TIER1_CLASS_EQUIPMENT_POOLS, type Tier1ClassType } from '../shared/data
 import { resolveAuthoritativeDungeonEncounter } from '../shared/domain/authoritative-dungeon';
 import { makeHero, makeResources } from './fixtures/game';
 import type { CanonicalDamageType, CanonicalStoredItemInstance } from '../shared/domain/items/types';
+import { RAT_KING_SIGNATURE_IDS } from '../shared/domain/items/items_rat_king';
 
 afterEach(() => vi.restoreAllMocks());
 const instanceFor = (itemId = 'progression_sword', rarity: NamingInstance['rarity'] = 'rare', level = 11): CanonicalStoredItemInstance => ({
@@ -50,7 +51,7 @@ describe('shared item naming V1', () => {
   });
 
   it('preserves every legacy name, including old instances without level metadata', () => {
-    const legacy = ITEM_LIBRARY.filter((base) => base.powerModelId === 'legacy-fixed-v1');
+    const legacy = ITEM_LIBRARY.filter((base) => base.powerModelId === 'legacy-fixed-v1' && !RAT_KING_SIGNATURE_IDS.includes(base.id as typeof RAT_KING_SIGNATURE_IDS[number]));
     expect(legacy).toHaveLength(131);
     for (const base of legacy) expect(named({ instanceId: `old:${base.id}`, itemId: base.id, rarity: base.minimumRarity })).toMatchObject({ mode: 'legacy', name: base.name });
   });

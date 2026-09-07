@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import DungeonPage from "../../../src/components/dungeon/DungeonPage";
 import type { Hero } from "../../../src/types";
 import { makeHero } from "../../fixtures/game";
+import { createUndercityProgress } from "../../../shared/domain/undercity-progression";
 import "../../../src/index.css";
 
 const readOnly = new URLSearchParams(window.location.search).get("readonly") === "1";
@@ -27,6 +28,7 @@ function Harness() {
       activeDungeonFloor={3}
       activeDungeonRoom={4}
       autoExplore={false}
+      dungeonProgress={createUndercityProgress(["ariane", "borin", "celia"], 2)}
       battleLogs={[{ id: "colony", timestamp: "10:00", message: "Récolte terminée", type: "info", category: "colony" }]}
       highestFloorReached={4}
       canMutate={!readOnly}
@@ -50,6 +52,8 @@ function Harness() {
       onRetreatParty={recordMutation}
       onClearBattleLogs={recordMutation}
       onResetLevel={recordMutation}
+      onResume={recordMutation}
+      onSelectFarmZone={recordMutation}
       onToggleHeroActive={toggleHero}
     />
   </main>;

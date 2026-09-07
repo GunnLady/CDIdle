@@ -1,6 +1,6 @@
 import { RARITY_ORDER, getItemById } from "../../shared/domain/items/items";
 import type { Hero, ItemInfo, StoredForgeMaterialStack, StoredItemInstance } from "../types";
-import { FORGE_MATERIALS } from "../utils/gameCalculations";
+import { createForgeMaterialReserveView, type BossComponentGroupView, type ForgeMaterialView } from "./forgeMaterialPresentation";
 import {
   createEquipmentCandidateTargetView,
   createEquipmentItemView,
@@ -36,7 +36,8 @@ export interface StorageInventoryItemView {
 export interface StorageSummaryView {
   itemCount: number;
   forgeUnlocked: boolean;
-  materials: Array<{ id: string; name: string; description: string; count: number }>;
+  materials: ForgeMaterialView[];
+  bossComponents: BossComponentGroupView[];
 }
 
 export interface StorageHeroEquipmentTargetView {
@@ -121,16 +122,10 @@ export function createStorageSummaryView(
   forgeUnlocked: boolean,
   forgeMaterials: StoredForgeMaterialStack[],
 ): StorageSummaryView {
-  return {
-    itemCount,
-    forgeUnlocked,
-    materials: forgeUnlocked ? FORGE_MATERIALS.map((material) => ({
-      id: material.id,
-      name: material.name,
-      description: material.description,
-      count: forgeMaterials.find((stack) => stack.materialId === material.id)?.count ?? 0,
-    })) : [],
-  };
+  const reserve = forgeUnlocked
+    ? createForgeMaterialReserveView(forgeMaterials)
+    : { materials: [], bossComponents: [] };
+  return { itemCount, forgeUnlocked, ...reserve };
 }
 
 function matchesLevel(requiredLevel: number, range: StorageLevelRange): boolean {

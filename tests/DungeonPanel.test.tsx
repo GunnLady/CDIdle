@@ -4,6 +4,11 @@ import DungeonPanel from "../src/components/DungeonPanel";
 import type { CanonicalDungeonEncounterRecord } from "../shared/contracts/authoritative";
 import type React from "react";
 import { makeHero } from "./fixtures/game";
+import {
+  createUndercityProgress,
+  haltUndercityExpedition,
+  selectUndercityFarmZone,
+} from "../shared/domain/undercity-progression";
 
 const encounter: CanonicalDungeonEncounterRecord = {
   encounterId: "encounter-test",
@@ -25,6 +30,7 @@ const props = {
   activeDungeonFloor: 2,
   activeDungeonRoom: 8,
   autoExplore: false,
+  dungeonProgress: createUndercityProgress([], 1),
   battleLogs: [],
   highestFloorReached: 2,
   canMutate: true,
@@ -38,6 +44,8 @@ const props = {
   onRetreatParty: vi.fn(),
   onClearBattleLogs: vi.fn(),
   onResetLevel: vi.fn(),
+  onResume: vi.fn(),
+  onSelectFarmZone: vi.fn(),
   onToggleHeroActive: vi.fn(),
 } satisfies React.ComponentProps<typeof DungeonPanel>;
 
@@ -168,5 +176,149 @@ describe("DungeonPanel authoritative structure", () => {
     render(<DungeonPanel {...props} heroes={[reserve]} onToggleHeroActive={onToggleHeroActive} />);
     fireEvent.click(screen.getByRole("button", { name: "Déployer Réserve" }));
     expect(onToggleHeroActive).toHaveBeenCalledWith("reserve");
+  });
+
+  it("exposes resume while halted and blocks progression controls", () => {
+    const hero = makeHero({ id: "halted-hero", isActive: true });
+    const progress = haltUndercityExpedition(createUndercityProgress([hero.id], 5), "wipe");
+    const onResume = vi.fn();
+    render(<DungeonPanel
+      {...props}
+      heroes={[hero]}
+      activeDungeonFloor={6}
+      activeDungeonRoom={1}
+      highestFloorReached={6}
+      dungeonProgress={progress}
+      isExploring={false}
+      onResume={onResume}
+    />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Reprendre" }));
+    expect(onResume).toHaveBeenCalledOnce();
+    expect(screen.getByRole("button", { name: "Exploration auto" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Étage précédent" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Étage suivant" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Réinitialiser l’étage" })).toBeDisabled();
+  });
+
+  it("locks floor navigation in farm and dispatches a zone change", () => {
+    const hero = makeHero({ id: "farm-hero", isActive: true });
+    const progress = selectUndercityFarmZone(createUndercityProgress([hero.id], 50), [hero.id], "sewers");
+    const onSelectFarmZone = vi.fn();
+    render(<DungeonPanel
+      {...props}
+      heroes={[hero]}
+      activeDungeonFloor={1}
+      activeDungeonRoom={1}
+      highestFloorReached={50}
+      dungeonProgress={progress}
+      isExploring={false}
+      onSelectFarmZone={onSelectFarmZone}
+    />);
+
+    expect(screen.getByRole("button", { name: "Exploration auto" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Étage précédent" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Étage suivant" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Réinitialiser l’étage" })).toBeDisabled();
+    fireEvent.click(screen.getByRole("button", { name: "Galeries des contrebandiers" }));
+    expect(onSelectFarmZone).toHaveBeenCalledWith("smugglers");
+  });
+
+  it("locks composition, navigation and farm selection during an active encounter", () => {
+    const active = makeHero({ id: "active-fighter", name: "Ariane", isActive: true });
+    const reserve = makeHero({ id: "reserve-fighter", name: "Borin", isActive: false });
+    const progress = selectUndercityFarmZone(createUndercityProgress([active.id], 50), [active.id], "sewers");
+    render(<DungeonPanel
+      {...props}
+      heroes={[active, reserve]}
+      activeDungeonFloor={1}
+      activeDungeonRoom={1}
+      highestFloorReached={50}
+      dungeonProgress={progress}
+      isExploring={false}
+      activeEncounter={{
+        encounterId: "farm-encounter",
+        kind: "pending",
+        status: "active",
+        dungeonId: "undercity",
+        floor: 1,
+        room: 1,
+        participantHeroIds: [active.id],
+        commandId: "farm-command",
+      }}
+    />);
+
+    expect(screen.getByRole("button", { name: "Retirer Ariane" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Déployer Borin" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Galeries des contrebandiers" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Étage précédent" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Étage suivant" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Réinitialiser l’étage" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Repli au campement" })).toBeEnabled();
+  });
+
+  it("allows switching farm zone while the expedition is halted", () => {
+    const hero = makeHero({ id: "halted-farmer", isActive: true });
+    const progress = haltUndercityExpedition(
+      selectUndercityFarmZone(createUndercityProgress([hero.id], 50), [hero.id], "sewers"),
+      "wipe",
+    );
+    const onSelectFarmZone = vi.fn();
+    render(<DungeonPanel
+      {...props}
+      heroes={[hero]}
+      activeDungeonFloor={1}
+      activeDungeonRoom={1}
+      highestFloorReached={50}
+      dungeonProgress={progress}
+      isExploring={false}
+      onSelectFarmZone={onSelectFarmZone}
+    />);
+
+    const zoneButton = screen.getByRole("button", { name: "Galeries des contrebandiers" });
+    expect(zoneButton).toBeEnabled();
+    fireEvent.click(zoneButton);
+    expect(onSelectFarmZone).toHaveBeenCalledWith("smugglers");
+    expect(screen.getByRole("button", { name: "Reprendre" })).toBeEnabled();
+  });
+
+  it("requires a farm choice after the shared Rat King victory", () => {
+    const hero = makeHero({ id: "king-slayer-ui", isActive: true });
+    const progress = createUndercityProgress([hero.id], 50);
+    render(<DungeonPanel
+      {...props}
+      heroes={[hero]}
+      activeDungeonFloor={50}
+      activeDungeonRoom={1}
+      highestFloorReached={50}
+      dungeonProgress={progress}
+      isExploring={false}
+    />);
+
+    expect(screen.getByRole("button", { name: "Exploration auto" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Explorer la salle" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Étage précédent" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Égouts infestés" })).toBeEnabled();
+  });
+
+  it("blocks the next-floor control at the least advanced active hero ceiling", () => {
+    const veteran = makeHero({ id: "ui-veteran", name: "Vétéran", isActive: true });
+    const novice = makeHero({ id: "ui-novice", name: "Novice", isActive: true });
+    const progress = createUndercityProgress([veteran.id, novice.id]);
+    progress.heroes[veteran.id].completedFloor = 50;
+    progress.heroes[novice.id].completedFloor = 10;
+    progress.expedition = { ...progress.expedition, floor: 11, room: 1 };
+    render(<DungeonPanel
+      {...props}
+      heroes={[veteran, novice]}
+      activeDungeonFloor={11}
+      activeDungeonRoom={1}
+      highestFloorReached={50}
+      dungeonProgress={progress}
+      isExploring={false}
+    />);
+
+    expect(screen.getByRole("button", { name: "Étage précédent" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Étage suivant" })).toBeDisabled();
   });
 });

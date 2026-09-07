@@ -20,7 +20,7 @@ Mettre à jour uniquement le harness expérimental et sa documentation. Ne pas m
 14. Une seule expédition active. Formations enregistrées et expéditions simultanées différées ; structurer les données pour les accueillir, sans les implémenter maintenant.
 15. Difficulté supérieure et compétences rares apprises par palier sont différées. Garder pour plus tard une distinction personnelle cosmétique après la victoire sur le Roi (titre, bestiaire ou apparence), sans bonus de puissance.
 16. Repli volontaire ET wipe : conserver tout le butin des rencontres déjà terminées. Le combat perdu ne donne aucune récompense. Ne pas confisquer les récompenses précédentes et ne pas ajouter de pénalité économique spécifique. Les conséquences du wipe restent le repos et le retour au point de reprise, avec relance manuelle.
-17. Aucune modification de composition en plein combat. Si le jeu permet de recevoir une demande de repli ou de changement de zone pendant une rencontre, elle prend effet après sa résolution, avant la suivante. Ne pas ajouter une interaction en combat absente du jeu. Un changement de zone de farm repart au début de la nouvelle zone et conserve le butin acquis.
+17. Aucune modification de composition en plein combat. Le repli volontaire conserve le comportement historique : il annule immédiatement la rencontre active, sans récompense ni progression pour cette rencontre, puis arrête l'expédition au jalon. Un changement de zone de farm reste refusé pendant une rencontre ; hors combat, il repart au début de la nouvelle zone et conserve le butin acquis.
 18. Pas de système de pity pour le moment : drops aléatoires et fabrication lorsque le blueprint est obtenu. Aucun compteur augmentant les chances après des échecs et aucune garantie d'objet ou de plan après un nombre de victoires. La fabrication est une voie alternative ; elle ne protège pas automatiquement contre la malchance d'obtention du blueprint.
 
 
@@ -47,9 +47,9 @@ Exécuter les campagnes déterministes avec 10 seeds et 10 processus. Mesurer r�
 
 ## État d'application et preuves
 
-Le moteur du jeu reste inchangé. Le harness implémente désormais : arrêt sur wipe/repli puis commande explicite de reprise du bot ; équipement ordinaire rare par héros à la première victoire de chaque boss fixe ; pool de loot propre à chaque zone ; trois signatures du Roi injectées uniquement dans le bundle ; Marque du Roi, blueprints et craft dédiés ; aucun pity. Les tests déterministes ciblés passent. La campagne actuelle `undercity-theme-pools-v1` termine 30/30 parcours avec dix seeds et dix processus ; les audits de conservation, temps, rencontres, primes personnelles, farm et signatures passent.
+Le harness de validation implémente : arrêt sur wipe/repli puis commande explicite de reprise du bot ; équipement ordinaire rare par héros à la première victoire de chaque boss fixe ; pool de loot propre à chaque zone ; trois signatures du Roi injectées uniquement dans le bundle ; Marque du Roi, blueprints et craft dédiés ; aucun pity. Les tests déterministes ciblés passent. La campagne actuelle `undercity-theme-pools-v1` termine 30/30 parcours avec dix seeds et dix processus ; les audits de conservation, temps, rencontres, primes personnelles, farm et signatures passent.
 
-Vérification du code actuel : les cinq tables canoniques de boss possèdent une entrée blueprints à 5 % de chance de tentative. Le tirage requiert un plan éligible non déjà débloqué ; 5 % n'est donc pas une garantie d'obtenir un nouveau plan à chaque série de vingt victoires. Le harness conserve ce chemin canonique et ajoute le tirage expérimental des trois plans du Roi. Une future intégration produit devra réunir ces chemins dans une table explicite sans perdre les blueprints existants ; leurs probabilités finales restent à calibrer.
+Vérification du code actuel : les cinq tables canoniques de boss possèdent une entrée blueprints à 5 % de chance de tentative. Le tirage requiert un plan éligible non déjà débloqué ; 5 % n'est donc pas une garantie d'obtenir un nouveau plan à chaque série de vingt victoires. Le harness conserve ce chemin canonique et ajoute le tirage expérimental des trois plans du Roi. L'intégration produit conserve le chemin canonique des blueprints existants et ajoute la table explicite des trois plans du Roi ; leurs probabilités restent configurables pour recalibrage.
 
 ## Craft — décisions validées
 
@@ -58,7 +58,7 @@ Vérification du code actuel : les cinq tables canoniques de boss possèdent une
 3. Acquisition : une petite quantité garantie à chaque victoire sur le Roi des Rats, y compris en farm et dès la première victoire. Les blueprints et signatures directement trouvées restent aléatoires ; aucun pity. Le composant répétable est un gain de rencontre, distinct des primes personnelles.
 4. Consommation : le composant est dépensé à chaque fabrication ; le blueprint débloqué est conservé. Aucune nouvelle consommation n'est implicitement ajoutée aux autres opérations de forge.
 
-Ces règles sont implémentées dans le harness. Paramètres expérimentaux : 1–2 Marques par victoire ; 6 Marques, 18 débris métalliques et 3 métaux raffinés par recette ; 15 % de signature directe ; 20 % de découverte d'un plan manquant ; 4 % de craft légendaire. Aucun de ces taux ne vaut encore équilibrage produit.
+Ces règles sont implémentées dans le harness et dans le domaine produit partagé. Paramètres configurables : 1–2 Marques par victoire ; 6 Marques, 18 débris métalliques et 3 métaux raffinés par recette ; 15 % de signature directe ; 20 % de découverte d'un plan manquant ; 4 % de craft légendaire. Aucun de ces taux ne vaut encore équilibrage produit.
 
 ## Signatures — décisions validées
 
@@ -74,7 +74,7 @@ Validation ciblée présente : signature accessible dès la première victoire e
 
 Les propositions de récupération conditionnelle, de frappe supplémentaire liée à un objet, de protection automatique d'un allié et de frappe secondaire sont des idées futures, pas des capacités vérifiées du moteur ni des exigences du sous-lot. Leur reprise dépend d'un inventaire des effets existants et d'une décision explicite d'étendre le système d'équipement. Avant intégration : définir déclenchement, cumul et interaction avec compétences, vérifier la résolution canonique et les replays, puis mesurer l'équilibrage dans le harness. Aucun de ces effets ne doit être simulé comme acquis pour valider la série actuelle.
 
-Fiches validées et paramètres implémentés dans le harness : [Série du Roi des Rats](rat-king-signature-items.md). Elles ne décrivent pas des objets présents dans le jeu de production.
+Fiches validées et paramètres implémentés dans le harness et le jeu : [Série du Roi des Rats](rat-king-signature-items.md).
 
 ## Décisions d'intégration produit validées
 
@@ -88,3 +88,8 @@ Fiches validées et paramètres implémentés dans le harness : [Série du Roi d
 Le moteur de nommage V1 choisit déjà ses thèmes parmi les modificateurs positifs réellement résolus et persistés. Un bonus de zone devient donc automatiquement éligible : vitesse peut produire « de célérité », résistance au poison « de garde contre le poison », critique « du coup décisif ». Il n'est cependant pas garanti d'être le thème retenu si l'objet possède plusieurs bonus.
 
 Dans l'interface actuelle, ne pas ajouter de badge ni de libellé indiquant qu'un objet est thématique d'une zone. Le bonus thématique reste une statistique réelle de l'objet et participe au nommage existant comme les autres modificateurs ; ne pas forcer le nom de la zone dans le nom principal. Chaque objet thématique conserve toutefois une provenance technique avec l'identifiant du donjon et celui de la zone, sans affichage pour le joueur. Cette provenance servira au diagnostic, aux migrations et aux évolutions futures. Si une table de loot visible est ajoutée plus tard, elle devra présenter clairement les pools thématiques des zones ; son contrat d'affichage sera défini avec cette fonctionnalité.
+
+
+## Intégration produit autorisée — 2026-09-06
+
+Le périmètre initial du présent prompt était le harness. Après validation des résultats et des décisions ci-dessus, l'intégration dans le jeu a été explicitement autorisée. La source d'architecture et l'état des raccords se trouvent dans [l'architecture des Dessous de la Cité](../architecture/undercity.md). Les paramètres issus du harness restent configurables ; le harness demeure une preuve statistique et ne remplace pas les règles produit.

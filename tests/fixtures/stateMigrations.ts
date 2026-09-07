@@ -47,9 +47,15 @@ export const legacyV0GoldenBefore: Record<string, unknown> = {
 
 export const currentV4GoldenAfter: Record<string, unknown> = {
   ...legacyV0GoldenBefore,
-  stateVersion: 4,
+  stateVersion: 5,
   heroProgressionModelId: "legacy-global-v1",
   pendingRecruit: undefined,
+  pendingForge: undefined,
+  dungeonProgress: {
+    dungeonId: "undercity",
+    heroes: {},
+    expedition: { dungeonId: "undercity", mode: "progression", zoneId: null, floor: 1, room: 1, halted: false, haltReason: null },
+  },
   buildings: { ...buildings },
   itemBlueprints: [
     { itemId: "progression_sword", unlocked: true },

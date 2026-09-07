@@ -27,7 +27,7 @@ export const UNDERCITY_ZONES = [
   boss:escort('Le Porte-étendard des Exclus',['Garde des remparts','Le Porte-étendard des Exclus','Guérisseur du bastion'])},
  {id:'court',name:'Cour du Roi des Rats',encounters:[
   escort('Garde des exclus',['Bouclier de la Cour','Arbalétrier de la Cour','Soigneur de la Cour']),
-  pack('Vermine de la Cour',['Rat couronné','Rat des festins','Rat des oubliettes']),
+  pack('Vermine de la Cour',['Rat couronné','Rat des oubliettes']),
   escort('Escorte du chambellan',['Garde du chambellan','Chambellan des profondeurs','Apothicaire de la Cour']),
   solo('Champion de la Cour')],
   boss:{name:'Le Roi des Rats',behavior:'king',members:[

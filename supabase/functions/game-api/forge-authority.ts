@@ -2,6 +2,12 @@ import type { CanonicalRng } from "./authoritative-rng.ts";
 import { resolveAuthoritativeNoviceItemModifiers } from "./novice-stats-authority.ts";
 import { ITEM_LIBRARY, getItemById, rarityRank } from "../../../shared/domain/items/items.ts";
 import { nameItem } from "../../../shared/domain/items/naming.ts";
+import {
+  RAT_KING_SIGNATURE_IDS,
+  RAT_KING_SIGNATURE_PARAMETERS,
+  createRatKingSignatureInstance,
+  type RatKingSignatureId,
+} from "../../../shared/domain/items/items_rat_king.ts";
 import type {
   CanonicalForgeMaterialStack,
   CanonicalGameState,
@@ -51,6 +57,7 @@ export class ForgeCommandError extends Error {
 
 const clone = <T>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
 const RARITIES = new Set<ForgeRarity>(["common", "uncommon", "rare", "epic", "legendary"]);
+const isRatKingSignature = (itemId: string): itemId is RatKingSignatureId => RAT_KING_SIGNATURE_IDS.includes(itemId as RatKingSignatureId);
 
 const ALL_RECIPES: Record<string, Recipe> = Object.fromEntries(
   ITEM_LIBRARY
@@ -66,7 +73,7 @@ const ALL_RECIPES: Record<string, Recipe> = Object.fromEntries(
 const RECIPES: Record<string, Recipe> = Object.fromEntries(
   Object.entries(ALL_RECIPES).filter(([itemId]) => {
     const item = getItemById(itemId);
-    return item?.catalogStatus === "active" && item.powerModelId === "level-bands-v1";
+    return item?.catalogStatus === "active" && (item.powerModelId === "level-bands-v1" || RAT_KING_SIGNATURE_IDS.includes(itemId as RatKingSignatureId));
   }),
 );
 
@@ -198,11 +205,16 @@ export function applyForgeCommand(
       ? FORGE_LEVEL_BAND_STARTS[Math.min(forgeLevel, FORGE_LEVEL_BAND_STARTS.length) - 1]
       : recipe.levelRange.min);
     const costLevel = recipe.powerModelId === 'level-bands-v1' ? requestedBandMin : recipe.levelRange.min;
-    const craftCost = recipe.powerModelId === 'level-bands-v1'
-      ? scaleForgeMaterialsForItemLevel(FORGE_CRAFT_COST, costLevel)
-      : FORGE_CRAFT_COST;
+    const signatureRecipe = isRatKingSignature(recipe.itemId);
+    const craftCost = signatureRecipe
+      ? RAT_KING_SIGNATURE_PARAMETERS.recipeCosts
+      : recipe.powerModelId === 'level-bands-v1'
+        ? scaleForgeMaterialsForItemLevel(FORGE_CRAFT_COST, costLevel)
+        : FORGE_CRAFT_COST;
     const nextMaterials = consume(materials, craftCost);
-    const rolledRarity = rollOfferedRarity(rng, forgeLevel);
+    const rolledRarity = signatureRecipe
+      ? (rng.next() < RAT_KING_SIGNATURE_PARAMETERS.legendaryCraftChance ? "legendary" : "epic")
+      : rollOfferedRarity(rng, forgeLevel);
     const offeredRarity = rarityRank(rolledRarity) > rarityRank(recipe.minimumRarity)
       ? rolledRarity
       : recipe.minimumRarity;
@@ -239,11 +251,12 @@ export function applyForgeCommand(
     const itemLevel = pending.itemLevel ?? itemDefinition.requiredLevel;
     const powerModelId = pending.powerModelId ?? itemDefinition.powerModelId;
     const offeredRarity = ensureRarity(pending.offeredRarity);
+    const signatureRecipe = isRatKingSignature(recipe.itemId);
 
-    let rarity: ForgeRarity = recipe.minimumRarity;
+    let rarity: ForgeRarity = signatureRecipe ? offeredRarity : recipe.minimumRarity;
     let modifier: CanonicalStatModifier | undefined;
     let nextMaterials = materials;
-    if (typed.acceptUpgrade) {
+    if (!signatureRecipe && typed.acceptUpgrade) {
       if (rarityRank(offeredRarity) <= rarityRank(recipe.minimumRarity)) throw new ForgeCommandError("UPGRADE_UNAVAILABLE", "forge upgrade is unavailable");
       if (!typed.chosenModifierStat) throw new ForgeCommandError("INVALID_MODIFIER", "an upgrade modifier is required");
       const allowed = recipe.itemType === "weapon" ? WEAPON_MODIFIERS : ARMOR_MODIFIERS;
@@ -261,28 +274,31 @@ export function applyForgeCommand(
             rarity,
           )
         : MODIFIER_VALUES[typed.chosenModifierStat];
-    } else if (typed.chosenModifierStat) {
+    } else if (!signatureRecipe && typed.chosenModifierStat) {
       throw new ForgeCommandError("INVALID_MODIFIER", "modifier requires an accepted upgrade");
     }
 
-    const modifiers = modifier
+    const instanceId = `item:forge:${typed.previewId}`;
+    const signatureInstance = signatureRecipe
+      ? createRatKingSignatureInstance(recipe.itemId as RatKingSignatureId, rarity as "epic" | "legendary", instanceId)
+      : null;
+    const modifiers = signatureInstance?.modifiers ?? (modifier
       ? [...resolveAuthoritativeNoviceItemModifiers(
           recipe.itemId,
           rarity,
           undefined,
           itemLevel,
           powerModelId,
-          `item:forge:${typed.previewId}`,
+          instanceId,
         ), modifier]
-      : undefined;
-    const instanceId = `item:forge:${typed.previewId}`;
+      : undefined);
     const equippedInstances = current.heroes
       .flatMap((hero) => Object.values(hero.equipment ?? {}))
       .filter((entry): entry is ItemInstance => Boolean(entry));
     if ([...items, ...equippedInstances].some((entry) => entry.instanceId === instanceId)) {
       throw new ForgeCommandError("INVALID_GAME_STATE", "forged item instance already exists");
     }
-    const instance = { instanceId, itemId: recipe.itemId, itemLevel, powerModelId, rarity, modifiers };
+    const instance = signatureInstance ?? { instanceId, itemId: recipe.itemId, itemLevel, powerModelId, rarity, modifiers };
     items.push(instance);
     const itemName = nameItem(itemDefinition, instance).name;
     return {

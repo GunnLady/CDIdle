@@ -21,6 +21,8 @@ import {
   type AuthoritativeNoviceStats,
 } from "./novice-stats-authority.ts";
 import { reconcileExistingVocations } from "./vocation-reconciliation.ts";
+import { createUndercityProgress } from "../../../shared/domain/undercity-progression.ts";
+import { UNDERCITY_DUNGEON_ID, UNDERCITY_MAX_FLOOR } from "../../../shared/domain/undercity.ts";
 
 export const LEGACY_UNVERSIONED_STATE_VERSION = 0 as const;
 
@@ -309,11 +311,56 @@ function migrateV3ToV4(current: Record<string, unknown>): Record<string, unknown
     : migrated;
 }
 
+function migrateV4ToV5(current: Record<string, unknown>): Record<string, unknown> {
+  const highest = Number.isInteger(current.highestFloorReached) ? Number(current.highestFloorReached) : 1;
+  const completedFloor = Math.max(0, Math.min(UNDERCITY_MAX_FLOOR, highest - 1));
+  const heroIds = Array.isArray(current.heroes)
+    ? current.heroes.flatMap((hero) => isRecord(hero) && typeof hero.id === "string" ? [hero.id] : [])
+    : [];
+  const dungeonProgress = createUndercityProgress(heroIds, completedFloor);
+  const floor = Math.max(1, Math.min(UNDERCITY_MAX_FLOOR, Number(current.activeDungeonFloor ?? 1)));
+  const room = Math.max(1, Number(current.activeDungeonRoom ?? 1));
+  dungeonProgress.expedition = { ...dungeonProgress.expedition, floor, room };
+  const activeIds = Array.isArray(current.heroes)
+    ? current.heroes.flatMap((hero) => isRecord(hero) && hero.isActive === true && Number(hero.currentHp ?? 0) > 0 && typeof hero.id === "string" ? [hero.id] : [])
+    : [];
+  const currentEncounter = isRecord(current.currentEncounter)
+    ? {
+        ...current.currentEncounter,
+        dungeonId: UNDERCITY_DUNGEON_ID,
+        participantHeroIds: activeIds,
+      }
+    : current.currentEncounter;
+  const encounterHistory = Array.isArray(current.encounterHistory)
+    ? current.encounterHistory.map((entry) => isRecord(entry)
+      ? {
+          ...entry,
+          dungeonId: UNDERCITY_DUNGEON_ID,
+          ...(Array.isArray(entry.enemies)
+            ? {}
+            : { enemies: isRecord(entry.enemy) ? [{ ...entry.enemy }] : [] }),
+        }
+      : entry)
+    : current.encounterHistory;
+  const migrated = {
+    ...current,
+    stateVersion: 5,
+    dungeonProgress,
+    highestFloorReached: Math.max(1, Math.min(UNDERCITY_MAX_FLOOR, highest)),
+    currentEncounter,
+    encounterHistory,
+  };
+  return validateCanonicalGameState(migrated).length === 0
+    ? reconcileExistingVocations(migrated as CanonicalGameState)
+    : migrated;
+}
+
 export const CANONICAL_STATE_MIGRATIONS: readonly CanonicalStateMigration[] = [
   { from: LEGACY_UNVERSIONED_STATE_VERSION, to: 1, migrate: migrateV0ToV1 },
   { from: 1, to: 2, migrate: migrateV1ToV2 },
   { from: 2, to: 3, migrate: migrateV2ToV3 },
   { from: 3, to: 4, migrate: migrateV3ToV4 },
+  { from: 4, to: 5, migrate: migrateV4ToV5 },
 ];
 
 export function migrateCanonicalState(

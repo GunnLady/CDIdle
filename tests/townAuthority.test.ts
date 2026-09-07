@@ -11,6 +11,7 @@ import { makeHero, makeStoredItem } from "./fixtures/game";
 import { asLegacyUnversionedState } from "./fixtures/stateMigrations";
 import { nameItem } from "../shared/domain/items/naming";
 import { getItemById } from "../shared/domain/items/items";
+import { createUndercityProgress, haltUndercityExpedition } from "../shared/domain/undercity-progression";
 
 const withoutIdentity = (hero: CanonicalHero) => {
   const { id: _id, name: _name, ...profile } = hero;
@@ -50,6 +51,7 @@ describe("authoritative town commands", () => {
       ...initialTownState(),
       activeDungeonFloor: 1,
       activeDungeonRoom: 50,
+      heroes: [makeHero({ id: "legacy-active", isActive: true })],
       currentEncounter: {
         encounterId: "encounter-legacy",
         kind: "pending",
@@ -254,6 +256,29 @@ describe("authoritative town commands", () => {
     expect(() => applyTownCommand(initialTownState(), { type: "cheat.grant_resources", amounts: { gold: 10 } })).toThrow("cheats are disabled");
     const result = applyTownCommand(initialTownState(), { type: "cheat.grant_resources", amounts: { gold: 10 } }, { allowCheats: true });
     expect(result.state).toMatchObject({ resources: { gold: 85 } });
+  });
+
+  it("aligns the dungeon floor cheat with personal UnderCity progression", () => {
+    const source = initialTownState();
+    source.heroes = [makeHero({ id: "cheat-hero", isActive: true })];
+    const result = applyTownCommand(source, {
+      type: "cheat.set_highest_floor",
+      floor: 50,
+    }, { allowCheats: true });
+
+    expect(result.state).toMatchObject({
+      highestFloorReached: 50,
+      activeDungeonFloor: 50,
+      activeDungeonRoom: 1,
+      autoExplore: false,
+    });
+    expect(result.state.dungeonProgress.heroes["cheat-hero"].completedFloor).toBe(49);
+    expect(result.state.dungeonProgress.heroes["cheat-hero"].fixedVictoryIds).toContain("undercity:elite:45");
+    expect(result.state.dungeonProgress.heroes["cheat-hero"].fixedVictoryIds).not.toContain("undercity:boss:50");
+    expect(() => applyTownCommand(source, {
+      type: "cheat.set_highest_floor",
+      floor: 51,
+    }, { allowCheats: true })).toThrow("invalid cheat floor");
   });
 
   it("rejects allocation until its profession building exists", () => {
@@ -576,6 +601,49 @@ describe("authoritative town commands", () => {
       .find((hero) => hero.id === pendingHero.id)).toMatchObject({ isActive: true });
   });
 
+  it("keeps a stopped dungeon stopped when the player changes the active party", () => {
+    const source = initialTownState();
+    source.heroes = [makeHero({ id: "recovering", isActive: false, status: "resting" })];
+    const progress = createUndercityProgress(["recovering"], 5);
+    source.dungeonProgress = haltUndercityExpedition(progress, "wipe");
+
+    const changed = applyTownCommand(source, { type: "hero.activity", heroId: "recovering", active: true });
+
+    expect(changed.state.dungeonProgress.expedition).toMatchObject({
+      floor: 6,
+      halted: true,
+      haltReason: "wipe",
+    });
+    expect(changed.state.autoExplore).toBe(false);
+  });
+
+  it("rejects composition changes while a dungeon encounter is active", () => {
+    const source = initialTownState();
+    const hero = makeHero({ id: "engaged", isActive: true });
+    source.heroes = [hero];
+    source.dungeonProgress = createUndercityProgress([hero.id]);
+    source.currentEncounter = {
+      encounterId: "encounter-engaged",
+      kind: "pending",
+      status: "active",
+      dungeonId: "undercity",
+      floor: 1,
+      room: 1,
+      participantHeroIds: [hero.id],
+    };
+    const untouched = structuredClone(source);
+
+    expect(() => applyTownCommand(source, {
+      type: "hero.dismiss",
+      heroId: hero.id,
+    })).toThrow("hero cannot be dismissed during an encounter");
+    expect(() => applyTownCommand(source, {
+      type: "hero.choose_vocation",
+      heroId: hero.id,
+      classType: "Guerrier",
+    })).toThrow("hero vocation cannot change during an encounter");
+    expect(source).toEqual(untouched);
+  });
   it("persists a recruit offer before confirmation", () => {
     const current = initialTownState();
     current.buildings.guilde = 1;

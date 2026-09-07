@@ -1,31 +1,16 @@
 import type { TownCommandHandlerRegistry } from "./command-handler.ts";
 import { allocateCitizens } from "./citizen-command-handlers.ts";
 import {
-  advanceDungeonAutomation,
-  exploreDungeon,
-  resolveDungeon,
-  retreatDungeon,
-  selectDungeonFloor,
-  setDungeonAutoExplore,
+  advanceDungeonAutomation, exploreDungeon, resolveDungeon, retreatDungeon, resumeDungeon,
+  selectDungeonFarmZone, selectDungeonFloor, setDungeonAutoExplore,
 } from "./dungeon-command-handlers.ts";
 import { cancelForge, finalizeForge, recycleInventory, startForge } from "./forge-command-handlers.ts";
 import {
-  cancelRecruitOffer,
-  changeHeroActivity,
-  chooseHeroVocation,
-  confirmRecruit,
-  createRecruitOffer,
-  dismissHero,
-  recruitHero,
+  cancelRecruitOffer, changeHeroActivity, chooseHeroVocation, confirmRecruit, createRecruitOffer, dismissHero, recruitHero,
 } from "./hero-command-handlers.ts";
 import { equipHero, unequipHero } from "./inventory-command-handlers.ts";
 import { offerOnboarding, startOnboarding } from "./onboarding-command-handlers.ts";
-import {
-  grantCheatResources,
-  rejectDistrictUnlock,
-  setCheatHighestFloor,
-  upgradeBuilding,
-} from "./town-command-handlers.ts";
+import { grantCheatResources, rejectDistrictUnlock, setCheatHighestFloor, upgradeBuilding } from "./town-command-handlers.ts";
 
 export const TOWN_COMMAND_HANDLERS = {
   "onboarding.offer": offerOnboarding,
@@ -54,4 +39,6 @@ export const TOWN_COMMAND_HANDLERS = {
   "dungeon.resolve": resolveDungeon,
   "dungeon.auto_explore": setDungeonAutoExplore,
   "dungeon.retreat": retreatDungeon,
+  "dungeon.resume": resumeDungeon,
+  "dungeon.select_farm_zone": selectDungeonFarmZone,
 } satisfies TownCommandHandlerRegistry;

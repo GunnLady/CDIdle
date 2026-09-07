@@ -25,6 +25,7 @@ import { ARMOR_INFO_LIST } from "../shared/domain/items/armors";
 import { ACCESSORY_INFO_LIST } from "../shared/domain/items/accessories";
 import { OFF_HAND_INFO_LIST } from "../shared/domain/items/offhands";
 import { createAccessory, createArmor, createOffhand, createWeapon } from "../shared/domain/items/itemBuilders";
+import { RAT_KING_SIGNATURE_IDS } from "../shared/domain/items/items_rat_king";
 import { buffEffect, damageEffect, debuffEffect, healEffect, lootModifierEffect, statModifierEffect } from "../src/data/skillBuilders";
 import { isHeroCombatModifierApplicable, isMonsterCombatModifierApplicable } from "../src/domain/combatEffects";
 import { readFileSync } from "node:fs";
@@ -93,12 +94,13 @@ describe("catalogue invariants", () => {
     expect(validateItemCatalog()).toEqual([]);
     expect(LEGACY_ITEM_LIBRARY).toHaveLength(131);
     expect(PROGRESSION_ITEM_BASES).toHaveLength(48);
-    expect(ITEM_LIBRARY).toHaveLength(179);
+    expect(ITEM_LIBRARY).toHaveLength(182);
     expect(Object.keys(LEGACY_ITEM_EVOLUTION_TARGETS)).toHaveLength(LEGACY_ITEM_LIBRARY.length);
     expect(Object.values(LEGACY_ITEM_EVOLUTION_TARGETS).every((itemId) => (
       PROGRESSION_ITEM_BASES.some((item) => item.id === itemId)
     ))).toBe(true);
-    expect(ITEM_LIBRARY.every((item) => item.provenances.includes("chest") && item.provenances.includes("boss"))).toBe(true);
+    expect(ITEM_LIBRARY.filter((item) => !RAT_KING_SIGNATURE_IDS.includes(item.id as typeof RAT_KING_SIGNATURE_IDS[number])).every((item) => item.provenances.includes("chest") && item.provenances.includes("boss"))).toBe(true);
+    expect(RAT_KING_SIGNATURE_IDS.every((itemId) => ITEM_LIBRARY.find((item) => item.id === itemId)?.provenances.includes("forge"))).toBe(true);
     for (const band of CHEST_LOOT_BANDS) {
       expect(Object.values(band.weights).reduce((sum, weight) => sum + weight, 0)).toBe(100);
     }

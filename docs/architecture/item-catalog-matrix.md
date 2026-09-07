@@ -1,7 +1,7 @@
 # Matrice du catalogue d'objets
 
 Fichier généré depuis la source autoritaire `shared/domain/items`.
-Ne pas modifier manuellement. Nombre de modèles : **179**.
+Ne pas modifier manuellement. Nombre de modèles : **182**.
 
 | ID | Nom | Type | Sous-type | Emplacement | Maniement | Catégorie | Scaling | Statut | Modèle puissance | Plage niveaux | Niveau référence | Rareté minimale | Provenances | Plan |
 |---|---|---|---|---|---|---|---|---|---|---|---:|---|---|---|
@@ -184,6 +184,9 @@ Ne pas modifier manuellement. Nombre de modèles : **179**.
 | progression_belt | Ceinture évolutive | accessory | belt | accessory | — | — | — | active | level-bands-v1 | 1-40 | 10 | common | chest, boss, forge | oui |
 | progression_cloak | Cape évolutive | accessory | cloak | accessory | — | — | — | active | level-bands-v1 | 1-40 | 10 | common | chest, boss, forge | oui |
 | progression_charm | Charme évolutif | accessory | charm | accessory | — | — | — | active | level-bands-v1 | 1-40 | 10 | common | chest, boss, forge | oui |
+| rat_king_fang | Croc du Roi | weapon | dagger | mainHand | one_handed | finesse | agi | active | legacy-fixed-v1 | 35-35 | 35 | epic | forge | oui |
+| outcasts_mantle | Manteau des Exclus | armor | leather_armor | armor | — | — | — | active | legacy-fixed-v1 | 35-35 | 35 | epic | forge | oui |
+| tribute_chain | Chaîne des tributs | accessory | amulet | accessory | — | — | — | active | legacy-fixed-v1 | 35-35 | 35 | epic | forge | oui |
 
 ## Intégration des plans historiques
 
@@ -806,6 +809,7 @@ Le DPS est normalisé par cycle d'attaque, avant défense et résistances.
 | progression_dual_sabers | finesse | agi | common | 1 | dual_wield | 5-8 | 1.9 | 2 | 0.65 | 28 | 42 | 11 | 59.90 |
 | progression_dual_axes | power | str | common | 1 | dual_wield | 3-9 | 1.7 | 2 | 0.65 | 31 | 40 | 10 | 57.27 |
 | progression_dual_daggers | finesse | agi | common | 1 | dual_wield | 5-8 | 2 | 2 | 0.65 | 28 | 40 | 12 | 62.26 |
+| rat_king_fang | finesse | agi | epic | 35 | one_handed | 105-193 | 1.35 | 1 | 1 | 39 | 48 | 24 | 385.22 |
 
 ## Médianes DPS par progression et maniement
 
@@ -828,3 +832,4 @@ Le DPS est normalisé par cycle d'attaque, avant défense et résistances.
 | epic | 25 | two_handed | 2 | 239.64 | 229.95 | 249.34 |
 | epic | 26 | two_handed | 1 | 219.42 | 219.42 | 219.42 |
 | legendary | 33 | one_handed | 1 | 456.69 | 456.69 | 456.69 |
+| epic | 35 | one_handed | 1 | 385.22 | 385.22 | 385.22 |

@@ -22,6 +22,10 @@ import { DEFAULT_NOVICE_ITEM_BLUEPRINTS } from "./forge-blueprints.ts";
 import { CURRENT_HERO_PROGRESSION_MODEL_ID, getHeroProgressionModel } from "../../../shared/data/hero-progression-models.ts";
 import { upgradeCanonicalHeroProgression } from "../../../shared/domain/hero-progression-migration.ts";
 import { migrateCanonicalState } from "./state-migrations.ts";
+import {
+  createUndercityProgress,
+  validateUndercityProgress,
+} from "../../../shared/domain/undercity-progression.ts";
 
 export type TownResources = { gold: number; food: number; wood: number; stone: number; ore: number };
 export type TownState = CanonicalGameState;
@@ -35,6 +39,7 @@ export const initialTownState = (rngSeed?: number): TownState => ({
   totalCitizensCount: 3, districts: {}, heroes: [], storedItems: [], forgeMaterials: [], itemBlueprints: DEFAULT_NOVICE_ITEM_BLUEPRINTS.map((entry) => ({ ...entry })), citizenGrowthProgress: 0
   , activeDungeonFloor: 1, activeDungeonRoom: 1, highestFloorReached: 1, currentEncounter: null, encounterHistory: [], autoExplore: false,
   onboardingCandidates: [], pendingOnboardingCityName: "", pendingClassTransitions: []
+  , dungeonProgress: createUndercityProgress()
   , rngState: initialCanonicalRngState(rngSeed)
 });
 
@@ -170,6 +175,7 @@ export function migrateTownState(current: Record<string, unknown>, legacySeed?: 
       ? validateAuthoritativeHero(migrated.pendingRecruit, "pendingRecruit")
       : []),
     ...validateCatalogReferences(migrated as unknown as Record<string, unknown>),
+    ...validateUndercityProgress(migrated.dungeonProgress),
   ];
   if (errors.length > 0) {
     const reason = errors.join("; ");

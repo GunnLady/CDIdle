@@ -33,14 +33,27 @@ export interface CanonicalDungeonTranscriptEvent {
   [key: string]: unknown;
 }
 
+export interface CanonicalDungeonEnemyRecord {
+  id: string;
+  name: string;
+  hp: number;
+  maxHp: number;
+  isBoss?: boolean;
+  role?: "ordinary" | "protector" | "ranged" | "support" | "guard" | "king";
+  intent?: string;
+  effects?: string[];
+}
+
 export interface CanonicalDungeonEncounterRecord {
   encounterId: string;
+  dungeonId?: string;
   kind: "fight" | "trap" | "enigma" | "ambush" | "ritual" | "obstacle" | "negotiation" | "treasure" | "rest";
   floor: number;
   room: number;
   outcome: "victory" | "defeat";
   roundCount: number;
   enemy: { id?: string; name?: string; hp: number; maxHp: number; isBoss?: boolean } | null;
+  enemies?: CanonicalDungeonEnemyRecord[];
   transcript: CanonicalDungeonTranscriptEvent[];
   rewards: { gold: number; loot: CanonicalDungeonLoot[] };
 }
@@ -49,7 +62,7 @@ export type CanonicalRarity = "common" | "uncommon" | "rare" | "epic" | "legenda
 export const CANONICAL_ITEM_POWER_MODEL_IDS = ['legacy-fixed-v1', 'level-bands-v1'] as const;
 export type CanonicalItemPowerModelId = typeof CANONICAL_ITEM_POWER_MODEL_IDS[number];
 export type CanonicalDungeonLoot =
-  | { type: 'item'; instanceId: string; itemId: string; itemLevel: number; powerModelId: CanonicalItemPowerModelId; rarity: CanonicalRarity; count: number }
+  | { type: 'item'; instanceId: string; itemId: string; itemLevel: number; powerModelId: CanonicalItemPowerModelId; rarity: CanonicalRarity; count: number; modifiers?: CanonicalStatModifier[]; sourceDungeonId?: string; sourceZoneId?: string }
   | { type: "material"; materialId: string; rarity: CanonicalRarity; count: number; name: string }
   | { type: "blueprint"; itemId: string; count: number };
 export type CanonicalHeroRace =
@@ -85,6 +98,8 @@ export interface CanonicalStoredItemInstance {
   powerModelId: CanonicalItemPowerModelId;
   rarity: CanonicalRarity;
   modifiers?: CanonicalStatModifier[];
+  sourceDungeonId?: string;
+  sourceZoneId?: string;
 }
 
 export type CanonicalHeroEquipment = Partial<Record<
@@ -158,9 +173,32 @@ export interface CanonicalActiveDungeonEncounter {
   encounterId: string;
   kind: "pending";
   status: "active";
+  dungeonId: string;
   floor: number;
   room: number;
+  participantHeroIds: string[];
   commandId?: string;
+}
+
+export interface CanonicalDungeonHeroProgress {
+  completedFloor: number;
+  fixedVictoryIds: string[];
+}
+
+export interface CanonicalDungeonExpedition {
+  dungeonId: string;
+  mode: "progression" | "farm";
+  zoneId: string | null;
+  floor: number;
+  room: number;
+  halted: boolean;
+  haltReason: "wipe" | "retreat" | null;
+}
+
+export interface CanonicalDungeonProgress {
+  dungeonId: string;
+  heroes: Record<string, CanonicalDungeonHeroProgress>;
+  expedition: CanonicalDungeonExpedition;
 }
 
 export interface CanonicalPendingForge {
@@ -182,14 +220,14 @@ export interface CanonicalRngState {
 }
 
 export const MAX_CANONICAL_RNG_DRAWS = Number.MAX_SAFE_INTEGER;
-export const CURRENT_CANONICAL_STATE_VERSION = 4 as const;
+export const CURRENT_CANONICAL_STATE_VERSION = 5 as const;
 
 export const CANONICAL_GAME_STATE_REQUIRED_FIELDS = [
   "stateVersion", "resources", "buildings", "citizens", "districts", "heroes", "storedItems",
   "forgeMaterials", "itemBlueprints", "encounterHistory", "rngState",
   "totalCitizensCount", "activeDungeonFloor", "activeDungeonRoom",
   "highestFloorReached", "citizenGrowthProgress", "autoExplore", "currentEncounter",
-  "pendingClassTransitions", "heroProgressionModelId",
+  "pendingClassTransitions", "heroProgressionModelId", "dungeonProgress",
 ] as const;
 
 export interface CanonicalGameStateFields {
@@ -213,6 +251,7 @@ export interface CanonicalGameStateFields {
   autoExplore: boolean;
   citizenGrowthProgress: number;
   pendingClassTransitions: CanonicalPendingClassTransition[];
+  dungeonProgress: CanonicalDungeonProgress;
   rngState: CanonicalRngState;
   pendingForge?: CanonicalPendingForge | null;
   pendingRecruit?: CanonicalHero | null;
@@ -260,12 +299,14 @@ export type CanonicalGameCommand =
   | { type: "forge.cancel"; previewId: string }
   | { type: "cheat.grant_resources"; amounts: Partial<Record<"gold" | "food" | "wood" | "stone" | "ore", number>> }
   | { type: "cheat.set_highest_floor"; floor: number }
-  | { type: "dungeon.explore"; floor: number }
-  | { type: "dungeon.auto_advance"; floor: number }
-  | { type: "dungeon.select_floor"; floor: number }
-  | { type: "dungeon.resolve" }
-  | { type: "dungeon.auto_explore"; enabled: boolean }
-  | { type: "dungeon.retreat" };
+  | { type: "dungeon.explore"; dungeonId?: string; floor: number }
+  | { type: "dungeon.auto_advance"; dungeonId?: string; floor: number }
+  | { type: "dungeon.select_floor"; dungeonId?: string; floor: number }
+  | { type: "dungeon.resolve"; dungeonId?: string }
+  | { type: "dungeon.auto_explore"; dungeonId?: string; enabled: boolean }
+  | { type: "dungeon.retreat"; dungeonId?: string }
+  | { type: "dungeon.resume"; dungeonId: string }
+  | { type: "dungeon.select_farm_zone"; dungeonId: string; zoneId: string };
 
 export interface CanonicalCommandEnvelope {
   commandId: string;
@@ -280,7 +321,7 @@ export const CANONICAL_COMMAND_TYPES = [
   "hero.recruit", "hero.recruit_offer", "hero.recruit_confirm", "hero.recruit_cancel", "hero.dismiss", "hero.activity", "hero.choose_vocation", "hero.equip", "hero.unequip",
   "inventory.recycle", "forge.start", "forge.finalize", "forge.cancel",
   "cheat.grant_resources", "cheat.set_highest_floor",
-  "dungeon.explore", "dungeon.auto_advance", "dungeon.select_floor", "dungeon.resolve", "dungeon.auto_explore", "dungeon.retreat",
+  "dungeon.explore", "dungeon.auto_advance", "dungeon.select_floor", "dungeon.resolve", "dungeon.auto_explore", "dungeon.retreat", "dungeon.resume", "dungeon.select_farm_zone",
 ] as const;
 
 const CANONICAL_RARITIES = ["common", "uncommon", "rare", "epic", "legendary"] as const;
@@ -288,6 +329,7 @@ const CANONICAL_EQUIPMENT_SLOTS = ["mainHand", "offHand", "armor", "accessory"] 
 const CANONICAL_RESOURCE_FIELDS = ["gold", "food", "wood", "stone", "ore"] as const;
 const CANONICAL_ENCOUNTER_KINDS = ["fight", "trap", "enigma", "ambush", "ritual", "obstacle", "negotiation", "treasure", "rest"] as const;
 const CANONICAL_TRANSCRIPT_CATEGORIES = ["info", "victory", "defeat", "loot", "combat-hero", "combat-enemy"] as const;
+const CANONICAL_DUNGEON_ENEMY_ROLES = ["ordinary", "protector", "ranged", "support", "guard", "king"] as const;
 const CANONICAL_MODIFIER_STATS = new Set<string>(CANONICAL_ITEM_MODIFIER_FIELDS);
 
 const hasOnlyKeys = (value: Record<string, unknown>, allowed: readonly string[]) =>
@@ -365,11 +407,39 @@ function validateCanonicalCommandPayload(command: Record<string, unknown>): stri
       if (!hasOnlyKeys(command, ["type", "previewId"])) errors.push("command contains unsupported fields");
       requireString("previewId");
       break;
+    case "dungeon.explore":
     case "dungeon.auto_advance":
-      if (!hasOnlyKeys(command, ["type", "floor"])) errors.push("command contains unsupported fields");
+    case "dungeon.select_floor":
+      if (!hasOnlyKeys(command, ["type", "dungeonId", "floor"])) errors.push("command contains unsupported fields");
+      if (command.dungeonId !== undefined && (typeof command.dungeonId !== "string" || !command.dungeonId.trim())) {
+        errors.push("command.dungeonId must be a non-empty string");
+      }
       if (!Number.isInteger(command.floor) || Number(command.floor) < 1) {
         errors.push("command.floor must be an integer >= 1");
       }
+      break;
+    case "dungeon.resolve":
+    case "dungeon.retreat":
+      if (!hasOnlyKeys(command, ["type", "dungeonId"])) errors.push("command contains unsupported fields");
+      if (command.dungeonId !== undefined && (typeof command.dungeonId !== "string" || !command.dungeonId.trim())) {
+        errors.push("command.dungeonId must be a non-empty string");
+      }
+      break;
+    case "dungeon.auto_explore":
+      if (!hasOnlyKeys(command, ["type", "dungeonId", "enabled"])) errors.push("command contains unsupported fields");
+      if (command.dungeonId !== undefined && (typeof command.dungeonId !== "string" || !command.dungeonId.trim())) {
+        errors.push("command.dungeonId must be a non-empty string");
+      }
+      if (typeof command.enabled !== "boolean") errors.push("command.enabled must be a boolean");
+      break;
+    case "dungeon.resume":
+      if (!hasOnlyKeys(command, ["type", "dungeonId"])) errors.push("command contains unsupported fields");
+      requireString("dungeonId");
+      break;
+    case "dungeon.select_farm_zone":
+      if (!hasOnlyKeys(command, ["type", "dungeonId", "zoneId"])) errors.push("command contains unsupported fields");
+      requireString("dungeonId");
+      requireString("zoneId");
       break;
     default:
       break;
@@ -524,7 +594,7 @@ export function validateCanonicalHero(input: unknown, path = "hero"): string[] {
           errors.push(`${path}.equipment.${slot} must be an object or null`);
           continue;
         }
-        if (!hasOnlyKeys(equipped, ["instanceId", "itemId", "itemLevel", "powerModelId", "rarity", "modifiers"])) errors.push(`${path}.equipment.${slot} contains unsupported fields`);
+        if (!hasOnlyKeys(equipped, ["instanceId", "itemId", "itemLevel", "powerModelId", "rarity", "modifiers", "sourceDungeonId", "sourceZoneId"])) errors.push(`${path}.equipment.${slot} contains unsupported fields`);
         if (typeof equipped.instanceId !== "string" || !equipped.instanceId.trim()) errors.push(`${path}.equipment.${slot}.instanceId is required`);
         if (typeof equipped.itemId !== "string" || !equipped.itemId.trim()) errors.push(`${path}.equipment.${slot}.itemId is required`);
         if (!Number.isInteger(equipped.itemLevel) || Number(equipped.itemLevel) < 1 || Number(equipped.itemLevel) > 40) errors.push(`${path}.equipment.${slot}.itemLevel is invalid`);
@@ -619,12 +689,13 @@ export function validateCanonicalGameState(input: unknown): string[] {
         errors.push(`storedItems[${index}] must be an object`);
         return;
       }
-      if (!hasOnlyKeys(entry, ["instanceId", "itemId", "itemLevel", "powerModelId", "rarity", "modifiers"])) errors.push(`storedItems[${index}] contains unsupported fields`);
+      if (!hasOnlyKeys(entry, ["instanceId", "itemId", "itemLevel", "powerModelId", "rarity", "modifiers", "sourceDungeonId", "sourceZoneId"])) errors.push(`storedItems[${index}] contains unsupported fields`);
       if (typeof entry.instanceId !== "string" || !entry.instanceId.trim()) errors.push(`storedItems[${index}].instanceId is required`);
       if (typeof entry.itemId !== "string" || !entry.itemId.trim()) errors.push(`storedItems[${index}].itemId is required`);
       if (!Number.isInteger(entry.itemLevel) || Number(entry.itemLevel) < 1 || Number(entry.itemLevel) > 40) errors.push(`storedItems[${index}].itemLevel is invalid`);
       if (!CANONICAL_ITEM_POWER_MODEL_IDS.includes(entry.powerModelId as CanonicalItemPowerModelId)) errors.push(`storedItems[${index}].powerModelId is invalid`);
       if (!CANONICAL_RARITIES.includes(entry.rarity as typeof CANONICAL_RARITIES[number])) errors.push(`storedItems[${index}].rarity is invalid`);
+      for (const field of ["sourceDungeonId", "sourceZoneId"] as const) if (entry[field] !== undefined && (typeof entry[field] !== "string" || !entry[field].trim())) errors.push(`storedItems[${index}].${field} is invalid`);
       errors.push(...validateCanonicalModifiers(entry.modifiers, `storedItems[${index}].modifiers`));
     });
   }
@@ -741,6 +812,31 @@ export function validateCanonicalGameState(input: unknown): string[] {
       for (const field of ["floor", "room", "roundCount"] as const) {
         if (!Number.isInteger(entry[field])) errors.push(`${path}.${field} must be an integer`);
       }
+      if (entry.dungeonId !== undefined && (typeof entry.dungeonId !== "string" || !entry.dungeonId.trim())) errors.push(`${path}.dungeonId is invalid`);
+      if (entry.enemies !== undefined) {
+        if (!Array.isArray(entry.enemies)) errors.push(`${path}.enemies must be an array`);
+        else {
+          const enemyIds = new Set<string>();
+          entry.enemies.forEach((enemy, enemyIndex) => {
+            const enemyPath = `${path}.enemies[${enemyIndex}]`;
+            if (!isRecord(enemy)) {
+              errors.push(`${enemyPath} must be an object`);
+              return;
+            }
+            if (typeof enemy.id !== "string" || !enemy.id.trim()) errors.push(`${enemyPath}.id is required`);
+            else if (enemyIds.has(enemy.id)) errors.push(`${enemyPath}.id must be unique`);
+            else enemyIds.add(enemy.id);
+            if (typeof enemy.name !== "string" || !enemy.name.trim()) errors.push(`${enemyPath}.name is required`);
+            if (!isFiniteNumber(enemy.hp) || Number(enemy.hp) < 0) errors.push(`${enemyPath}.hp is invalid`);
+            if (!isFiniteNumber(enemy.maxHp) || Number(enemy.maxHp) <= 0) errors.push(`${enemyPath}.maxHp is invalid`);
+            if (isFiniteNumber(enemy.hp) && isFiniteNumber(enemy.maxHp) && Number(enemy.hp) > Number(enemy.maxHp)) errors.push(`${enemyPath}.hp exceeds maxHp`);
+            if (enemy.isBoss !== undefined && typeof enemy.isBoss !== "boolean") errors.push(`${enemyPath}.isBoss must be a boolean`);
+            if (enemy.role !== undefined && !CANONICAL_DUNGEON_ENEMY_ROLES.includes(enemy.role as typeof CANONICAL_DUNGEON_ENEMY_ROLES[number])) errors.push(`${enemyPath}.role is invalid`);
+            if (enemy.intent !== undefined && typeof enemy.intent !== "string") errors.push(`${enemyPath}.intent must be a string`);
+            if (enemy.effects !== undefined && (!Array.isArray(enemy.effects) || enemy.effects.some((effect) => typeof effect !== "string"))) errors.push(`${enemyPath}.effects must be an array of strings`);
+          });
+        }
+      }
       if (!Array.isArray(entry.transcript)) errors.push(`${path}.transcript must be an array`);
       else entry.transcript.forEach((event, eventIndex) => {
         const eventPath = `${path}.transcript[${eventIndex}]`;
@@ -783,16 +879,56 @@ export function validateCanonicalGameState(input: unknown): string[] {
             if (!Number.isInteger(loot.itemLevel) || Number(loot.itemLevel) < 1 || Number(loot.itemLevel) > 40) errors.push(`${lootPath}.itemLevel is invalid`);
             if (!CANONICAL_ITEM_POWER_MODEL_IDS.includes(loot.powerModelId as CanonicalItemPowerModelId)) errors.push(`${lootPath}.powerModelId is invalid`);
             if (!CANONICAL_RARITIES.includes(loot.rarity as CanonicalRarity)) errors.push(`${lootPath}.rarity is invalid`);
+            for (const field of ["sourceDungeonId", "sourceZoneId"] as const) if (loot[field] !== undefined && (typeof loot[field] !== "string" || !loot[field].trim())) errors.push(`${lootPath}.${field} is invalid`);
+            errors.push(...validateCanonicalModifiers(loot.modifiers, `${lootPath}.modifiers`));
           } else if (loot.type === "material") {
             if (typeof loot.materialId !== "string" || !loot.materialId.trim()) errors.push(`${lootPath}.materialId is required`);
             if (typeof loot.name !== "string" || !loot.name.trim()) errors.push(`${lootPath}.name is required`);
             if (!CANONICAL_RARITIES.includes(loot.rarity as CanonicalRarity)) errors.push(`${lootPath}.rarity is invalid`);
+            for (const field of ["sourceDungeonId", "sourceZoneId"] as const) if (loot[field] !== undefined && (typeof loot[field] !== "string" || !loot[field].trim())) errors.push(`${lootPath}.${field} is invalid`);
+            errors.push(...validateCanonicalModifiers(loot.modifiers, `${lootPath}.modifiers`));
           } else if (loot.type === "blueprint") {
             if (typeof loot.itemId !== "string" || !loot.itemId.trim()) errors.push(`${lootPath}.itemId is required`);
           } else errors.push(`${lootPath}.type is invalid`);
         });
       }
     });
+  }
+  if ("dungeonProgress" in value) {
+    if (!isRecord(value.dungeonProgress)) errors.push("dungeonProgress must be an object");
+    else {
+      const progress = value.dungeonProgress;
+      if (!hasOnlyKeys(progress, ["dungeonId", "heroes", "expedition"])) errors.push("dungeonProgress contains unsupported fields");
+      if (typeof progress.dungeonId !== "string" || !progress.dungeonId.trim()) errors.push("dungeonProgress.dungeonId is required");
+      if (!isRecord(progress.heroes)) errors.push("dungeonProgress.heroes must be an object");
+      else {
+        for (const [heroId, heroProgress] of Object.entries(progress.heroes)) {
+          const path = "dungeonProgress.heroes." + heroId;
+          if (!heroId.trim() || !isRecord(heroProgress)) {
+            errors.push(path + " must be an object");
+            continue;
+          }
+          if (!hasOnlyKeys(heroProgress, ["completedFloor", "fixedVictoryIds"])) errors.push(path + " contains unsupported fields");
+          if (!Number.isInteger(heroProgress.completedFloor) || Number(heroProgress.completedFloor) < 0 || Number(heroProgress.completedFloor) > 50) errors.push(path + ".completedFloor is invalid");
+          if (!Array.isArray(heroProgress.fixedVictoryIds) || heroProgress.fixedVictoryIds.some((id) => typeof id !== "string" || !id.trim()) || new Set(heroProgress.fixedVictoryIds).size !== heroProgress.fixedVictoryIds.length) errors.push(path + ".fixedVictoryIds is invalid");
+        }
+      }
+      if (!isRecord(progress.expedition)) errors.push("dungeonProgress.expedition must be an object");
+      else {
+        const expedition = progress.expedition;
+        if (!hasOnlyKeys(expedition, ["dungeonId", "mode", "zoneId", "floor", "room", "halted", "haltReason"])) errors.push("dungeonProgress.expedition contains unsupported fields");
+        if (typeof expedition.dungeonId !== "string" || expedition.dungeonId !== progress.dungeonId) errors.push("dungeonProgress.expedition.dungeonId is invalid");
+        if (expedition.mode !== "progression" && expedition.mode !== "farm") errors.push("dungeonProgress.expedition.mode is invalid");
+        if (expedition.zoneId !== null && (typeof expedition.zoneId !== "string" || !expedition.zoneId.trim())) errors.push("dungeonProgress.expedition.zoneId is invalid");
+        if (expedition.mode === "progression" && expedition.zoneId !== null) errors.push("dungeonProgress.expedition.zoneId must be null in progression mode");
+        if (expedition.mode === "farm" && expedition.zoneId === null) errors.push("dungeonProgress.expedition.zoneId is required in farm mode");
+        if (!Number.isInteger(expedition.floor) || Number(expedition.floor) < 1 || Number(expedition.floor) > 50) errors.push("dungeonProgress.expedition.floor is invalid");
+        if (!Number.isInteger(expedition.room) || Number(expedition.room) < 1) errors.push("dungeonProgress.expedition.room is invalid");
+        if (typeof expedition.halted !== "boolean") errors.push("dungeonProgress.expedition.halted must be a boolean");
+        if (expedition.haltReason !== null && expedition.haltReason !== "wipe" && expedition.haltReason !== "retreat") errors.push("dungeonProgress.expedition.haltReason is invalid");
+        if (typeof expedition.halted === "boolean" && expedition.halted !== (expedition.haltReason !== null)) errors.push("dungeonProgress.expedition halt state is inconsistent");
+      }
+    }
   }
   if ("rngState" in value) {
     const rngState = value.rngState as Record<string, unknown> | null;
@@ -824,7 +960,16 @@ export function validateCanonicalGameState(input: unknown): string[] {
       for (const field of ["encounterId", "kind", "status"] as const) {
         if (typeof value.currentEncounter[field] !== "string" || !String(value.currentEncounter[field]).trim()) errors.push(`currentEncounter.${field} is required`);
       }
-      if (!hasOnlyKeys(value.currentEncounter, ["encounterId", "kind", "status", "floor", "room", "commandId"])) errors.push("currentEncounter contains unsupported fields");
+      if (!hasOnlyKeys(value.currentEncounter, ["encounterId", "kind", "status", "dungeonId", "floor", "room", "participantHeroIds", "commandId"])) errors.push("currentEncounter contains unsupported fields");
+      if (typeof value.currentEncounter.dungeonId !== "string" || !value.currentEncounter.dungeonId.trim()) errors.push("currentEncounter.dungeonId is required");
+      if (!Array.isArray(value.currentEncounter.participantHeroIds) || value.currentEncounter.participantHeroIds.length === 0 || value.currentEncounter.participantHeroIds.some((heroId) => typeof heroId !== "string" || !heroId.trim()) || new Set(value.currentEncounter.participantHeroIds).size !== value.currentEncounter.participantHeroIds.length) {
+        errors.push("currentEncounter.participantHeroIds must contain at least one unique hero id");
+      } else if (Array.isArray(value.heroes)) {
+        const heroIds = new Set(value.heroes.filter(isRecord).map((hero) => hero.id).filter((heroId): heroId is string => typeof heroId === "string"));
+        if (value.currentEncounter.participantHeroIds.some((heroId) => !heroIds.has(heroId))) {
+          errors.push("currentEncounter.participantHeroIds must reference existing heroes");
+        }
+      }
       if (value.currentEncounter.kind !== "pending") errors.push("currentEncounter.kind must be pending");
       if (value.currentEncounter.status !== "active") errors.push("currentEncounter.status must be active");
       for (const field of ["floor", "room"] as const) {

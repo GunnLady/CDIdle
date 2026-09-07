@@ -46,6 +46,7 @@ export type HeroActionContext = {
   hero: Hero;
   heroes: Hero[];
   monster: Monster;
+  enemies?: Monster[];
   activeEffects?: TemporaryCombatEffect[];
   floor: number;
   room: number;
@@ -149,7 +150,10 @@ function expectedEnemyDamageForTarget(
   const pool = forcedLiving.length > 0 ? forcedLiving : living;
   if (!pool.some((hero) => hero.id === target.id)) return 0;
   const expectedHits = expectedEnemyStrikeCount(context) / Math.max(1, pool.length);
-  return estimateNextEnemyDamage(context.monster, target, effects, expectedHits);
+  return (context.enemies ?? [context.monster]).reduce(
+    (total, enemy) => total + estimateNextEnemyDamage(enemy, target, effects, expectedHits),
+    0,
+  );
 }
 
 const PROTECTIVE_HERO_STATS = new Set([
@@ -367,9 +371,14 @@ export function listLegalHeroActions(context: HeroActionContext): TacticalAction
 
     if (skill.effect.type === "damage") {
       const damage = estimateSkillDamage(context.hero, context.monster, skill, effects);
+      const areaTargets = skill.target === "all_enemies" ? context.enemies ?? [context.monster] : [context.monster];
+      const usefulDamage = areaTargets.reduce(
+        (total, target) => total + Math.min(target.hp, estimateSkillDamage(context.hero, target, skill, effects)),
+        0,
+      );
+      const areaKills = areaTargets.filter((target) => estimateSkillDamage(context.hero, target, skill, effects) >= target.hp).length;
       const lethal = damage >= context.monster.hp;
-      const uniquelyLethal = lethal && normalDamage < context.monster.hp;
-      const usefulDamage = Math.min(damage, context.monster.hp);
+      const uniquelyLethal = (lethal && normalDamage < context.monster.hp) || areaKills > 1;
       const gainOverNormal = usefulDamage - Math.min(normalDamage, context.monster.hp);
       const decisive = uniquelyLethal;
       if (!decisive && manaAfter < reserve) continue;

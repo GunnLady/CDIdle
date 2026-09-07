@@ -5,8 +5,10 @@ import {
   createDungeonPartyView,
   createDungeonProgressBannerView,
   createDungeonProgressView,
+  createUndercityJourneyView,
 } from "../src/domain/dungeonPresentation";
 import { createHeroRosterView } from "../src/domain/heroPresentation";
+import { createUndercityProgress } from "../shared/domain/undercity-progression";
 import { makeHero } from "./fixtures/game";
 
 describe("dungeon presentation projections", () => {
@@ -26,6 +28,32 @@ describe("dungeon presentation projections", () => {
     expect(view.party).toHaveLength(4);
     expect(view.reserves.map((hero) => hero.id)).toEqual(["reserve"]);
     expect(Number(view.party[0]?.estimatedDps)).toBeGreaterThan(0);
+  });
+
+  it("bounds progression by the least advanced active hero and exposes the farm choice", () => {
+    const heroes = [
+      makeHero({ id: "veteran", name: "Veteran", isActive: true }),
+      makeHero({ id: "novice", name: "Novice", isActive: true }),
+    ];
+    const progress = createUndercityProgress(["veteran", "novice"]);
+    progress.heroes.veteran.completedFloor = 50;
+    progress.heroes.veteran.fixedVictoryIds.push("undercity:boss:50");
+    progress.heroes.novice.completedFloor = 10;
+
+    expect(createUndercityJourneyView(progress, heroes)).toMatchObject({
+      commonCheckpoint: 10,
+      maxSelectableFloor: 11,
+      awaitingFarmSelection: false,
+      farmZones: [],
+    });
+
+    progress.heroes.novice.completedFloor = 50;
+    progress.heroes.novice.fixedVictoryIds.push("undercity:boss:50");
+    expect(createUndercityJourneyView(progress, heroes)).toMatchObject({
+      maxSelectableFloor: 50,
+      awaitingFarmSelection: true,
+    });
+    expect(createUndercityJourneyView(progress, heroes).farmZones).toHaveLength(5);
   });
 
   it("projects maximum-level heroes with a full XP bar", () => {

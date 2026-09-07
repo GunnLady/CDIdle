@@ -61,6 +61,7 @@ describe("canonical state compatibility simulation", () => {
     const state = {
       ...initialTownState(126),
       cityName: "État complet",
+      heroes: [makeHero({ id: "hero-complete", isActive: true })],
       pendingForge: {
         previewId: "preview-complete",
         recipeId: "starter_sword",
@@ -77,6 +78,8 @@ describe("canonical state compatibility simulation", () => {
         encounterId: "encounter-complete",
         kind: "pending" as const,
         status: "active" as const,
+        dungeonId: "undercity",
+        participantHeroIds: ["hero-complete"],
         floor: 2,
         room: 3,
         commandId: "command-complete",

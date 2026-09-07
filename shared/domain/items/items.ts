@@ -4,6 +4,7 @@ import { TIER1_ITEM_ARMOR_LIST } from "./items_armors_tier1.ts";
 import { TIER1_ITEM_OFFHAND_LIST } from "./items_offhands_tier1.ts";
 import { TIER1_ITEM_ACC_LIST } from "./items_accessories_tier1.ts";
 import { HIGH_TIER_ITEM_LIST } from "./items_high_tier.ts";
+import { RAT_KING_SIGNATURE_ITEMS } from "./items_rat_king.ts";
 import { createWeapon, createOffhand, createArmor } from "./itemBuilders.ts";
 import { WEAPON_INFO_LIST } from "./weapons.ts";
 import { OFF_HAND_INFO_LIST } from "./offhands.ts";
@@ -243,6 +244,7 @@ export const PROGRESSION_ITEM_BASES: ItemInfo[] = PROGRESSION_BASE_SPECS.map(([i
 export const ITEM_LIBRARY: ItemInfo[] = [
   ...LEGACY_ITEM_LIBRARY,
   ...PROGRESSION_ITEM_BASES,
+  ...RAT_KING_SIGNATURE_ITEMS,
 ];
 
 export const ITEMS_BY_ID: Record<string, ItemInfo> = Object.fromEntries(

@@ -8,6 +8,8 @@ import {
 import { reconcileExistingVocations } from "./vocation-reconciliation.ts";
 import { TownCommandError, type TownCommandHandler } from "./command-handler.ts";
 import type { TownResources } from "./town-state.ts";
+import { createUndercityHeroProgress } from "../../../shared/domain/undercity-progression.ts";
+import { UNDERCITY_DUNGEON_ID, UNDERCITY_MAX_FLOOR } from "../../../shared/domain/undercity.ts";
 
 const affordable = (resources: TownResources, cost: TownResources) =>
   Object.keys(cost).every((key) => resources[key as keyof TownResources] >= cost[key as keyof TownResources]);
@@ -88,11 +90,32 @@ export const grantCheatResources: TownCommandHandler<"cheat.grant_resources"> = 
 
 export const setCheatHighestFloor: TownCommandHandler<"cheat.set_highest_floor"> = (context, command) => {
   if (!context.allowCheats) throw new TownCommandError("CHEATS_DISABLED", "cheats are disabled");
-  if (!Number.isInteger(command.floor) || command.floor < 1 || command.floor > 10000) {
+  if (!Number.isInteger(command.floor) || command.floor < 1 || command.floor > UNDERCITY_MAX_FLOOR) {
     throw new TownCommandError("INVALID_COMMAND", "invalid cheat floor");
   }
+  const completedFloor = command.floor - 1;
+  const dungeonProgress = {
+    dungeonId: UNDERCITY_DUNGEON_ID,
+    heroes: Object.fromEntries(context.town.heroes.map((hero) => [hero.id, createUndercityHeroProgress(completedFloor)])),
+    expedition: {
+      dungeonId: UNDERCITY_DUNGEON_ID,
+      mode: "progression" as const,
+      zoneId: null,
+      floor: command.floor,
+      room: 1,
+      halted: false,
+      haltReason: null,
+    },
+  };
   return {
-    state: { ...context.town, highestFloorReached: command.floor },
+    state: {
+      ...context.town,
+      highestFloorReached: command.floor,
+      activeDungeonFloor: command.floor,
+      activeDungeonRoom: 1,
+      autoExplore: false,
+      dungeonProgress,
+    },
     events: [{ type: "cheat.highest_floor_set", floor: command.floor }],
   };
 };

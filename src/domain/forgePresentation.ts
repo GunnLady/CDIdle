@@ -9,6 +9,8 @@ import {
   scaleForgeMaterialsForItemLevel,
 } from "../../shared/domain/forge-economy";
 import { FORGE_PROGRESSION_LEVELS } from "../../shared/data/forge-progression";
+import { RAT_KING_SIGNATURE_IDS, RAT_KING_SIGNATURE_PARAMETERS, type RatKingSignatureId } from "../../shared/domain/items/items_rat_king";
+import { createForgeMaterialReserveView, type BossComponentGroupView } from "./forgeMaterialPresentation";
 import { applyItemLevelScaling, applyItemRarityScaling } from "../../shared/domain/items/scaling";
 import {
   formatWeaponAttackSpeed,
@@ -87,6 +89,7 @@ export interface ForgeWorkspaceView {
     nextRequiredFloor?: number;
   };
   materials: Array<{ id: string; name: string; count: number }>;
+  bossComponents: BossComponentGroupView[];
   recipes: ForgeRecipeView[];
   selectedRecipe: ForgeRecipeView | null;
   selectedLevelBandMin: number;
@@ -198,12 +201,17 @@ export function createForgeWorkspaceView(input: {
   const selectedLevelBandMin = selectedRecipe?.availableLevelBands.includes(input.selectedLevelBandMin ?? -1)
     ? input.selectedLevelBandMin!
     : selectedRecipe?.availableLevelBands.at(-1) ?? 1;
-  const baseCost = selectedRecipe?.powerModelId === 'level-bands-v1'
-    ? scaleForgeMaterialsForItemLevel(FORGE_CRAFT_COST, selectedLevelBandMin)
-    : [...FORGE_CRAFT_COST];
+  const selectedIsSignature = RAT_KING_SIGNATURE_IDS.includes(selectedRecipe?.id as RatKingSignatureId);
+  const baseCost = selectedIsSignature
+    ? [...RAT_KING_SIGNATURE_PARAMETERS.recipeCosts]
+    : selectedRecipe?.powerModelId === 'level-bands-v1'
+      ? scaleForgeMaterialsForItemLevel(FORGE_CRAFT_COST, selectedLevelBandMin)
+      : [...FORGE_CRAFT_COST];
   const pendingItem = input.pending ? ITEM_LIBRARY.find((item) => item.id === input.pending?.itemId) : undefined;
   const offeredRarity = input.pending?.offeredRarity ?? pendingItem?.minimumRarity ?? "common";
+  const pendingIsSignature = RAT_KING_SIGNATURE_IDS.includes(pendingItem?.id as RatKingSignatureId);
   const upgradeAvailable = Boolean(pendingItem)
+    && !pendingIsSignature
     && rarityOrder.indexOf(offeredRarity) > rarityOrder.indexOf(pendingItem.minimumRarity);
   const compatibleModifiers = pendingItem?.itemType === "weapon" ? weaponModifiers : armorModifiers;
   const upgradeCost = getForgeUpgradeCost(
@@ -213,6 +221,8 @@ export function createForgeWorkspaceView(input: {
   const upgradeAffordable = upgradeCost.length > 0
     && upgradeCost.every((entry) => count(entry.materialId) >= entry.count);
 
+  const reserve = createForgeMaterialReserveView(input.materials);
+
   return {
     progression: {
       openedRangeLabel: `${openedProgression.itemLevelRange.min}–${openedProgression.itemLevelRange.max}`,
@@ -221,7 +231,8 @@ export function createForgeWorkspaceView(input: {
         nextRequiredFloor: nextProgression.requiredFloor,
       } : {}),
     },
-    materials: FORGE_MATERIALS.map((material) => ({ id: material.id, name: material.name, count: count(material.id) })),
+    materials: reserve.materials.map(({ id, name, count: materialCount }) => ({ id, name, count: materialCount })),
+    bossComponents: reserve.bossComponents,
     recipes,
     selectedRecipe,
     selectedLevelBandMin,
@@ -233,12 +244,12 @@ export function createForgeWorkspaceView(input: {
       itemName: pendingItem?.name ?? input.pending.itemId,
       itemLevel: input.pending.itemLevel ?? pendingItem?.requiredLevel ?? 1,
       rarityLabel: rarityLabels[offeredRarity],
-      baseRarityLabel: rarityLabels[pendingItem?.minimumRarity ?? 'common'],
+      baseRarityLabel: rarityLabels[pendingIsSignature ? offeredRarity : pendingItem?.minimumRarity ?? 'common'],
       offeredRarity,
       upgradeAvailable,
       upgradeAffordable: upgradeAvailable && upgradeAffordable,
       upgradeCosts: costViews(upgradeCost),
-      modifierOptions: compatibleModifiers.map((stat) => ({ stat, label: modifierLabels[stat] ?? stat })),
+      modifierOptions: pendingIsSignature ? [] : compatibleModifiers.map((stat) => ({ stat, label: modifierLabels[stat] ?? stat })),
     } : null,
   };
 }

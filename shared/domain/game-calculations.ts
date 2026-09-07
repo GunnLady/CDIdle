@@ -596,6 +596,14 @@ export const FORGE_MATERIALS: ForgeMaterial[] = [
     name: "Essence légendaire",
     rarity: "legendary",
     description: "Essence divine extrêmement rare. Se trouve exclusivement à partir de l'étage 75+ du donjon."
+  },
+  {
+    id: "rat_king_mark",
+    name: "Marque du Roi",
+    rarity: "epic",
+    description: "Pièce de tribut frappée du sceau du Roi des Rats, utilisée pour fabriquer ses équipements signatures.",
+    category: "boss",
+    sourceBoss: { dungeonId: "undercity", encounterId: "undercity:boss:50", name: "Roi des Rats" }
   }
 ];
 

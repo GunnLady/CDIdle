@@ -1,9 +1,16 @@
 import type {
   CanonicalActiveDungeonEncounter,
   CanonicalDungeonEncounterRecord,
+  CanonicalDungeonProgress,
   CanonicalDungeonTranscriptEvent,
 } from "../../shared/contracts/authoritative";
 import { getDungeonRoomCount } from "../../shared/domain/dungeon-progression";
+import { UNDERCITY_MAX_FLOOR, UNDERCITY_ZONES } from "../../shared/domain/undercity";
+import {
+  canFarmUndercity,
+  getUndercityCommonCheckpoint,
+  isUndercityProgressionComplete,
+} from "../../shared/domain/undercity-progression";
 import { ACTIVE_HERO_LIMIT } from "../../shared/domain/hero";
 import {
   UNARMED_WEAPON_CONTEXT,
@@ -74,6 +81,7 @@ export interface DungeonEncounterView {
   state: "pending" | "playing" | "victory" | "defeat";
   transcript: Array<{ id: string; message: string; category: CanonicalDungeonTranscriptEvent["category"] }>;
   result?: string;
+  enemies: Array<{ id: string; name: string; hp: number; maxHp: number; role?: string; intent?: string; effects: string[] }>;
 }
 
 export interface DungeonHistoryView {
@@ -242,6 +250,7 @@ export function createEncounterView(
       ? record.kind === "fight" ? "Combat en cours" : "Rencontre en cours"
       : record.outcome === "victory" ? "Victoire" : "Défaite",
     state,
+    enemies: (record.enemies ?? []).map((enemy) => ({ ...enemy, effects: enemy.effects ?? [] })),
     transcript: visibleTranscript.map((event) => ({
       id: `${record.encounterId}-${event.sequence}`,
       message: formatTranscriptEvent(event, heroNames),
@@ -273,6 +282,7 @@ export function createCurrentEncounterView(
       statusLabel: "Résolution en attente",
       state: "pending",
       transcript: [],
+      enemies: [],
     };
   }
   const latest = encounterHistory.at(-1);
@@ -297,4 +307,50 @@ export function createDungeonHistoryView(
     .filter((log) => log.category === "dungeon")
     .reverse();
   return { encounters, notes, emptyMessage: "Aucune action de donjon enregistrée." };
+}
+
+
+export interface UndercityJourneyView {
+  commonCheckpoint: number;
+  maxSelectableFloor: number;
+  awaitingFarmSelection: boolean;
+  halted: boolean;
+  haltReason: "wipe" | "retreat" | null;
+  mode: "progression" | "farm";
+  selectedZoneId: string | null;
+  members: Array<{ heroId: string; name: string; completedFloor: number }>;
+  farmZones: Array<{ id: string; name: string; selected: boolean }>;
+}
+
+export function createUndercityJourneyView(
+  progress: CanonicalDungeonProgress,
+  heroes: Hero[],
+): UndercityJourneyView {
+  const members = heroes
+    .filter((hero) => hero.isActive && hero.currentHp > 0)
+    .map((hero) => ({
+      heroId: hero.id,
+      name: hero.name,
+      completedFloor: progress.heroes[hero.id]?.completedFloor ?? 0,
+    }));
+  const memberIds = members.map((member) => member.heroId);
+  const commonCheckpoint = getUndercityCommonCheckpoint(progress, memberIds);
+  const farmAvailable = canFarmUndercity(progress, memberIds);
+  const awaitingFarmSelection = isUndercityProgressionComplete(progress, memberIds);
+  const maxSelectableFloor = members.length > 0
+    ? Math.min(UNDERCITY_MAX_FLOOR, ...members.map((member) => member.completedFloor + 1))
+    : 1;
+  return {
+    commonCheckpoint,
+    maxSelectableFloor,
+    awaitingFarmSelection,
+    halted: progress.expedition.halted,
+    haltReason: progress.expedition.haltReason,
+    mode: progress.expedition.mode,
+    selectedZoneId: progress.expedition.zoneId,
+    members,
+    farmZones: farmAvailable
+      ? UNDERCITY_ZONES.map((zone) => ({ id: zone.id, name: zone.name, selected: progress.expedition.zoneId === zone.id }))
+      : [],
+  };
 }

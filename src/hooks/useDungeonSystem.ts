@@ -1,3 +1,4 @@
+import type { CanonicalDungeonProgress } from "../../shared/contracts/authoritative";
 import {
   useEffect,
   useMemo,
@@ -27,6 +28,7 @@ type DungeonSystemOptions = {
   activeDungeonFloor: number;
   activeDungeonRoom: number;
   autoExplore: boolean;
+  dungeonProgress: CanonicalDungeonProgress;
 };
 
 /**
@@ -48,6 +50,7 @@ export function useDungeonSystem({
   activeDungeonFloor,
   activeDungeonRoom,
   autoExplore,
+  dungeonProgress,
 }: DungeonSystemOptions) {
   const [projectionNow, setProjectionNow] = useState(() => globalThis.performance?.now() ?? 0);
 
@@ -72,5 +75,6 @@ export function useDungeonSystem({
     autoExplore,
     forgeMaterials,
     itemBlueprints,
+    dungeonProgress,
   };
 }

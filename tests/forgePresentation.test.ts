@@ -13,9 +13,9 @@ describe("createForgeWorkspaceView", () => {
   it('filters names ignoring accents and case without changing the catalog', () => {
     const view = createForgeWorkspaceView({ materials, blueprints: [{ itemId: 'progression_sword', unlocked: true }], selectedRecipeId: 'progression_sword' });
     expect(filterForgeRecipes(view.recipes, ' EPEE ', 'weapon', true).map((recipe) => recipe.id)).toContain('progression_sword');
-    expect(filterForgeRecipes(view.recipes, '', 'armor', false)).toHaveLength(5);
-    expect(filterForgeRecipes(view.recipes, '', 'accessory', false)).toHaveLength(6);
-    expect(view.recipes).toHaveLength(48);
+    expect(filterForgeRecipes(view.recipes, '', 'armor', false)).toHaveLength(6);
+    expect(filterForgeRecipes(view.recipes, '', 'accessory', false)).toHaveLength(7);
+    expect(view.recipes).toHaveLength(51);
   });
 
   it('uses shared scaling for both ends of every open band and every recipe', () => {
@@ -23,6 +23,11 @@ describe("createForgeWorkspaceView", () => {
       const view = createForgeWorkspaceView({ materials: [], blueprints: [], selectedRecipeId: 'progression_sword', selectedLevelBandMin: band, forgeLevel: 8 });
       for (const recipe of view.recipes) {
         const base = ITEM_LIBRARY.find((item) => item.id === recipe.id)!;
+        if (base.powerModelId === 'legacy-fixed-v1') {
+          expect(recipe.availableLevelBands).toEqual([31]);
+          expect(recipe.modifierLines).toHaveLength(base.modifiers?.length ?? 0);
+          continue;
+        }
         for (const level of [band, band + 4]) {
           const item = applyItemRarityScaling(applyItemLevelScaling(base, level), base.minimumRarity, true);
           if (item.itemType === 'weapon' && item.damageRange) expect(recipe.weaponDetails).toContain(`Dégâts niv. ${level} : ${item.damageRange.min}–${item.damageRange.max}`);
@@ -54,7 +59,7 @@ describe("createForgeWorkspaceView", () => {
     });
 
     expect(view.baseAffordable).toBe(true);
-    expect(view.recipes).toHaveLength(48);
+    expect(view.recipes).toHaveLength(51);
     expect(view.selectedRecipe).toMatchObject({ id: "progression_sword", unlocked: true, rarityLabel: "Commune" });
     expect(view.progression).toEqual({ openedRangeLabel: "1–5", nextRangeLabel: "6–10", nextRequiredFloor: 8 });
     expect(view.selectedRecipe?.weaponDetails).toContain("Caractéristique : Force");
@@ -95,4 +100,32 @@ describe("createForgeWorkspaceView", () => {
     expect(view.baseAffordable).toBe(false);
     expect(view.selectedRecipe).toMatchObject({ id: "progression_sword", unlocked: false });
   });
-});
+
+  it("presents a Rat King signature as a fixed final result with its dedicated cost", () => {
+    const view = createForgeWorkspaceView({
+      materials: [
+        { materialId: "rat_king_mark", rarity: "epic", count: 6 },
+        { materialId: "metal_scrap", rarity: "common", count: 18 },
+        { materialId: "refined_metal", rarity: "uncommon", count: 3 },
+      ],
+      blueprints: [{ itemId: "rat_king_fang", unlocked: true }],
+      selectedRecipeId: "rat_king_fang",
+      forgeLevel: 7,
+      pending: { previewId: "signature", itemId: "rat_king_fang", itemLevel: 35, offeredRarity: "legendary" },
+    });
+    expect(view.bossComponents).toEqual([
+      expect.objectContaining({
+        bossId: "undercity:boss:50",
+        materials: [expect.objectContaining({ id: "rat_king_mark", count: 6 })],
+      }),
+    ]);
+    expect(view.baseCosts).toEqual(expect.arrayContaining([
+      expect.objectContaining({ id: "rat_king_mark", name: "Marque du Roi", required: 6, missing: 0 }),
+    ]));
+    expect(view.pending).toMatchObject({
+      baseRarityLabel: "Légendaire",
+      rarityLabel: "Légendaire",
+      upgradeAvailable: false,
+      modifierOptions: [],
+    });
+  });});

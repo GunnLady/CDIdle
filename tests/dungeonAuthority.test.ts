@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import { applyDungeonCommand, type DungeonRng, type DungeonState } from "../supabase/functions/game-api/dungeon-authority";
 import { makeHero } from "./fixtures/game";
 import { applyTownCommand, initialTownState } from "../supabase/functions/game-api/town-authority";
+import { createUndercityProgress } from "../shared/domain/undercity-progression";
+import { getDungeonRoomCount } from "../shared/domain/dungeon-progression";
 
 const state = (): DungeonState => ({
   ...initialTownState(42),
@@ -13,6 +15,7 @@ const state = (): DungeonState => ({
   currentEncounter: null,
   encounterHistory: [],
   autoExplore: true,
+  dungeonProgress: createUndercityProgress(["hero-1"]),
 });
 
 describe("authoritative dungeon commands", () => {
@@ -25,11 +28,11 @@ describe("authoritative dungeon commands", () => {
     const result = applyDungeonCommand(state(), { type: "dungeon.explore", floor: 1, commandId: "cmd-explore" });
     expect(result.state.currentEncounter).toMatchObject({ status: "active", floor: 1, room: 1, encounterId: "encounter-cmd-explore" });
     expect(result.state.activeDungeonRoom).toBe(1);
-    expect(result.events).toEqual([{ type: "dungeon.encounter_started", encounterId: "encounter-cmd-explore", floor: 1, room: 1 }]);
+    expect(result.events).toEqual([{ type: "dungeon.encounter_started", dungeonId: "undercity", encounterId: "encounter-cmd-explore", floor: 1, room: 1 }]);
   });
 
   it("selects only an unlocked floor without starting an encounter", () => {
-    const selected = applyDungeonCommand({ ...state(), highestFloorReached: 3 }, { type: "dungeon.select_floor", floor: 2 });
+    const selected = applyDungeonCommand({ ...state(), highestFloorReached: 3, dungeonProgress: createUndercityProgress(["hero-1"], 1) }, { type: "dungeon.select_floor", floor: 2 });
     expect(selected.state).toMatchObject({ activeDungeonFloor: 2, activeDungeonRoom: 1, currentEncounter: null, autoExplore: false });
     expect(() => applyDungeonCommand(state(), { type: "dungeon.select_floor", floor: 2 })).toThrow("requested dungeon floor is not available");
   });
@@ -43,6 +46,30 @@ describe("authoritative dungeon commands", () => {
     expect(resolved.state.encounterHistory).toHaveLength(1);
     expect(resolved.state.encounterHistory?.[0]).toMatchObject({ encounterId: "encounter-cmd-resolve", floor: 1, room: 1 });
     expect(resolved.events[0]).toMatchObject({ type: "dungeon.encounter_resolved", encounter: { outcome: "victory", transcript: expect.any(Array), rewards: { gold: expect.any(Number) } } });
+  });
+
+  it("resolves with only the heroes captured when the encounter started", () => {
+    const participant = makeHero({ id: "captured", isActive: true });
+    const lateHero = makeHero({ id: "late", isActive: false, status: "resting" });
+    const room = getDungeonRoomCount(1);
+    const progress = createUndercityProgress([participant.id, lateHero.id]);
+    progress.expedition.room = room;
+    const started = applyDungeonCommand({
+      ...state(),
+      heroes: [participant, lateHero],
+      activeDungeonRoom: room,
+      dungeonProgress: progress,
+    }, { type: "dungeon.explore", floor: 1, commandId: "captured-roster" });
+    expect(started.state.currentEncounter?.participantHeroIds).toEqual([participant.id]);
+
+    const activatedLateHero = { ...lateHero, isActive: true, status: "idle" as const };
+    const resolved = applyDungeonCommand({
+      ...started.state,
+      heroes: [participant, activatedLateHero],
+    }, { type: "dungeon.resolve" }, fixedRng());
+
+    expect(resolved.state.heroes.find((hero) => hero.id === lateHero.id)).toEqual(activatedLateHero);
+    expect(resolved.state.encounterHistory.at(-1)?.transcript.some((event) => event.heroId === lateHero.id)).toBe(false);
   });
 
   it("matches the sequential state and RNG in one automatic transition", () => {
@@ -80,6 +107,7 @@ describe("authoritative dungeon commands", () => {
       ...state(),
       activeDungeonFloor: 10,
       highestFloorReached: 10,
+      dungeonProgress: { ...createUndercityProgress(["hero-1"], 9), expedition: { ...createUndercityProgress(["hero-1"], 9).expedition, floor: 10, room: 1 } },
       heroes: [makeHero({
         id: "hero-1",
         isActive: true,
@@ -121,13 +149,16 @@ describe("authoritative dungeon commands", () => {
     const normalized = applyDungeonCommand({
       ...state(),
       activeDungeonRoom: 50,
+      dungeonProgress: { ...state().dungeonProgress, expedition: { ...state().dungeonProgress.expedition, room: 50 } },
     }, { type: "dungeon.auto_explore", enabled: false });
     expect(normalized.state.activeDungeonRoom).toBe(5);
 
     const legacyEncounter = applyDungeonCommand({
       ...state(),
       activeDungeonRoom: 50,
+      dungeonProgress: { ...state().dungeonProgress, expedition: { ...state().dungeonProgress.expedition, room: 50 } },
       heroes: [makeHero({
+        id: "hero-1",
         isActive: true,
         currentHp: 100_000,
         calculatedStats: {
@@ -141,6 +172,8 @@ describe("authoritative dungeon commands", () => {
         encounterId: "encounter-legacy",
         kind: "pending",
         status: "active",
+        dungeonId: "undercity",
+        participantHeroIds: ["hero-1"],
         floor: 1,
         room: 50,
       },

@@ -15,6 +15,18 @@ describe("StoragePanel modifier stacks", () => {
     expect(within(screen.getByTestId("storage-item-shared-control")).getByRole("button", { name: "Équiper" })).toHaveAttribute("data-state", "ready");
   });
 
+  it("groups boss components separately from ordinary forge materials", () => {
+    render(<StoragePanel
+      storedItems={[]}
+      isForgeUnlocked
+      forgeMaterials={[{ materialId: "rat_king_mark", rarity: "epic", count: 3 }]}
+    />);
+
+    expect(screen.getByRole("heading", { name: "Composants de boss" })).toBeInTheDocument();
+    expect(screen.getByText("Roi des Rats")).toBeInTheDocument();
+    expect(screen.getByText("Marque du Roi")).toBeInTheDocument();
+    expect(screen.getByText("3")).toBeInTheDocument();
+  });
   it("displays the guaranteed dual-wield profile from the catalog", () => {
     render(<StoragePanel
       storedItems={[{ instanceId: "dual-profile", itemId: "basic_gauntlets", itemLevel: 10, powerModelId: "legacy-fixed-v1", rarity: "common" }]}

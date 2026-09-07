@@ -3,6 +3,7 @@ import { CANONICAL_COMMAND_TYPES, CURRENT_CANONICAL_STATE_VERSION, validateCanon
 import { validateAuthoritativeHero } from "../src/domain/authoritativeHeroValidation";
 import { makeHero } from "./fixtures/game";
 import { initialTownState } from "../supabase/functions/game-api/town-authority";
+import { createUndercityProgress } from "../shared/domain/undercity-progression";
 
 const validEnvelope = {
   commandId: "11111111-1111-4111-8111-111111111111",
@@ -46,6 +47,21 @@ describe("authoritative shared contracts", () => {
       ...validEnvelope,
       command: { type: "dungeon.auto_advance", floor: 1, rooms: 2 },
     } as never)).toContain("command contains unsupported fields");
+  });
+
+  it("validates explicit UnderCity resume and farm selection payloads", () => {
+    expect(validateCanonicalCommandEnvelope({
+      ...validEnvelope,
+      command: { type: "dungeon.resume", dungeonId: "undercity" },
+    })).toEqual([]);
+    expect(validateCanonicalCommandEnvelope({
+      ...validEnvelope,
+      command: { type: "dungeon.select_farm_zone", dungeonId: "undercity", zoneId: "sewers" },
+    })).toEqual([]);
+    expect(validateCanonicalCommandEnvelope({
+      ...validEnvelope,
+      command: { type: "dungeon.select_farm_zone", dungeonId: "undercity", zoneId: "" },
+    })).toContain("command.zoneId is required");
   });
 
   it("bounds condensed building upgrades", () => {
@@ -126,6 +142,32 @@ describe("authoritative shared contracts", () => {
     ]));
   });
 
+  it("requires active encounter participants to be non-empty existing hero ids", () => {
+    const hero = makeHero({ id: "known-hero" });
+    const base = {
+      ...initialTownState(42),
+      heroes: [hero],
+      dungeonProgress: createUndercityProgress([hero.id]),
+    };
+    const encounter = {
+      encounterId: "encounter-contract",
+      kind: "pending" as const,
+      status: "active" as const,
+      dungeonId: "undercity",
+      floor: 1,
+      room: 1,
+    };
+
+    expect(validateCanonicalGameState({
+      ...base,
+      currentEncounter: { ...encounter, participantHeroIds: [] },
+    })).toContain("currentEncounter.participantHeroIds must contain at least one unique hero id");
+    expect(validateCanonicalGameState({
+      ...base,
+      currentEncounter: { ...encounter, participantHeroIds: ["missing-hero"] },
+    })).toContain("currentEncounter.participantHeroIds must reference existing heroes");
+  });
+
   it("validates encounter history unions and transcript fields", () => {
     const errors = validateCanonicalGameState({
       stateVersion: CURRENT_CANONICAL_STATE_VERSION,
@@ -133,12 +175,17 @@ describe("authoritative shared contracts", () => {
       ...initialTownState(42),
       encounterHistory: [{
         encounterId: "invalid-history",
+        dungeonId: "",
         kind: "unknown",
         floor: 1,
         room: 1,
         outcome: "escaped",
         roundCount: 1,
         enemy: { hp: "ten", maxHp: 10, isBoss: "yes" },
+        enemies: [
+          { id: "duplicate", name: "", hp: 11, maxHp: 10, role: "unknown", effects: [1] },
+          { id: "duplicate", name: "Second", hp: 1, maxHp: 1 },
+        ],
         transcript: [{ sequence: -1, type: "", category: "debug", damage: Number.NaN }],
         rewards: { gold: 0, loot: [] },
       }],
@@ -146,9 +193,15 @@ describe("authoritative shared contracts", () => {
 
     expect(errors).toEqual(expect.arrayContaining([
       "encounterHistory[0].kind is invalid",
+      "encounterHistory[0].dungeonId is invalid",
       "encounterHistory[0].outcome is invalid",
       "encounterHistory[0].enemy.hp must be a finite number",
       "encounterHistory[0].enemy.isBoss must be a boolean",
+      "encounterHistory[0].enemies[0].name is required",
+      "encounterHistory[0].enemies[0].hp exceeds maxHp",
+      "encounterHistory[0].enemies[0].role is invalid",
+      "encounterHistory[0].enemies[0].effects must be an array of strings",
+      "encounterHistory[0].enemies[1].id must be unique",
       "encounterHistory[0].transcript[0].sequence must be an integer >= 0",
       "encounterHistory[0].transcript[0].type is required",
       "encounterHistory[0].transcript[0].category is invalid",
@@ -313,6 +366,7 @@ describe("authoritative shared contracts", () => {
       totalCitizensCount: 3, activeDungeonFloor: 1, activeDungeonRoom: 1,
       highestFloorReached: 1, citizenGrowthProgress: 0, autoExplore: false,
       currentEncounter: null, pendingClassTransitions: [],
+      dungeonProgress: createUndercityProgress(),
       rngState: {
         algorithm: "xorshift32",
         version: 1,
@@ -342,6 +396,7 @@ describe("authoritative shared contracts", () => {
       totalCitizensCount: 3, activeDungeonFloor: 1, activeDungeonRoom: 1,
       highestFloorReached: 1, citizenGrowthProgress: 0, autoExplore: false,
       currentEncounter: null,
+      dungeonProgress: createUndercityProgress(),
       pendingClassTransitions: [{
         heroId: "hero-1",
         fromClass: "Novice",

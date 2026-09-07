@@ -62,6 +62,13 @@ export default function ForgeWorkspace(props: ForgeWorkspaceProps) {
         <dd className="mt-1 font-mono text-lg text-ui-text">{material.count}</dd>
       </div>)}
     </dl>
+    {view.bossComponents.length > 0 && <section aria-labelledby="forge-boss-components-title" className="space-y-3 border-t border-ui-border-subtle pt-4">
+      <h4 id="forge-boss-components-title" className="text-xs font-semibold uppercase tracking-wider text-ui-accent">Composants de boss</h4>
+      {view.bossComponents.map((group) => <div key={group.bossId} className="rounded-ui-control border border-ui-accent/30 bg-ui-panel p-3">
+        <p className="mb-2 text-xs text-ui-text-muted">{group.bossName}</p>
+        <dl className="grid grid-cols-2 gap-2 sm:grid-cols-3">{group.materials.map((material) => <div key={material.id} className="rounded-ui-control border border-ui-border-subtle bg-ui-surface px-3 py-2"><dt className="text-xs text-ui-text-muted">{material.name}</dt><dd className="mt-1 font-mono text-lg text-ui-text">{material.count}</dd></div>)}</dl>
+      </div>)}
+    </section>}
     {!props.canMutate && <Alert variant="observer">Lecture seule : vous pouvez consulter les plans, mais pas fabriquer ni améliorer.</Alert>}
     {view.pending ? <div key={view.pending.previewId}><ForgeResult pending={view.pending} canMutate={props.canMutate} onFinalize={props.onFinalize} onCancel={props.onCancel} /></div> : <div className="grid min-w-0 grid-cols-1 items-start gap-5 2xl:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]">
       <ForgeCatalog recipes={view.recipes} selectedId={recipe?.id} onSelect={setSelectedId} />

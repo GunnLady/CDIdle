@@ -64,6 +64,7 @@
     "test:class-calibration": "vitest run --config vitest.simulation.config.ts tests/classAffinitySimulation.test.ts",
     "test:combat-simulation": "vitest run --config vitest.simulation.config.ts tests/combatTacticsSimulation.test.ts",
     "test:dungeon-simulation": "vitest run tests/dungeonRulesSimulation.test.ts tests/dungeonEncounterRules.test.ts --reporter=verbose",
+    "test:undercity-product": "node scripts/run-undercity-product-integration.mjs",
     "test:xp-simulation": "vitest run --config vitest.simulation.config.ts tests/heroXpProgressionSimulation.test.ts --reporter=verbose",
     "test:xp-tier1": "node --experimental-strip-types scripts/run-xp-tier1-shards.mjs",
     "test:item-progression": "node --experimental-strip-types scripts/run-xp-tier1-shards.mjs",

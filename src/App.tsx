@@ -29,6 +29,7 @@ import { OptimisticCommandBuffer } from "./lib/optimisticCommandBuffer";
 import { sendOptimisticCommandWithConflictRetry } from "./lib/optimisticCommandDispatch";
 import type { CanonicalDungeonEncounterRecord } from "../shared/contracts/authoritative";
 import { createDungeonProgressBannerView } from "./domain/dungeonPresentation";
+import { createUndercityProgress } from "../shared/domain/undercity-progression";
 import { canonicalBootstrapOperationKey, requestCanonicalBootstrap } from "./lib/canonicalBootstrap";
 import { canMutateCanonicalState, canUseAccountDangerActions } from "./lib/canonicalMutationAccess";
 import {
@@ -249,6 +250,7 @@ export default function App() {
     activeDungeonFloor: canonicalProjection?.activeDungeonFloor ?? 1,
     activeDungeonRoom: canonicalProjection?.activeDungeonRoom ?? 1,
     autoExplore: canonicalProjection?.autoExplore ?? true,
+    dungeonProgress: canonicalProjection?.dungeonProgress ?? createUndercityProgress(),
   });
 
   const clearClientGameState = useCallback(() => {
@@ -621,6 +623,7 @@ export default function App() {
                 resources={town.resources}
                 buildings={town.buildings}
                 canMutate={canMutate}
+                canChangeComposition={canMutate && !currentEncounter}
                 onDismissHero={(heroId) => { void dispatchAuthoritativeCommand({ type: "hero.dismiss", heroId }); }}
                 onToggleHeroActive={handleToggleHeroActive}
                 onRecruitHero={() => { void dispatchAuthoritativeCommand({ type: "hero.recruit_offer" }); }}
@@ -641,6 +644,7 @@ export default function App() {
                 activeDungeonFloor={dungeon.activeDungeonFloor}
                 activeDungeonRoom={dungeon.activeDungeonRoom}
                 autoExplore={dungeon.autoExplore}
+                dungeonProgress={dungeon.dungeonProgress}
                 battleLogs={dungeonLogs}
                 highestFloorReached={dungeon.highestFloorReached}
                 canMutate={canMutate}
@@ -655,6 +659,8 @@ export default function App() {
                 onToggleHeroActive={handleToggleHeroActive}
                 onClearBattleLogs={() => clearBattleLogs("dungeon")}
                 onResetLevel={handleResetLevel}
+                onResume={() => { void dispatchAuthoritativeCommand({ type: "dungeon.resume", dungeonId: "undercity" }); }}
+                onSelectFarmZone={(zoneId) => { void dispatchAuthoritativeCommand({ type: "dungeon.select_farm_zone", dungeonId: "undercity", zoneId }); }}
               />
             </div>
           )}
@@ -714,7 +720,7 @@ export default function App() {
             <VocationPrayerPrompt
               pending={pending}
               hero={hero}
-              disabled={pendingUserCommandCount > 0}
+              disabled={pendingUserCommandCount > 0 || Boolean(currentEncounter)}
               readOnly={!isAutomationLeader}
               onChoose={(classType) => {
                 void dispatchAuthoritativeCommand({

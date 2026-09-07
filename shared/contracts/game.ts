@@ -249,6 +249,12 @@ export interface ForgeMaterial {
   name: string;
   rarity: Rarity;
   description: string;
+  category?: "standard" | "boss";
+  sourceBoss?: {
+    dungeonId: string;
+    encounterId: string;
+    name: string;
+  };
 }
 
 export type StoredForgeMaterialStack = CanonicalForgeMaterialStack;

@@ -10,6 +10,7 @@ import {
 import { applyTownCommand, initialTownState } from "../supabase/functions/game-api/town-authority";
 import { refreshHeroDerivedStats } from "../src/utils/gameCalculations";
 import { makeHero, makeStoredItem } from "./fixtures/game";
+import { createUndercityProgress } from "../shared/domain/undercity-progression";
 
 type ParityScenarioMap = {
   [T in OptimisticCommandType]: {
@@ -59,6 +60,8 @@ const PARITY_SCENARIOS = {
     command: { type: "dungeon.select_floor", floor: 2 },
     state: () => ({
       ...initialTownState(42),
+      heroes: [makeHero({ id: "hero-parity", isActive: true })],
+      dungeonProgress: createUndercityProgress(["hero-parity"], 2),
       activeDungeonRoom: 4,
       highestFloorReached: 3,
       autoExplore: true,

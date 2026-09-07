@@ -31,15 +31,17 @@ describe('Forge workshop interaction', () => {
     render(<CityDashboard {...props} />);
     fireEvent.click(screen.getByTestId('building-forge'));
     const catalog = within(screen.getByRole('region', { name: 'Catalogue des plans' }));
+    expect(screen.getByRole('heading', { name: 'Composants de boss' })).toBeInTheDocument();
+    expect(screen.getByText('Roi des Rats')).toBeInTheDocument();
     expect(catalog.getByRole('status')).toHaveTextContent('1 plan affiché');
     fireEvent.click(catalog.getByRole('checkbox', { name: 'Plans connus uniquement' }));
-    expect(catalog.getByRole('status')).toHaveTextContent('48 plans affichés');
+    expect(catalog.getByRole('status')).toHaveTextContent('51 plans affichés');
     fireEvent.click(catalog.getByRole('button', { name: 'Armures' }));
-    expect(catalog.getByRole('status')).toHaveTextContent('5 plans affichés');
+    expect(catalog.getByRole('status')).toHaveTextContent('6 plans affichés');
     fireEvent.change(catalog.getByRole('searchbox'), { target: { value: 'zzzintrouvable' } });
     expect(catalog.getByText('Aucun plan ne correspond à ces filtres.')).toBeInTheDocument();
     fireEvent.click(catalog.getByRole('button', { name: 'Voir tous les plans' }));
-    expect(catalog.getByRole('status')).toHaveTextContent('48 plans affichés');
+    expect(catalog.getByRole('status')).toHaveTextContent('51 plans affichés');
     expect(props.onStartForge).not.toHaveBeenCalled();
   });
 
