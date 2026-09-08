@@ -45,7 +45,7 @@ conserve `xp / xpNeeded`, arrondit vers le bas et ne consomme aucun tirage RNG.
 L'identifiant rend cette conversion idempotente.
 
 Les modèles de récompenses donjon `level-aligned-v2` et de difficulté des défis
-`party-four-two-thirds-v2` ne sont pas persistés dans le snapshot. Leur
+`undercity-two-profiles-v3` ne sont pas persistés dans le snapshot. Leur
 activation ne déclenche donc aucune migration et ne réécrit jamais l'XP déjà
 acquise. Un replay retourne le résultat de commande persisté au lieu de
 recalculer les récompenses avec la politique courante.

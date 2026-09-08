@@ -1,6 +1,7 @@
 import type { CanonicalDungeonEncounterRecord } from "../../shared/contracts/authoritative";
 
 export const ENCOUNTER_PLAYBACK_STEP_MS = 400;
+export const DUNGEON_AUTO_EXPLORE_DELAY_MS = 4_750;
 
 export type EncounterPlaybackState = {
   encounterId: string;

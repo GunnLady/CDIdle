@@ -44,6 +44,7 @@ import {
 } from "./dungeon-helpers.ts";
 import {
   DUNGEON_CHALLENGE_DEFINITIONS,
+  DUNGEON_CHALLENGE_FAILURE_PARAMETERS,
   getCanonicalDungeonChallengeDifficulty,
   rollDungeonChallenge,
   selectBestDungeonChallengeCandidate,
@@ -1417,8 +1418,12 @@ function resolveNonFight(
   } else {
     if (!(kind in DUNGEON_CHALLENGE_DEFINITIONS)) throw new Error("UNSUPPORTED_DUNGEON_ENCOUNTER");
     const details = DUNGEON_CHALLENGE_DEFINITIONS[kind as DungeonChallengeKind];
-    const difficulty = challengeDifficultyResolver(floor, kind as DungeonChallengeKind);
-    const selected = selectBestDungeonChallengeCandidate(active(), details.statA, details.statB, difficulty);
+    const activeHeroes = active();
+    const difficulty = challengeDifficultyResolver(floor, kind as DungeonChallengeKind, {
+      farm: source.dungeonProgress.expedition.mode === "farm",
+      partyLevel: Math.min(...activeHeroes.map((hero) => hero.level)),
+    });
+    const selected = selectBestDungeonChallengeCandidate(activeHeroes, details.statA, details.statB, difficulty);
     if (!selected) throw new Error("NO_ACTIVE_HERO");
     const challengeHeroesBefore = clone(heroes);
     const challenge = rollDungeonChallenge(selected, difficulty, rng);
@@ -1559,36 +1564,41 @@ function resolveNonFight(
       });
     } else {
       let goldLost = 0;
-      if (kind === "trap") {
+      if (kind === "trap" || kind === "ambush" || kind === "obstacle") {
+        const fraction = kind === "trap"
+          ? DUNGEON_CHALLENGE_FAILURE_PARAMETERS.trapCurrentHpFraction
+          : kind === "ambush"
+            ? DUNGEON_CHALLENGE_FAILURE_PARAMETERS.ambushCurrentHpFraction
+            : DUNGEON_CHALLENGE_FAILURE_PARAMETERS.obstacleCurrentHpFraction;
         heroes = heroes.map((hero) => hero.isActive && hero.currentHp > 0
           ? {
               ...hero,
-              currentHp: Math.max(1, hero.currentHp - Math.max(1, Math.round(hero.calculatedStats.maxHp * 0.45))),
+              currentHp: Math.max(1, hero.currentHp - Math.max(1, Math.round(hero.currentHp * fraction))),
             }
           : hero);
-      } else if (kind === "enigma") {
-        heroes = heroes.map((hero) => hero.isActive && hero.currentHp > 0
-          ? { ...hero, currentMana: Math.max(0, hero.currentMana - 10) }
-          : hero);
-      } else if (kind === "ritual") {
-        heroes = heroes.map((hero) => hero.isActive && hero.currentHp > 0
-          ? {
-              ...hero,
-              currentMana: Math.max(0, hero.currentMana - 15),
-              currentHp: Math.max(1, hero.currentHp - Math.max(1, Math.round(hero.calculatedStats.maxHp * 0.1))),
-            }
-          : hero);
+      } else if (kind === "enigma" || kind === "ritual") {
+        heroes = heroes.map((hero) => {
+          if (hero.id !== selected.hero.id) return hero;
+          const manaLost = hero.currentMana <= 0
+            ? 0
+            : Math.max(1, Math.round(
+                hero.currentMana
+                * DUNGEON_CHALLENGE_FAILURE_PARAMETERS.selectedHeroCurrentManaFraction,
+              ));
+          return { ...hero, currentMana: Math.max(0, hero.currentMana - manaLost) };
+        });
       } else if (kind === "negotiation") {
-        goldLost = Math.min(Number(resources.gold ?? 0), 20);
-        resources.gold = Number(resources.gold ?? 0) - goldLost;
-      } else {
-        const fraction = kind === "ambush" || kind === "obstacle" ? 0.2 : 0;
-        heroes = heroes.map((hero) => hero.isActive && hero.currentHp > 0
-          ? {
-              ...hero,
-              currentHp: Math.max(1, hero.currentHp - Math.max(1, Math.round(hero.calculatedStats.maxHp * fraction))),
-            }
-          : hero);
+        const currentGold = Number(resources.gold ?? 0);
+        const proportionalLoss = currentGold <= 0
+          ? 0
+          : Math.max(1, Math.round(
+              currentGold
+              * DUNGEON_CHALLENGE_FAILURE_PARAMETERS.negotiationCurrentGoldFraction,
+            ));
+        const cap = getDungeonGoldReward(floor, "ambush")
+          * DUNGEON_CHALLENGE_FAILURE_PARAMETERS.negotiationRegularFightCap;
+        goldLost = Math.min(currentGold, proportionalLoss, cap);
+        resources.gold = currentGold - goldLost;
       }
       log("challenge.failed", `Échec : ${luckRoll} + ${selected.score} < ${difficulty}.`, "defeat", {
         heroId: selected.hero.id,
@@ -1599,11 +1609,11 @@ function resolveNonFight(
         probabilityPercent,
       });
       const failureMessages: Record<Exclude<DungeonEncounterType, "fight" | "treasure" | "rest">, string> = {
-        trap: "Le piège s'active : l'escouade perd jusqu'à 45 % de ses PV.",
-        enigma: "Un contrecoup psychique retire 10 PM à chaque héros actif.",
-        ambush: "L'assaut surprise retire jusqu'à 20 % des PV de l'escouade.",
-        ritual: "Le rituel instable retire 15 PM et jusqu'à 10 % des PV.",
-        obstacle: "Le passage forcé retire jusqu'à 20 % des PV de l'escouade.",
+        trap: "Le piège s'active : l'escouade perd 5 % de ses PV actuels.",
+        enigma: `Un contrecoup psychique retire 10 % du mana actuel de ${selected.hero.name}.`,
+        ambush: "L'assaut surprise retire 5 % des PV actuels de l'escouade.",
+        ritual: `Le rituel instable retire 10 % du mana actuel de ${selected.hero.name}.`,
+        obstacle: "Le passage forcé retire 3 % des PV actuels de l'escouade.",
         negotiation: `La négociation échoue et l'escouade perd ${goldLost} or.`,
       };
       log(
@@ -1613,8 +1623,10 @@ function resolveNonFight(
         {
           goldLost,
           hpLossPercent:
-            kind === "trap" ? 45 : kind === "ambush" || kind === "obstacle" ? 20 : kind === "ritual" ? 10 : 0,
-          manaLost: kind === "enigma" ? 10 : kind === "ritual" ? 15 : 0,
+            kind === "trap" || kind === "ambush" ? 5 : kind === "obstacle" ? 3 : 0,
+          hpLossBasis: kind === "trap" || kind === "ambush" || kind === "obstacle" ? "current" : null,
+          manaLossPercent: kind === "enigma" || kind === "ritual" ? 10 : 0,
+          manaLossBasis: kind === "enigma" || kind === "ritual" ? "selected-current" : null,
           heroChanges: summarizeHeroChanges(challengeHeroesBefore, heroes),
         },
       );

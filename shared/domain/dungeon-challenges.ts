@@ -13,9 +13,22 @@ export type DungeonChallengeKind =
 export type DungeonChallengeDifficultyResolver = (
   floor: number,
   kind: DungeonChallengeKind,
+  context?: { farm: boolean; partyLevel: number },
 ) => number;
 
-export const DUNGEON_CHALLENGE_DIFFICULTY_MODEL_ID = "party-four-two-thirds-v2" as const;
+export const DUNGEON_CHALLENGE_DIFFICULTY_MODEL_ID = "undercity-two-profiles-v3" as const;
+export const DUNGEON_CHALLENGE_GLOBAL_DIFFICULTY_OFFSET = 1;
+export const DUNGEON_CHALLENGE_FARM_LEVEL_BASELINE = 20;
+export const DUNGEON_CHALLENGE_FARM_DIFFICULTY_PER_LEVEL = 2;
+
+export const DUNGEON_CHALLENGE_FAILURE_PARAMETERS = {
+  trapCurrentHpFraction: 0.05,
+  ambushCurrentHpFraction: 0.05,
+  obstacleCurrentHpFraction: 0.03,
+  selectedHeroCurrentManaFraction: 0.10,
+  negotiationCurrentGoldFraction: 0.03,
+  negotiationRegularFightCap: 3,
+} as const;
 
 type DungeonChallengeDifficultyAnchor = { floor: number; difficulty: number };
 
@@ -30,21 +43,27 @@ export const DUNGEON_CHALLENGE_DIFFICULTY_ANCHORS: Readonly<
   negotiation: [{ floor: 1, difficulty: 11 }, { floor: 10, difficulty: 29 }, { floor: 20, difficulty: 50 }, { floor: 25, difficulty: 53 }, { floor: 30, difficulty: 62 }, { floor: 40, difficulty: 66 }, { floor: 99, difficulty: 66 }],
 };
 
-export const getCanonicalDungeonChallengeDifficulty: DungeonChallengeDifficultyResolver = (floor, kind) => {
+export const getCanonicalDungeonChallengeDifficulty: DungeonChallengeDifficultyResolver = (floor, kind, context) => {
   const safeFloor = Math.max(1, Math.floor(Number.isFinite(floor) ? floor : 1));
   const anchors = DUNGEON_CHALLENGE_DIFFICULTY_ANCHORS[kind];
   const upperIndex = anchors.findIndex((anchor) => safeFloor <= anchor.floor);
-  if (upperIndex === 0) return anchors[0].difficulty;
-  if (upperIndex < 0) {
+  let difficulty: number;
+  if (upperIndex === 0) difficulty = anchors[0].difficulty;
+  else if (upperIndex < 0) {
     const lower = anchors.at(-2)!;
     const upper = anchors.at(-1)!;
     const slope = (upper.difficulty - lower.difficulty) / (upper.floor - lower.floor);
-    return Math.round(upper.difficulty + (safeFloor - upper.floor) * slope);
+    difficulty = Math.round(upper.difficulty + (safeFloor - upper.floor) * slope);
+  } else {
+    const lower = anchors[upperIndex - 1];
+    const upper = anchors[upperIndex];
+    const ratio = (safeFloor - lower.floor) / (upper.floor - lower.floor);
+    difficulty = Math.round(lower.difficulty + (upper.difficulty - lower.difficulty) * ratio);
   }
-  const lower = anchors[upperIndex - 1];
-  const upper = anchors[upperIndex];
-  const ratio = (safeFloor - lower.floor) / (upper.floor - lower.floor);
-  return Math.round(lower.difficulty + (upper.difficulty - lower.difficulty) * ratio);
+  difficulty += DUNGEON_CHALLENGE_GLOBAL_DIFFICULTY_OFFSET;
+  if (!context?.farm) return difficulty;
+  const extraLevels = Math.max(0, Math.floor(context.partyLevel) - DUNGEON_CHALLENGE_FARM_LEVEL_BASELINE);
+  return Math.round(difficulty + extraLevels * DUNGEON_CHALLENGE_FARM_DIFFICULTY_PER_LEVEL);
 };
 
 export type DungeonChallengeDefinition = {

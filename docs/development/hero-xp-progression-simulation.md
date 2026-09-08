@@ -25,21 +25,31 @@ npm.cmd run test:xp-tier-projection
 ```
 
 `test:xp-tier1` est la preuve principale du contenu réel T0/T1. La commande
-lance 100 campagnes déterministes avec 100 seeds distinctes, réparties en dix
-processus de dix seeds, puis fusionne exactement leurs compteurs. Chaque
-campagne utilise quatre novices générés par l'autorité serveur, les vraies
-vocations T1, l'attrition, la récupération idle, le loot et la commande
-autoritaire d'équipement. Après trois échecs sur un boss, le groupe rejoue
-l'étage précédent.
+lance 100 seeds déterministes sous deux profils d'équipement, soit 200
+campagnes, réparties par défaut en dix processus de dix seeds, puis fusionne
+exactement leurs compteurs. Chaque campagne utilise quatre novices générés par
+l'autorité serveur, les vraies vocations T1 et l'autorité UnderCity réelle :
+progression personnelle jusqu'au Roi des Rats à l'étage 50, puis farm de la
+Cour jusqu'au niveau 40. L'attrition, la récupération idle, les primes
+personnelles, le loot et les commandes d'équipement restent autoritaires.
+Le temps de rencontre additionne chaque pas de transcript de `400 ms` et la
+temporisation d'auto-exploration runtime de `4 750 ms`; la récupération idle
+est comptée séparément puis incluse dans le temps total.
 
 Le rapport agrégé trace les deux courbes, les jalons P10/médiane/P90, la part
 d'XP de chaque source et les réussites de défis par bande et par type. La
 commande échoue si :
 
-- les 100 seeds ne sont pas présentes exactement une fois ;
+- les 100 seeds ne sont pas présentes exactement une fois dans chacun des deux
+  profils ;
+- une campagne ne termine pas avec quatre héros niveau 40, les quarante primes
+  personnelles et au moins une boucle de farm de la Cour ;
+- la médiane de temps simulé d'un profil sort de `12 à 13 heures` ;
 - le taux global des défis sort de `66,7 % ± 2 points` ;
-- une bande de niveaux sort de `66,7 % ± 4 points` ;
-- une cellule type × bande sort de `66,7 % ± 7,5 points` ;
+- une bande de niveaux sort de l'enveloppe `55 à 80 %` ;
+- un type de défi sort de l'enveloppe globale `40 à 95 %` ;
+- la dernière bande n'est pas au moins deux points plus difficile que la
+  première ;
 - le coût médian par niveau ne ralentit pas strictement entre les phases
   1–10, 10–20, 20–30, 30–35 et 35–40.
 
@@ -48,12 +58,23 @@ Le moteur de campagne réutilisable se trouve dans
 la sérialisation machine ; `scripts/run-xp-tier1-shards.mjs` distribue les
 seeds, fusionne les compteurs et vérifie les tolérances. Les variables
 `XP_SHARD_COUNT` et `XP_SEEDS_PER_SHARD` permettent un passage exploratoire
-plus court sans changer le défaut `10 × 10`. `XP_DIAGNOSTICS=1` ajoute les
+plus court sans changer le défaut `10 × 10`. `XP_SEED_STRIDE` permet
+d'échantillonner régulièrement une plage plus large pendant la calibration.
+`XP_DIAGNOSTICS=1` ajoute les
 seuils isotones calculés depuis les distributions score/LUK par étage.
+
+Chaque exécution conserve son résultat sous
+`test-results/xp-tier1/<horodatage>.json` et actualise
+`test-results/xp-tier1/latest.json`. L'artefact est écrit avant l'échec
+terminal éventuel et contient la configuration, le statut, les violations, les
+résumés, les agrégats et les rapports par campagne. Une erreur de shard produit
+également un artefact avec la phase et la trace de l'erreur. Le dossier reste
+local et ignoré par Git. `XP_OUTPUT_DIRECTORY` permet de choisir une autre
+cible explicite.
 
 ### Progression canonique des objets
 
-`test:item-progression` rejoue les mêmes 100 campagnes avec le catalogue et le
+`test:item-progression` rejoue les mêmes 200 campagnes avec le catalogue et le
 moteur autoritaires réellement utilisés en production. Les combats, événements,
 tirages de loot, vocations, restrictions de niveau et de classe, attrition,
 récupération et commandes d'équipement restent ceux du moteur autoritaire.
@@ -80,14 +101,14 @@ Le rapport mesure les objets dans les huit tranches exactes `1–5`, `6–10`, �
   passifs ne peuvent donc pas valider artificiellement cette métrique.
 
 La commande conserve tous les seuils XP et défis du harness canonique. Elle
-vérifie aussi une disponibilité minimale de `50 / 50 / 55 / 60 / 65 / 70 /
-75 / 80 %`. Le gain d'équipement moyen doit rester entre `140 et 240 %` puis
-`75 et 135 %` dans les deux premières tranches, entre `15 et 30 %` en 11–15,
-entre `11 et 22 %` de 16 à 35 et entre `9 et 18 %` en 36–40. La contribution
-d'équipement du groupe doit croître à chaque tranche ; aucune rareté ne peut
-dépasser `50 %` après le niveau 10 et au moins un jackpot supérieur à `100 %`
-doit encore exister entre les niveaux 11 et 40. La médiane du niveau 40 reste
-limitée à `4 000` explorations.
+vérifie aussi, pour chaque profil, une disponibilité minimale de
+`50 / 50 / 55 / 60 / 65 / 70 / 75 / 80 %`, au moins une amélioration rentable
+par tranche, une contribution d'équipement strictement croissante, au moins
+trois raretés représentées avec 10 % de rare+ après le niveau 10, et au moins
+un jackpot rare+ supérieur à `100 %` entre les niveaux 11 et 40. Le gain
+relatif moyen reste rapporté mais n'est plus utilisé comme seuil rigide : il
+dépend directement de l'équipement déjà accumulé et de la fréquence de revue
+du profil.
 
 Le harness reste un outil de calibration intégré : il exerce les restrictions,
 profils, loot, attrition, vocations et commandes d'équipement réels. Il ne
@@ -124,10 +145,25 @@ Les jalons héros médians 10 / 20 / 30 / 35 / 40 sont
 sur 11 642 jets éligibles, soit 4,72 %, et les boss en donnent 29. La médiane
 finale est de 12 plans évolutifs connus.
 
-## Résultat final sur 100 seeds
+## Résultat UnderCity courant sur 100 seeds par profil
+
+La validation complète du 8 septembre 2026 termine les 200 campagnes. Le
+profil optimisé atteint le niveau 40 en médiane à `12,60 h`, avec un intervalle
+P10–P90 de `11,91–13,71 h`. Le profil moyen atteint la médiane à `12,65 h`,
+avec un intervalle P10–P90 de `12,01–13,67 h`. Les deux profils terminent
+`100/100`, avec une médiane de `4 235` explorations et trois boucles de Cour.
+
+Le taux global des défis est `66,10 %`. Les bandes 1–9, 10–19, 20–29, 30–34
+et 35–40 donnent `63,96 / 70,83 / 74,05 / 72,40 / 58,69 %`. Les contrôles par
+type, disponibilité, puissance croissante, diversité de rareté et jackpot
+rare+ passent également.
+
+## Résultat historique legacy sur 100 seeds
 
 Validation du 4 septembre 2026 avec le catalogue `level-bands-v1`, la rareté
-explosive et la difficulté `party-four-two-thirds-v2` :
+explosive et la difficulté `party-four-two-thirds-v2`. Ce résultat précède le
+passage du harness à l'autorité UnderCity et ne constitue plus la preuve
+produit courante :
 
 | Niveau de groupe | P10 | Médiane | P90 |
 |---:|---:|---:|---:|
@@ -180,8 +216,9 @@ L20/L30 et `8,704 s` visibles par exploration, le profil progressif donne
 ## Limites
 
 - Le harness modélise un groupe de quatre bien géré, avec tous les bâtiments
-  T1 disponibles et une stratégie gloutonne d'équipement. Il ne simule pas les
-  coûts de construction ou de recrutement.
+  T1 disponibles. Les profils optimisé et moyen encadrent la fréquence de
+  gestion d'équipement, mais ne couvrent pas tous les comportements humains.
+  Les coûts de construction ou de recrutement ne sont pas simulés.
 - Le temps simulé couvre les événements de transcript et la récupération,
   mais pas la latence réseau, les décisions humaines ni les retours en ville.
 - Les chances nulles restent mesurées et visibles. Elles ne signifient pas que

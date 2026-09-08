@@ -331,3 +331,33 @@ Remove-Item Env:XP_SEED_OFFSET
 - Ne pas supprimer les correctifs locaux antérieurs.
 - Ne pas ouvrir de navigateur sans autorisation explicite.
 - Ne pas commit/push sans confirmation explicite immédiate.
+
+## Reprise exécutée le 8 septembre 2026
+
+Le plan ci-dessus a été appliqué sans restaurer le chemin legacy :
+
+- la campagne passe par `applyDungeonCommand`, termine les cinquante étages,
+  sélectionne la Cour et la farme jusqu'au niveau 40 ;
+- les profils d'équipement optimisé et moyen sont tous deux mesurés ;
+- le temps partage la constante runtime d'auto-exploration de `4 750 ms` et
+  sépare rencontres et récupération ;
+- les pénalités d'échec sont centralisées : 5 % des PV actuels pour piège et
+  embuscade, 3 % pour obstacle, 10 % du mana actuel du héros sélectionné pour
+  énigme et rituel, 3 % de l'or plafonné à trois combats ordinaires pour
+  négociation ; toutes restent non létales et ne donnent aucune XP ;
+- la difficulté `undercity-two-profiles-v3` conserve les ancres validées et
+  ajoute en farm `2` points par niveau du groupe au-dessus du niveau 20, après
+  un décalage global de `+1`.
+
+La passe complète vérifiée sur 100 seeds par profil termine 200/200 campagnes.
+Les médianes niveau 40 sont `12,60 h` (optimisé) et `12,65 h` (moyen), avec une
+médiane commune de `4 235` explorations et trois boucles de Cour. Les intervalles
+P10–P90 sont respectivement `11,91–13,71 h` et `12,01–13,67 h`. Le taux global
+des défis est `66,10 %`; les bandes 1–9, 10–19, 20–29, 30–34 et 35–40 donnent
+`63,96 / 70,83 / 74,05 / 72,40 / 58,69 %`. Tous les contrôles agrégés de
+campagne, défis et objets passent.
+
+Le runner conserve désormais chaque résultat sous
+`test-results/xp-tier1/<horodatage>.json` et actualise `latest.json`, y compris
+avant un échec de seuil ou lorsqu'un shard échoue. Le timeout propre à la
+campagne est porté de 60 à 120 minutes.

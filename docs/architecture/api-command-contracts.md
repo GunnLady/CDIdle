@@ -154,10 +154,12 @@ sont appliqués par le chemin temporel CDI-061.
   défis réussis attribuent à tous les héros actifs et vivants la part prévue
   par la table de groupe, tandis qu'un échec n'attribue aucune XP. Chaque
   événement d'XP expose explicitement sa `source` et son `floor`.
-- La difficulté effective des défis suit
-  `party-four-two-thirds-v2`. Ses ancres monotones par type sont interpolées
-  selon l'étage ; elles ne modifient ni la sélection probabiliste du meilleur
-  héros ni l'unique tirage RNG de la tentative.
+- La difficulté effective des défis suit `undercity-two-profiles-v3`. Ses
+  ancres monotones par type sont interpolées selon l'étage. En farm, le seuil
+  ajoute `2` points par niveau entier du groupe au-dessus du niveau 20. Cette
+  calibration applique aussi un décalage global de `+1`, sans modifier la
+  sélection probabiliste du meilleur héros ni l'unique tirage RNG de la
+  tentative.
 
 Les cinq commandes sont idempotentes via l'enveloppe commune et leurs
 événements sont commités avec l'état canonique.

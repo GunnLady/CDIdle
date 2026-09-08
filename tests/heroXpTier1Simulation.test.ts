@@ -5,7 +5,6 @@ import type { DungeonXpRewardSource } from "../shared/domain/dungeon-xp-rewards"
 import { HARMONIZED_HERO_XP_CURVE } from "./fixtures/xpProgression";
 import {
   ACTIVE_REWARD_PROFILES,
-  CANONICAL_PROFILE,
   CHALLENGE_KINDS,
   CHALLENGE_LEVEL_BANDS,
   ITEM_LEVEL_BANDS,
@@ -16,6 +15,7 @@ import {
   TARGET_LEVEL,
   runLevel40Campaign,
   type ChallengeCalibrationResult,
+  type LongCampaignReport,
 } from "./helpers/heroXpTier1Campaign";
 
 describe("complete Tier 1 XP campaign", () => {
@@ -23,8 +23,9 @@ describe("complete Tier 1 XP campaign", () => {
     const reports = ACTIVE_REWARD_PROFILES.flatMap((profile) => (
       SEEDS.map((seed) => runLevel40Campaign(profile, seed))
     ));
+    const verboseReport = SEED_COUNT <= 3 || process.env.XP_DIAGNOSTICS === "1";
     if (SEED_COUNT <= 3) console.table(reports.map((report) => ({
-      profil: CANONICAL_PROFILE.label,
+      profil: ACTIVE_REWARD_PROFILES.find((profile) => profile.id === report.profile)?.label ?? report.profile,
       graine: report.seed,
       explorations: report.explorations,
       niveaux: report.finalLevels.join("/"),
@@ -59,6 +60,7 @@ describe("complete Tier 1 XP campaign", () => {
         console.table(report.xpBySource);
       }
       expect(report.explorations).toBeLessThan(MAX_EXPLORATIONS);
+      expect(report.highestFloor).toBeLessThanOrEqual(50);
       if (!report.blockedReason) {
         expect(report.finalLevels.every((level) => level >= TARGET_LEVEL)).toBe(true);
       } else if (!report.forgeCandidate) {
@@ -74,6 +76,12 @@ describe("complete Tier 1 XP campaign", () => {
       expect(report.elites).toBeGreaterThan(0);
       expect(report.majorBosses).toBeGreaterThan(0);
       expect(report.firstClears).toBeGreaterThan(0);
+      expect(report.personalFirstRewards).toBe(40);
+      expect(report.personalFirstRewardsByFloor).toMatchObject({
+        5: 4, 10: 4, 15: 4, 20: 4, 25: 4,
+        30: 4, 35: 4, 40: 4, 45: 4, 50: 4,
+      });
+      expect(report.farmLoops).toBeGreaterThan(0);
       expect(report.itemLoots).toBeGreaterThan(0);
       expect(report.equipmentChanges).toBeGreaterThan(0);
       expect(ITEM_LEVEL_BANDS.reduce(
@@ -120,7 +128,7 @@ describe("complete Tier 1 XP campaign", () => {
     const balancedSuccesses = balancedReports.reduce((sum, report) => sum + report.challengeSuccesses, 0);
     const balancedSuccessRate = balancedSuccesses / balancedAttempts;
     expect(balancedSuccessRate).toBeGreaterThan(0);
-    console.table(CHALLENGE_LEVEL_BANDS.map((band) => {
+    if (verboseReport) console.table(CHALLENGE_LEVEL_BANDS.map((band) => {
       const attempts = balancedReports.reduce(
         (sum, report) => sum + report.challengeByLevelBand[band].attempts,
         0,
@@ -141,7 +149,7 @@ describe("complete Tier 1 XP campaign", () => {
         chance_nulle: zeroChance,
       };
     }));
-    console.table(CHALLENGE_LEVEL_BANDS.flatMap((band) => CHALLENGE_KINDS.map((kind) => {
+    if (verboseReport) console.table(CHALLENGE_LEVEL_BANDS.flatMap((band) => CHALLENGE_KINDS.map((kind) => {
       const attempts = balancedReports.reduce(
         (sum, report) => sum + report.challengeByKindAndLevelBand[kind][band].attempts,
         0,
@@ -163,8 +171,8 @@ describe("complete Tier 1 XP campaign", () => {
       };
     })));
 
-    console.info("[XPT1] progression aggregate");
-    console.table(ACTIVE_REWARD_PROFILES.map((profile) => {
+    if (verboseReport) console.info("[XPT1] progression aggregate");
+    if (verboseReport) console.table(ACTIVE_REWARD_PROFILES.map((profile) => {
       const profileReports = reports.filter((report) => report.profile === profile.id);
       const summary = (milestone: (typeof MILESTONES)[number]) => {
         const values = profileReports.flatMap((report) => {
@@ -185,8 +193,8 @@ describe("complete Tier 1 XP campaign", () => {
       };
     }));
 
-    console.info("[XPT1] courbes XP gagnee et XP necessaire");
-    console.table(ACTIVE_REWARD_PROFILES.flatMap((profile) => {
+    if (verboseReport) console.info("[XPT1] courbes XP gagnee et XP necessaire");
+    if (verboseReport) console.table(ACTIVE_REWARD_PROFILES.flatMap((profile) => {
       const profileReports = reports.filter((report) => report.profile === profile.id);
       return Array.from({ length: TARGET_LEVEL - 1 }, (_, index) => index + 1).map((level) => {
         const gains = profileReports.map((report) => {
@@ -208,8 +216,8 @@ describe("complete Tier 1 XP campaign", () => {
       });
     }));
 
-    console.info("[XPT1] XP gagnee par source");
-    console.table(ACTIVE_REWARD_PROFILES.flatMap((profile) => {
+    if (verboseReport) console.info("[XPT1] XP gagnee par source");
+    if (verboseReport) console.table(ACTIVE_REWARD_PROFILES.flatMap((profile) => {
       const profileReports = reports.filter((report) => report.profile === profile.id);
       const total = profileReports.reduce((sum, report) => (
         sum + Object.values(report.xpBySource).reduce((xpSum, xp) => xpSum + xp, 0)
@@ -225,20 +233,28 @@ describe("complete Tier 1 XP campaign", () => {
       });
     }));
 
-    const machineResult = {
-      reports: reports.map((report) => ({
-        seed: report.seed,
-        explorations: report.explorations,
-        simulatedSeconds: report.simulatedSeconds,
-        highestFloor: report.highestFloor,
-        finalLevels: report.finalLevels,
-        blockedReason: report.blockedReason,
-        itemLoots: report.itemLoots,
-        equipmentChanges: report.equipmentChanges,
-        combatLimitRetreats: report.combatLimitRetreats,
-        forgeCandidate: report.forgeCandidate,
-        milestones: report.milestoneExplorations,
-      })),
+    const reportSummaries = reports.map((report) => ({
+      seed: report.seed,
+      profile: report.profile,
+      explorations: report.explorations,
+      simulatedSeconds: report.simulatedSeconds,
+      encounterSeconds: report.encounterSeconds,
+      recoveryWaitSeconds: report.recoveryWaitSeconds,
+      highestFloor: report.highestFloor,
+      finalLevels: report.finalLevels,
+      blockedReason: report.blockedReason,
+      itemLoots: report.itemLoots,
+      equipmentChanges: report.equipmentChanges,
+      combatLimitRetreats: report.combatLimitRetreats,
+      forgeCandidate: report.forgeCandidate,
+      milestones: report.milestoneExplorations,
+      milestoneSeconds: report.milestoneSeconds,
+      personalFirstRewards: report.personalFirstRewards,
+      personalFirstRewardsByFloor: report.personalFirstRewardsByFloor,
+      personalXp: report.personalXp,
+      farmLoops: report.farmLoops,
+    }));
+    const aggregateMachineMetrics = (reports: LongCampaignReport[]) => ({
       xpByHeroLevel: Object.fromEntries(Array.from({ length: TARGET_LEVEL - 1 }, (_, index) => [
         index + 1,
         {
@@ -270,7 +286,7 @@ describe("complete Tier 1 XP campaign", () => {
           ),
         }]))
       ])),
-      challengeByFloorAndKind: reports.reduce<Record<string, ChallengeCalibrationResult>>((combined, report) => {
+      challengeByFloorAndKind: verboseReport ? reports.reduce<Record<string, ChallengeCalibrationResult>>((combined, report) => {
         for (const [key, result] of Object.entries(report.challengeByFloorAndKind)) {
           const target = combined[key] ??= {
             attempts: 0,
@@ -285,13 +301,13 @@ describe("complete Tier 1 XP campaign", () => {
           }
         }
         return combined;
-      }, {}),
-      challengeCandidateHistogram: reports.reduce<Record<string, number>>((combined, report) => {
+      }, {}) : {},
+      challengeCandidateHistogram: verboseReport ? reports.reduce<Record<string, number>>((combined, report) => {
         for (const [key, count] of Object.entries(report.challengeCandidateHistogram)) {
           combined[key] = (combined[key] ?? 0) + count;
         }
         return combined;
-      }, {}),
+      }, {}) : {},
       itemByLevelBand: Object.fromEntries(ITEM_LEVEL_BANDS.map((band) => [band, {
         drops: reports.reduce((sum, report) => sum + report.itemByLevelBand[band].drops, 0),
         immediatelyLevelUsable: reports.reduce(
@@ -342,8 +358,16 @@ describe("complete Tier 1 XP campaign", () => {
       }])),
       xpBySource: Object.fromEntries((Object.keys(reports[0]!.xpBySource) as DungeonXpRewardSource[])
         .map((source) => [source, reports.reduce((sum, report) => sum + report.xpBySource[source], 0)])),
+    });
+    const machineResult = {
+      reports: reportSummaries,
+      ...aggregateMachineMetrics(reports),
+      profiles: Object.fromEntries(ACTIVE_REWARD_PROFILES.map((profile) => [
+        profile.id,
+        aggregateMachineMetrics(reports.filter((report) => report.profile === profile.id)),
+      ])),
     };
     console.info(`[XPT1_RESULT_B64]${Buffer.from(JSON.stringify(machineResult)).toString("base64")}`);
 
-  }, 1_800_000);
+  }, 7_200_000);
 });

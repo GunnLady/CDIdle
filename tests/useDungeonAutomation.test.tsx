@@ -2,6 +2,7 @@ import { act, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { useDungeonAutomation } from "../src/hooks/useDungeonAutomation";
 import type { GameCommand } from "../src/domain/commands";
+import { DUNGEON_AUTO_EXPLORE_DELAY_MS } from "../src/domain/encounterPlayback";
 import type { CanonicalActiveDungeonEncounter } from "../shared/contracts/authoritative";
 
 describe("dungeon automation hook", () => {
@@ -80,7 +81,7 @@ describe("dungeon automation hook", () => {
       dispatchCommand,
     }));
 
-    await act(async () => { await vi.advanceTimersByTimeAsync(999); });
+    await act(async () => { await vi.advanceTimersByTimeAsync(DUNGEON_AUTO_EXPLORE_DELAY_MS - 1); });
     expect(dispatchCommand).not.toHaveBeenCalled();
     await act(async () => { await vi.advanceTimersByTimeAsync(1); });
     expect(dispatchCommand.mock.calls).toEqual([
@@ -108,7 +109,7 @@ describe("dungeon automation hook", () => {
 
     Object.defineProperty(document, "visibilityState", { configurable: true, value: "visible" });
     act(() => document.dispatchEvent(new Event("visibilitychange")));
-    await act(async () => { await vi.advanceTimersByTimeAsync(1_000); });
+    await act(async () => { await vi.advanceTimersByTimeAsync(DUNGEON_AUTO_EXPLORE_DELAY_MS); });
     expect(dispatchCommand).toHaveBeenCalledOnce();
     expect(dispatchCommand).toHaveBeenCalledWith(
       { type: "dungeon.auto_advance", floor: 4 },

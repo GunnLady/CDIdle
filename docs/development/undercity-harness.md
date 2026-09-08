@@ -128,6 +128,12 @@ La variante personnelle remplace les anciennes primes de première sécurisation
 
 Le farm exige le Roi vaincu par chaque membre. Le groupe choisit une zone, la parcourt jusqu'à son boss, recommence au début, et revient également au début après un wipe. Le repos utilise le moteur existant. Les défis non combattants ratés gardent leur avancement canonique ; ils ne sont pas assimilés à un wipe.
 
+Le harness T0/T1 de référence utilise maintenant ce parcours par l'autorité
+`applyDungeonCommand` : progression personnelle jusqu'à l'étage 50, sélection
+de la Cour, puis boucles de farm jusqu'au niveau 40. Il couvre deux stratégies
+d'équipement : le profil optimisé examine chaque drop rentable ; le profil
+moyen ne réévalue qu'au level-up, après un boss et lors d'une reprise.
+
 ### Paramètres économiques d'essai
 
 Ces valeurs ne sont pas des décisions produit définitives :

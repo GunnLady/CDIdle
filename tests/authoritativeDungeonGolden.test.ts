@@ -426,12 +426,12 @@ describe("authoritative dungeon golden behavior characterized from 640f89f", () 
   });
 
   it.each([
-    ["trap", 0.60, 11, 20, 50],
-    ["enigma", 0.67, 20, 10, 50],
-    ["ambush", 0.73, 16, 20, 50],
-    ["ritual", 0.79, 18, 5, 50],
-    ["obstacle", 0.85, 16, 20, 50],
-    ["negotiation", 0.90, 20, 20, 30],
+    ["trap", 0.60, 19, 20, 50],
+    ["enigma", 0.67, 20, 18, 50],
+    ["ambush", 0.73, 19, 20, 50],
+    ["ritual", 0.79, 20, 18, 50],
+    ["obstacle", 0.85, 19, 20, 50],
+    ["negotiation", 0.90, 20, 20, 48],
   ] as const)("preserves the failed %s challenge consequence", (
     kind,
     encounterRoll,
@@ -1653,7 +1653,12 @@ describe("authoritative dungeon golden behavior characterized from 640f89f", () 
       "challenge.failed",
       "challenge.trap.consequence",
     ]);
-    expect(result.state.heroes?.[0].currentHp).toBeLessThan(20);
+    expect(result.state.heroes?.[0].currentHp).toBe(19);
+    expect(result.encounter.transcript.at(-1)).toMatchObject({
+      type: "challenge.trap.consequence",
+      hpLossPercent: 5,
+      hpLossBasis: "current",
+    });
     expect(result.state.activeDungeonRoom).toBe(2);
   });
 });

@@ -2,6 +2,9 @@ import { describe, expect, it } from "vitest";
 import {
   DUNGEON_CHALLENGE_DEFINITIONS,
   DUNGEON_CHALLENGE_DIFFICULTY_ANCHORS,
+  DUNGEON_CHALLENGE_FARM_DIFFICULTY_PER_LEVEL,
+  DUNGEON_CHALLENGE_FARM_LEVEL_BASELINE,
+  DUNGEON_CHALLENGE_GLOBAL_DIFFICULTY_OFFSET,
   DUNGEON_CHALLENGE_DIFFICULTY_MODEL_ID,
   getCanonicalDungeonChallengeDifficulty,
   getDungeonChallengeSuccessProbability,
@@ -36,7 +39,7 @@ describe("dungeon challenge rules", () => {
   });
 
   it("applies the canonical party-of-four calibration anchors", () => {
-    expect(DUNGEON_CHALLENGE_DIFFICULTY_MODEL_ID).toBe("party-four-two-thirds-v2");
+    expect(DUNGEON_CHALLENGE_DIFFICULTY_MODEL_ID).toBe("undercity-two-profiles-v3");
     expect(DUNGEON_CHALLENGE_DIFFICULTY_ANCHORS.trap).toEqual([
       { floor: 1, difficulty: 12 }, { floor: 10, difficulty: 29 },
       { floor: 20, difficulty: 72 }, { floor: 25, difficulty: 80 },
@@ -46,10 +49,15 @@ describe("dungeon challenge rules", () => {
     ]);
     expect([1, 10, 20, 25, 30, 40, 50, 60, 70, 99].map((floor) => (
       getCanonicalDungeonChallengeDifficulty(floor, "ritual")
-    ))).toEqual([11, 28, 59, 70, 80, 97, 112, 126, 131, 131]);
+    ))).toEqual([12, 29, 60, 71, 81, 98, 113, 127, 132, 132]);
     expect([1, 10, 20, 25, 30, 40, 99].map((floor) => (
       getCanonicalDungeonChallengeDifficulty(floor, "negotiation")
-    ))).toEqual([11, 29, 50, 53, 62, 66, 66]);
+    ))).toEqual([12, 30, 51, 54, 63, 67, 67]);
+    expect(DUNGEON_CHALLENGE_FARM_LEVEL_BASELINE).toBe(20);
+    expect(DUNGEON_CHALLENGE_FARM_DIFFICULTY_PER_LEVEL).toBe(2);
+    expect(DUNGEON_CHALLENGE_GLOBAL_DIFFICULTY_OFFSET).toBe(1);
+    expect(getCanonicalDungeonChallengeDifficulty(50, "trap", { farm: false, partyLevel: 40 })).toBe(120);
+    expect(getCanonicalDungeonChallengeDifficulty(50, "trap", { farm: true, partyLevel: 40 })).toBe(160);
   });
 
   it("keeps every calibrated challenge curve monotonic through and beyond level 99", () => {

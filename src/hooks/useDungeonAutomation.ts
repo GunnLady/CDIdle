@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type MutableRefObject } from "react";
 import type { CanonicalActiveDungeonEncounter } from "../../shared/contracts/authoritative";
 import type { GameCommand } from "../domain/commands";
+import { DUNGEON_AUTO_EXPLORE_DELAY_MS } from "../domain/encounterPlayback";
 
 type DispatchCommand = (command: GameCommand, options?: { interactive?: boolean }) => Promise<boolean>;
 
@@ -94,7 +95,7 @@ export function useDungeonAutomation(options: {
 
   useEffect(() => {
     if (blockedRef.current || !documentVisible || !options.enabled || !options.autoExplore || options.currentEncounter || isRunning) return;
-    const handle = window.setTimeout(() => { void exploreAndResolve(false); }, 1_000);
+    const handle = window.setTimeout(() => { void exploreAndResolve(false); }, DUNGEON_AUTO_EXPLORE_DELAY_MS);
     return () => window.clearTimeout(handle);
   }, [documentVisible, exploreAndResolve, isRunning, options.autoExplore, options.currentEncounter, options.enabled]);
 

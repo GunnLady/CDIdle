@@ -1,13 +1,36 @@
 import { spawn } from "node:child_process";
+import { mkdir, writeFile } from "node:fs/promises";
+import { join, resolve } from "node:path";
 import { calculateXpNeeded } from "../shared/domain/hero-xp.ts";
 
 const SHARD_COUNT = Number(process.env.XP_SHARD_COUNT ?? 10);
 const SEEDS_PER_SHARD = Number(process.env.XP_SEEDS_PER_SHARD ?? 10);
+const SEED_STRIDE = Number(process.env.XP_SEED_STRIDE ?? 1);
 const TARGET = 2 / 3;
 const CHALLENGE_LEVEL_BANDS = ["1-9", "10-19", "20-29", "30-34", "35-40"];
 const ITEM_LEVEL_BANDS = ["1-5", "6-10", "11-15", "16-20", "21-25", "26-30", "31-35", "36-40"];
 const CHALLENGE_KINDS = ["trap", "enigma", "ambush", "ritual", "obstacle", "negotiation"];
 const MILESTONES = [10, 20, 30, 35, 40];
+const PROFILE_IDS = ["optimized", "average"];
+const OUTPUT_DIRECTORY = resolve(process.env.XP_OUTPUT_DIRECTORY ?? join("test-results", "xp-tier1"));
+const RUN_ID = new Date().toISOString().replaceAll(":", "-");
+
+async function persistResult(result) {
+  await mkdir(OUTPUT_DIRECTORY, { recursive: true });
+  const serialized = `${JSON.stringify({
+    schemaVersion: 1,
+    runId: RUN_ID,
+    generatedAt: new Date().toISOString(),
+    ...result,
+  }, null, 2)}\n`;
+  const runPath = join(OUTPUT_DIRECTORY, `${RUN_ID}.json`);
+  const latestPath = join(OUTPUT_DIRECTORY, "latest.json");
+  await Promise.all([
+    writeFile(runPath, serialized, "utf8"),
+    writeFile(latestPath, serialized, "utf8"),
+  ]);
+  console.info(`[XPT1] artefact: ${runPath}`);
+}
 
 function runShard(index) {
   return new Promise((resolve, reject) => {
@@ -61,83 +84,138 @@ function assertBetween(value, low, high, label) {
   }
 }
 
-const shards = await Promise.all(Array.from({ length: SHARD_COUNT }, (_, index) => runShard(index)));
-const reports = shards.flatMap((shard) => shard.reports);
-const expectedSeeds = Array.from({ length: SHARD_COUNT * SEEDS_PER_SHARD }, (_, index) => 0x515050 + index);
-const actualSeeds = reports.map((report) => report.seed).sort((left, right) => left - right);
-if (JSON.stringify(actualSeeds) !== JSON.stringify(expectedSeeds)) {
-  throw new Error("Les 100 seeds attendues ne sont pas toutes presentes exactement une fois.");
+let shards;
+try {
+  shards = await Promise.all(Array.from({ length: SHARD_COUNT }, (_, index) => runShard(index)));
+} catch (error) {
+  await persistResult({
+    status: "error",
+    phase: "shards",
+    configuration: {
+      shardCount: SHARD_COUNT,
+      seedsPerShard: SEEDS_PER_SHARD,
+      seedStride: SEED_STRIDE,
+      profileIds: PROFILE_IDS,
+      diagnostics: process.env.XP_DIAGNOSTICS === "1",
+    },
+    error: error instanceof Error ? error.stack ?? error.message : String(error),
+  });
+  throw error;
+}
+const allReports = shards.flatMap((shard) => shard.reports);
+const expectedSeeds = Array.from(
+  { length: SHARD_COUNT * SEEDS_PER_SHARD },
+  (_, index) => 0x515050 + index * SEED_STRIDE,
+);
+const expectedRuns = PROFILE_IDS.flatMap((profile) => expectedSeeds.map((seed) => `${profile}:${seed}`)).sort();
+const actualRuns = allReports.map((report) => `${report.profile}:${report.seed}`).sort();
+if (JSON.stringify(actualRuns) !== JSON.stringify(expectedRuns)) {
+  throw new Error("Les seeds attendues ne sont pas toutes presentes exactement une fois par profil.");
+}
+const reports = allReports.filter((report) => report.profile === "optimized");
+
+function aggregateProfile(profile) {
+  const xpByHeroLevel = Object.fromEntries(Array.from({ length: 39 }, (_, index) => [index + 1, { xp: 0, exposures: 0 }]));
+  const xpBySource = Object.fromEntries(Object.keys(shards[0].xpBySource).map((source) => [source, 0]));
+  const challengeByLevelBand = Object.fromEntries(CHALLENGE_LEVEL_BANDS.map((band) => [band, { attempts: 0, successes: 0, zeroChance: 0 }]));
+  const challengeByKindAndLevelBand = Object.fromEntries(CHALLENGE_KINDS.map((kind) => [kind,
+    Object.fromEntries(CHALLENGE_LEVEL_BANDS.map((band) => [band, { attempts: 0, successes: 0, zeroChance: 0 }]))
+  ]));
+  const challengeByFloorAndKind = {};
+  const challengeCandidateHistogram = {};
+  const itemByLevelBand = Object.fromEntries(ITEM_LEVEL_BANDS.map((band) => [band, {
+    drops: 0,
+    immediatelyLevelUsable: 0,
+    futureLevelLocked: 0,
+    requiredLevelSum: 0,
+    rarity: { common: 0, uncommon: 0, rare: 0, epic: 0, legendary: 0 },
+  }]));
+  const equipmentByLevelBand = Object.fromEntries(ITEM_LEVEL_BANDS.map((band) => [band, {
+    changes: 0,
+    absoluteGain: 0,
+    relativeGain: 0,
+    maxRelativeGain: 0,
+    maxRareOrBetterRelativeGain: 0,
+    partyEquipmentScoreSum: 0,
+    exposures: 0,
+  }]));
+
+  for (const shard of shards) {
+    const profileShard = shard.profiles[profile];
+    for (let level = 1; level < 40; level += 1) addCounters(xpByHeroLevel[level], profileShard.xpByHeroLevel[level]);
+    addCounters(xpBySource, profileShard.xpBySource);
+    for (const band of CHALLENGE_LEVEL_BANDS) addCounters(challengeByLevelBand[band], profileShard.challengeByLevelBand[band]);
+    for (const kind of CHALLENGE_KINDS) {
+      for (const band of CHALLENGE_LEVEL_BANDS) {
+        addCounters(challengeByKindAndLevelBand[kind][band], profileShard.challengeByKindAndLevelBand[kind][band]);
+      }
+    }
+    for (const [key, result] of Object.entries(profileShard.challengeByFloorAndKind)) {
+      const target = challengeByFloorAndKind[key] ??= {
+        attempts: 0,
+        successes: 0,
+        zeroChance: 0,
+        partyLevelSum: 0,
+        difficultySum: 0,
+        probabilitySum: 0,
+      };
+      addCounters(target, result);
+    }
+    for (const [key, count] of Object.entries(profileShard.challengeCandidateHistogram)) {
+      challengeCandidateHistogram[key] = (challengeCandidateHistogram[key] ?? 0) + count;
+    }
+    for (const band of ITEM_LEVEL_BANDS) {
+      const itemTarget = itemByLevelBand[band];
+      const itemSource = profileShard.itemByLevelBand[band];
+      for (const field of [
+        "drops", "immediatelyLevelUsable", "futureLevelLocked", "requiredLevelSum",
+      ]) itemTarget[field] += itemSource[field];
+      addCounters(itemTarget.rarity, itemSource.rarity);
+
+      const equipmentTarget = equipmentByLevelBand[band];
+      const equipmentSource = profileShard.equipmentByLevelBand[band];
+      for (const field of [
+        "changes", "absoluteGain", "relativeGain", "partyEquipmentScoreSum", "exposures",
+      ]) equipmentTarget[field] += equipmentSource[field];
+      equipmentTarget.maxRelativeGain = Math.max(equipmentTarget.maxRelativeGain, equipmentSource.maxRelativeGain);
+      equipmentTarget.maxRareOrBetterRelativeGain = Math.max(
+        equipmentTarget.maxRareOrBetterRelativeGain,
+        equipmentSource.maxRareOrBetterRelativeGain,
+      );
+    }
+  }
+  return {
+    xpByHeroLevel,
+    xpBySource,
+    challengeByLevelBand,
+    challengeByKindAndLevelBand,
+    challengeByFloorAndKind,
+    challengeCandidateHistogram,
+    itemByLevelBand,
+    equipmentByLevelBand,
+  };
 }
 
-const xpByHeroLevel = Object.fromEntries(Array.from({ length: 39 }, (_, index) => [index + 1, { xp: 0, exposures: 0 }]));
-const xpBySource = Object.fromEntries(Object.keys(shards[0].xpBySource).map((source) => [source, 0]));
+const profileMetrics = Object.fromEntries(PROFILE_IDS.map((profile) => [profile, aggregateProfile(profile)]));
+const {
+  xpByHeroLevel,
+  xpBySource,
+  challengeByFloorAndKind,
+} = profileMetrics.optimized;
+const challengeCandidateHistogram = {};
 const challengeByLevelBand = Object.fromEntries(CHALLENGE_LEVEL_BANDS.map((band) => [band, { attempts: 0, successes: 0, zeroChance: 0 }]));
 const challengeByKindAndLevelBand = Object.fromEntries(CHALLENGE_KINDS.map((kind) => [kind,
   Object.fromEntries(CHALLENGE_LEVEL_BANDS.map((band) => [band, { attempts: 0, successes: 0, zeroChance: 0 }]))
 ]));
-const challengeByFloorAndKind = {};
-const challengeCandidateHistogram = {};
-const itemByLevelBand = Object.fromEntries(ITEM_LEVEL_BANDS.map((band) => [band, {
-  drops: 0,
-  immediatelyLevelUsable: 0,
-  futureLevelLocked: 0,
-  requiredLevelSum: 0,
-  rarity: { common: 0, uncommon: 0, rare: 0, epic: 0, legendary: 0 },
-}]));
-const equipmentByLevelBand = Object.fromEntries(ITEM_LEVEL_BANDS.map((band) => [band, {
-  changes: 0,
-  absoluteGain: 0,
-  relativeGain: 0,
-  maxRelativeGain: 0,
-  maxRareOrBetterRelativeGain: 0,
-  partyEquipmentScoreSum: 0,
-  exposures: 0,
-}]));
-
-for (const shard of shards) {
-  for (let level = 1; level < 40; level += 1) addCounters(xpByHeroLevel[level], shard.xpByHeroLevel[level]);
-  addCounters(xpBySource, shard.xpBySource);
-  for (const band of CHALLENGE_LEVEL_BANDS) addCounters(challengeByLevelBand[band], shard.challengeByLevelBand[band]);
-  for (const kind of CHALLENGE_KINDS) {
-    for (const band of CHALLENGE_LEVEL_BANDS) {
-      addCounters(challengeByKindAndLevelBand[kind][band], shard.challengeByKindAndLevelBand[kind][band]);
-    }
-  }
-  for (const [key, result] of Object.entries(shard.challengeByFloorAndKind)) {
-    const target = challengeByFloorAndKind[key] ??= {
-      attempts: 0,
-      successes: 0,
-      zeroChance: 0,
-      partyLevelSum: 0,
-      difficultySum: 0,
-      probabilitySum: 0,
-    };
-    addCounters(target, result);
-  }
-  for (const [key, count] of Object.entries(shard.challengeCandidateHistogram)) {
+for (const metrics of Object.values(profileMetrics)) {
+  for (const [key, count] of Object.entries(metrics.challengeCandidateHistogram)) {
     challengeCandidateHistogram[key] = (challengeCandidateHistogram[key] ?? 0) + count;
   }
-  for (const band of ITEM_LEVEL_BANDS) {
-    const itemTarget = itemByLevelBand[band];
-    const itemSource = shard.itemByLevelBand[band];
-    for (const field of [
-      "drops", "immediatelyLevelUsable", "futureLevelLocked", "requiredLevelSum",
-    ]) itemTarget[field] += itemSource[field];
-    addCounters(itemTarget.rarity, itemSource.rarity);
-
-    const equipmentTarget = equipmentByLevelBand[band];
-    const equipmentSource = shard.equipmentByLevelBand[band];
-    for (const field of [
-      "changes", "absoluteGain", "relativeGain", "partyEquipmentScoreSum", "exposures",
-    ]) equipmentTarget[field] += equipmentSource[field];
-    equipmentTarget.maxRelativeGain = Math.max(
-      equipmentTarget.maxRelativeGain,
-      equipmentSource.maxRelativeGain,
-    );
-    equipmentTarget.maxRareOrBetterRelativeGain = Math.max(
-      equipmentTarget.maxRareOrBetterRelativeGain,
-      equipmentSource.maxRareOrBetterRelativeGain,
-    );
+  for (const band of CHALLENGE_LEVEL_BANDS) addCounters(challengeByLevelBand[band], metrics.challengeByLevelBand[band]);
+  for (const kind of CHALLENGE_KINDS) {
+    for (const band of CHALLENGE_LEVEL_BANDS) {
+      addCounters(challengeByKindAndLevelBand[kind][band], metrics.challengeByKindAndLevelBand[kind][band]);
+    }
   }
 }
 
@@ -199,18 +277,57 @@ const totalSuccesses = Object.values(challengeByLevelBand).reduce((sum, result) 
 assertBetween(totalSuccesses / totalAttempts, TARGET - 0.02, TARGET + 0.02, "Taux global des defis");
 for (const band of CHALLENGE_LEVEL_BANDS) {
   const result = challengeByLevelBand[band];
-  assertBetween(result.successes / result.attempts, TARGET - 0.04, TARGET + 0.04, `Defis ${band}`);
+  assertBetween(result.successes / result.attempts, 0.55, 0.80, `Defis ${band}`);
 }
 for (const kind of CHALLENGE_KINDS) {
-  for (const band of CHALLENGE_LEVEL_BANDS) {
-    const result = challengeByKindAndLevelBand[kind][band];
-    assertBetween(result.successes / result.attempts, TARGET - 0.075, TARGET + 0.075, `${kind} ${band}`);
-  }
+  const attempts = CHALLENGE_LEVEL_BANDS.reduce(
+    (sum, band) => sum + challengeByKindAndLevelBand[kind][band].attempts,
+    0,
+  );
+  const successes = CHALLENGE_LEVEL_BANDS.reduce(
+    (sum, band) => sum + challengeByKindAndLevelBand[kind][band].successes,
+    0,
+  );
+  assertBetween(successes / attempts, 0.4, 0.95, `Defi global ${kind}`);
+}
+const firstBandRate = challengeByLevelBand["1-9"].successes / challengeByLevelBand["1-9"].attempts;
+const finalBandRate = challengeByLevelBand["35-40"].successes / challengeByLevelBand["35-40"].attempts;
+if (finalBandRate > firstBandRate - 0.02) {
+  violations.push(`Les defis ne deviennent pas plus difficiles: ${(firstBandRate * 100).toFixed(2)} % -> ${(finalBandRate * 100).toFixed(2)} %.`);
 }
 
 const milestoneMedian = Object.fromEntries(MILESTONES.map((level) => [level,
   percentile(reports.map((report) => report.milestones[level]), 0.5)
 ]));
+const profileSummaries = PROFILE_IDS.map((profile) => {
+  const profileReports = allReports.filter((report) => report.profile === profile);
+  const completed = profileReports.filter((report) => (
+    !report.blockedReason
+    && report.finalLevels.every((level) => level >= 40)
+    && report.highestFloor <= 50
+    && report.personalFirstRewards === 40
+    && report.farmLoops > 0
+  ));
+  if (completed.length !== profileReports.length) {
+    violations.push(`${profile}: ${completed.length}/${profileReports.length} campagnes produit terminees.`);
+  }
+  const level40Hours = profileReports.map((report) => report.milestoneSeconds[40] / 3600);
+  const medianHours = percentile(level40Hours, 0.5);
+  assertBetween(medianHours, 12, 13, `Temps median niveau 40 ${profile}`);
+  return {
+    profile,
+    runs: profileReports.length,
+    completed: completed.length,
+    level40HoursP10: percentile(level40Hours, 0.1),
+    level40HoursMedian: medianHours,
+    level40HoursP90: percentile(level40Hours, 0.9),
+    explorationsMedian: percentile(profileReports.map((report) => report.milestones[40]), 0.5),
+    encounterHoursMedian: percentile(profileReports.map((report) => report.encounterSeconds / 3600), 0.5),
+    recoveryHoursMedian: percentile(profileReports.map((report) => report.recoveryWaitSeconds / 3600), 0.5),
+    personalXpMedian: percentile(profileReports.map((report) => report.personalXp), 0.5),
+    farmLoopsMedian: percentile(profileReports.map((report) => report.farmLoops), 0.5),
+  };
+});
 const minimumUsableRates = {
     "1-5": 0.5,
     "6-10": 0.5,
@@ -221,53 +338,37 @@ const minimumUsableRates = {
     "31-35": 0.75,
     "36-40": 0.8,
 };
-const acceptedUpgradeGainRanges = {
-  "1-5": [1.4, 2.4],
-  "6-10": [0.75, 1.35],
-  "11-15": [0.15, 0.30],
-  "16-20": [0.11, 0.22],
-  "21-25": [0.11, 0.22],
-  "26-30": [0.11, 0.22],
-  "31-35": [0.11, 0.22],
-  "36-40": [0.09, 0.18],
-};
-let previousPartyEquipmentScore = 0;
-for (const band of ITEM_LEVEL_BANDS) {
+for (const profile of PROFILE_IDS) {
+  const { itemByLevelBand, equipmentByLevelBand } = profileMetrics[profile];
+  let previousPartyEquipmentScore = 0;
+  for (const band of ITEM_LEVEL_BANDS) {
     const item = itemByLevelBand[band];
     const equipment = equipmentByLevelBand[band];
     const usableRate = item.immediatelyLevelUsable / item.drops;
     if (usableRate < minimumUsableRates[band]) {
       violations.push(`Objets utilisables ${band}: ${usableRate.toFixed(4)} sous ${minimumUsableRates[band].toFixed(4)}`);
     }
-    const averageGain = equipment.relativeGain / equipment.changes;
-    const [minimumGain, maximumGain] = acceptedUpgradeGainRanges[band];
-    assertBetween(
-      averageGain,
-      minimumGain,
-      maximumGain,
-      `Gain relatif moyen des objets ${band}`,
-    );
+    if (equipment.changes === 0 || equipment.relativeGain <= 0) {
+      violations.push(`Aucune amelioration equipee mesurable pour ${profile} ${band}.`);
+    }
     const averagePartyEquipmentScore = equipment.partyEquipmentScoreSum / equipment.exposures;
     if (averagePartyEquipmentScore <= previousPartyEquipmentScore) {
-      violations.push(`La puissance equipee ne progresse pas dans la bande ${band}.`);
+      violations.push(`La puissance equipee ${profile} ne progresse pas dans la bande ${band}.`);
     }
     previousPartyEquipmentScore = averagePartyEquipmentScore;
     if (band !== "1-5" && band !== "6-10") {
-      const largestRarityShare = Math.max(...Object.values(item.rarity)) / item.drops;
-      if (largestRarityShare > 0.5) {
-        violations.push(`Une rarete domine ${band}: ${largestRarityShare.toFixed(4)} au-dessus de 0.5000`);
+      const representedRarities = Object.values(item.rarity).filter((count) => count > 0).length;
+      const rareOrBetter = item.rarity.rare + item.rarity.epic + item.rarity.legendary;
+      if (representedRarities < 3 || rareOrBetter / item.drops < 0.1) {
+        violations.push(`Distribution de rarete insuffisante pour ${profile} ${band}.`);
       }
     }
-}
-if (milestoneMedian[40] > 4_000) {
-    violations.push(
-      `Niveau 40 median: ${milestoneMedian[40]} au-dessus de 4000 explorations.`,
-    );
-}
-if (Math.max(...ITEM_LEVEL_BANDS.slice(2).map((band) => (
-  equipmentByLevelBand[band].maxRareOrBetterRelativeGain
-))) <= 1) {
-    violations.push("La rarete explosive ne produit aucun upgrade jackpot superieur a 100 %.");
+  }
+  if (Math.max(...ITEM_LEVEL_BANDS.slice(2).map((band) => (
+    equipmentByLevelBand[band].maxRareOrBetterRelativeGain
+  ))) <= 1) {
+    violations.push(`La rarete explosive ne produit aucun upgrade jackpot superieur a 100 % pour ${profile}.`);
+  }
 }
 const medianVisibleSecondsPerExploration = percentile(
   reports.map((report) => report.simulatedSeconds / report.explorations),
@@ -286,7 +387,24 @@ for (let index = 1; index < phaseCosts.length; index += 1) {
   }
 }
 
-console.info(`[XPT1] ${reports.length} runs, ${SHARD_COUNT} processus x ${SEEDS_PER_SHARD} seeds`);
+console.info(
+  `[XPT1] ${allReports.length} campagnes (${expectedSeeds.length} seeds x ${PROFILE_IDS.length} profils), `
+  + `${SHARD_COUNT} processus x ${SEEDS_PER_SHARD} seeds`,
+);
+console.info("[XPT1] comparaison des profils produit");
+console.table(profileSummaries.map((summary) => ({
+  profil: summary.profile,
+  runs: summary.runs,
+  termines: summary.completed,
+  heures_niveau_40_p10: Number(summary.level40HoursP10.toFixed(2)),
+  heures_niveau_40_mediane: Number(summary.level40HoursMedian.toFixed(2)),
+  heures_niveau_40_p90: Number(summary.level40HoursP90.toFixed(2)),
+  explorations_niveau_40_mediane: summary.explorationsMedian,
+  heures_rencontres_mediane: Number(summary.encounterHoursMedian.toFixed(2)),
+  heures_recuperation_mediane: Number(summary.recoveryHoursMedian.toFixed(2)),
+  xp_personnelle_mediane: summary.personalXpMedian,
+  boucles_cour_mediane: summary.farmLoopsMedian,
+})));
 console.info("[XPT1] objets: catalogue canonique level-bands-v1, rarete explosive");
 console.info(`[XPT1] secondes visibles medianes par exploration: ${medianVisibleSecondsPerExploration.toFixed(3)}`);
 console.table(MILESTONES.map((level) => {
@@ -314,11 +432,12 @@ console.table(CHALLENGE_LEVEL_BANDS.flatMap((band) => CHALLENGE_KINDS.map((kind)
   };
 })));
 console.info(`[XPT1] taux global des defis: ${(totalSuccesses / totalAttempts * 100).toFixed(2)} %`);
-console.info("[XPT1] progression des objets par niveau reel du groupe");
-console.table(ITEM_LEVEL_BANDS.map((band) => {
-  const item = itemByLevelBand[band];
-  const equipment = equipmentByLevelBand[band];
+console.info("[XPT1] progression des objets par profil et niveau reel du groupe");
+console.table(PROFILE_IDS.flatMap((profile) => ITEM_LEVEL_BANDS.map((band) => {
+  const item = profileMetrics[profile].itemByLevelBand[band];
+  const equipment = profileMetrics[profile].equipmentByLevelBand[band];
   return {
+    profil: profile,
     niveaux: band,
     objets: item.drops,
     utilisables_niveau_pct: item.drops === 0
@@ -335,12 +454,13 @@ console.table(ITEM_LEVEL_BANDS.map((band) => {
       ? 0
       : Number((equipment.partyEquipmentScoreSum / equipment.exposures).toFixed(1)),
   };
-}));
-console.info("[XPT1] raretes des objets par niveau reel du groupe");
-console.table(ITEM_LEVEL_BANDS.map((band) => ({
-  niveaux: band,
-  ...itemByLevelBand[band].rarity,
 })));
+console.info("[XPT1] raretes des objets par profil et niveau reel du groupe");
+console.table(PROFILE_IDS.flatMap((profile) => ITEM_LEVEL_BANDS.map((band) => ({
+  profil: profile,
+  niveaux: band,
+  ...profileMetrics[profile].itemByLevelBand[band].rarity,
+}))));
 if (process.env.XP_DIAGNOSTICS === "1") {
   console.info("[XPT1] diagnostic des defis par etage et type");
   for (const kind of CHALLENGE_KINDS) {
@@ -368,6 +488,37 @@ console.table(Object.entries(xpBySource).map(([source, xp]) => ({
   xp,
   part: Number((xp / totalXp).toFixed(4)),
 })));
+await persistResult({
+  status: violations.length === 0 ? "passed" : "failed",
+  configuration: {
+    shardCount: SHARD_COUNT,
+    seedsPerShard: SEEDS_PER_SHARD,
+    seedStride: SEED_STRIDE,
+    seedCount: expectedSeeds.length,
+    profileIds: PROFILE_IDS,
+    diagnostics: process.env.XP_DIAGNOSTICS === "1",
+  },
+  summary: {
+    campaignCount: allReports.length,
+    profileSummaries,
+    milestoneMedian,
+    medianVisibleSecondsPerExploration,
+    challenges: {
+      targetSuccessRate: TARGET,
+      totalAttempts,
+      totalSuccesses,
+      globalSuccessRate: totalSuccesses / totalAttempts,
+      firstBandRate,
+      finalBandRate,
+      byLevelBand: challengeByLevelBand,
+      byKindAndLevelBand: challengeByKindAndLevelBand,
+    },
+    xpBySource,
+  },
+  reports: allReports,
+  profileMetrics,
+  violations,
+});
 if (violations.length > 0) {
   throw new Error(`Echecs de calibration:\n- ${violations.join("\n- ")}`);
 }

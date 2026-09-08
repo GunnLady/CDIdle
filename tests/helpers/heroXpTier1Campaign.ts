@@ -1,7 +1,5 @@
-import {
-  resolveAuthoritativeDungeonEncounter,
-  type AuthoritativeDungeonState,
-} from "../../shared/domain/authoritative-dungeon";
+import type { AuthoritativeDungeonState } from "../../shared/domain/authoritative-dungeon";
+import type { CanonicalDungeonEncounterRecord } from "../../shared/contracts/authoritative";
 import { applyClassTransition } from "../../shared/domain/class-transition";
 import { CLASS_INFO_LIST } from "../../shared/data/game-data";
 import { isMajorBossFloor } from "../../shared/domain/dungeon-progression";
@@ -20,8 +18,14 @@ import {
 } from "../../supabase/functions/game-api/authoritative-rng";
 import { applyInventoryCommand } from "../../supabase/functions/game-api/inventory-authority";
 import { applyIdleAuthority } from "../../supabase/functions/game-api/idle-authority";
+import { applyDungeonCommand } from "../../supabase/functions/game-api/dungeon-authority";
 import { generateAuthoritativeNovice } from "../../supabase/functions/game-api/novice-authority";
 import { initialTownState } from "../../supabase/functions/game-api/town-authority";
+import { UNDERCITY_DUNGEON_ID } from "../../shared/domain/undercity";
+import {
+  DUNGEON_AUTO_EXPLORE_DELAY_MS,
+  ENCOUNTER_PLAYBACK_STEP_MS,
+} from "../../src/domain/encounterPlayback";
 import { HARMONIZED_HERO_XP_CURVE } from "../fixtures/xpProgression";
 import {
   FORGE_CANDIDATE_ENABLED,
@@ -35,13 +39,16 @@ import {
 } from "./forgeProgressionCandidate";
 
 export const TARGET_LEVEL = 40;
-export const MAX_EXPLORATIONS = 100_000;
-const BOSS_ATTEMPTS_BEFORE_GRIND = 3;
+export const MAX_EXPLORATIONS = Math.max(
+  1,
+  Number.parseInt(process.env.XP_MAX_EXPLORATIONS ?? "100000", 10),
+);
 export const SEED_COUNT = Math.max(1, Number.parseInt(process.env.XP_SEED_COUNT ?? "1", 10));
 const SEED_OFFSET = Math.max(0, Number.parseInt(process.env.XP_SEED_OFFSET ?? "0", 10));
+const SEED_STRIDE = Math.max(1, Number.parseInt(process.env.XP_SEED_STRIDE ?? "1", 10));
 export const SEEDS = Array.from(
   { length: SEED_COUNT },
-  (_, index) => 0x515050 + SEED_OFFSET + index,
+  (_, index) => 0x515050 + (SEED_OFFSET + index) * SEED_STRIDE,
 );
 export const MILESTONES = [10, 20, 30, 35, 40] as const;
 export const CHALLENGE_LEVEL_BANDS = ["1-9", "10-19", "20-29", "30-34", "35-40"] as const;
@@ -75,9 +82,43 @@ export type EquipmentProgressionBandResult = {
 export const CHALLENGE_KINDS = ["trap", "enigma", "ambush", "ritual", "obstacle", "negotiation"] as const;
 export type ChallengeKind = (typeof CHALLENGE_KINDS)[number];
 
-export type RewardProfile = { id: "canonical"; label: string };
-export const CANONICAL_PROFILE: RewardProfile = { id: "canonical", label: "Canonique" };
-export const ACTIVE_REWARD_PROFILES = [CANONICAL_PROFILE] as const;
+export type EquipmentStrategy = "optimized" | "average";
+export type EquipmentReviewTrigger = {
+  bossCompleted: boolean;
+  itemLooted: boolean;
+  progressionChanged: boolean;
+  resumed: boolean;
+};
+
+export function shouldReviewEquipment(
+  strategy: EquipmentStrategy,
+  trigger: EquipmentReviewTrigger,
+): boolean {
+  if (trigger.progressionChanged || trigger.resumed) return true;
+  if (strategy === "optimized") return trigger.itemLooted;
+  return trigger.bossCompleted;
+}
+export type RewardProfile = {
+  id: EquipmentStrategy;
+  label: string;
+  equipmentStrategy: EquipmentStrategy;
+};
+export const CANONICAL_PROFILE: RewardProfile = {
+  id: "optimized",
+  label: "Optimisé",
+  equipmentStrategy: "optimized",
+};
+export const AVERAGE_PROFILE: RewardProfile = {
+  id: "average",
+  label: "Moyen",
+  equipmentStrategy: "average",
+};
+const REQUESTED_EQUIPMENT_PROFILE = process.env.XP_EQUIPMENT_PROFILE;
+export const ACTIVE_REWARD_PROFILES: readonly RewardProfile[] = FORGE_CANDIDATE_ENABLED
+  ? [CANONICAL_PROFILE]
+  : [CANONICAL_PROFILE, AVERAGE_PROFILE].filter((profile) => (
+      REQUESTED_EQUIPMENT_PROFILE === undefined || profile.id === REQUESTED_EQUIPMENT_PROFILE
+    ));
 
 export type LongCampaignReport = {
   profile: RewardProfile["id"];
@@ -92,6 +133,7 @@ export type LongCampaignReport = {
   wipes: number;
   grindRuns: number;
   recoveryWaitSeconds: number;
+  encounterSeconds: number;
   simulatedSeconds: number;
   highestFloor: number;
   transcriptEvents: number;
@@ -103,6 +145,11 @@ export type LongCampaignReport = {
   finalLevels: number[];
   finalClasses: ClassType[];
   milestoneExplorations: Partial<Record<(typeof MILESTONES)[number], number>>;
+  milestoneSeconds: Partial<Record<(typeof MILESTONES)[number], number>>;
+  personalFirstRewards: number;
+  personalFirstRewardsByFloor: Record<number, number>;
+  personalXp: number;
+  farmLoops: number;
   kinds: Record<DungeonEncounterType, number>;
   xpBySource: Record<DungeonXpRewardSource, number>;
   xpByHero: Record<string, number>;
@@ -165,15 +212,6 @@ function initialState(seed: number): AuthoritativeDungeonState {
 function allHeroesReached(state: AuthoritativeDungeonState, level: number): boolean {
   return (state.heroes?.length ?? 0) === 4
     && state.heroes!.every((hero) => hero.level >= level);
-}
-
-function selectPreviousFloor(state: AuthoritativeDungeonState): AuthoritativeDungeonState {
-  return {
-    ...state,
-    activeDungeonFloor: Math.max(1, state.activeDungeonFloor - 1),
-    activeDungeonRoom: 1,
-    autoExplore: true,
-  };
 }
 
 function reactivateRecoveredHeroes(state: AuthoritativeDungeonState): AuthoritativeDungeonState {
@@ -339,8 +377,29 @@ export function optimizeEquipment(
   return { state, gains };
 }
 
+function recordEquipmentGains(
+  report: LongCampaignReport,
+  band: ItemLevelBand,
+  gains: readonly { absolute: number; relative: number; rarity: ItemRarity }[],
+) {
+  report.equipmentChanges += gains.length;
+  const equipmentBand = report.equipmentByLevelBand[band];
+  for (const gain of gains) {
+    equipmentBand.changes += 1;
+    equipmentBand.absoluteGain += gain.absolute;
+    equipmentBand.relativeGain += gain.relative;
+    equipmentBand.maxRelativeGain = Math.max(equipmentBand.maxRelativeGain, gain.relative);
+    if (gain.rarity === "rare" || gain.rarity === "epic" || gain.rarity === "legendary") {
+      equipmentBand.maxRareOrBetterRelativeGain = Math.max(
+        equipmentBand.maxRareOrBetterRelativeGain,
+        gain.relative,
+      );
+    }
+  }
+}
+
 function rewardSource(
-  encounter: ReturnType<typeof resolveAuthoritativeDungeonEncounter>["encounter"],
+  encounter: CanonicalDungeonEncounterRecord,
   eventType: string,
 ): DungeonXpRewardSource {
   if (eventType === "reward.floor_first_clear_xp") return "floor_first_clear";
@@ -353,6 +412,7 @@ function rewardSource(
 }
 
 export function runLevel40Campaign(profile: RewardProfile, seed: number): LongCampaignReport {
+  const collectChallengeDiagnostics = process.env.XP_DIAGNOSTICS === "1";
   let state = initialState(seed);
   const masterRng = restoreCanonicalRng(state.rngState);
   const forgeContext = FORGE_CANDIDATE_ENABLED
@@ -360,7 +420,6 @@ export function runLevel40Campaign(profile: RewardProfile, seed: number): LongCa
     : null;
   if (forgeContext) state = prepareForgeCandidateTown(state) as AuthoritativeDungeonState;
   const clock = { nowMs: Date.UTC(2026, 0, 1), lastProcessedAt: new Date(Date.UTC(2026, 0, 1)).toISOString() };
-  let stalledBossAttempts = 0;
   const report: LongCampaignReport = {
     profile: profile.id,
     seed,
@@ -374,6 +433,7 @@ export function runLevel40Campaign(profile: RewardProfile, seed: number): LongCa
     wipes: 0,
     grindRuns: 0,
     recoveryWaitSeconds: 0,
+    encounterSeconds: 0,
     simulatedSeconds: 0,
     highestFloor: 1,
     transcriptEvents: 0,
@@ -385,6 +445,11 @@ export function runLevel40Campaign(profile: RewardProfile, seed: number): LongCa
     finalLevels: [],
     finalClasses: [],
     milestoneExplorations: {},
+    milestoneSeconds: {},
+    personalFirstRewards: 0,
+    personalFirstRewardsByFloor: {},
+    personalXp: 0,
+    farmLoops: 0,
     kinds: {
       fight: 0,
       trap: 0,
@@ -446,12 +511,13 @@ export function runLevel40Campaign(profile: RewardProfile, seed: number): LongCa
   };
 
   while (!allHeroesReached(state, TARGET_LEVEL) && report.explorations < MAX_EXPLORATIONS) {
+    let resumedThisIteration = false;
     if (forgeContext) {
       const partyLevel = Math.min(...(state.heroes ?? []).map((hero) => hero.level));
       trackForgeCandidateHeroBand(forgeContext, partyLevel, report.explorations);
       state = allocateForgeCandidateWorkers(state, forgeContext) as AuthoritativeDungeonState;
     }
-    if (!state.heroes?.some((hero) => hero.isActive && hero.currentHp > 0)) {
+    if (state.heroes.some((hero) => hero.status === "resting")) {
       const recoverySeconds = secondsUntilPartyRecovered(state);
       state = applySimulatedIdle(state, clock, recoverySeconds * 1_000);
       report.recoveryWaitSeconds += recoverySeconds;
@@ -459,45 +525,126 @@ export function runLevel40Campaign(profile: RewardProfile, seed: number): LongCa
       state = reactivateRecoveredHeroes(state);
     }
 
+    if (state.dungeonProgress.expedition.halted) {
+      state = applyDungeonCommand(state, {
+        type: "dungeon.resume",
+        dungeonId: UNDERCITY_DUNGEON_ID,
+      }).state;
+      state = applyDungeonCommand(state, {
+        type: "dungeon.auto_explore",
+        dungeonId: UNDERCITY_DUNGEON_ID,
+        enabled: true,
+      }).state;
+      resumedThisIteration = true;
+    }
+
+    if (state.dungeonProgress.expedition.mode === "progression") {
+      const personalCeiling = Math.min(...state.heroes.map((hero) => (
+        (state.dungeonProgress.heroes[hero.id]?.completedFloor ?? 0) + 1
+      )));
+      if (state.activeDungeonFloor > personalCeiling) {
+        state = applyDungeonCommand(state, {
+          type: "dungeon.select_floor",
+          dungeonId: UNDERCITY_DUNGEON_ID,
+          floor: personalCeiling,
+        }).state;
+        report.grindRuns += 1;
+      }
+    }
+
+    if (
+      state.dungeonProgress.expedition.mode === "progression"
+      && (state.heroes ?? []).every((hero) => (
+        (state.dungeonProgress.heroes[hero.id]?.completedFloor ?? 0) >= 50
+      ))
+    ) {
+      state = applyDungeonCommand(state, {
+        type: "dungeon.select_farm_zone",
+        dungeonId: UNDERCITY_DUNGEON_ID,
+        zoneId: "court",
+      }).state;
+    }
+
+    if (resumedThisIteration && profile.equipmentStrategy === "average") {
+      const band = itemLevelBand(Math.min(...state.heroes.map((hero) => hero.level)));
+      const optimized = optimizeEquipment(
+        state,
+        state.storedItems.map((item) => item.instanceId),
+        forgeContext !== null,
+      );
+      state = optimized.state;
+      recordEquipmentGains(report, band, optimized.gains);
+    }
+
     const floor = state.activeDungeonFloor;
-    const room = state.activeDungeonRoom;
     const partyLevelBefore = Math.min(...(state.heroes ?? []).map((hero) => hero.level));
     const heroLevelsBefore = new Map((state.heroes ?? []).map((hero) => [hero.id, hero.level]));
     for (const hero of state.heroes ?? []) {
       if (hero.level < TARGET_LEVEL) report.xpByHeroLevel[hero.level]!.exposures += 1;
     }
-    let resolution: ReturnType<typeof resolveAuthoritativeDungeonEncounter>;
+    let resolution: { state: AuthoritativeDungeonState; encounter: CanonicalDungeonEncounterRecord };
+    let startedState = state;
     try {
-      resolution = resolveAuthoritativeDungeonEncounter(
-        state,
-        `xp-level-40-${profile.id}-${seed}-${report.explorations}`,
-        forkCanonicalRng(masterRng),
-        {
-          xpCurve: HARMONIZED_HERO_XP_CURVE,
-        },
-      );
-    } catch (error) {
-      if (!(error instanceof Error) || error.message !== "COMBAT_LIMIT_REACHED") throw error;
-      if (forgeContext) {
-        state = reactivateRecoveredHeroes(selectPreviousFloor(state));
-        report.combatLimitRetreats += 1;
-        report.grindRuns += 1;
-        continue;
+      let started;
+      try {
+        started = applyDungeonCommand(state, {
+          type: "dungeon.explore",
+          dungeonId: UNDERCITY_DUNGEON_ID,
+          floor,
+          commandId: `xp-level-40-${profile.id}-${seed}-${report.explorations}`,
+        });
+      } catch (error) {
+        const code = error && typeof error === "object" && "code" in error
+          ? String(error.code)
+          : "";
+        if (code !== "FLOOR_NOT_REACHED") throw error;
+        const personalFloors = state.heroes.map((hero) => (
+          state.dungeonProgress.heroes[hero.id]?.completedFloor ?? 0
+        ));
+        throw new Error(
+          `FLOOR_NOT_REACHED:${floor}:highest=${state.highestFloorReached}`
+          + `:personal=${personalFloors.join(",")}`
+          + `:expedition=${state.dungeonProgress.expedition.floor}`,
+          { cause: error },
+        );
       }
-      report.blockedReason = error.message;
-      break;
+      startedState = started.state;
+      const resolved = applyDungeonCommand(startedState, {
+        type: "dungeon.resolve",
+        dungeonId: UNDERCITY_DUNGEON_ID,
+      }, forkCanonicalRng(masterRng));
+      const encounter = resolved.state.encounterHistory.at(-1);
+      if (!encounter) throw new Error("MISSING_RESOLVED_ENCOUNTER");
+      resolution = { state: resolved.state, encounter };
+    } catch (error) {
+      const code = error && typeof error === "object" && "code" in error
+        ? String(error.code)
+        : error instanceof Error ? error.message : "";
+      if (code !== "COMBAT_LIMIT_REACHED") throw error;
+      state = applyDungeonCommand(startedState, {
+        type: "dungeon.retreat",
+        dungeonId: UNDERCITY_DUNGEON_ID,
+      }).state;
+      report.combatLimitRetreats += 1;
+      continue;
     }
     const encounter = resolution.encounter;
-    const partyWiped = !(resolution.state.heroes ?? [])
-      .some((hero) => hero.isActive && hero.currentHp > 0);
+    const partyWiped = encounter.kind === "fight" && encounter.outcome === "defeat";
     if (partyWiped) report.wipes += 1;
     state = {
       ...resolution.state,
       rngState: masterRng.snapshot(),
-      encounterHistory: [...(state.encounterHistory ?? []), encounter].slice(-15),
     };
-    const encounterElapsedMs = (encounter.transcript.length + 1) * 400 + 1_000;
+    if (
+      state.dungeonProgress.expedition.mode === "farm"
+      && floor === 50
+      && state.activeDungeonFloor === 41
+      && state.activeDungeonRoom === 1
+    ) report.farmLoops += 1;
+    const encounterElapsedMs = (encounter.transcript.length + 1) * ENCOUNTER_PLAYBACK_STEP_MS
+      + DUNGEON_AUTO_EXPLORE_DELAY_MS;
     state = applySimulatedIdle(state, clock, encounterElapsedMs);
+    report.encounterSeconds += encounterElapsedMs / 1_000;
     report.simulatedSeconds += encounterElapsedMs / 1_000;
     state = reactivateRecoveredHeroes(state);
     const vocation = choosePendingVocations(state, masterRng);
@@ -528,26 +675,23 @@ export function runLevel40Campaign(profile: RewardProfile, seed: number): LongCa
     const progressionChanged = encounter.transcript.some((event) => (
       event.type === "hero.level_up" || event.type === "hero.class_changed"
     ));
-    const equipmentCandidates = progressionChanged
+    const bossCompleted = encounter.kind === "fight" && encounter.enemy?.isBoss === true;
+    const reviewEquipment = shouldReviewEquipment(profile.equipmentStrategy, {
+      bossCompleted,
+      itemLooted: itemLootIds.length > 0,
+      progressionChanged,
+      resumed: false,
+    });
+    const refreshAllEquipment = reviewEquipment && (
+      progressionChanged || profile.equipmentStrategy === "average"
+    );
+    const equipmentCandidates = refreshAllEquipment
       ? (state.storedItems ?? []).map((item) => item.instanceId)
-      : itemLootIds;
+      : reviewEquipment ? itemLootIds : [];
     if (equipmentCandidates.length > 0) {
       const optimized = optimizeEquipment(state, equipmentCandidates, forgeContext !== null);
       state = optimized.state;
-      report.equipmentChanges += optimized.gains.length;
-      const equipmentBand = report.equipmentByLevelBand[equipmentProgressionBand];
-      for (const gain of optimized.gains) {
-        equipmentBand.changes += 1;
-        equipmentBand.absoluteGain += gain.absolute;
-        equipmentBand.relativeGain += gain.relative;
-        equipmentBand.maxRelativeGain = Math.max(equipmentBand.maxRelativeGain, gain.relative);
-        if (gain.rarity === "rare" || gain.rarity === "epic" || gain.rarity === "legendary") {
-          equipmentBand.maxRareOrBetterRelativeGain = Math.max(
-            equipmentBand.maxRareOrBetterRelativeGain,
-            gain.relative,
-          );
-        }
-      }
+      recordEquipmentGains(report, equipmentProgressionBand, optimized.gains);
     }
     if (forgeContext) {
       state = advanceForgeCandidate(
@@ -569,6 +713,15 @@ export function runLevel40Campaign(profile: RewardProfile, seed: number): LongCa
     report.explorations += 1;
     report.kinds[encounter.kind] += 1;
     report.transcriptEvents += encounter.transcript.length;
+    const personalFirstRewards = encounter.transcript.filter(
+      (event) => event.type === "reward.personal_first",
+    ).length;
+    report.personalFirstRewards += personalFirstRewards;
+    if (personalFirstRewards > 0) {
+      report.personalFirstRewardsByFloor[floor] = (
+        report.personalFirstRewardsByFloor[floor] ?? 0
+      ) + personalFirstRewards;
+    }
     const challengeAttempt = encounter.transcript.find((event) => event.type === "challenge.attempted");
     if (challengeAttempt) {
       const probability = typeof challengeAttempt.successProbability === "number"
@@ -581,40 +734,53 @@ export function runLevel40Campaign(profile: RewardProfile, seed: number): LongCa
       const kindResult = report.challengeByKindAndLevelBand[encounter.kind as ChallengeKind][
         challengeLevelBand(partyLevelBefore)
       ];
-      const calibrationKey = `${floor}:${encounter.kind}`;
-      const calibrationResult = report.challengeByFloorAndKind[calibrationKey] ??= {
-        attempts: 0,
-        successes: 0,
-        zeroChance: 0,
-        partyLevelSum: 0,
-        difficultySum: 0,
-        probabilitySum: 0,
-      };
       bandResult.attempts += 1;
       kindResult.attempts += 1;
-      calibrationResult.attempts += 1;
-      calibrationResult.partyLevelSum += partyLevelBefore;
-      calibrationResult.difficultySum += typeof challengeAttempt.difficulty === "number"
-        ? challengeAttempt.difficulty
-        : 0;
-      calibrationResult.probabilitySum += probability;
-      const score = typeof challengeAttempt.score === "number" ? challengeAttempt.score : 0;
-      const luck = typeof challengeAttempt.luck === "number" ? challengeAttempt.luck : 1;
-      const histogramKey = `${floor}:${encounter.kind}:${score}:${luck}`;
-      report.challengeCandidateHistogram[histogramKey] = (
-        report.challengeCandidateHistogram[histogramKey] ?? 0
-      ) + 1;
       if (probability === 0) bandResult.zeroChance += 1;
       if (probability === 0) kindResult.zeroChance += 1;
-      if (probability === 0) calibrationResult.zeroChance += 1;
-      if (encounter.transcript.some((event) => event.type === "challenge.succeeded")) {
+      const challengeSucceeded = encounter.transcript.some((event) => event.type === "challenge.succeeded");
+      if (challengeSucceeded) {
         report.challengeSuccesses += 1;
         bandResult.successes += 1;
         kindResult.successes += 1;
-        calibrationResult.successes += 1;
+      }
+      if (collectChallengeDiagnostics) {
+        const calibrationKey = `${floor}:${encounter.kind}`;
+        const calibrationResult = report.challengeByFloorAndKind[calibrationKey] ??= {
+          attempts: 0,
+          successes: 0,
+          zeroChance: 0,
+          partyLevelSum: 0,
+          difficultySum: 0,
+          probabilitySum: 0,
+        };
+        calibrationResult.attempts += 1;
+        calibrationResult.partyLevelSum += partyLevelBefore;
+        calibrationResult.difficultySum += typeof challengeAttempt.difficulty === "number"
+          ? challengeAttempt.difficulty
+          : 0;
+        calibrationResult.probabilitySum += probability;
+        if (probability === 0) calibrationResult.zeroChance += 1;
+        if (challengeSucceeded) calibrationResult.successes += 1;
+        const score = typeof challengeAttempt.score === "number" ? challengeAttempt.score : 0;
+        const luck = typeof challengeAttempt.luck === "number" ? challengeAttempt.luck : 1;
+        const histogramKey = `${floor}:${encounter.kind}:${score}:${luck}`;
+        report.challengeCandidateHistogram[histogramKey] = (
+          report.challengeCandidateHistogram[histogramKey] ?? 0
+        ) + 1;
       }
     }
     for (const event of encounter.transcript) {
+      if (event.type === "reward.personal_first") {
+        if (typeof event.xp !== "number" || typeof event.heroId !== "string") continue;
+        report.personalXp += event.xp;
+        report.xpByHero[event.heroId] = (report.xpByHero[event.heroId] ?? 0) + event.xp;
+        const heroLevel = heroLevelsBefore.get(event.heroId);
+        if (heroLevel !== undefined && heroLevel < TARGET_LEVEL) {
+          report.xpByHeroLevel[heroLevel]!.xp += event.xp;
+        }
+        continue;
+      }
       if (event.type !== "reward.xp" && event.type !== "reward.floor_first_clear_xp") continue;
       if (typeof event.xp !== "number" || typeof event.heroId !== "string") continue;
       const source = rewardSource(encounter, event.type);
@@ -638,19 +804,10 @@ export function runLevel40Campaign(profile: RewardProfile, seed: number): LongCa
     }
     if (encounter.outcome === "defeat") report.defeats += 1;
 
-    const stalled = state.activeDungeonFloor === floor && state.activeDungeonRoom === room;
-    stalledBossAttempts = stalled && encounter.kind === "fight"
-      ? stalledBossAttempts + 1
-      : 0;
-    if (stalledBossAttempts >= BOSS_ATTEMPTS_BEFORE_GRIND && floor > 1) {
-      state = reactivateRecoveredHeroes(selectPreviousFloor(state));
-      stalledBossAttempts = 0;
-      report.grindRuns += 1;
-    }
-
     for (const milestone of MILESTONES) {
       if (report.milestoneExplorations[milestone] === undefined && allHeroesReached(state, milestone)) {
         report.milestoneExplorations[milestone] = report.explorations;
+        report.milestoneSeconds[milestone] = report.simulatedSeconds;
         if (SEED_COUNT <= 3) {
           console.info(
             `[XPT1] niveau ${milestone} atteint après ${report.explorations} explorations, étage ${floor}.`,

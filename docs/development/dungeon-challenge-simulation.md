@@ -39,12 +39,19 @@ jet. Le héros choisi est celui qui maximise la probabilité exacte de réussite
 Les égalités sont départagées par score, puis par LUK, puis par l'ordre stable
 du groupe.
 
+Un échec ne donne aucune XP et laisse avancer la salle. Les conséquences sont
+centralisées et non létales : piège et embuscade retirent 5 % des PV actuels
+du groupe, obstacle 3 %, énigme et rituel 10 % du mana actuel du héros choisi,
+et négociation 3 % de l'or courant avec un plafond égal à trois gains de combat
+ordinaire du même étage.
+
 ## Courbe canonique du runtime
 
 Le runtime et la simulation dédiée appliquent la courbe versionnée
-`party-four-two-thirds-v2`, calibrée par type sur un groupe réel de quatre
+`undercity-two-profiles-v3`, calibrée par type sur un groupe réel de quatre
 héros. Les valeurs intermédiaires sont interpolées et arrondies ; chaque
-courbe reste monotone, y compris après la dernière ancre.
+courbe reste monotone, y compris après la dernière ancre. Le seuil effectif
+ajoute ensuite un décalage global de `+1`.
 
 | Défi | Ancres `étage:difficulté` |
 |---|---|
@@ -56,7 +63,9 @@ courbe reste monotone, y compris après la dernière ancre.
 | Négociation | `1:11, 10:29, 20:50, 25:53, 30:62, 40:66, 99:66` |
 
 La salle ne modifie pas la difficulté : le seuil reste lisible pendant un
-étage et la progression est portée uniquement par les paliers d'étage.
+étage. En progression, la courbe est portée par les paliers d'étage. En farm,
+elle ajoute `2` points par niveau entier du groupe au-dessus du niveau 20 afin
+que la Cour ne devienne pas progressivement triviale.
 
 ## Scénarios simulés
 
@@ -87,13 +96,14 @@ restent couverts par les golden tests du moteur autoritaire, et l'affichage par
 les tests de `DungeonPanel` ainsi que le build de production.
 
 Le harness de campagne `npm.cmd run test:xp-tier1` complète cette preuve avec
-100 seeds distinctes en dix processus. Sa cible est `66,7 %` de réussite
-globale, avec des tolérances explicites par bande et par type. Le résultat
-final validé le 4 septembre 2026 est
-`66,65 %` global ; les bandes de niveaux
-1–9, 10–19, 20–29, 30–34 et 35–40 donnent respectivement `67,47 %`,
-`66,58 %`, `65,54 %`, `65,32 %` et `68,57 %`. Les 30 cellules type × bande
-respectent leur tolérance.
+100 seeds distinctes, chacune rejouée sous les profils optimisé et moyen. Sa
+cible est `66,7 %` de réussite globale, avec une enveloppe explicite par bande
+et par type, et une dernière bande au moins deux points plus difficile que la
+première. La validation complète du 8 septembre 2026 sur 100 seeds par profil
+donne `66,10 %` global ; les bandes de niveaux 1–9, 10–19, 20–29, 30–34 et
+35–40 donnent respectivement `63,96 %`, `70,83 %`, `74,05 %`, `72,40 %` et
+`58,69 %`. La dernière bande est ainsi `5,27` points plus difficile que la
+première.
 
 Le choix du candidat et la résolution conservent exactement un tirage RNG par
 tentative. La calibration modifie uniquement le seuil effectif ; elle n'ajoute
