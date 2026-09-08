@@ -12,6 +12,31 @@ Avant une commande potentiellement privilégiée, Codex doit :
 2. demander une élévation ciblée si le sandbox la refuse ;
 3. ne jamais demander une élévation globale ou utiliser une cible non vérifiée.
 
+### Incident connu du sandbox Windows
+
+Sur ce poste, le backend Windows `elevated` échoue avant le lancement de toute
+commande avec `helper_unknown_error: setup refresh had errors`. Le journal
+`%USERPROFILE%\.codex\.sandbox\sandbox.<date>.log` montre alors
+`SetNamedSecurityInfoW failed: 5` pendant la pose des ACE de protection sur
+`.git` et `.codex`. Il s'agit d'un incident du sandbox Codex Windows, pas d'un
+échec de PowerShell, Git ou du projet.
+
+Procédure obligatoire :
+
+1. ne faire qu'une tentative sandboxée ; ne pas réessayer avec un autre shell ;
+2. confirmer une seule fois le motif dans le dernier journal sandbox ;
+3. si le motif est confirmé, poursuivre immédiatement avec des commandes hors
+   sandbox à élévation ciblée et des cibles explicites ;
+4. ne pas réinitialiser ni bricoler les ACL de `.git` ou `.codex` : ce n'est
+   pas une correction démontrée et cela peut endommager les protections ou Git ;
+5. utiliser le fallback officiel `[windows] sandbox = "unelevated"`, redémarrer
+   Codex, puis valider avec `Get-Location` sans élévation. Revenir à `elevated`
+   seulement après une mise à jour Codex corrigeant l'incident et un test réussi.
+
+Le fallback `unelevated` conserve un sandbox Windows à jeton restreint ; ce
+n'est ni `danger-full-access` ni une autorisation globale. Les opérations qui
+sortent de ses capacités continuent d'exiger une élévation ciblée.
+
 Dans une session Codex CLI, Codex exécute de manière autonome toutes les
 commandes nécessaires au périmètre demandé : Git, GitHub CLI, tests, builds,
 Vite, Vitest, Supabase local, Docker et déploiements. Les contraintes du

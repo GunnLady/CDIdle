@@ -60,12 +60,61 @@ deux profils, deux workers), sans écart de conservation de l'or :
 node scripts/run-loot-economy-harness.mjs --stage=early --seeds=2 --workers=2 --profiles=baseline,loot15 --town=progressive
 ```
 
-Ce contournement ne répare pas le sandbox normal et n'autorise aucune
-élévation générale. Aucune ACL, aucun mode de sécurité et aucun fichier
-interne du sandbox n'ont été modifiés. Une réparation durable reste distincte :
-identifier pourquoi la configuration ne peut pas appliquer ces ACL, puis
-vérifier une commande normale sans élévation. Consulter la
-[documentation officielle du sandbox Windows](https://learn.chatgpt.com/docs/windows/windows-sandbox).
+Le 8 septembre 2026, le même incident a été reproduit sur une simple commande
+`Get-Location`, alors que la configuration utilisait déjà
+`[windows] sandbox = "elevated"`. Le journal du jour confirme un échec avant la
+création du processus demandé :
+
+```text
+deny ACE failed on D:\codex\CDIdle\.codex: SetNamedSecurityInfoW failed: 5
+deny ACE failed on D:\codex\CDIdle\.git: SetNamedSecurityInfoW failed: 5
+setup error: setup refresh had errors
+```
+
+Le volume `D:` est NTFS et les ACL sont valides. Le processus Codex possède un
+jeton d'intégrité moyenne ; son groupe Administrateurs est filtré par l'UAC.
+Le compte utilisateur dispose de `Modify`, mais pas de `WRITE_DAC`, sur les
+dossiers concernés, qui appartiennent aux comptes `CodexSandboxOnline` et
+`CodexSandboxOffline`. Microsoft documente que la modification d'une DACL
+requiert `WRITE_DAC` : le code 5 est donc cohérent avec le jeton et l'état ACL
+observés. Cet état explique l'échec local, mais une réparation manuelle des ACL
+n'est pas retenue : des incidents OpenAI similaires persistent après cette
+opération et une modification incorrecte peut affaiblir les protections.
+
+Le dépôt officiel OpenAI suit des incidents Windows identiques. L'un d'eux
+rapporte que le passage au backend `unelevated` rétablit les commandes normales.
+La documentation officielle prescrit également ce mode lorsque le setup
+`elevated` échoue. La configuration locale retenue est donc :
+
+```toml
+[windows]
+sandbox = "unelevated"
+```
+
+Validation effectuée le 8 septembre 2026 après redémarrage de Codex avec ce
+mode : `Get-Location`, exécuté sans élévation depuis `D:\\codex\\CDIdle`, a
+réussi avec le code de sortie 0 et a retourné `D:\\codex\\CDIdle`. Le dernier
+journal sandbox, `C:\\Users\\mathr\\.codex\\.sandbox\\sandbox.2026-09-08.log`,
+enregistre pour cette exécution un événement `START` à 18:41:49, puis
+`SUCCESS` à 18:41:49.851, sans `setup refresh had errors` ni
+`SetNamedSecurityInfoW failed: 5`. Ce contrôle confirme le fonctionnement de
+`Get-Location` sous le backend `unelevated` ; il ne valide pas toutes les
+commandes et ne démontre pas une correction du backend `elevated`.
+
+Conserver ce mode jusqu'à ce qu'une mise à jour Codex annonce ou démontre la
+correction du backend `elevated`. Ne pas utiliser `danger-full-access` et ne
+pas modifier les ACL du dépôt pour contourner ce bug.
+
+Dans une session déjà ouverte qui utilise encore l'ancien backend, ne tenter
+qu'une commande sandboxée. Une fois le motif confirmé dans le dernier journal,
+utiliser directement l'élévation ciblée pour le reste du tour.
+
+Références :
+
+- [configuration officielle Codex](https://learn.chatgpt.com/docs/config-file/config-basic) ;
+- [incident OpenAI `setup refresh had errors`](https://github.com/openai/codex/issues/39841) ;
+- [incident OpenAI `SetNamedSecurityInfoW: 5` et fallback `unelevated`](https://github.com/openai/codex/issues/33388) ;
+- [droits de sécurité des fichiers Windows](https://learn.microsoft.com/en-us/windows/win32/fileio/file-security-and-access-rights).
 
 ## Supabase local : nouveaux imports partagés
 
