@@ -1342,7 +1342,7 @@ describe("authoritative dungeon golden behavior characterized from 640f89f", () 
       "encounter.defeat",
     ]);
     expect(result.encounter.transcript[2]).toMatchObject({
-      message: "Rat Énorme des Égouts inflige 3 dégâts à Ariane (1 → 0/20 PV). Ariane s'écroule et retourne aux dortoirs.",
+      message: "Rat Énorme des Égouts inflige 3 dégâts à Ariane (1 → 0/20 PV). Ariane s'écroule et reste KO dans l'expédition.",
       damage: 3,
       heroHpBefore: 1,
       heroHp: 0,

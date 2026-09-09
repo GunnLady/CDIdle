@@ -4,6 +4,7 @@ import { getBuildingUpgradeCost } from "../data/gameData";
 import type { GameCommand } from "./commands";
 import { equipItem, unequipItem } from "../utils/gameCalculations";
 import { preserveResourceRatio } from "../../shared/domain/hero-stats";
+import { decideDungeonHeroMutation } from "../../shared/domain/dungeon-segment";
 
 export const OPTIMISTIC_COMMAND_TYPES = [
   "citizens.allocate",
@@ -67,12 +68,16 @@ const projectors = {
     }
     return { ...state, resources, buildings: { ...buildings, [command.buildingId]: level } };
   },
-  "hero.activity": (state, command) => ({
-    ...state,
-    heroes: (state.heroes ?? []).map((hero: Hero) => hero.id === command.heroId
-      ? { ...hero, isActive: command.active, status: command.active ? "idle" : "resting" }
-      : hero),
-  }),
+  "hero.activity": (state, command) => {
+    const decision = decideDungeonHeroMutation(state, command.heroId, command.active ? "join_party" : "leave_party");
+    if (!decision.allowed) return state;
+    return {
+      ...state,
+      heroes: (state.heroes ?? []).map((hero: Hero) => hero.id === command.heroId
+        ? { ...hero, isActive: command.active, status: command.active ? "idle" : "resting" }
+        : hero),
+    };
+  },
   "hero.equip": (state, command) => projectEquipment(state, command),
   "hero.unequip": (state, command) => projectEquipment(state, command),
   "dungeon.select_floor": (state, command) => ({
@@ -107,6 +112,8 @@ function projectEquipment(
   state: CanonicalGameState,
   command: Extract<OptimisticGameCommand, { type: "hero.equip" | "hero.unequip" }>,
 ): CanonicalGameState {
+  const mutation = command.type === "hero.equip" ? "equip" : "unequip";
+  if (!decideDungeonHeroMutation(state, command.heroId, mutation).allowed) return state;
   const heroes = structuredClone((state.heroes ?? []) as Hero[]);
   const storedItems = structuredClone((state.storedItems ?? []) as StoredItemInstance[]);
   const index = heroes.findIndex((hero) => hero.id === command.heroId);

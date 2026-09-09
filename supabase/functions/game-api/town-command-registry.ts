@@ -1,7 +1,7 @@
 import type { TownCommandHandlerRegistry } from "./command-handler.ts";
 import { allocateCitizens } from "./citizen-command-handlers.ts";
 import {
-  advanceDungeonAutomation, exploreDungeon, resolveDungeon, retreatDungeon, resumeDungeon,
+  advanceDungeonAutomation, decideDungeonCheckpoint, exploreDungeon, resolveDungeon, retreatDungeon, resumeDungeon,
   selectDungeonFarmZone, selectDungeonFloor, setDungeonAutoExplore,
 } from "./dungeon-command-handlers.ts";
 import { cancelForge, finalizeForge, recycleInventory, startForge } from "./forge-command-handlers.ts";
@@ -40,5 +40,6 @@ export const TOWN_COMMAND_HANDLERS = {
   "dungeon.auto_explore": setDungeonAutoExplore,
   "dungeon.retreat": retreatDungeon,
   "dungeon.resume": resumeDungeon,
+  "dungeon.checkpoint_decide": decideDungeonCheckpoint,
   "dungeon.select_farm_zone": selectDungeonFarmZone,
 } satisfies TownCommandHandlerRegistry;

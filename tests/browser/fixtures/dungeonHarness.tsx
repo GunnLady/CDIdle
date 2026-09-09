@@ -54,6 +54,8 @@ function Harness() {
       onResetLevel={recordMutation}
       onResume={recordMutation}
       onSelectFarmZone={recordMutation}
+      pendingClassTransitions={[]}
+      onCheckpointDecision={recordMutation}
       onToggleHeroActive={toggleHero}
     />
   </main>;

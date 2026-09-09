@@ -16,6 +16,7 @@ import {
   createCrossTabAuthorityMessage,
   parseCrossTabAuthorityMessage,
 } from "../src/domain/crossTabAuthority";
+import { createUndercityProgress } from "../shared/domain/undercity-progression";
 
 describe("canonical state compatibility simulation", () => {
   afterEach(() => vi.unstubAllGlobals());
@@ -58,10 +59,17 @@ describe("canonical state compatibility simulation", () => {
     vi.stubGlobal("indexedDB", createIndexedDbMock().indexedDb);
     const pendingRecruit = makeHero({ id: "pending-recruit", equipment: {} });
     const onboardingCandidate = makeHero({ id: "onboarding-candidate", equipment: {} });
+    const dungeonProgress = createUndercityProgress(["hero-complete"]);
+    dungeonProgress.expedition = {
+      ...dungeonProgress.expedition,
+      phase: "running",
+      segmentHeroIds: ["hero-complete"],
+    };
     const state = {
       ...initialTownState(126),
       cityName: "État complet",
       heroes: [makeHero({ id: "hero-complete", isActive: true })],
+      dungeonProgress,
       pendingForge: {
         previewId: "preview-complete",
         recipeId: "starter_sword",

@@ -1,5 +1,6 @@
 import { recoverRestingGauge } from "../../../shared/domain/rest-recovery.ts";
 import type { CanonicalGameState } from "../../../shared/contracts/authoritative.ts";
+import { isDungeonSegmentMember } from "../../../shared/domain/dungeon-segment.ts";
 
 export const MAX_IDLE_SECONDS = 24 * 60 * 60;
 const IMMIGRATION_PROGRESS_PER_SECOND = 5;
@@ -86,6 +87,7 @@ export function applyIdleAuthority(
   let heroesRecovered = 0;
   let heroesFullyRecovered = 0;
   const heroes = next.heroes.map((hero) => {
+    if (isDungeonSegmentMember(next, hero.id)) return hero;
     if (hero.status !== "resting" || appliedSeconds === 0) return hero;
     const stats = hero.calculatedStats;
     const maxHp = number(stats.maxHp, number(hero.currentHp));

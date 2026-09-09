@@ -107,6 +107,20 @@ résolubles par le catalogue TypeScript. Ce nombre décrit l'instantané v3, pas
 la taille éternelle du catalogue : un futur objet s'ajoute dans une nouvelle
 évolution sans réécrire cette migration historique.
 
+## Reprise des anciennes instances d'objet
+
+La migration additive `20260909010000_item_instance_id_recovery.sql` reprend
+les anciens objets qui portent `id` au lieu de `itemId`, génère un
+`instanceId` déterministe lorsqu'il manque et développe les anciennes piles
+`count` en instances distinctes. Elle traite le coffre, les équipements, les
+candidats et la recrue en attente sans modifier la révision canonique.
+
+La reprise est également appliquée au bootstrap et avant un déséquipement afin
+qu'un objet historique ne soit jamais supprimé au moment où son slot est
+vidé. Le coffre projette ces formes historiques au lieu de les filtrer
+silencieusement. Le test pgTAP `028_item_instance_id_recovery.sql` couvre la
+conversion, l'unicité des instances, les droits des helpers et l'idempotence.
+
 ## Retirer une migration
 
 Une étape ne peut être retirée qu'après preuve qu'aucun snapshot persistant ne

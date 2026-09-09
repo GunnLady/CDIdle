@@ -187,11 +187,44 @@ describe("StoragePanel modifier stacks", () => {
     fireEvent.click(within(screen.getByTestId("storage-item-item-readonly")).getByRole("button", { name: /Épée de départ/ }));
     const decision = screen.getByTestId("storage-equipment-decision");
     expect(within(decision).getByText("Observatrice")).toBeInTheDocument();
+    const targetCard = within(decision).getByRole("button", { name: /Observatrice/ });
+    fireEvent.click(targetCard);
+    for (const [short, name] of [["FOR", "Force"], ["AGI", "Agilité"], ["END", "Endurance"], ["INT", "Intelligence"], ["SAG", "Sagesse"], ["DEX", "Dextérité"], ["LUK", "Chance"]]) {
+      expect(within(targetCard).getByText(short)).toBeInTheDocument();
+      expect(within(targetCard).getByTitle(name)).toHaveTextContent("5");
+    }
+    expect(within(targetCard).getByText("Caractéristiques")).toBeInTheDocument();
+    expect(within(targetCard).getByText("Statistiques de combat")).toBeInTheDocument();
+    expect(within(targetCard).getByText("PV")).toBeInTheDocument();
+    expect(within(targetCard).getByText("20/20")).toBeInTheDocument();
+    expect(within(targetCard).getByText("DPS")).toBeInTheDocument();
+    expect(within(targetCard).getByText("6.60")).toBeInTheDocument();
     for (const label of ["Héros cible", "Équipement actuel", "Équipement sélectionné", "Gains et pertes", "Action"]) {
       expect(within(decision).getByText(label)).toBeInTheDocument();
     }
     expect(within(decision).getByRole("button", { name: "Équiper" })).toBeDisabled();
     expect(onEquipItem).not.toHaveBeenCalled();
+  });
+
+  it("supports hero-first equipment inside Storage and keeps heroes one per row", () => {
+    const onEquipItem = vi.fn();
+    render(<StoragePanel
+      storedItems={[{ instanceId: "hero-first-sword", itemId: "starter_sword", itemLevel: 1, powerModelId: "legacy-fixed-v1", rarity: "common" }]}
+      heroes={[makeHero({ id: "hero-first", name: "Ariane" }), makeHero({ id: "hero-second", name: "Borin" })]}
+      onEquipItem={onEquipItem}
+    />);
+
+    const decision = screen.getByTestId("storage-equipment-decision");
+    expect(within(decision).getByRole("heading", { name: "Équipement des héros" })).toBeInTheDocument();
+    expect(screen.getByTestId("storage-hero-list")).toHaveClass("grid", "gap-2");
+    fireEvent.click(within(decision).getByRole("button", { name: /Ariane/ }));
+    const picker = screen.getByTestId("storage-hero-item-picker");
+    fireEvent.click(within(picker).getByRole("button", { name: /Épée de départ/ }));
+    expect(within(decision).getByText("Équipement actuel")).toBeInTheDocument();
+    expect(within(decision).getByText("Équipement sélectionné")).toBeInTheDocument();
+    expect(within(decision).getByText("Gains et pertes")).toBeInTheDocument();
+    fireEvent.click(within(decision).getByRole("button", { name: "Équiper" }));
+    expect(onEquipItem).toHaveBeenCalledWith("hero-first", "hero-first-sword");
   });
 
   it("distinguishes an empty storage from an empty filtered result", () => {

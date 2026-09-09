@@ -1,156 +1,83 @@
-import React, { useState, useEffect } from "react";
-import type { HeroPortraitView } from "../domain/heroPortrait";
-import maleSpritesheet from "../assets/images/human-novice-male.jpg";
-import femaleSpritesheet from "../assets/images/human-novice-female.jpg";
+import React, { useEffect, useState } from "react";
+import { HERO_SPRITE_SHEETS } from "../assets/heroSpriteSheets";
+import {
+  HERO_SPRITE_SLICES,
+  getHeroPortraitCacheKey,
+  resolveHeroPortraitIdentity,
+  type HeroPortraitView,
+} from "../domain/heroPortrait";
 
-// Exact coordinates provided by the user for the 20 heroes
-const NOVICE_MALE_SPRITE_SLICES = [
-  // row 1
-  { x: 64, y: 38, width: 180, height: 280 },
-  { x: 296, y: 38, width: 180, height: 280 },
-  { x: 530, y: 38, width: 180, height: 280 },
-  { x: 764, y: 38, width: 180, height: 280 },
-  { x: 1007, y: 38, width: 180, height: 280 },
+const spriteCache = new Map<string, string>();
+const sourceImageCache = new Map<string, Promise<HTMLImageElement>>();
+const spriteProcessingCache = new Map<string, Promise<string>>();
 
-  // row 2
-  { x: 64, y: 328, width: 180, height: 280 },
-  { x: 296, y: 328, width: 180, height: 280 },
-  { x: 530, y: 328, width: 180, height: 280 },
-  { x: 764, y: 328, width: 180, height: 280 },
-  { x: 1007, y: 328, width: 180, height: 280 },
+function loadSourceImage(url: string): Promise<HTMLImageElement> {
+  const cached = sourceImageCache.get(url);
+  if (cached) return cached;
 
-  // row 3
-  { x: 64, y: 621, width: 180, height: 280 },
-  { x: 296, y: 621, width: 180, height: 280 },
-  { x: 530, y: 621, width: 180, height: 280 },
-  { x: 764, y: 621, width: 180, height: 280 },
-  { x: 1007, y: 621, width: 180, height: 280 },
-
-  // row 4
-  { x: 64, y: 916, width: 180, height: 280 },
-  { x: 296, y: 916, width: 180, height: 280 },
-  { x: 530, y: 916, width: 180, height: 280 },
-  { x: 764, y: 916, width: 180, height: 280 },
-  { x: 1007, y: 916, width: 180, height: 280 }
-];
-
-function getStableSpriteIndex(heroId: string): number {
-  let hash = 0;
-  for (let index = 0; index < heroId.length; index += 1) {
-    hash = (hash * 31 + heroId.charCodeAt(index)) | 0;
-  }
-  return Math.abs(hash) % NOVICE_MALE_SPRITE_SLICES.length;
-}
-
-// Global cache to hold sliced sprites as data URLs (keyed by `${gender}_${index}`)
-const spriteCache: { [key: string]: string } = {};
-let isProcessingStarted = false;
-const processingListeners: (() => void)[] = [];
-
-function addProcessingListener(listener: () => void) {
-  processingListeners.push(listener);
-}
-
-function removeProcessingListener(listener: () => void) {
-  const idx = processingListeners.indexOf(listener);
-  if (idx !== -1) processingListeners.splice(idx, 1);
-}
-
-function notifyListeners() {
-  processingListeners.forEach((l) => l());
-}
-
-function loadAndProcessImage(url: string, gender: "Male" | "Female"): Promise<void> {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.src = url;
-    img.crossOrigin = "anonymous";
-    img.onload = () => {
-      try {
-        const width = img.naturalWidth;
-        const height = img.naturalHeight;
-
-        // 1. Create a large canvas to draw and chroma-key the original image
-        const mainCanvas = document.createElement("canvas");
-        mainCanvas.width = width;
-        mainCanvas.height = height;
-        const mainCtx = mainCanvas.getContext("2d");
-        if (!mainCtx) {
-          reject(new Error("Could not get 2d context"));
-          return;
-        }
-
-        mainCtx.drawImage(img, 0, 0);
-
-        // Chroma-key green background (Canvas-based automated green screen cleaner)
-        const imgData = mainCtx.getImageData(0, 0, width, height);
-        const data = imgData.data;
-
-        for (let i = 0; i < data.length; i += 4) {
-          const r = data[i];
-          const g = data[i + 1];
-          const b = data[i + 2];
-
-          // Green background detection logic:
-          // Pure/Intense green has a high G value compared to R and B.
-          const greenDominance = g - Math.max(r, b);
-
-          if (g > 45 && greenDominance > 25 && g > r * 1.25 && g > b * 1.25) {
-            data[i + 3] = 0; // Make pixel fully transparent
-          }
-        }
-        mainCtx.putImageData(imgData, 0, 0);
-
-        // 2. Slice the clean canvas using the precise pixel coordinates provided by the user
-        for (let idx = 0; idx < NOVICE_MALE_SPRITE_SLICES.length; idx++) {
-          const slice = NOVICE_MALE_SPRITE_SLICES[idx];
-
-          // Create small canvas for this specific sprite
-          const sliceCanvas = document.createElement("canvas");
-          sliceCanvas.width = slice.width;
-          sliceCanvas.height = slice.height;
-          const sliceCtx = sliceCanvas.getContext("2d");
-
-          if (sliceCtx) {
-            sliceCtx.drawImage(
-              mainCanvas,
-              slice.x, slice.y, slice.width, slice.height, // Source rectangle
-              0, 0, slice.width, slice.height             // Destination rectangle
-            );
-            spriteCache[`${gender}_${idx}`] = sliceCanvas.toDataURL("image/png");
-          }
-        }
-        resolve();
-      } catch (err) {
-        reject(err);
-      }
-    };
-
-    img.onerror = () => {
-      reject(new Error(`Failed to load spritesheet from: ${url}`));
-    };
+  const loading = new Promise<HTMLImageElement>((resolve, reject) => {
+    const image = new Image();
+    image.crossOrigin = "anonymous";
+    image.onload = () => resolve(image);
+    image.onerror = () => reject(new Error(`Failed to load spritesheet from: ${url}`));
+    image.src = url;
+  }).catch((error) => {
+    sourceImageCache.delete(url);
+    throw error;
   });
+  sourceImageCache.set(url, loading);
+  return loading;
 }
 
-function processAllSpritesheets() {
-  if (isProcessingStarted) {
-    if (Object.keys(spriteCache).length > 0) {
-      notifyListeners();
-    }
-    return;
-  }
-  isProcessingStarted = true;
+function processSprite(sheetUrl: string, cacheKey: string, variant: number): Promise<string> {
+  const cachedSprite = spriteCache.get(cacheKey);
+  if (cachedSprite) return Promise.resolve(cachedSprite);
 
-  Promise.all([
-    loadAndProcessImage(maleSpritesheet, "Male"),
-    loadAndProcessImage(femaleSpritesheet, "Female")
-  ])
-    .then(() => {
-      notifyListeners();
-    })
-    .catch((err) => {
-      console.error("Error processing spritesheets:", err);
-    });
+  const inProgress = spriteProcessingCache.get(cacheKey);
+  if (inProgress) return inProgress;
+
+  const processing = loadSourceImage(sheetUrl).then((sourceImage) => {
+    const slice = HERO_SPRITE_SLICES[variant];
+    const canvas = document.createElement("canvas");
+    canvas.width = slice.width;
+    canvas.height = slice.height;
+    const context = canvas.getContext("2d");
+    if (!context) throw new Error("Could not get 2d context for hero portrait");
+
+    context.drawImage(
+      sourceImage,
+      slice.x,
+      slice.y,
+      slice.width,
+      slice.height,
+      0,
+      0,
+      slice.width,
+      slice.height,
+    );
+
+    const imageData = context.getImageData(0, 0, slice.width, slice.height);
+    const pixels = imageData.data;
+    for (let index = 0; index < pixels.length; index += 4) {
+      const red = pixels[index];
+      const green = pixels[index + 1];
+      const blue = pixels[index + 2];
+      const greenDominance = green - Math.max(red, blue);
+      if (green > 45 && greenDominance > 25 && green > red * 1.25 && green > blue * 1.25) {
+        pixels[index + 3] = 0;
+      }
+    }
+    context.putImageData(imageData, 0, 0);
+
+    const spriteUrl = canvas.toDataURL("image/png");
+    spriteCache.set(cacheKey, spriteUrl);
+    return spriteUrl;
+  }).finally(() => {
+    spriteProcessingCache.delete(cacheKey);
+  });
+
+  spriteProcessingCache.set(cacheKey, processing);
+  return processing;
 }
 
 interface HeroPortraitProps {
@@ -170,32 +97,34 @@ export default function HeroPortrait({
   noBg = false,
   noPadding = false,
 }: HeroPortraitProps) {
-  const [isReady, setIsReady] = useState(false);
-  const spriteIdx = hero.spriteIndex !== undefined
-    ? hero.spriteIndex % NOVICE_MALE_SPRITE_SLICES.length
-    : getStableSpriteIndex(hero.id);
-  const gender = hero.gender || "Male";
-  const cacheKey = `${gender}_${spriteIdx}`;
+  const { gender, variant } = resolveHeroPortraitIdentity(hero);
+  const cacheKey = getHeroPortraitCacheKey(hero.classType, gender, variant);
+  const cachedSprite = spriteCache.get(cacheKey);
+  const [resolvedSprite, setResolvedSprite] = useState<{ key: string; url: string } | null>(null);
+  const spriteUrl = cachedSprite ?? (resolvedSprite?.key === cacheKey ? resolvedSprite.url : undefined);
 
   useEffect(() => {
-    if (spriteCache[cacheKey]) {
-      setIsReady(true);
-      return;
-    }
+    let active = true;
+    const primarySheet = HERO_SPRITE_SHEETS[hero.classType][gender];
 
-    const checkCache = () => {
-      if (spriteCache[cacheKey]) {
-        setIsReady(true);
-      }
-    };
-
-    addProcessingListener(checkCache);
-    processAllSpritesheets();
+    processSprite(primarySheet, cacheKey, variant)
+      .catch(async (primaryError: unknown) => {
+        if (hero.classType === "Novice") throw primaryError;
+        console.warn(`Tier 1 portrait unavailable for ${hero.classType}; using matching Novice portrait.`, primaryError);
+        const fallbackKey = getHeroPortraitCacheKey("Novice", gender, variant);
+        return processSprite(HERO_SPRITE_SHEETS.Novice[gender], fallbackKey, variant);
+      })
+      .then((url) => {
+        if (active) setResolvedSprite({ key: cacheKey, url });
+      })
+      .catch((error: unknown) => {
+        console.error("Error processing hero portrait:", error);
+      });
 
     return () => {
-      removeProcessingListener(checkCache);
+      active = false;
     };
-  }, [cacheKey]);
+  }, [cacheKey, gender, hero.classType, variant]);
 
   // Sizes mapping
   const sizeClasses = {
@@ -227,11 +156,11 @@ export default function HeroPortrait({
   const bgClass = noBg ? "" : "bg-[#160f0a]/80";
   const paddingClass = noPadding ? "" : "p-1";
 
-  if ((gender === "Male" || gender === "Female") && isReady && spriteCache[cacheKey]) {
+  if (spriteUrl) {
     return (
       <img
         id={`hero-portrait-${hero.id}`}
-        src={spriteCache[cacheKey]}
+        src={spriteUrl}
         alt={hero.name}
         className={`object-contain shrink-0 select-none ${borderClass} ${bgClass} ${paddingClass} ${sizeClasses[size]} ${className}`}
         draggable={false}

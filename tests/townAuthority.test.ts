@@ -39,13 +39,13 @@ describe("authoritative town commands", () => {
     expect(migrated.rngState).toEqual(current.rngState);
   });
 
-  it("normalizes legacy dungeon rooms only when no encounter is active", () => {
+  it("migrates legacy dungeon positions to safe preparation and cancels encounters", () => {
     const idle = migrateTownState(asLegacyUnversionedState({
       ...initialTownState(),
       activeDungeonFloor: 1,
       activeDungeonRoom: 50,
     }));
-    expect(idle.activeDungeonRoom).toBe(5);
+    expect(idle.activeDungeonRoom).toBe(1);
 
     const active = migrateTownState(asLegacyUnversionedState({
       ...initialTownState(),
@@ -60,7 +60,12 @@ describe("authoritative town commands", () => {
         room: 50,
       },
     }));
-    expect(active.activeDungeonRoom).toBe(50);
+    expect(active).toMatchObject({ activeDungeonFloor: 1, activeDungeonRoom: 1, currentEncounter: null });
+    expect(active.dungeonProgress.expedition).toMatchObject({
+      phase: "preparing",
+      segmentHeroIds: [],
+      knockedOutHeroIds: [],
+    });
   });
 
   it("rejects excess persisted XP that would require random level growth to repair", () => {
@@ -606,6 +611,8 @@ describe("authoritative town commands", () => {
     source.heroes = [makeHero({ id: "recovering", isActive: false, status: "resting" })];
     const progress = createUndercityProgress(["recovering"], 5);
     source.dungeonProgress = haltUndercityExpedition(progress, "wipe");
+    source.activeDungeonFloor = source.dungeonProgress.expedition.floor;
+    source.activeDungeonRoom = source.dungeonProgress.expedition.room;
 
     const changed = applyTownCommand(source, { type: "hero.activity", heroId: "recovering", active: true });
 
@@ -617,11 +624,35 @@ describe("authoritative town commands", () => {
     expect(changed.state.autoExplore).toBe(false);
   });
 
-  it("rejects composition changes while a dungeon encounter is active", () => {
+  it("locks segment members while keeping town heroes manageable during an encounter", () => {
     const source = initialTownState();
     const hero = makeHero({ id: "engaged", isActive: true });
-    source.heroes = [hero];
+    const townHero = refreshHeroDerivedStats(makeHero({
+      id: "in-town",
+      level: 10,
+      xpNeeded: calculateXpNeeded(11, "Novice"),
+      isActive: false,
+      status: "resting",
+    }));
+    source.heroes = [hero, townHero];
+    source.buildings.caserne = 1;
+    source.pendingClassTransitions = [{
+      heroId: townHero.id,
+      fromClass: "Novice",
+      fromTier: 0,
+      toTier: 1,
+      originLevel: 10,
+      wasActive: false,
+      previousStatus: "resting",
+      reason: "encounter-town-vocation",
+      candidates: [{ classType: "Guerrier", affinity: 1 }],
+    }];
     source.dungeonProgress = createUndercityProgress([hero.id]);
+    source.dungeonProgress.expedition = {
+      ...source.dungeonProgress.expedition,
+      phase: "running",
+      segmentHeroIds: [hero.id],
+    };
     source.currentEncounter = {
       encounterId: "encounter-engaged",
       kind: "pending",
@@ -636,13 +667,30 @@ describe("authoritative town commands", () => {
     expect(() => applyTownCommand(source, {
       type: "hero.dismiss",
       heroId: hero.id,
-    })).toThrow("hero cannot be dismissed during an encounter");
+    })).toThrowError(expect.objectContaining({ code: "EXPEDITION_PARTY_LOCKED" }));
     expect(() => applyTownCommand(source, {
       type: "hero.choose_vocation",
       heroId: hero.id,
       classType: "Guerrier",
-    })).toThrow("hero vocation cannot change during an encounter");
+    })).toThrowError(expect.objectContaining({ code: "EXPEDITION_PARTY_LOCKED" }));
     expect(source).toEqual(untouched);
+
+    const vocationChosen = applyTownCommand(source, {
+      type: "hero.choose_vocation",
+      heroId: townHero.id,
+      classType: "Guerrier",
+    });
+    expect(vocationChosen.state.heroes.find((entry) => entry.id === townHero.id)).toMatchObject({
+      classType: "Guerrier",
+      isActive: false,
+    });
+    expect(vocationChosen.state.currentEncounter).toEqual(source.currentEncounter);
+
+    const dismissed = applyTownCommand(source, {
+      type: "hero.dismiss",
+      heroId: townHero.id,
+    });
+    expect(dismissed.state.heroes.map((entry) => entry.id)).toEqual([hero.id]);
   });
   it("persists a recruit offer before confirmation", () => {
     const current = initialTownState();

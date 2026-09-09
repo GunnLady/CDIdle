@@ -48,6 +48,8 @@ const props = {
   onResume: vi.fn(),
   onSelectFarmZone: vi.fn(),
   onToggleHeroActive: vi.fn(),
+  pendingClassTransitions: [],
+  onCheckpointDecision: vi.fn(),
 } satisfies React.ComponentProps<typeof DungeonPanel>;
 
 afterEach(() => {
@@ -102,6 +104,22 @@ describe("DungeonPanel authoritative structure", () => {
     expect(screen.getByRole("button", { name: "Repli au campement" })).toBeEnabled();
     view.rerender(<DungeonPanel {...props} isExploring />);
     expect(screen.getByRole("button", { name: "Repli au campement" })).toBeEnabled();
+  });
+
+  it("presents a frozen segment KO as KO in the expedition", () => {
+    const hero = makeHero({ id: "segment-ko", name: "Diane", currentHp: 0, isActive: false, status: "resting" });
+    const dungeonProgress = createUndercityProgress([hero.id], 4);
+    dungeonProgress.expedition = {
+      ...dungeonProgress.expedition,
+      phase: "running",
+      segmentHeroIds: [hero.id],
+      knockedOutHeroIds: [hero.id],
+    };
+
+    render(<DungeonPanel {...props} heroes={[hero]} dungeonProgress={dungeonProgress} isExploring={false} />);
+
+    expect(screen.getAllByText("KO en expédition").length).toBeGreaterThanOrEqual(1);
+    expect(screen.queryByText("Au repos")).not.toBeInTheDocument();
   });
 
   it("shows the canonical active encounter while its resolution is pending", () => {
@@ -204,7 +222,7 @@ describe("DungeonPanel authoritative structure", () => {
     expect(screen.getByRole("button", { name: "Réinitialiser l’étage" })).toBeDisabled();
   });
 
-  it("locks floor navigation in farm and dispatches a zone change", () => {
+  it("locks floor navigation and zone changes during a farm session", () => {
     const hero = makeHero({ id: "farm-hero", isActive: true });
     const progress = selectUndercityFarmZone(createUndercityProgress([hero.id], 50), [hero.id], "sewers");
     const onSelectFarmZone = vi.fn();
@@ -223,8 +241,9 @@ describe("DungeonPanel authoritative structure", () => {
     expect(screen.getByRole("button", { name: "Étage précédent" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Étage suivant" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Réinitialiser l’étage" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Galeries des contrebandiers" })).toBeDisabled();
     fireEvent.click(screen.getByRole("button", { name: "Galeries des contrebandiers" }));
-    expect(onSelectFarmZone).toHaveBeenCalledWith("smugglers");
+    expect(onSelectFarmZone).not.toHaveBeenCalled();
   });
 
   it("locks composition, navigation and farm selection during an active encounter", () => {
@@ -258,6 +277,36 @@ describe("DungeonPanel authoritative structure", () => {
     expect(screen.getByRole("button", { name: "Étage suivant" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Réinitialiser l’étage" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Repli au campement" })).toBeEnabled();
+  });
+
+  it("shows farm vocations only for heroes in the current segment", () => {
+    const member = makeHero({ id: "farm-member", name: "Ariane", isActive: true });
+    const townHero = makeHero({ id: "town-hero", name: "Borin", isActive: false });
+    const progress = selectUndercityFarmZone(createUndercityProgress([member.id, townHero.id], 50), [member.id], "sewers");
+    const pendingClassTransitions = [member, townHero].map((hero) => ({
+      heroId: hero.id,
+      fromClass: "Novice" as const,
+      fromTier: 0 as const,
+      toTier: 1 as const,
+      originLevel: 10,
+      wasActive: hero.isActive,
+      previousStatus: hero.status,
+      reason: "test",
+      candidates: [{ classType: "Guerrier" as const, affinity: 1 }],
+    }));
+
+    render(<DungeonPanel
+      {...props}
+      heroes={[member, townHero]}
+      activeDungeonFloor={1}
+      activeDungeonRoom={1}
+      highestFloorReached={50}
+      dungeonProgress={progress}
+      pendingClassTransitions={pendingClassTransitions}
+    />);
+
+    expect(screen.getByTestId("dungeon-farm-vocation-notice")).toHaveTextContent("Ariane");
+    expect(screen.getByTestId("dungeon-farm-vocation-notice")).not.toHaveTextContent("Borin");
   });
 
   it("allows switching farm zone while the expedition is halted", () => {

@@ -12,7 +12,7 @@ import Tooltip from "../../ui/components/Tooltip";
 
 interface DungeonProgressBannerProps {
   view: DungeonProgressBannerView;
-  onToggleAutoExplore: () => void;
+  onAction: () => void;
 }
 
 export const shouldShowDungeonProgressBanner = (authenticated: boolean, _activeTab: ActiveTab) => authenticated;
@@ -37,10 +37,11 @@ function PartySlots({ party }: { party: Array<DungeonProgressBannerHeroView | nu
           <img src={emptyClassMedallion} alt="" className="aspect-square h-12 w-12 max-w-none shrink-0 object-contain min-[1440px]:absolute min-[1440px]:left-1/2 min-[1440px]:top-[15px] min-[1440px]:z-20 min-[1440px]:h-[72px] min-[1440px]:w-[72px] min-[1440px]:-translate-x-1/2" aria-hidden="true" />
         </div>;
         return (
-          <div key={hero.id} className="relative flex min-w-0 flex-col items-center justify-center px-1 min-[1440px]:h-full min-[1440px]:justify-start">
+          <div key={hero.id} data-knocked-out={hero.isKnockedOut || undefined} className={`relative flex min-w-0 flex-col items-center justify-center px-1 min-[1440px]:h-full min-[1440px]:justify-start ${hero.isKnockedOut ? "opacity-55 grayscale" : ""}`}>
             <img src={getDungeonClassPlaque(hero.classType)} alt="" data-testid={`dungeon-class-plaque-${hero.classType}`} className="aspect-square h-12 w-12 max-w-none shrink-0 object-contain min-[1440px]:absolute min-[1440px]:left-1/2 min-[1440px]:top-[15px] min-[1440px]:z-10 min-[1440px]:h-[72px] min-[1440px]:w-[72px] min-[1440px]:-translate-x-1/2" aria-hidden="true" />
             <img src={classMedallionRing} alt="" className="aspect-square h-12 w-12 max-w-none shrink-0 object-contain min-[1440px]:absolute min-[1440px]:left-1/2 min-[1440px]:top-[15px] min-[1440px]:z-20 min-[1440px]:h-[72px] min-[1440px]:w-[72px] min-[1440px]:-translate-x-1/2" aria-hidden="true" />
             <Tooltip label={`Afficher ${hero.name} - Lv ${hero.level}`} content={`${hero.name} - Lv ${hero.level}`} className="mt-0.5 max-w-full min-w-0 min-[1440px]:absolute min-[1440px]:inset-x-0 min-[1440px]:top-[4px] min-[1440px]:z-10 min-[1440px]:mt-0 min-[1440px]:flex min-[1440px]:w-full min-[1440px]:-translate-x-px min-[1440px]:justify-center"><strong className="block min-w-0 truncate text-center text-[9px] leading-none text-[#dfdbc7] min-[1440px]:w-full min-[1440px]:text-[10px]">{hero.name} - Lv {hero.level}</strong></Tooltip>
+            {hero.isKnockedOut && <span className="sr-only">KO — conserve sa place dans l’équipe</span>}
             <div data-testid={`dungeon-banner-vitals-${hero.id}`} className="mt-1 grid w-full grid-cols-1 gap-0 font-mono min-[1440px]:absolute min-[1440px]:left-1 min-[1440px]:top-[82px] min-[1440px]:mt-0 min-[1440px]:w-[calc(100%-10px)]">
               <VitalBar label={`Points de vie de ${hero.name}`} value={hero.currentHp} max={hero.maxHp} percent={hero.healthPercent} fillClassName={hero.healthPercent <= 25 ? "bg-[#960011]" : "bg-[#009605]"} />
               <VitalBar label={`Mana de ${hero.name}`} value={hero.currentMana} max={hero.maxMana} percent={hero.manaPercent} fillClassName="bg-[#001e96]" className="-top-px" />
@@ -54,13 +55,13 @@ function PartySlots({ party }: { party: Array<DungeonProgressBannerHeroView | nu
 
 export default function DungeonProgressBanner(props: DungeonProgressBannerProps) {
   const hasActiveHeroes = props.view.party.some(Boolean);
-  const actionIsPause = !hasActiveHeroes || props.view.autoExplore;
-  const actionLabel = actionIsPause ? "Pause" : "Reprendre";
+  const actionIsPause = !hasActiveHeroes || props.view.action === "pause";
+  const actionLabel = props.view.action === "open_dungeon" ? "Voir le Donjon" : actionIsPause ? "Pause" : "Reprendre";
   const actionUnavailableReason = !hasActiveHeroes
     ? "Aucun groupe actif"
     : props.view.status === "Combat en cours" || props.view.status === "Rencontre en attente"
       ? "Action indisponible pendant une rencontre"
-      : !props.view.canToggleAutoExplore
+      : !props.view.canUseAction
         ? "Contrôle du jeu indisponible"
         : null;
 
@@ -80,7 +81,7 @@ export default function DungeonProgressBanner(props: DungeonProgressBannerProps)
             aria-label={actionLabel}
             title={actionUnavailableReason ?? actionLabel}
             disabled={actionUnavailableReason !== null}
-            onClick={props.onToggleAutoExplore}
+            onClick={props.onAction}
             className="relative flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center overflow-hidden text-[#e9d8ab] transition-[filter,transform] focus-visible:outline-ui-focus focus-visible:[outline-width:var(--ui-focus-width)] focus-visible:[outline-offset:var(--ui-focus-offset)] active:translate-y-px disabled:cursor-not-allowed disabled:grayscale disabled:opacity-50 min-[1440px]:h-[103px] min-[1440px]:w-[122px] min-[1440px]:-translate-x-[10px] min-[1440px]:translate-y-[2px] min-[1440px]:active:translate-y-[3px]"
           >
             <img src={actionIsPause ? navigationButtonBackground : selectedNavigationButtonBackground} alt="" aria-hidden="true" className="pointer-events-none absolute inset-0 h-full w-full object-fill" />

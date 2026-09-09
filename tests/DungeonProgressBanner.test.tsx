@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import DungeonProgressBanner, { shouldShowDungeonProgressBanner } from "../src/components/app-shell/DungeonProgressBanner";
 import { createDungeonProgressBannerView } from "../src/domain/dungeonPresentation";
 import { makeHero } from "./fixtures/game";
+import { createUndercityProgress } from "../shared/domain/undercity-progression";
 
 afterEach(cleanup);
 
@@ -30,7 +31,7 @@ describe("DungeonProgressBanner", () => {
   it("keeps the contextual action visible but disabled when no hero is active", () => {
     render(<DungeonProgressBanner
       view={createView({ heroes: [makeHero({ isActive: false })], floor: 2, room: 3 })}
-      onToggleAutoExplore={vi.fn()}
+      onAction={vi.fn()}
     />);
 
     expect(screen.getByText(/Aucun groupe/)).toBeInTheDocument();
@@ -49,7 +50,7 @@ describe("DungeonProgressBanner", () => {
         room: 2,
         autoExplore: true,
       })}
-      onToggleAutoExplore={onToggleAutoExplore}
+      onAction={onToggleAutoExplore}
     />);
 
     expect(screen.getByText("Étage 4")).toBeInTheDocument();
@@ -84,7 +85,7 @@ describe("DungeonProgressBanner", () => {
   it("renders the mapped plaque for a Tier 1 class below the shared ring", () => {
     render(<DungeonProgressBanner
       view={createView({ heroes: [makeHero({ id: "mage", name: "Morgane", classType: "Mage", isActive: true })] })}
-      onToggleAutoExplore={vi.fn()}
+      onAction={vi.fn()}
     />);
 
     const plaque = screen.getAllByTestId("dungeon-class-plaque-Mage")[0];
@@ -93,11 +94,31 @@ describe("DungeonProgressBanner", () => {
     expect(plaque.nextElementSibling).toHaveAttribute("src", expect.stringContaining("dungeon-party-class-medallion-ring-v3.png"));
   });
 
+  it("keeps a KO hero in the frozen segment slot", () => {
+    const ready = makeHero({ id: "ready", name: "Ariane", isActive: true });
+    const knockedOut = makeHero({ id: "ko", name: "Diane", isActive: false, currentHp: 0, status: "resting" });
+    const dungeonProgress = createUndercityProgress([ready.id, knockedOut.id], 4);
+    dungeonProgress.expedition = {
+      ...dungeonProgress.expedition,
+      phase: "running",
+      segmentHeroIds: [ready.id, knockedOut.id],
+      knockedOutHeroIds: [knockedOut.id],
+    };
+
+    render(<DungeonProgressBanner
+      view={createView({ heroes: [ready, knockedOut], dungeonProgress })}
+      onAction={vi.fn()}
+    />);
+
+    expect(screen.getAllByText("Diane - Lv 1").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("KO — conserve sa place dans l’équipe").length).toBeGreaterThan(0);
+  });
+
   it("uses the gold menu treatment for resume and the dark treatment for pause", () => {
     const hero = makeHero({ isActive: true });
     const { rerender } = render(<DungeonProgressBanner
       view={createView({ heroes: [hero], autoExplore: false })}
-      onToggleAutoExplore={vi.fn()}
+      onAction={vi.fn()}
     />);
 
     const resumeButton = screen.getByRole("button", { name: "Reprendre" });
@@ -107,11 +128,63 @@ describe("DungeonProgressBanner", () => {
 
     rerender(<DungeonProgressBanner
       view={createView({ heroes: [hero], autoExplore: true })}
-      onToggleAutoExplore={vi.fn()}
+      onAction={vi.fn()}
     />);
     const pauseButton = screen.getByRole("button", { name: "Pause" });
     expect(pauseButton.querySelector("img:first-child")).toHaveAttribute("src", expect.stringContaining("primary-navigation-button-normal-v2.png"));
     expect(pauseButton.querySelector("img:last-child")).toHaveClass("grayscale");
     expect(pauseButton.querySelector("img:last-child")).not.toHaveClass("min-[1440px]:translate-x-[5px]");
+  });
+
+  it("routes checkpoint Play from the complete presentation decision", () => {
+    const hero = makeHero({ id: "checkpoint-hero", name: "Ariane", isActive: true });
+    const checkpoint = (autoExploreBeforeCheckpoint: boolean, floor = 5) => {
+      const progress = createUndercityProgress([hero.id], floor);
+      progress.expedition = {
+        ...progress.expedition,
+        phase: "checkpoint_decision",
+        floor: Math.min(50, floor + 1),
+        room: 1,
+        segmentHeroIds: [hero.id],
+        checkpointFloor: floor,
+        autoExploreBeforeCheckpoint,
+      };
+      return progress;
+    };
+
+    expect(createView({ heroes: [hero], dungeonProgress: checkpoint(true) }).action)
+      .toBe("continue_checkpoint");
+    expect(createView({ heroes: [hero], dungeonProgress: checkpoint(false) }).action)
+      .toBe("open_dungeon");
+
+    const withKo = checkpoint(true);
+    withKo.expedition.knockedOutHeroIds = [hero.id];
+    expect(createView({ heroes: [hero], dungeonProgress: withKo }).action).toBe("open_dungeon");
+
+    expect(createView({
+      heroes: [hero],
+      dungeonProgress: checkpoint(true),
+      pendingClassTransitions: [{
+        heroId: hero.id,
+        fromClass: "Novice",
+        fromTier: 0,
+        toTier: 1,
+        originLevel: 10,
+        wasActive: true,
+        previousStatus: "idle",
+        reason: "test",
+        candidates: [{ classType: "Guerrier", affinity: 1 }],
+      }],
+    }).action).toBe("open_dungeon");
+    expect(createView({ heroes: [hero], dungeonProgress: checkpoint(true, 50) }).action)
+      .toBe("open_dungeon");
+
+    const onAction = vi.fn();
+    render(<DungeonProgressBanner
+      view={createView({ heroes: [hero], dungeonProgress: checkpoint(false) })}
+      onAction={onAction}
+    />);
+    fireEvent.click(screen.getByRole("button", { name: "Voir le Donjon" }));
+    expect(onAction).toHaveBeenCalledOnce();
   });
 });

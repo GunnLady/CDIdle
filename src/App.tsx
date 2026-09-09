@@ -29,9 +29,11 @@ import { OptimisticCommandBuffer } from "./lib/optimisticCommandBuffer";
 import { sendOptimisticCommandWithConflictRetry } from "./lib/optimisticCommandDispatch";
 import type { CanonicalDungeonEncounterRecord } from "../shared/contracts/authoritative";
 import { createDungeonProgressBannerView } from "./domain/dungeonPresentation";
+import { createDungeonPartyLockView } from "./domain/heroPresentation";
 import { createUndercityProgress } from "../shared/domain/undercity-progression";
 import { canonicalBootstrapOperationKey, requestCanonicalBootstrap } from "./lib/canonicalBootstrap";
 import { canMutateCanonicalState, canUseAccountDangerActions } from "./lib/canonicalMutationAccess";
+import { handleDungeonProgressBannerAction } from "./lib/dungeonProgressBannerAction";
 import {
   ACTIVE_TAB_STORAGE_KEY,
   parseActiveTabPreference,
@@ -548,13 +550,26 @@ export default function App() {
   const activeRates = town.getRates();
   const dungeonProgressBannerView = createDungeonProgressBannerView({
     heroes: dungeon.displayHeroes,
+    dungeonProgress: dungeon.dungeonProgress,
     floor: dungeon.activeDungeonFloor,
     room: dungeon.activeDungeonRoom,
     autoExplore: dungeon.autoExplore,
     encounter: currentEncounter,
     isExploring: dungeonAutomation.isRunning,
     canMutate,
+    pendingClassTransitions,
   });
+  const dungeonPartyLockView = createDungeonPartyLockView(
+    dungeon.dungeonProgress,
+    dungeon.displayHeroes.map((hero) => hero.id),
+  );
+  const handleDungeonBannerAction = () => {
+    handleDungeonProgressBannerAction(dungeonProgressBannerView.action, {
+      openDungeon: () => setActiveTab("dungeon"),
+      continueCheckpoint: () => { void dispatchAuthoritativeCommand({ type: "dungeon.checkpoint_decide", decision: "continue" }); },
+      toggleAutoExplore: handleToggleAutoExplore,
+    });
+  };
   return (
     <>
       <AppShell
@@ -576,7 +591,7 @@ export default function App() {
         progress={shouldShowDungeonProgressBanner(Boolean(currentUser), activeTab) ? (
           <DungeonProgressBanner
             view={dungeonProgressBannerView}
-            onToggleAutoExplore={handleToggleAutoExplore}
+            onAction={handleDungeonBannerAction}
           />
         ) : null}
       >
@@ -623,7 +638,11 @@ export default function App() {
                 resources={town.resources}
                 buildings={town.buildings}
                 canMutate={canMutate}
-                canChangeComposition={canMutate && !currentEncounter}
+                canChangeComposition={canMutate && dungeonPartyLockView.canChangeComposition}
+                compositionBlockReason={dungeonPartyLockView.compositionBlockReason}
+                lockedHeroIds={dungeonPartyLockView.lockedHeroIds}
+                lockedHeroReason={dungeonPartyLockView.lockedHeroReason}
+                knockedOutHeroIds={dungeon.dungeonProgress.expedition.knockedOutHeroIds}
                 onDismissHero={(heroId) => { void dispatchAuthoritativeCommand({ type: "hero.dismiss", heroId }); }}
                 onToggleHeroActive={handleToggleHeroActive}
                 onRecruitHero={() => { void dispatchAuthoritativeCommand({ type: "hero.recruit_offer" }); }}
@@ -661,6 +680,8 @@ export default function App() {
                 onResetLevel={handleResetLevel}
                 onResume={() => { void dispatchAuthoritativeCommand({ type: "dungeon.resume", dungeonId: "undercity" }); }}
                 onSelectFarmZone={(zoneId) => { void dispatchAuthoritativeCommand({ type: "dungeon.select_farm_zone", dungeonId: "undercity", zoneId }); }}
+                pendingClassTransitions={pendingClassTransitions}
+                onCheckpointDecision={(decision) => { void dispatchAuthoritativeCommand({ type: "dungeon.checkpoint_decide", decision }); }}
               />
             </div>
           )}
@@ -704,6 +725,7 @@ export default function App() {
                 onScrapItem={(instanceId) => { void dispatchAuthoritativeCommand({ type: "inventory.recycle", instanceId }); }}
                 forgeMaterials={dungeon.forgeMaterials}
                 canMutate={canMutate}
+                lockedHeroIds={dungeon.dungeonProgress.expedition.phase === "preparing" ? [] : dungeon.dungeonProgress.expedition.segmentHeroIds}
               />
             </div>
           )}
@@ -712,7 +734,7 @@ export default function App() {
       </AppShell>
 
       {/* 5. GORGEOUS CUSTOM RECRUITMENT MODAL */}
-      {pendingClassTransitions.length > 0 && (() => {
+      {pendingClassTransitions.length > 0 && dungeon.dungeonProgress.expedition.phase === "preparing" && (() => {
         const pending = pendingClassTransitions[0];
         const hero = dungeon.heroes.find((entry) => entry.id === pending.heroId);
         return (

@@ -30,14 +30,15 @@ import {
 const migrationContext = (seed = 42) => ({ defaults: initialTownState(seed), legacySeed: seed });
 
 describe("canonical state migrations", () => {
-  it("registers contiguous v0 -> v1 -> v2 -> v3 -> v4 -> v5 migrations", () => {
-    expect(CURRENT_CANONICAL_STATE_VERSION).toBe(5);
+  it("registers contiguous v0 -> v1 -> v2 -> v3 -> v4 -> v5 -> v6 migrations", () => {
+    expect(CURRENT_CANONICAL_STATE_VERSION).toBe(6);
     expect(CANONICAL_STATE_MIGRATIONS.map(({ from, to }) => ({ from, to }))).toEqual([
       { from: 0, to: 1 },
       { from: 1, to: 2 },
       { from: 2, to: 3 },
       { from: 3, to: 4 },
       { from: 4, to: 5 },
+      { from: 5, to: 6 },
     ]);
   });
 
@@ -69,7 +70,7 @@ describe("canonical state migrations", () => {
       },
     } as unknown as Record<string, unknown>;
     const migrated = migrateCanonicalState(v3, migrationContext());
-    expect(migrated.stateVersion).toBe(5);
+    expect(migrated.stateVersion).toBe(6);
     expect(migrated.storedItems).toEqual(inventory);
     expect(migrated.itemBlueprints).toEqual([
       { itemId: "progression_sword", unlocked: true },
@@ -131,7 +132,7 @@ describe("canonical state migrations", () => {
     } as unknown as Record<string, unknown>;
 
     const migrated = migrateCanonicalState(v2, migrationContext());
-    expect(migrated.stateVersion).toBe(5);
+    expect(migrated.stateVersion).toBe(6);
     expect(migrated.storedItems[0]).toMatchObject({ itemLevel: 1, powerModelId: 'legacy-fixed-v1' });
     for (const hero of [migrated.heroes[0], migrated.onboardingCandidates?.[0], migrated.pendingRecruit]) {
       expect(hero?.equipment?.mainHand).toMatchObject({ itemLevel: 1, powerModelId: 'legacy-fixed-v1' });
@@ -172,6 +173,22 @@ describe("canonical state migrations", () => {
     expect(first.encounterHistory[0]).toMatchObject(before.encounterHistory[0]);
     expect(first.encounterHistory[0]).toMatchObject({ dungeonId: "undercity", enemies: [] });
     expect(validateCanonicalGameState(first)).toEqual([]);
+  });
+
+  it("recovers legacy ids and item stacks from a current snapshot", () => {
+    const current = initialTownState(42) as unknown as Record<string, unknown>;
+    current.storedItems = [
+      { id: "wooden_shield", rarity: "common", count: 2 },
+    ];
+
+    const migrated = migrateCanonicalState(current, migrationContext());
+    const recovered = migrated.storedItems;
+
+    expect(recovered).toHaveLength(2);
+    expect(recovered.map((item) => item.itemId)).toEqual(["wooden_shield", "wooden_shield"]);
+    expect(new Set(recovered.map((item) => item.instanceId)).size).toBe(2);
+    expect(migrateCanonicalState(migrated as unknown as Record<string, unknown>, migrationContext())).toEqual(migrated);
+    expect(validateCanonicalGameState(migrated)).toEqual([]);
   });
 
   it("migrates every persisted hero bucket while preserving XP completion", () => {

@@ -21,6 +21,7 @@ import {
   Monster,
   ItemBlueprint
 } from "../contracts/game.ts";
+import { recoverItemInstance } from "./items/item-instance-recovery.ts";
 import {
   RACE_INFO_LIST,
   CLASS_INFO_LIST,
@@ -336,8 +337,10 @@ export function unequipItem(
   const ref = hero.equipment[slot];
   if (!ref) return hero;
 
-  // Retrieve item ID and rarity safely (supports both EquippedItemRef and full ItemInfo objects)
-  if (ref.instanceId && ref.itemId) addItemToStorage(storedItems, { ...ref });
+  // Legacy saves may contain a full ItemInfo (`id`) or no instance id. Recover
+  // a canonical instance before clearing the slot so an unequip never loses it.
+  const recovered = recoverItemInstance(ref, `item:recovery:${hero.id}:${slot}`, slot);
+  if (recovered) addItemToStorage(storedItems, recovered as unknown as StoredItemInstance);
 
   // Clear slot
   const newEquipment = { ...hero.equipment, [slot]: null };

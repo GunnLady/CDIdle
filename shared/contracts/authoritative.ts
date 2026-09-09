@@ -193,6 +193,11 @@ export interface CanonicalDungeonExpedition {
   room: number;
   halted: boolean;
   haltReason: "wipe" | "retreat" | null;
+  phase: "preparing" | "running" | "checkpoint_decision";
+  segmentHeroIds: string[];
+  knockedOutHeroIds: string[];
+  checkpointFloor: number | null;
+  autoExploreBeforeCheckpoint: boolean;
 }
 
 export interface CanonicalDungeonProgress {
@@ -220,7 +225,7 @@ export interface CanonicalRngState {
 }
 
 export const MAX_CANONICAL_RNG_DRAWS = Number.MAX_SAFE_INTEGER;
-export const CURRENT_CANONICAL_STATE_VERSION = 5 as const;
+export const CURRENT_CANONICAL_STATE_VERSION = 6 as const;
 
 export const CANONICAL_GAME_STATE_REQUIRED_FIELDS = [
   "stateVersion", "resources", "buildings", "citizens", "districts", "heroes", "storedItems",
@@ -306,6 +311,7 @@ export type CanonicalGameCommand =
   | { type: "dungeon.auto_explore"; dungeonId?: string; enabled: boolean }
   | { type: "dungeon.retreat"; dungeonId?: string }
   | { type: "dungeon.resume"; dungeonId: string }
+  | { type: "dungeon.checkpoint_decide"; dungeonId?: string; decision: "continue" | "return_to_town" }
   | { type: "dungeon.select_farm_zone"; dungeonId: string; zoneId: string };
 
 export interface CanonicalCommandEnvelope {
@@ -321,7 +327,7 @@ export const CANONICAL_COMMAND_TYPES = [
   "hero.recruit", "hero.recruit_offer", "hero.recruit_confirm", "hero.recruit_cancel", "hero.dismiss", "hero.activity", "hero.choose_vocation", "hero.equip", "hero.unequip",
   "inventory.recycle", "forge.start", "forge.finalize", "forge.cancel",
   "cheat.grant_resources", "cheat.set_highest_floor",
-  "dungeon.explore", "dungeon.auto_advance", "dungeon.select_floor", "dungeon.resolve", "dungeon.auto_explore", "dungeon.retreat", "dungeon.resume", "dungeon.select_farm_zone",
+  "dungeon.explore", "dungeon.auto_advance", "dungeon.select_floor", "dungeon.resolve", "dungeon.auto_explore", "dungeon.retreat", "dungeon.resume", "dungeon.checkpoint_decide", "dungeon.select_farm_zone",
 ] as const;
 
 const CANONICAL_RARITIES = ["common", "uncommon", "rare", "epic", "legendary"] as const;
@@ -423,6 +429,15 @@ function validateCanonicalCommandPayload(command: Record<string, unknown>): stri
       if (!hasOnlyKeys(command, ["type", "dungeonId"])) errors.push("command contains unsupported fields");
       if (command.dungeonId !== undefined && (typeof command.dungeonId !== "string" || !command.dungeonId.trim())) {
         errors.push("command.dungeonId must be a non-empty string");
+      }
+      break;
+    case "dungeon.checkpoint_decide":
+      if (!hasOnlyKeys(command, ["type", "dungeonId", "decision"])) errors.push("command contains unsupported fields");
+      if (command.dungeonId !== undefined && (typeof command.dungeonId !== "string" || !command.dungeonId.trim())) {
+        errors.push("command.dungeonId must be a non-empty string");
+      }
+      if (command.decision !== "continue" && command.decision !== "return_to_town") {
+        errors.push("command.decision is invalid");
       }
       break;
     case "dungeon.auto_explore":
@@ -916,7 +931,11 @@ export function validateCanonicalGameState(input: unknown): string[] {
       if (!isRecord(progress.expedition)) errors.push("dungeonProgress.expedition must be an object");
       else {
         const expedition = progress.expedition;
-        if (!hasOnlyKeys(expedition, ["dungeonId", "mode", "zoneId", "floor", "room", "halted", "haltReason"])) errors.push("dungeonProgress.expedition contains unsupported fields");
+        if (!hasOnlyKeys(expedition, [
+          "dungeonId", "mode", "zoneId", "floor", "room", "halted", "haltReason",
+          "phase", "segmentHeroIds", "knockedOutHeroIds", "checkpointFloor",
+          "autoExploreBeforeCheckpoint",
+        ])) errors.push("dungeonProgress.expedition contains unsupported fields");
         if (typeof expedition.dungeonId !== "string" || expedition.dungeonId !== progress.dungeonId) errors.push("dungeonProgress.expedition.dungeonId is invalid");
         if (expedition.mode !== "progression" && expedition.mode !== "farm") errors.push("dungeonProgress.expedition.mode is invalid");
         if (expedition.zoneId !== null && (typeof expedition.zoneId !== "string" || !expedition.zoneId.trim())) errors.push("dungeonProgress.expedition.zoneId is invalid");
@@ -927,6 +946,28 @@ export function validateCanonicalGameState(input: unknown): string[] {
         if (typeof expedition.halted !== "boolean") errors.push("dungeonProgress.expedition.halted must be a boolean");
         if (expedition.haltReason !== null && expedition.haltReason !== "wipe" && expedition.haltReason !== "retreat") errors.push("dungeonProgress.expedition.haltReason is invalid");
         if (typeof expedition.halted === "boolean" && expedition.halted !== (expedition.haltReason !== null)) errors.push("dungeonProgress.expedition halt state is inconsistent");
+        if (expedition.phase !== "preparing" && expedition.phase !== "running" && expedition.phase !== "checkpoint_decision") errors.push("dungeonProgress.expedition.phase is invalid");
+        for (const field of ["segmentHeroIds", "knockedOutHeroIds"] as const) {
+          const ids = expedition[field];
+          if (!Array.isArray(ids) || ids.some((id) => typeof id !== "string" || !id.trim()) || new Set(ids).size !== ids.length) {
+            errors.push(`dungeonProgress.expedition.${field} must contain unique hero ids`);
+          }
+        }
+        if (Array.isArray(expedition.segmentHeroIds) && expedition.segmentHeroIds.length > 4) errors.push("dungeonProgress.expedition.segmentHeroIds exceeds party capacity");
+        if (Array.isArray(expedition.segmentHeroIds) && Array.isArray(expedition.knockedOutHeroIds)) {
+          const segmentIds = new Set(expedition.segmentHeroIds);
+          if (expedition.knockedOutHeroIds.some((id) => !segmentIds.has(id))) errors.push("dungeonProgress.expedition.knockedOutHeroIds must be a subset of segmentHeroIds");
+          if (Array.isArray(value.heroes)) {
+            const heroIds = new Set(value.heroes.filter(isRecord).map((hero) => hero.id).filter((id): id is string => typeof id === "string"));
+            if (expedition.segmentHeroIds.some((id) => !heroIds.has(id))) errors.push("dungeonProgress.expedition.segmentHeroIds must reference existing heroes");
+          }
+        }
+        if (expedition.checkpointFloor !== null && (!Number.isInteger(expedition.checkpointFloor) || Number(expedition.checkpointFloor) < 5 || Number(expedition.checkpointFloor) > 50 || Number(expedition.checkpointFloor) % 5 !== 0)) errors.push("dungeonProgress.expedition.checkpointFloor is invalid");
+        if (typeof expedition.autoExploreBeforeCheckpoint !== "boolean") errors.push("dungeonProgress.expedition.autoExploreBeforeCheckpoint must be a boolean");
+        if (expedition.phase === "preparing" && (Array.isArray(expedition.segmentHeroIds) && expedition.segmentHeroIds.length > 0 || Array.isArray(expedition.knockedOutHeroIds) && expedition.knockedOutHeroIds.length > 0 || expedition.checkpointFloor !== null)) errors.push("dungeonProgress.expedition preparing state is inconsistent");
+        if (expedition.phase === "running" && (!Array.isArray(expedition.segmentHeroIds) || expedition.segmentHeroIds.length === 0 || expedition.checkpointFloor !== null)) errors.push("dungeonProgress.expedition running state is inconsistent");
+        if (expedition.phase === "checkpoint_decision" && (expedition.mode !== "progression" || !Array.isArray(expedition.segmentHeroIds) || expedition.segmentHeroIds.length === 0 || expedition.checkpointFloor === null)) errors.push("dungeonProgress.expedition checkpoint state is inconsistent");
+        if (expedition.halted === true && expedition.phase !== "preparing") errors.push("dungeonProgress.expedition halted state must be preparing");
       }
     }
   }
@@ -977,6 +1018,50 @@ export function validateCanonicalGameState(input: unknown): string[] {
       }
       if (value.currentEncounter.commandId !== undefined && typeof value.currentEncounter.commandId !== "string") {
         errors.push("currentEncounter.commandId must be a string");
+      }
+    }
+  }
+  if (isRecord(value.dungeonProgress) && isRecord(value.dungeonProgress.expedition)) {
+    const expedition = value.dungeonProgress.expedition;
+    if (Number.isInteger(expedition.floor) && Number.isInteger(value.activeDungeonFloor)
+      && expedition.floor !== value.activeDungeonFloor) {
+      errors.push("activeDungeonFloor must match dungeonProgress.expedition.floor");
+    }
+    if (Number.isInteger(expedition.room) && Number.isInteger(value.activeDungeonRoom)
+      && expedition.room !== value.activeDungeonRoom) {
+      errors.push("activeDungeonRoom must match dungeonProgress.expedition.room");
+    }
+    if (value.currentEncounter !== null && value.currentEncounter !== undefined) {
+      if (expedition.phase !== "running") errors.push("currentEncounter requires a running dungeon expedition");
+      if (isRecord(value.currentEncounter)
+        && Array.isArray(value.currentEncounter.participantHeroIds)
+        && Array.isArray(expedition.segmentHeroIds)) {
+        const segmentIds = new Set(expedition.segmentHeroIds);
+        if (value.currentEncounter.participantHeroIds.some((id) => !segmentIds.has(id))) {
+          errors.push("currentEncounter.participantHeroIds must belong to the dungeon segment");
+        }
+        const knockedOutIds = new Set(Array.isArray(expedition.knockedOutHeroIds) ? expedition.knockedOutHeroIds : []);
+        const heroesById = new Map(
+          Array.isArray(value.heroes)
+            ? value.heroes.filter(isRecord).map((hero) => [hero.id, hero] as const)
+            : [],
+        );
+        if (value.currentEncounter.participantHeroIds.some((id) => {
+          const hero = heroesById.get(id);
+          return knockedOutIds.has(id) || !hero || hero.isActive !== true || Number(hero.currentHp) <= 0;
+        })) {
+          errors.push("currentEncounter.participantHeroIds must be operational and not knocked out");
+        }
+      }
+    }
+    if (expedition.phase === "checkpoint_decision") {
+      if (value.currentEncounter !== null) errors.push("checkpoint decision cannot keep an active encounter");
+      if (value.autoExplore !== false) errors.push("checkpoint decision requires autoExplore to be false");
+      if (Number.isInteger(expedition.checkpointFloor)) {
+        const expectedFloor = Math.min(50, Number(expedition.checkpointFloor) + 1);
+        if (expedition.floor !== expectedFloor || expedition.room !== 1) {
+          errors.push("checkpoint decision position must follow the completed checkpoint");
+        }
       }
     }
   }

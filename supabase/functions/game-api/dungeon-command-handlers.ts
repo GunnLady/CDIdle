@@ -27,5 +27,7 @@ export const retreatDungeon: TownCommandHandler<"dungeon.retreat"> = (context, c
   context.withRng(applyDungeonCommand(context.town, command));
 export const resumeDungeon: TownCommandHandler<"dungeon.resume"> = (context, command) =>
   context.withRng(applyDungeonCommand(context.town, command));
+export const decideDungeonCheckpoint: TownCommandHandler<"dungeon.checkpoint_decide"> = (context, command) =>
+  context.withRng(applyDungeonCommand(context.town, command));
 export const selectDungeonFarmZone: TownCommandHandler<"dungeon.select_farm_zone"> = (context, command) =>
   context.withRng(applyDungeonCommand(context.town, command));

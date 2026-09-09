@@ -78,4 +78,30 @@ describe("projectOptimisticCommands", () => {
     expect(projected.resources.gold).toBe(-10);
     expect(canonical.resources.gold).toBe(390);
   });
+
+  it("does not project mutations rejected by an active dungeon segment", () => {
+    const member = makeHero({ id: "segment-member", isActive: true });
+    const townHero = makeHero({ id: "town-hero", isActive: false });
+    const canonical: CanonicalGameState = {
+      ...initialTownState(42),
+      heroes: [member, townHero],
+      storedItems: [{ instanceId: "locked-item", itemId: "starter_sword", itemLevel: 1, powerModelId: "legacy-fixed-v1", rarity: "common" }],
+      dungeonProgress: {
+        ...initialTownState(42).dungeonProgress,
+        expedition: {
+          ...initialTownState(42).dungeonProgress.expedition,
+          phase: "running",
+          segmentHeroIds: [member.id],
+        },
+      },
+    };
+
+    const projected = projectOptimisticCommands(canonical, [
+      { type: "hero.activity", heroId: member.id, active: false },
+      { type: "hero.activity", heroId: townHero.id, active: true },
+      { type: "hero.equip", heroId: member.id, instanceId: "locked-item" },
+    ]);
+
+    expect(projected).toBe(canonical);
+  });
 });

@@ -53,4 +53,12 @@ describe("heroPresentation", () => {
     const view = createSelectedHeroView(makeHero({ level: 99, xp: 0 }));
     expect(view).toMatchObject({ isMaxLevel: true, xpPercent: 100 });
   });
+
+  it("presents a frozen segment KO as KO in the expedition instead of resting in town", () => {
+    const hero = makeHero({ id: "segment-ko", currentHp: 0, isActive: false, status: "resting" });
+    const page = createHeroesPageView([hero], makeResources(), { guilde: 1 }, [hero.id]);
+
+    expect(page.roster[0].statusLabel).toBe("KO en expédition");
+    expect(createSelectedHeroView(hero, true)?.statusLabel).toBe("KO en expédition");
+  });
 });

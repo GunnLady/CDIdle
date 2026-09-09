@@ -6,9 +6,10 @@ import Button from "../../ui/primitives/Button";
 import HeroPortrait from "../HeroPortrait";
 import HeroDetailFrame from "./HeroDetailFrame";
 
-export default function SelectedHeroPanel({ view, canMutate, onDismissHero }: {
+export default function SelectedHeroPanel({ view, canMutate, mutationBlockReason, onDismissHero }: {
   view: SelectedHeroView | null;
   canMutate: boolean;
+  mutationBlockReason?: string;
   onDismissHero: (heroId: string) => void;
 }) {
   if (!view) return <Panel title="Héros sélectionné" testId="selected-hero-panel" typography="large" className="xl:min-h-0" contentClassName="xl:min-h-0"><EmptySlot className="min-h-32">Recrutez un aventurier pour consulter sa fiche.</EmptySlot></Panel>;
@@ -38,6 +39,7 @@ export default function SelectedHeroPanel({ view, canMutate, onDismissHero }: {
       <h4 className="mb-2 text-[11px] font-bold uppercase tracking-widest text-[#ae8650]">Résistances</h4>
       <dl className="grid grid-cols-2 gap-2">{view.resistances.map(({ name, value }) => <div key={name}><HeroDetailFrame compact><div className="flex items-center justify-between gap-3 text-[11px]"><dt className="text-left capitalize text-[#9f8872]">{name}</dt><dd className="shrink-0 text-right font-mono text-xs font-bold text-[#dfdbc7]">{value}</dd></div></HeroDetailFrame></div>)}</dl>
     </div>}
+    {mutationBlockReason && <p role="status" className="mt-4 rounded border border-amber-800/50 bg-amber-950/30 p-2 text-center text-[11px] font-semibold text-amber-300">{mutationBlockReason}</p>}
     <div className="absolute bottom-0 left-0 z-10"><Button type="button" size="sm" variant="danger" disabled={!canMutate} onClick={() => onDismissHero(view.id)}>Congédier définitivement</Button></div>
   </Panel>;
 }

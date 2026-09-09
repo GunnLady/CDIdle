@@ -224,7 +224,7 @@ describe("authoritative dungeon commands", () => {
     expect(retreated.state.activeDungeonRoom).toBe(1);
     expect(retreated.state.resources?.gold).toBe(0);
     expect(retreated.state.autoExplore).toBe(false);
-    expect(retreated.state.heroes?.[0]).toMatchObject({ isActive: false, status: "resting" });
+    expect(retreated.state.heroes?.[0]).toMatchObject({ isActive: false, status: "idle" });
     expect(retreated.events[0]).toMatchObject({ type: "dungeon.retreat", encounterId: "encounter-cmd-retreat" });
   });
 
@@ -232,7 +232,7 @@ describe("authoritative dungeon commands", () => {
     expect(() => applyDungeonCommand(state(), { type: "dungeon.resolve" })).toThrowError("there is no active encounter");
     const retreated = applyDungeonCommand(state(), { type: "dungeon.retreat" });
     expect(retreated.state).toMatchObject({ currentEncounter: null, autoExplore: false });
-    expect(retreated.state.heroes?.[0]).toMatchObject({ isActive: false, status: "resting" });
+    expect(retreated.state.heroes?.[0]).toMatchObject({ isActive: false, status: "idle" });
     expect(retreated.events[0]).toMatchObject({ type: "dungeon.retreat", encounterId: null });
   });
 

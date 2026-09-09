@@ -16,8 +16,8 @@ export default function ItemInventoryPanel(props: {
   onResetFilters: () => void;
 }) {
   const [pendingRecycleId, setPendingRecycleId] = useState<string | null>(null);
-  return <Panel title="Inventaire" subtitle="Sélectionnez un objet pour préparer son équipement" testId="item-inventory-panel" className="xl:flex xl:min-h-0 xl:flex-1 xl:flex-col" contentClassName="xl:min-h-0 xl:flex-1">
-    {props.items.length === 0 ? <EmptySlot className="min-h-32 text-center">{props.totalItemCount === 0 ? "Votre coffre est vide." : <div className="flex flex-col items-center gap-3"><p>Aucun objet ne correspond aux filtres.</p><Button type="button" size="sm" onClick={props.onResetFilters}>Réinitialiser les filtres</Button></div>}</EmptySlot> : <div className="grid gap-3 md:grid-cols-2 xl:max-h-full xl:overflow-y-auto xl:pr-1 2xl:grid-cols-3">
+  return <Panel title="Inventaire" subtitle="Sélectionnez un objet pour préparer son équipement" testId="item-inventory-panel" contentTestId="item-inventory-scroll-region" contentClassName="xl:max-h-[42rem] xl:overflow-y-auto xl:pr-1">
+    {props.items.length === 0 ? <EmptySlot className="min-h-32 text-center">{props.totalItemCount === 0 ? "Votre coffre est vide." : <div className="flex flex-col items-center gap-3"><p>Aucun objet ne correspond aux filtres.</p><Button type="button" size="sm" onClick={props.onResetFilters}>Réinitialiser les filtres</Button></div>}</EmptySlot> : <div className="grid gap-3 md:grid-cols-2 2xl:grid-cols-3">
       {props.items.map(({ instanceId, itemTypeLabel, item }) => {
         const selected = props.selectedItemInstanceId === instanceId;
         const pendingRecycle = pendingRecycleId === instanceId;

@@ -105,6 +105,11 @@ export const setCheatHighestFloor: TownCommandHandler<"cheat.set_highest_floor">
       room: 1,
       halted: false,
       haltReason: null,
+      phase: "preparing" as const,
+      segmentHeroIds: [],
+      knockedOutHeroIds: [],
+      checkpointFloor: null,
+      autoExploreBeforeCheckpoint: false,
     },
   };
   return {

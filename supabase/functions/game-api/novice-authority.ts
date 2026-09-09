@@ -1,4 +1,5 @@
 import type { CanonicalHero, CanonicalHeroRace } from "../../../shared/contracts/authoritative.ts";
+import { HERO_PORTRAIT_VARIANT_COUNT } from "../../../shared/domain/hero-portrait-identity.ts";
 import { calculateXpNeeded } from "../../../shared/domain/hero-xp.ts";
 import { generateAuthoritativeNoviceEquipment } from "./inventory-authority.ts";
 import {
@@ -77,6 +78,7 @@ function generateNoviceStats(seedKey: string): { stats: NoviceStats; isElite: bo
 
 export function generateAuthoritativeNovice(seedKey: string, id: string, race: CanonicalHeroRace = "Humain"): CanonicalHero {
   const identityRng = createRng(`${seedKey}:identity`);
+  const portraitRng = createRng(`${seedKey}:portrait`);
   const isMale = identityRng.nextInt(100) < 50;
   const names = isMale ? MALE_FIRST_NAMES : FEMALE_FIRST_NAMES;
   const { stats, isElite } = generateNoviceStats(seedKey);
@@ -88,6 +90,7 @@ export function generateAuthoritativeNovice(seedKey: string, id: string, race: C
     id,
     name: names[identityRng.nextInt(names.length)],
     gender: isMale ? "Male" : "Female",
+    spriteIndex: portraitRng.nextInt(HERO_PORTRAIT_VARIANT_COUNT),
     race,
     classType: "Novice",
     level: 1,

@@ -4,6 +4,12 @@ import { CLASS_INFO_LIST, RACE_INFO_LIST } from "../data/gameData";
 import type { Hero, Resources } from "../types";
 import type { HeroPortraitView } from "./heroPortrait";
 import { HERO_MAX_LEVEL } from "../../shared/data/hero-progression-models";
+import type { CanonicalDungeonProgress } from "../../shared/contracts/authoritative";
+import {
+  decideDungeonHeroMutation,
+  DUNGEON_PARTY_LOCK_CODE,
+  type DungeonHeroMutationDecision,
+} from "../../shared/domain/dungeon-segment";
 
 export interface HeroRosterEntryView {
   id: string;
@@ -51,7 +57,44 @@ export interface SelectedHeroView {
   resistances: Array<{ name: string; value: number }>;
 }
 
-const statusLabel = (hero: Hero) => {
+export interface DungeonPartyLockView {
+  canChangeComposition: boolean;
+  compositionBlockReason?: string;
+  lockedHeroIds: string[];
+  lockedHeroReason?: string;
+}
+
+export function dungeonMutationReason(
+  code: Extract<DungeonHeroMutationDecision, { allowed: false }>["code"],
+): string {
+  if (code === DUNGEON_PARTY_LOCK_CODE) return "Équipe verrouillée pendant l’expédition";
+  return "Action indisponible";
+}
+
+export function createDungeonPartyLockView(
+  dungeonProgress: CanonicalDungeonProgress,
+  heroIds: readonly string[],
+): DungeonPartyLockView {
+  const state = { dungeonProgress };
+  const compositionDecision = decideDungeonHeroMutation(state, "candidate", "join_party");
+  const lockedHeroIds = heroIds.filter((heroId) => (
+    !decideDungeonHeroMutation(state, heroId, "dismiss").allowed
+  ));
+  const lockedHeroReason = lockedHeroIds.length > 0
+    ? dungeonMutationReason(DUNGEON_PARTY_LOCK_CODE)
+    : undefined;
+  return {
+    canChangeComposition: compositionDecision.allowed,
+    compositionBlockReason: compositionDecision.allowed === false
+      ? dungeonMutationReason(compositionDecision.code)
+      : undefined,
+    lockedHeroIds,
+    lockedHeroReason,
+  };
+}
+
+const statusLabel = (hero: Hero, knockedOutInExpedition = false) => {
+  if (knockedOutInExpedition) return "KO en expédition";
   if (hero.isActive || hero.status === "exploring") return "En expédition";
   if (hero.status === "resting") return "Au repos";
   return "Disponible";
@@ -63,9 +106,14 @@ const recruitmentReason = (error: "INSUFFICIENT_GOLD" | "GUILD_REQUIRED" | "CAPA
   return "Or insuffisant";
 };
 
-export function createHeroesPageView(heroes: Hero[], resources: Resources, buildings: Record<string, number>): HeroesPageView {
+export function createHeroesPageView(
+  heroes: Hero[],
+  resources: Resources,
+  buildings: Record<string, number>,
+  knockedOutHeroIds: readonly string[] = [],
+): HeroesPageView {
   const recruitment = recruitmentEligibility(heroes.length, resources.gold, buildings.guilde ?? 0);
-  const roster = createHeroRosterView(heroes);
+  const roster = createHeroRosterView(heroes, knockedOutHeroIds);
   return {
     roster,
     capacity: recruitment.capacity,
@@ -75,8 +123,9 @@ export function createHeroesPageView(heroes: Hero[], resources: Resources, build
   };
 }
 
-export function createHeroRosterView(heroes: Hero[]): HeroRosterEntryView[] {
+export function createHeroRosterView(heroes: Hero[], knockedOutHeroIds: readonly string[] = []): HeroRosterEntryView[] {
   const activeCount = heroes.filter((hero) => hero.isActive).length;
+  const knockedOut = new Set(knockedOutHeroIds);
   return heroes.map((hero): HeroRosterEntryView => {
     const canDeploy = canActivateHero(hero, activeCount);
     const currentHp = Math.max(0, Math.floor(hero.currentHp));
@@ -88,7 +137,7 @@ export function createHeroRosterView(heroes: Hero[]): HeroRosterEntryView[] {
       className: hero.classType,
       level: hero.level,
       isActive: hero.isActive,
-      statusLabel: statusLabel(hero),
+      statusLabel: statusLabel(hero, knockedOut.has(hero.id)),
       currentHp,
       maxHp,
       currentMana: Math.max(0, Math.floor(hero.currentMana)),
@@ -108,7 +157,7 @@ export function createHeroRosterView(heroes: Hero[]): HeroRosterEntryView[] {
 
 const statKeys: readonly CanonicalHeroStat[] = ["str", "agi", "end", "int", "wiz", "dex", "luk"];
 
-export function createSelectedHeroView(hero: Hero | null): SelectedHeroView | null {
+export function createSelectedHeroView(hero: Hero | null, knockedOutInExpedition = false): SelectedHeroView | null {
   if (!hero) return null;
   const stats = hero.calculatedStats;
   const classInfo = CLASS_INFO_LIST.find((entry) => entry.type === hero.classType);
@@ -130,7 +179,7 @@ export function createSelectedHeroView(hero: Hero | null): SelectedHeroView | nu
       spriteIndex: hero.spriteIndex,
     },
     identityLabel: [hero.race, genderLabel, hero.classType, `Niveau ${hero.level}`].filter(Boolean).join(" · "),
-    statusLabel: statusLabel(hero),
+    statusLabel: statusLabel(hero, knockedOutInExpedition),
     currentHp: Math.max(0, Math.floor(hero.currentHp)),
     maxHp: Math.max(1, stats.maxHp),
     currentMana: Math.max(0, Math.floor(hero.currentMana)),

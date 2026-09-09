@@ -21,10 +21,70 @@ import {
   type AuthoritativeNoviceStats,
 } from "./novice-stats-authority.ts";
 import { reconcileExistingVocations } from "./vocation-reconciliation.ts";
-import { createUndercityProgress } from "../../../shared/domain/undercity-progression.ts";
+import {
+  createUndercityProgress,
+  ensureUndercityHeroes,
+  getUndercityCommonCheckpoint,
+} from "../../../shared/domain/undercity-progression.ts";
 import { UNDERCITY_DUNGEON_ID, UNDERCITY_MAX_FLOOR } from "../../../shared/domain/undercity.ts";
+import {
+  recoverItemInstance,
+  type RecoverableEquipmentSlot,
+} from "../../../shared/domain/items/item-instance-recovery.ts";
 
 export const LEGACY_UNVERSIONED_STATE_VERSION = 0 as const;
+
+const RECOVERY_EQUIPMENT_SLOTS: readonly RecoverableEquipmentSlot[] = [
+  "mainHand", "offHand", "armor", "accessory",
+];
+
+function recoverHeroItemInstances(input: unknown, scope: string): unknown {
+  if (!isRecord(input) || !isRecord(input.equipment)) return input;
+  const heroId = typeof input.id === "string" && input.id.trim() ? input.id : scope;
+  const equipment = { ...input.equipment };
+  for (const slot of RECOVERY_EQUIPMENT_SLOTS) {
+    const item = equipment[slot];
+    if (item === null || item === undefined) continue;
+    if (isRecord(item) && (
+      typeof item.id === "string"
+      || typeof item.itemId !== "string"
+      || typeof item.instanceId !== "string"
+    )) {
+      equipment[slot] = recoverItemInstance(item, `item:recovery:${heroId}:${slot}`, slot);
+    }
+  }
+  return { ...input, equipment };
+}
+
+function recoverPersistedItemInstances(input: Record<string, unknown>): Record<string, unknown> {
+  const state = { ...input };
+  if (Array.isArray(state.storedItems)) {
+    state.storedItems = state.storedItems.flatMap((item, index) => {
+      if (!isRecord(item)) return [item];
+      const hasRecoverableIdentity = typeof item.itemId === "string" || typeof item.id === "string";
+      if (!hasRecoverableIdentity) return [item];
+      const needsRecovery = typeof item.id === "string"
+        || typeof item.itemId !== "string"
+        || typeof item.instanceId !== "string"
+        || item.count !== undefined;
+      if (!needsRecovery) return [item];
+      const count = Number.isInteger(item.count) && Number(item.count) > 0 ? Number(item.count) : 1;
+      return Array.from({ length: count }, (_, copyIndex) => recoverItemInstance(
+        item,
+        copyIndex === 0 && typeof item.instanceId === "string"
+          ? item.instanceId
+          : `item:recovery:storage:${index}:${copyIndex}`,
+      ));
+    });
+  }
+  for (const bucket of ["heroes", "onboardingCandidates"] as const) {
+    if (Array.isArray(state[bucket])) {
+      state[bucket] = state[bucket].map((hero, index) => recoverHeroItemInstances(hero, `${bucket}:${index}`));
+    }
+  }
+  if (state.pendingRecruit) state.pendingRecruit = recoverHeroItemInstances(state.pendingRecruit, "pendingRecruit");
+  return state;
+}
 
 export type CanonicalStateMigrationContext = {
   defaults: CanonicalGameState;
@@ -355,19 +415,66 @@ function migrateV4ToV5(current: Record<string, unknown>): Record<string, unknown
     : migrated;
 }
 
+function migrateV5ToV6(current: Record<string, unknown>): Record<string, unknown> {
+  const heroes = Array.isArray(current.heroes) ? current.heroes : [];
+  const activeLivingHeroIds = heroes.flatMap((hero) => (
+    isRecord(hero)
+      && typeof hero.id === "string"
+      && hero.isActive === true
+      && Number(hero.currentHp ?? 0) > 0
+      ? [hero.id]
+      : []
+  ));
+  const existingProgress = current.dungeonProgress as CanonicalGameState["dungeonProgress"];
+  const progress = ensureUndercityHeroes(existingProgress, activeLivingHeroIds);
+  const checkpoint = activeLivingHeroIds.length > 0
+    ? getUndercityCommonCheckpoint(progress, activeLivingHeroIds)
+    : 0;
+  const floor = Math.min(UNDERCITY_MAX_FLOOR, checkpoint + 1);
+  const migrated = {
+    ...current,
+    stateVersion: 6,
+    activeDungeonFloor: floor,
+    activeDungeonRoom: 1,
+    currentEncounter: null,
+    autoExplore: false,
+    dungeonProgress: {
+      ...progress,
+      expedition: {
+        ...progress.expedition,
+        mode: "progression" as const,
+        zoneId: null,
+        floor,
+        room: 1,
+        halted: false,
+        haltReason: null,
+        phase: "preparing" as const,
+        segmentHeroIds: [],
+        knockedOutHeroIds: [],
+        checkpointFloor: null,
+        autoExploreBeforeCheckpoint: false,
+      },
+    },
+  };
+  return validateCanonicalGameState(migrated).length === 0
+    ? reconcileExistingVocations(migrated as CanonicalGameState)
+    : migrated;
+}
+
 export const CANONICAL_STATE_MIGRATIONS: readonly CanonicalStateMigration[] = [
   { from: LEGACY_UNVERSIONED_STATE_VERSION, to: 1, migrate: migrateV0ToV1 },
   { from: 1, to: 2, migrate: migrateV1ToV2 },
   { from: 2, to: 3, migrate: migrateV2ToV3 },
   { from: 3, to: 4, migrate: migrateV3ToV4 },
   { from: 4, to: 5, migrate: migrateV4ToV5 },
+  { from: 5, to: 6, migrate: migrateV5ToV6 },
 ];
 
 export function migrateCanonicalState(
   input: Record<string, unknown>,
   context: CanonicalStateMigrationContext,
 ): CanonicalGameState {
-  let state = structuredClone(input);
+  let state = recoverPersistedItemInstances(structuredClone(input));
   let version = readStateVersion(state);
   if (version > CURRENT_CANONICAL_STATE_VERSION) {
     throw new CanonicalStateMigrationError(

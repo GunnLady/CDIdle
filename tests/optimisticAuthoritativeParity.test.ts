@@ -58,14 +58,19 @@ const PARITY_SCENARIOS = {
   },
   "dungeon.select_floor": {
     command: { type: "dungeon.select_floor", floor: 2 },
-    state: () => ({
-      ...initialTownState(42),
-      heroes: [makeHero({ id: "hero-parity", isActive: true })],
-      dungeonProgress: createUndercityProgress(["hero-parity"], 2),
-      activeDungeonRoom: 4,
-      highestFloorReached: 3,
-      autoExplore: true,
-    }),
+    state: () => {
+      const dungeonProgress = createUndercityProgress(["hero-parity"], 2);
+      dungeonProgress.expedition.room = 4;
+      return {
+        ...initialTownState(42),
+        heroes: [makeHero({ id: "hero-parity", isActive: true })],
+        dungeonProgress,
+        activeDungeonFloor: dungeonProgress.expedition.floor,
+        activeDungeonRoom: dungeonProgress.expedition.room,
+        highestFloorReached: 3,
+        autoExplore: true,
+      };
+    },
   },
   "dungeon.auto_explore": {
     command: { type: "dungeon.auto_explore", enabled: true },

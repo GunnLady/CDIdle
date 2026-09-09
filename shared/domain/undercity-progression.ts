@@ -32,6 +32,11 @@ export function createUndercityProgress(heroIds: readonly string[] = [], complet
       room: 1,
       halted: false,
       haltReason: null,
+      phase: "preparing",
+      segmentHeroIds: [],
+      knockedOutHeroIds: [],
+      checkpointFloor: null,
+      autoExploreBeforeCheckpoint: false,
     },
   };
 }
@@ -78,6 +83,51 @@ export function validateUndercityProgress(progress: CanonicalDungeonProgress): s
   if (progress.expedition.halted !== (progress.expedition.haltReason !== null)) {
     errors.push('dungeonProgress.expedition halt state is inconsistent');
   }
+  if (!["preparing", "running", "checkpoint_decision"].includes(progress.expedition.phase)) {
+    errors.push("dungeonProgress.expedition.phase is invalid");
+  }
+  if (typeof progress.expedition.autoExploreBeforeCheckpoint !== "boolean") {
+    errors.push("dungeonProgress.expedition.autoExploreBeforeCheckpoint is invalid");
+  }
+  if (progress.expedition.checkpointFloor !== null
+    && (!Number.isInteger(progress.expedition.checkpointFloor)
+      || progress.expedition.checkpointFloor < 5
+      || progress.expedition.checkpointFloor > UNDERCITY_MAX_FLOOR
+      || progress.expedition.checkpointFloor % 5 !== 0)) {
+    errors.push("dungeonProgress.expedition.checkpointFloor is invalid");
+  }
+  const heroIds = new Set(Object.keys(progress.heroes));
+  const segmentIds = new Set(progress.expedition.segmentHeroIds);
+  if (segmentIds.size !== progress.expedition.segmentHeroIds.length) {
+    errors.push("dungeonProgress.expedition.segmentHeroIds contains duplicates");
+  }
+  if (progress.expedition.segmentHeroIds.length > 4) {
+    errors.push("dungeonProgress.expedition.segmentHeroIds exceeds party capacity");
+  }
+  if (progress.expedition.segmentHeroIds.some((heroId) => !heroIds.has(heroId))) {
+    errors.push("dungeonProgress.expedition.segmentHeroIds references an unknown hero");
+  }
+  if (new Set(progress.expedition.knockedOutHeroIds).size !== progress.expedition.knockedOutHeroIds.length
+    || progress.expedition.knockedOutHeroIds.some((heroId) => !segmentIds.has(heroId))) {
+    errors.push("dungeonProgress.expedition.knockedOutHeroIds is invalid");
+  }
+  if (progress.expedition.phase === "preparing"
+    && (progress.expedition.segmentHeroIds.length > 0
+      || progress.expedition.knockedOutHeroIds.length > 0
+      || progress.expedition.checkpointFloor !== null)) {
+    errors.push("dungeonProgress.expedition preparing state is inconsistent");
+  }
+  if (progress.expedition.phase === "running"
+    && (progress.expedition.segmentHeroIds.length === 0
+      || progress.expedition.checkpointFloor !== null)) {
+    errors.push("dungeonProgress.expedition running state is inconsistent");
+  }
+  if (progress.expedition.phase === "checkpoint_decision"
+    && (progress.expedition.mode !== "progression"
+      || progress.expedition.segmentHeroIds.length === 0
+      || progress.expedition.checkpointFloor === null)) {
+    errors.push("dungeonProgress.expedition checkpoint state is inconsistent");
+  }
   const fixedVictories = new Map(Array.from({ length: UNDERCITY_MAX_FLOOR / 5 }, (_, index) => {
     const floor = (index + 1) * 5;
     return [getUndercityFixedVictoryId(floor, 1, 1)!, floor] as const;
@@ -103,6 +153,11 @@ export function restartUndercityExpedition(
         room: 1,
         halted: false,
         haltReason: null,
+        phase: "preparing",
+        segmentHeroIds: [],
+        knockedOutHeroIds: [],
+        checkpointFloor: null,
+        autoExploreBeforeCheckpoint: false,
       }
     : {
         ...progress.expedition,
@@ -110,6 +165,11 @@ export function restartUndercityExpedition(
         room: 1,
         halted: false,
         haltReason: null,
+        phase: "preparing",
+        segmentHeroIds: [],
+        knockedOutHeroIds: [],
+        checkpointFloor: null,
+        autoExploreBeforeCheckpoint: false,
       };
   return { ...progress, expedition };
 }
@@ -120,7 +180,16 @@ export function haltUndercityExpedition(
 ): CanonicalDungeonProgress {
   return {
     ...progress,
-    expedition: { ...progress.expedition, halted: true, haltReason: reason },
+    expedition: {
+      ...progress.expedition,
+      halted: true,
+      haltReason: reason,
+      phase: "preparing",
+      segmentHeroIds: [],
+      knockedOutHeroIds: [],
+      checkpointFloor: null,
+      autoExploreBeforeCheckpoint: false,
+    },
   };
 }
 
@@ -142,6 +211,11 @@ export function selectUndercityFarmZone(
       room: 1,
       halted: false,
       haltReason: null,
+      phase: "running",
+      segmentHeroIds: [...heroIds],
+      knockedOutHeroIds: [],
+      checkpointFloor: null,
+      autoExploreBeforeCheckpoint: false,
     },
   };
 }

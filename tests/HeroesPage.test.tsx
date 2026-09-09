@@ -92,13 +92,21 @@ describe("HeroesPage", () => {
       onRecruitHero={vi.fn()}
       {...navigationProps}
       canChangeComposition={false}
+      compositionBlockReason="Équipe verrouillée pendant l’expédition"
+      lockedHeroIds={["active"]}
+      lockedHeroReason="Équipe verrouillée pendant l’expédition"
     />);
 
     expect(screen.getByRole("button", { name: /Recruter/ })).toBeEnabled();
     expect(screen.getByRole("button", { name: "Retirer Ariane" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Déployer Borin" })).toBeDisabled();
-    expect(screen.getByLabelText("Pourquoi Borin ne peut pas être déployé")).toHaveAccessibleDescription("Rencontre en cours");
+    expect(screen.getByLabelText("Pourquoi Borin ne peut pas être déployé")).toHaveAccessibleDescription("Équipe verrouillée pendant l’expédition");
     expect(screen.getByRole("button", { name: "Congédier définitivement" })).toBeDisabled();
+    expect(screen.getByRole("status")).toHaveTextContent("Équipe verrouillée pendant l’expédition");
+
+    fireEvent.click(screen.getByTestId("hero-roster-reserve"));
+    expect(screen.getByRole("button", { name: "Congédier définitivement" })).toBeEnabled();
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
   });
 
   it("keeps the equipped instance technical while targeting it on unequip", () => {

@@ -17,6 +17,8 @@ import {
   preserveResourceRatio,
   type CanonicalStatModifier,
 } from "../../../shared/domain/hero-stats.ts";
+import { decideDungeonHeroMutation } from "../../../shared/domain/dungeon-segment.ts";
+import { recoverItemInstance } from "../../../shared/domain/items/item-instance-recovery.ts";
 
 export type InventoryRarity = "common" | "uncommon" | "rare" | "epic" | "legendary";
 export type InventorySlot = "mainHand" | "offHand" | "armor" | "accessory";
@@ -118,6 +120,11 @@ export function applyInventoryCommand(current: CanonicalGameState, command: Reco
   const storedItems = clone(current.storedItems);
   const heroes = clone(current.heroes);
   const typed = command as InventoryCommand;
+  const mutation = typed.type === "hero.equip" ? "equip" : "unequip";
+  const decision = decideDungeonHeroMutation(current, typed.heroId, mutation);
+  if (decision.allowed === false) {
+    throw new InventoryCommandError(decision.code, "hero is locked in the current dungeon segment");
+  }
 
   if (typed.type === "hero.equip") {
     const hero = heroes.find((entry) => entry.id === typed.heroId);
@@ -163,12 +170,17 @@ export function applyInventoryCommand(current: CanonicalGameState, command: Reco
     const equipment = { ...(hero.equipment ?? {}) };
     const equipped = equipment[typed.slot];
     if (!equipped) throw new InventoryCommandError("ITEM_NOT_FOUND", "equipment slot is empty");
-    if (storedItems.some((entry) => entry.instanceId === equipped.instanceId)) {
+    const recovered = recoverItemInstance(
+      equipped,
+      `item:recovery:${hero.id}:${typed.slot}`,
+      typed.slot,
+    ) as unknown as InventoryItemInstance;
+    if (storedItems.some((entry) => entry.instanceId === recovered.instanceId)) {
       throw new InventoryCommandError("INVALID_GAME_STATE", "item instance is duplicated");
     }
-    storedItems.push(equipped);
+    storedItems.push(recovered);
     equipment[typed.slot] = undefined;
-    return { state: { ...current, heroes: heroes.map((entry) => entry.id === typed.heroId ? withEquipment(entry, equipment) : entry), storedItems }, events: [{ type: "hero.unequipped", heroId: typed.heroId, instanceId: equipped.instanceId, itemId: equipped.itemId, itemName: nameItem(getItemById(equipped.itemId), equipped).name, slot: typed.slot }] };
+    return { state: { ...current, heroes: heroes.map((entry) => entry.id === typed.heroId ? withEquipment(entry, equipment) : entry), storedItems }, events: [{ type: "hero.unequipped", heroId: typed.heroId, instanceId: recovered.instanceId, itemId: recovered.itemId, itemName: nameItem(getItemById(recovered.itemId), recovered).name, slot: typed.slot }] };
   }
 
   throw new InventoryCommandError("INVALID_COMMAND", "unsupported inventory command");

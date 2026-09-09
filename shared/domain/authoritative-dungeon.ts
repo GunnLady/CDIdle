@@ -870,7 +870,7 @@ function resolveFight(
         log(
           hp === 0 ? "hero.defeated" : "enemy.hit",
           hp === 0
-            ? `${strikePrefix}${actingEnemy.name} inflige ${damage} dégâts à ${target.name} (${target.currentHp} → 0/${targetStats.maxHp} PV). ${target.name} s'écroule et retourne aux dortoirs.`
+            ? `${strikePrefix}${actingEnemy.name} inflige ${damage} dégâts à ${target.name} (${target.currentHp} → 0/${targetStats.maxHp} PV). ${target.name} s'écroule et reste KO dans l'expédition.`
             : `${strikePrefix}${actingEnemy.name} inflige ${damage} dégâts à ${target.name}.`,
           hp === 0 ? "defeat" : "combat-enemy",
           {
@@ -1375,14 +1375,18 @@ function resolveNonFight(
       "info",
     );
     const recovery: Array<Record<string, unknown>> = [];
+    const segmentIds = new Set(source.dungeonProgress?.expedition.segmentHeroIds ?? []);
+    const knockedOutIds = new Set(source.dungeonProgress?.expedition.knockedOutHeroIds ?? []);
     heroes = heroes.map((hero) => {
-      if (!hero.isActive || hero.currentHp <= 0) return hero;
+      const revivable = segmentIds.has(hero.id) && knockedOutIds.has(hero.id);
+      if ((!hero.isActive || hero.currentHp <= 0) && !revivable) return hero;
       const maxHp = hero.calculatedStats.maxHp;
       const maxMana = hero.calculatedStats.maxMana;
       const next = {
         ...hero,
         currentHp: Math.min(maxHp, hero.currentHp + Math.max(1, Math.round(maxHp * 0.2))),
         currentMana: Math.min(maxMana, hero.currentMana + Math.max(1, Math.round(maxMana * 0.2))),
+        ...(revivable ? { isActive: true, status: "idle" as const } : {}),
       };
       recovery.push({
         heroId: hero.id,

@@ -1,4 +1,6 @@
 import { RARITY_ORDER, getItemById } from "../../shared/domain/items/items";
+import { recoverItemInstance } from "../../shared/domain/items/item-instance-recovery";
+import { CANONICAL_HERO_STAT_PRESENTATION, type CanonicalHeroStat } from "../../shared/domain/hero-stats";
 import type { Hero, ItemInfo, StoredForgeMaterialStack, StoredItemInstance } from "../types";
 import { createForgeMaterialReserveView, type BossComponentGroupView, type ForgeMaterialView } from "./forgeMaterialPresentation";
 import {
@@ -40,15 +42,27 @@ export interface StorageSummaryView {
   bossComponents: BossComponentGroupView[];
 }
 
-export interface StorageHeroEquipmentTargetView {
+export interface StorageHeroChoiceView {
   heroId: string;
   heroName: string;
   portrait: HeroPortraitView;
   identityLabel: string;
+  stats: Array<{ id: CanonicalHeroStat; label: string; name: string; value: string }>;
+  subStats: Array<{ id: string; label: string; value: string }>;
+  blockedReason?: string;
+}
+
+export interface StorageHeroEquipmentTargetView extends StorageHeroChoiceView {
   slot: EquipmentSlot;
   slotLabel: string;
   currentItem: EquipmentItemView | null;
   candidate: EquipmentCandidateView | null;
+}
+
+export interface StorageHeroItemChoiceView {
+  instanceId: string;
+  item: EquipmentItemView;
+  slotLabel: string;
   blockedReason?: string;
 }
 
@@ -68,9 +82,9 @@ export const defaultStorageFilters: StorageFilters = {
 };
 
 export function resolveStorageItems(storedItems: StoredItemInstance[]): ResolvedStorageItem[] {
-  return storedItems.flatMap((instance): ResolvedStorageItem[] => {
-    const baseItem = getItemById(instance.itemId);
-    if (!baseItem) return [];
+  return storedItems.flatMap((source, index): ResolvedStorageItem[] => {
+    const instance = recoverItemInstance(source, `item:recovery:storage:${index}`) as unknown as StoredItemInstance | null;
+    if (!instance) return [];
     const item = resolveStoredEquipmentItem(instance);
     if (!item) return [];
     return [{ ...instance, item }];
@@ -175,9 +189,71 @@ export function countActiveAdvancedStorageFilters(filters: StorageFilters): numb
   ].filter(Boolean).length;
 }
 
+const storageHeroStatKeys: readonly CanonicalHeroStat[] = ["str", "agi", "end", "int", "wiz", "dex", "luk"];
+
+function createStorageHeroChoiceView(hero: Hero, lockedHeroIds: readonly string[]): StorageHeroChoiceView {
+  const baseStats = hero.baseStats ?? { str: 5, agi: 5, end: 5, int: 5, wiz: 5, dex: 5, luk: 5 };
+  return {
+    heroId: hero.id,
+    heroName: hero.name,
+    portrait: {
+      id: hero.id,
+      name: hero.name,
+      classType: hero.classType,
+      gender: hero.gender,
+      spriteIndex: hero.spriteIndex,
+    },
+    identityLabel: `${hero.classType} · Niv. ${hero.level}`,
+    stats: storageHeroStatKeys.map((key) => ({
+      id: key,
+      label: CANONICAL_HERO_STAT_PRESENTATION[key].short,
+      name: CANONICAL_HERO_STAT_PRESENTATION[key].name,
+      value: String(baseStats[key] ?? 0),
+    })),
+    subStats: [
+      { id: "hp", label: "PV", value: `${Math.max(0, Math.floor(hero.currentHp))}/${Math.max(1, hero.calculatedStats.maxHp)}` },
+      { id: "mana", label: "PM", value: `${Math.max(0, Math.floor(hero.currentMana))}/${Math.max(0, hero.calculatedStats.maxMana)}` },
+      { id: "dps", label: "DPS", value: hero.calculatedStats.estimatedDps.toFixed(2) },
+      { id: "physical-damage", label: "Dég. phys.", value: String(hero.calculatedStats.physicalDamage) },
+      { id: "magic-damage", label: "Dég. mag.", value: String(hero.calculatedStats.magicDamage) },
+      { id: "physical-defense", label: "Déf. phys.", value: String(hero.calculatedStats.physicalDefense) },
+      { id: "magic-defense", label: "Déf. mag.", value: String(hero.calculatedStats.magicDefense) },
+      { id: "speed", label: "Vitesse", value: String(hero.calculatedStats.speed) },
+      { id: "critical", label: "Critique", value: `${hero.calculatedStats.criticalChance}%` },
+      { id: "dodge", label: "Esquive", value: `${hero.calculatedStats.dodgeChance}%` },
+    ],
+    blockedReason: lockedHeroIds.includes(hero.id) ? "Équipement verrouillé pendant l’expédition" : undefined,
+  };
+}
+
+export function createStorageHeroChoiceViews(
+  heroes: Hero[],
+  lockedHeroIds: readonly string[] = [],
+): StorageHeroChoiceView[] {
+  return heroes.map((hero) => createStorageHeroChoiceView(hero, lockedHeroIds));
+}
+
+export function createStorageHeroItemChoiceViews(
+  hero: Hero | null,
+  storedItems: StoredItemInstance[],
+): StorageHeroItemChoiceView[] {
+  if (!hero) return [];
+  return resolveStorageItems(storedItems).flatMap((instance): StorageHeroItemChoiceView[] => {
+    const target = createEquipmentCandidateTargetView(hero, instance);
+    if (!target?.candidate) return [];
+    return [{
+      instanceId: instance.instanceId,
+      item: createEquipmentItemView(instance.item, instance.rarity),
+      slotLabel: target.label,
+      blockedReason: target.candidate.levelBlocked ? `Niveau ${target.candidate.requiredLevel} requis` : undefined,
+    }];
+  });
+}
+
 export function createStorageEquipmentDecisionView(
   selectedItem: StoredItemInstance | null,
   heroes: Hero[],
+  lockedHeroIds: readonly string[] = [],
 ): StorageEquipmentDecisionView | null {
   if (!selectedItem) return null;
   const resolvedSelectedItem = resolveStoredEquipmentItem(selectedItem);
@@ -187,21 +263,14 @@ export function createStorageEquipmentDecisionView(
     if (!target) return [];
     const candidate = target.candidate;
     return [{
-      heroId: hero.id,
-      heroName: hero.name,
-      portrait: {
-        id: hero.id,
-        name: hero.name,
-        classType: hero.classType,
-        gender: hero.gender,
-        spriteIndex: hero.spriteIndex,
-      },
-      identityLabel: `${hero.classType} · Niv. ${hero.level}`,
+      ...createStorageHeroChoiceView(hero, lockedHeroIds),
       slot: target.key,
       slotLabel: target.label,
       currentItem: target.item,
       candidate,
-      blockedReason: target.blocked ? target.blockReason : candidate?.levelBlocked ? `Niveau ${candidate.requiredLevel} requis` : undefined,
+      blockedReason: lockedHeroIds.includes(hero.id)
+        ? "Équipement verrouillé pendant l’expédition"
+        : target.blocked ? target.blockReason : candidate?.levelBlocked ? `Niveau ${candidate.requiredLevel} requis` : undefined,
     }];
   });
   return {

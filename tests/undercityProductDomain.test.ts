@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { makeHero } from "./fixtures/game";
-import { initialTownState, migrateTownState } from "../supabase/functions/game-api/town-authority";
+import { applyTownCommand, initialTownState, migrateTownState } from "../supabase/functions/game-api/town-authority";
 import { applyDungeonCommand, type DungeonRng } from "../supabase/functions/game-api/dungeon-authority";
 import { applyForgeCommand } from "../supabase/functions/game-api/forge-authority";
 import {
@@ -239,7 +239,7 @@ describe("UnderCity product domain", () => {
     });
   });
 
-  it("switches farm zones from their first floor and preserves current snapshots through reload", () => {
+  it("requires a town return before switching farm zones and preserves snapshots through reload", () => {
     const hero = makeHero({ id: "persistent-farmer", isActive: true });
     const completed = createUndercityProgress([hero.id], 50);
     const sewers = selectUndercityFarmZone(completed, [hero.id], "sewers");
@@ -252,7 +252,26 @@ describe("UnderCity product domain", () => {
       activeDungeonRoom: 4,
       dungeonProgress: sewers,
     };
-    const switched = applyDungeonCommand(source, {
+    const beforeRejectedSwitch = structuredClone(source);
+    expect(() => applyDungeonCommand(source, {
+      type: "dungeon.select_farm_zone",
+      dungeonId: UNDERCITY_DUNGEON_ID,
+      zoneId: "bastion",
+    })).toThrowError(expect.objectContaining({ code: "EXPEDITION_RUNNING" }));
+    expect(source).toEqual(beforeRejectedSwitch);
+
+    const returned = applyDungeonCommand(source, {
+      type: "dungeon.retreat",
+      dungeonId: UNDERCITY_DUNGEON_ID,
+    }).state;
+    expect(returned.dungeonProgress.expedition).toMatchObject({ phase: "preparing", halted: true });
+    expect(returned.heroes[0]).toMatchObject({ isActive: false });
+    const prepared = applyTownCommand(returned, {
+      type: "hero.activity",
+      heroId: hero.id,
+      active: true,
+    }).state;
+    const switched = applyDungeonCommand(prepared, {
       type: "dungeon.select_farm_zone",
       dungeonId: UNDERCITY_DUNGEON_ID,
       zoneId: "bastion",
@@ -265,18 +284,6 @@ describe("UnderCity product domain", () => {
       halted: false,
     });
     expect(switched.autoExplore).toBe(true);
-
-    const started = applyDungeonCommand(switched, {
-      type: "dungeon.explore",
-      dungeonId: UNDERCITY_DUNGEON_ID,
-      floor: 31,
-      commandId: "farm-zone-lock",
-    }).state;
-    expect(() => applyDungeonCommand(started, {
-      type: "dungeon.select_farm_zone",
-      dungeonId: UNDERCITY_DUNGEON_ID,
-      zoneId: "sewers",
-    })).toThrowError(expect.objectContaining({ code: "ENCOUNTER_ACTIVE" }));
 
     const reloadedFarm = migrateTownState(JSON.parse(JSON.stringify(switched)));
     expect(reloadedFarm.dungeonProgress).toEqual(switched.dungeonProgress);
@@ -342,7 +349,16 @@ describe("UnderCity product domain", () => {
       activeDungeonRoom: room,
       dungeonProgress: {
         ...first.state.dungeonProgress,
-        expedition: { ...first.state.dungeonProgress.expedition, floor: 10, room },
+        expedition: {
+          ...first.state.dungeonProgress.expedition,
+          floor: 10,
+          room,
+          phase: "preparing" as const,
+          segmentHeroIds: [],
+          knockedOutHeroIds: [],
+          checkpointFloor: null,
+          autoExploreBeforeCheckpoint: false,
+        },
       },
     };
     const replayStarted = applyDungeonCommand(replaySource, { type: "dungeon.explore", floor: 10, commandId: "four-lots-replay" });
@@ -417,9 +433,23 @@ describe("UnderCity product domain", () => {
       dungeonId: UNDERCITY_DUNGEON_ID,
       floor: 50,
       commandId: "king-again-without-farm",
-    })).toThrow("select a farm zone");
+    })).toThrow("resolve the checkpoint decision first");
 
-    const selectedFarm = applyDungeonCommand(resolved.state, {
+    expect(() => applyDungeonCommand(resolved.state, {
+      type: "dungeon.select_farm_zone",
+      dungeonId: UNDERCITY_DUNGEON_ID,
+      zoneId: "court",
+    })).toThrow("resolve the checkpoint decision first");
+    const returned = applyDungeonCommand(resolved.state, {
+      type: "dungeon.checkpoint_decide",
+      decision: "return_to_town",
+    }).state;
+    const selectedFarm = applyDungeonCommand({
+      ...returned,
+      heroes: returned.heroes.map((entry) => entry.id === hero.id
+        ? { ...entry, isActive: true, status: "idle" as const }
+        : entry),
+    }, {
       type: "dungeon.select_farm_zone",
       dungeonId: UNDERCITY_DUNGEON_ID,
       zoneId: "court",

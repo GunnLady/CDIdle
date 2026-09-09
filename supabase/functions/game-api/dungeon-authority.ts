@@ -4,6 +4,8 @@ import {
   type AuthoritativeDungeonState,
 } from "../../../shared/domain/authoritative-dungeon.ts";
 import type {
+  CanonicalDungeonExpedition,
+  CanonicalGameCommand,
   CanonicalHero as Hero,
   CanonicalGameState,
   CanonicalStateTransition,
@@ -24,14 +26,8 @@ import {
 
 export type DungeonHero = Hero;
 export type DungeonState = CanonicalGameState;
-export type DungeonCommand =
-  | { type: "dungeon.explore"; dungeonId?: string; floor: number; commandId?: string }
-  | { type: "dungeon.select_floor"; dungeonId?: string; floor: number; commandId?: string }
-  | { type: "dungeon.resolve"; dungeonId?: string; commandId?: string }
-  | { type: "dungeon.auto_explore"; dungeonId?: string; enabled: boolean; commandId?: string }
-  | { type: "dungeon.retreat"; dungeonId?: string; commandId?: string }
-  | { type: "dungeon.resume"; dungeonId: string; commandId?: string }
-  | { type: "dungeon.select_farm_zone"; dungeonId: string; zoneId: string; commandId?: string };
+export type DungeonCommand = Extract<CanonicalGameCommand, { type: `dungeon.${string}` }>
+  & { commandId?: string };
 
 export class DungeonCommandError extends Error {
   constructor(public readonly code: string, message: string) { super(message); }
@@ -42,6 +38,18 @@ export type DungeonRng = { next(): number; nextInt(maxExclusive: number): number
 const clone = <T>(value: T): T => structuredClone(value);
 const activeHeroes = (heroes: DungeonHero[]) => heroes.filter((hero) => hero.isActive === true && Number(hero.currentHp ?? 0) > 0);
 const activeHeroIds = (state: DungeonState) => activeHeroes(state.heroes ?? []).map((hero) => hero.id);
+const expeditionHeroIds = (state: DungeonState) => state.dungeonProgress.expedition.phase === "preparing"
+  ? activeHeroIds(state)
+  : [...state.dungeonProgress.expedition.segmentHeroIds];
+const operationalExpeditionHeroIds = (state: DungeonState) => {
+  const expedition = state.dungeonProgress.expedition;
+  const knockedOut = new Set(expedition.knockedOutHeroIds);
+  const heroes = new Map(state.heroes.map((hero) => [hero.id, hero]));
+  return expedition.segmentHeroIds.filter((heroId) => {
+    const hero = heroes.get(heroId);
+    return hero && hero.currentHp > 0 && !knockedOut.has(heroId);
+  });
+};
 
 function requireUndercity(command: DungeonCommand) {
   if ((command.dungeonId ?? UNDERCITY_DUNGEON_ID) !== UNDERCITY_DUNGEON_ID) {
@@ -50,7 +58,7 @@ function requireUndercity(command: DungeonCommand) {
 }
 
 function withProgress(state: DungeonState) {
-  const ids = activeHeroIds(state);
+  const ids = expeditionHeroIds(state);
   const dungeonProgress = ensureUndercityHeroes(state.dungeonProgress, state.heroes.map((hero) => hero.id));
   return { state: { ...state, dungeonProgress }, ids };
 }
@@ -91,6 +99,20 @@ function stoppedAtRestart(state: DungeonState, reason: "wipe" | "retreat", heroI
   }, false);
 }
 
+function returnSegmentHeroesToTown(state: DungeonState, heroIds: readonly string[]) {
+  const returned = new Set(heroIds);
+  return state.heroes.map((hero) => {
+    if (!returned.has(hero.id)) return hero;
+    const fullyRecovered = hero.currentHp >= hero.calculatedStats.maxHp
+      && hero.currentMana >= hero.calculatedStats.maxMana;
+    return {
+      ...hero,
+      isActive: false,
+      status: fullyRecovered ? "idle" as const : "resting" as const,
+    };
+  });
+}
+
 function resolveEncounter(state: DungeonState, rng: DungeonRng) {
   const encounterId = String(state.currentEncounter?.encounterId ?? "encounter-unknown");
   const participantHeroIds = [...(state.currentEncounter?.participantHeroIds ?? activeHeroIds(state))];
@@ -113,10 +135,25 @@ function resolveEncounter(state: DungeonState, rng: DungeonRng) {
     encounterHistory,
   } as unknown as DungeonState;
   next.dungeonProgress = ensureUndercityHeroes(next.dungeonProgress, next.heroes.map((hero) => hero.id));
+  const segmentHeroIds = state.dungeonProgress.expedition.segmentHeroIds.length > 0
+    ? state.dungeonProgress.expedition.segmentHeroIds
+    : participantHeroIds;
+  const alreadyKnockedOut = new Set(state.dungeonProgress.expedition.knockedOutHeroIds);
+  const knockedOutHeroIds = segmentHeroIds.filter((heroId) => (
+    (encounter.kind !== "rest" && alreadyKnockedOut.has(heroId))
+    || Number(next.heroes.find((hero) => hero.id === heroId)?.currentHp ?? 0) <= 0
+  ));
   if (encounter.kind === "fight" && encounter.outcome === "defeat") {
-    next = stoppedAtRestart(next, "wipe", participantHeroIds);
+    next = stoppedAtRestart(next, "wipe", segmentHeroIds);
   } else {
-    const expedition = { ...next.dungeonProgress.expedition };
+    let expedition: CanonicalDungeonExpedition = {
+      ...next.dungeonProgress.expedition,
+      phase: "running" as const,
+      segmentHeroIds: [...segmentHeroIds],
+      knockedOutHeroIds,
+      checkpointFloor: null,
+      autoExploreBeforeCheckpoint: false,
+    };
     if (expedition.mode === "farm") {
       const zone = UNDERCITY_ZONES.find((entry) => entry.id === expedition.zoneId);
       if (!zone) throw new DungeonCommandError("INVALID_DUNGEON_STATE", "farm zone is invalid");
@@ -131,7 +168,21 @@ function resolveEncounter(state: DungeonState, rng: DungeonRng) {
       expedition.floor = Math.min(UNDERCITY_MAX_FLOOR, Number(next.activeDungeonFloor));
       expedition.room = Number(next.activeDungeonFloor) > UNDERCITY_MAX_FLOOR ? 1 : Number(next.activeDungeonRoom);
     }
-    next = projectExpedition({ ...next, dungeonProgress: { ...next.dungeonProgress, expedition } }, next.autoExplore);
+    const checkpointReached = expedition.mode === "progression"
+      && encounter.floor % 5 === 0
+      && isDungeonFinalRoom(encounter.floor, encounter.room);
+    if (checkpointReached) {
+      expedition = {
+        ...expedition,
+        phase: "checkpoint_decision",
+        checkpointFloor: encounter.floor,
+        autoExploreBeforeCheckpoint: Boolean(next.autoExplore),
+      };
+    }
+    next = projectExpedition(
+      { ...next, dungeonProgress: { ...next.dungeonProgress, expedition } },
+      checkpointReached ? false : next.autoExplore,
+    );
   }
   return { state: next, events: [{ type: "dungeon.encounter_resolved", dungeonId: UNDERCITY_DUNGEON_ID, encounter }] };
 }
@@ -143,6 +194,48 @@ export function applyDungeonCommand(current: CanonicalGameState, command: Record
   requireUndercity(typed);
   const { floor, room, highest } = progress(state);
   const progressionComplete = isUndercityProgressionComplete(state.dungeonProgress, prepared.ids);
+
+  if (typed.type === "dungeon.checkpoint_decide") {
+    const expedition = state.dungeonProgress.expedition;
+    if (typed.decision !== "continue" && typed.decision !== "return_to_town") {
+      throw new DungeonCommandError("INVALID_COMMAND", "checkpoint decision is invalid");
+    }
+    if (state.currentEncounter) throw new DungeonCommandError("ENCOUNTER_ACTIVE", "an encounter is already active");
+    if (expedition.phase !== "checkpoint_decision" || expedition.checkpointFloor === null) {
+      throw new DungeonCommandError("CHECKPOINT_NOT_PENDING", "there is no checkpoint decision to resolve");
+    }
+    const checkpointFloor = expedition.checkpointFloor;
+    if (typed.decision === "continue") {
+      if (checkpointFloor >= UNDERCITY_MAX_FLOOR) {
+        throw new DungeonCommandError("CHECKPOINT_RETURN_REQUIRED", "return to town is required after floor 50");
+      }
+      const continued = {
+        ...expedition,
+        floor: checkpointFloor + 1,
+        room: 1,
+        phase: "running" as const,
+        checkpointFloor: null,
+        autoExploreBeforeCheckpoint: false,
+      };
+      return {
+        state: projectExpedition(
+          { ...state, dungeonProgress: { ...state.dungeonProgress, expedition: continued } },
+          expedition.autoExploreBeforeCheckpoint,
+        ),
+        events: [{ type: "dungeon.checkpoint_continued", dungeonId: UNDERCITY_DUNGEON_ID, checkpointFloor }],
+      };
+    }
+    const heroes = returnSegmentHeroesToTown(state, expedition.segmentHeroIds);
+    const returned = stoppedAtRestart({ ...state, heroes, currentEncounter: null }, "retreat", expedition.segmentHeroIds);
+    return {
+      state: returned,
+      events: [{ type: "dungeon.checkpoint_returned", dungeonId: UNDERCITY_DUNGEON_ID, checkpointFloor }],
+    };
+  }
+
+  if (state.dungeonProgress.expedition.phase === "checkpoint_decision") {
+    throw new DungeonCommandError("CHECKPOINT_DECISION_REQUIRED", "resolve the checkpoint decision first");
+  }
 
   if (typed.type === "dungeon.resume") {
     if (state.currentEncounter) throw new DungeonCommandError("ENCOUNTER_ACTIVE", "an encounter is already active");
@@ -159,6 +252,9 @@ export function applyDungeonCommand(current: CanonicalGameState, command: Record
 
   if (typed.type === "dungeon.select_farm_zone") {
     if (state.currentEncounter) throw new DungeonCommandError("ENCOUNTER_ACTIVE", "an encounter is already active");
+    if (state.dungeonProgress.expedition.phase !== "preparing") {
+      throw new DungeonCommandError("EXPEDITION_RUNNING", "return to town before selecting another farm zone");
+    }
     let dungeonProgress;
     try {
       dungeonProgress = selectUndercityFarmZone(state.dungeonProgress, prepared.ids, typed.zoneId);
@@ -193,6 +289,7 @@ export function applyDungeonCommand(current: CanonicalGameState, command: Record
       throw new DungeonCommandError("FLOOR_NOT_REACHED", "requested dungeon floor is not available");
     }
     if (state.currentEncounter) throw new DungeonCommandError("ENCOUNTER_ACTIVE", "an encounter is already active");
+    if (state.dungeonProgress.expedition.phase === "running") throw new DungeonCommandError("EXPEDITION_RUNNING", "the current segment is already running");
     if (state.dungeonProgress.expedition.halted) throw new DungeonCommandError("EXPEDITION_HALTED", "resume the expedition first");
     const expedition = { ...state.dungeonProgress.expedition, mode: "progression" as const, zoneId: null, floor: typed.floor, room: 1 };
     state = projectExpedition({ ...state, dungeonProgress: { ...state.dungeonProgress, expedition } }, false);
@@ -201,8 +298,11 @@ export function applyDungeonCommand(current: CanonicalGameState, command: Record
 
   if (typed.type === "dungeon.retreat") {
     const encounterId = state.currentEncounter?.encounterId ?? null;
-    const heroes = state.heroes.map((hero) => hero.isActive ? { ...hero, isActive: false, status: "resting" as const } : hero);
-    state = stoppedAtRestart({ ...state, heroes, currentEncounter: null }, "retreat", prepared.ids);
+    const returningHeroIds = state.dungeonProgress.expedition.segmentHeroIds.length > 0
+      ? state.dungeonProgress.expedition.segmentHeroIds
+      : prepared.ids;
+    const heroes = returnSegmentHeroesToTown(state, returningHeroIds);
+    state = stoppedAtRestart({ ...state, heroes, currentEncounter: null }, "retreat", returningHeroIds);
     return { state, events: [{ type: "dungeon.retreat", dungeonId: UNDERCITY_DUNGEON_ID, encounterId, floor, room }] };
   }
 
@@ -225,6 +325,14 @@ export function applyDungeonCommand(current: CanonicalGameState, command: Record
 
   const commandId = typed.commandId ?? "dungeon-command";
   const encounterId = "encounter-" + commandId;
+  const expedition = state.dungeonProgress.expedition;
+  const segmentHeroIds = expedition.phase === "preparing"
+    ? [...prepared.ids]
+    : [...expedition.segmentHeroIds];
+  const participantHeroIds = expedition.phase === "preparing"
+    ? [...prepared.ids]
+    : operationalExpeditionHeroIds(state);
+  if (participantHeroIds.length === 0) throw new DungeonCommandError("NO_ACTIVE_HERO", "at least one active hero is required");
   const currentEncounter = {
     encounterId,
     kind: "pending",
@@ -232,11 +340,26 @@ export function applyDungeonCommand(current: CanonicalGameState, command: Record
     dungeonId: UNDERCITY_DUNGEON_ID,
     floor,
     room,
-    participantHeroIds: prepared.ids,
+    participantHeroIds,
     commandId,
   } as const;
   return {
-    state: { ...state, currentEncounter, autoExplore: state.autoExplore ?? false },
+    state: {
+      ...state,
+      currentEncounter,
+      autoExplore: state.autoExplore ?? false,
+      dungeonProgress: {
+        ...state.dungeonProgress,
+        expedition: {
+          ...expedition,
+          phase: "running",
+          segmentHeroIds,
+          knockedOutHeroIds: expedition.phase === "preparing" ? [] : expedition.knockedOutHeroIds,
+          checkpointFloor: null,
+          autoExploreBeforeCheckpoint: false,
+        },
+      },
+    },
     events: [{ type: "dungeon.encounter_started", dungeonId: UNDERCITY_DUNGEON_ID, encounterId, floor, room }],
   };
 }

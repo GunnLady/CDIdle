@@ -16,6 +16,10 @@ export interface HeroesPageProps {
   storedItems?: StoredItemInstance[];
   canMutate: boolean;
   canChangeComposition?: boolean;
+  compositionBlockReason?: string;
+  lockedHeroIds?: string[];
+  lockedHeroReason?: string;
+  knockedOutHeroIds?: string[];
   onDismissHero: (heroId: string) => void;
   onToggleHeroActive: (heroId: string) => void;
   onRecruitHero: () => void;
@@ -25,11 +29,22 @@ export interface HeroesPageProps {
 
 export default function HeroesPage(props: HeroesPageProps) {
   const canChangeComposition = props.canChangeComposition ?? props.canMutate;
-  const view = useMemo(() => createHeroesPageView(props.heroes, props.resources, props.buildings), [props.heroes, props.resources, props.buildings]);
+  const view = useMemo(
+    () => createHeroesPageView(props.heroes, props.resources, props.buildings, props.knockedOutHeroIds),
+    [props.buildings, props.heroes, props.knockedOutHeroIds, props.resources],
+  );
   const [selectedHeroId, setSelectedHeroId] = useState<string | null>(() => resolveSelectedHeroId(props.heroes, null));
   const resolvedSelectedId = resolveSelectedHeroId(props.heroes, selectedHeroId);
   const selectedHero = props.heroes.find((hero) => hero.id === resolvedSelectedId) ?? null;
-  const selectedHeroView = useMemo(() => createSelectedHeroView(selectedHero), [selectedHero]);
+  const selectedHeroView = useMemo(
+    () => createSelectedHeroView(selectedHero, Boolean(selectedHero && props.knockedOutHeroIds?.includes(selectedHero.id))),
+    [props.knockedOutHeroIds, selectedHero],
+  );
+  const selectedHeroLocked = selectedHero
+    ? props.lockedHeroIds === undefined
+      ? !canChangeComposition
+      : props.lockedHeroIds.includes(selectedHero.id)
+    : false;
   const equipmentView = useMemo(() => createHeroEquipmentView(selectedHero, props.storedItems ?? []), [selectedHero, props.storedItems]);
   const skillsView = useMemo(() => createHeroSkillsView(selectedHero), [selectedHero]);
 
@@ -41,13 +56,13 @@ export default function HeroesPage(props: HeroesPageProps) {
     <h2 id="heroes-page-title" className="sr-only">Aventuriers</h2>
     <div className="grid grid-cols-1 items-start gap-4 xl:min-h-[48rem] xl:grid-cols-[minmax(18rem,0.8fr)_minmax(0,2.2fr)] xl:items-stretch">
       <div data-testid="heroes-left-column" className="space-y-4 xl:flex xl:min-h-0 xl:flex-col xl:space-y-0 xl:gap-4">
-        <HeroRosterPanel roster={view.roster} selectedHeroId={resolvedSelectedId} capacity={view.capacity} recruitCost={view.recruitCost} canRecruit={view.canRecruit} recruitmentBlockReason={view.recruitmentBlockReason} canMutate={props.canMutate} canChangeComposition={canChangeComposition} onSelectHero={setSelectedHeroId} onToggleHeroActive={props.onToggleHeroActive} onRecruitHero={props.onRecruitHero} />
+        <HeroRosterPanel roster={view.roster} selectedHeroId={resolvedSelectedId} capacity={view.capacity} recruitCost={view.recruitCost} canRecruit={view.canRecruit} recruitmentBlockReason={view.recruitmentBlockReason} canMutate={props.canMutate} canChangeComposition={canChangeComposition} compositionBlockReason={props.compositionBlockReason} onSelectHero={setSelectedHeroId} onToggleHeroActive={props.onToggleHeroActive} onRecruitHero={props.onRecruitHero} />
       </div>
       <div data-testid="hero-presentation-workspace" className="ui-hero-presentation-panel ui-hero-presentation-workspace min-w-0 p-4 sm:p-6 xl:min-h-0">
         <div className="grid min-w-0 items-stretch gap-5 xl:min-h-full xl:grid-cols-[minmax(20rem,1fr)_minmax(22rem,1.1fr)]">
-          <SelectedHeroPanel view={selectedHeroView} canMutate={canChangeComposition} onDismissHero={props.onDismissHero} />
+          <SelectedHeroPanel view={selectedHeroView} canMutate={props.canMutate && !selectedHeroLocked} mutationBlockReason={selectedHeroLocked ? props.lockedHeroReason : undefined} onDismissHero={props.onDismissHero} />
           <div data-testid="heroes-right-column" className="space-y-4 xl:flex xl:min-h-0 xl:flex-col xl:space-y-0 xl:gap-4">
-            <HeroEquipmentPanel view={equipmentView} canMutate={props.canMutate} onUnequipItem={props.onUnequipItem} onOpenStorage={() => props.onGoToTab?.("storage")} />
+            <HeroEquipmentPanel view={equipmentView} canMutate={props.canMutate && !selectedHeroLocked} onUnequipItem={props.onUnequipItem} onOpenStorage={() => props.onGoToTab?.("storage")} />
             <HeroSkillsPanel view={skillsView} />
           </div>
         </div>

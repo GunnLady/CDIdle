@@ -78,6 +78,25 @@ describe("gameCalculations", () => {
     expect(unequipped.calculatedStats).toEqual(refreshHeroDerivedStats(hero).calculatedStats);
     expect(storage).toHaveLength(1);
   });
+
+  it("recovers a legacy equipped item before clearing its slot", () => {
+    const storage = [] as ReturnType<typeof makeStoredItem>[];
+    const hero = makeHero({
+      id: "legacy-hero",
+      equipment: {
+        mainHand: { id: "starter_sword", rarity: "uncommon" } as never,
+      },
+    });
+
+    const unequipped = unequipItem(hero, storage, "mainHand");
+
+    expect(unequipped.equipment?.mainHand).toBeNull();
+    expect(storage).toEqual([expect.objectContaining({
+      instanceId: "item:recovery:legacy-hero:mainHand",
+      itemId: "starter_sword",
+      rarity: "uncommon",
+    })]);
+  });
 });
 
 describe("API command contracts", () => {

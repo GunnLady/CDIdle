@@ -41,6 +41,18 @@ describe("storage presentation", () => {
     expect(canonical.map((item) => item.instanceId)).toEqual(["late", "early"]);
   });
 
+  it("shows recovered legacy instances instead of silently dropping them", () => {
+    const recovered = resolveStorageItems([
+      { instanceId: "legacy-id", id: "wooden_shield", rarity: "common" } as never,
+      { instanceId: "missing-id", itemType: "armor", rarity: "common" } as never,
+    ]);
+
+    expect(recovered.map(({ instanceId, itemId }) => ({ instanceId, itemId }))).toEqual([
+      { instanceId: "legacy-id", itemId: "wooden_shield" },
+      { instanceId: "missing-id", itemId: "traveler_clothes" },
+    ]);
+  });
+
   it("explains an off-hand blocked by a two-handed main weapon", () => {
     const selected = { instanceId: "shield", itemId: "wooden_shield", itemLevel: 1, powerModelId: "legacy-fixed-v1" as const, rarity: "common" as const };
     const hero = makeHero({
@@ -55,6 +67,16 @@ describe("storage presentation", () => {
     const target = createStorageEquipmentDecisionView(selected, [hero])?.targets[0];
     expect(target?.candidate).toBeNull();
     expect(target?.blockedReason).toBe("Bloquée par l’arme principale");
+    expect(target?.stats).toEqual(expect.arrayContaining([
+      { id: "str", label: "FOR", name: "Force", value: "5" },
+      { id: "wiz", label: "SAG", name: "Sagesse", value: "5" },
+      { id: "luk", label: "LUK", name: "Chance", value: "5" },
+    ]));
+    expect(target?.subStats).toEqual(expect.arrayContaining([
+      { id: "hp", label: "PV", value: "20/20" },
+      { id: "dps", label: "DPS", value: "6.60" },
+      { id: "critical", label: "Critique", value: "0%" },
+    ]));
   });
 
   it("prepares inventory and forge summary models outside presentation panels", () => {

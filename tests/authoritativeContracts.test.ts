@@ -64,6 +64,21 @@ describe("authoritative shared contracts", () => {
     })).toContain("command.zoneId is required");
   });
 
+  it("validates explicit checkpoint decisions", () => {
+    expect(validateCanonicalCommandEnvelope({
+      ...validEnvelope,
+      command: { type: "dungeon.checkpoint_decide", decision: "continue" },
+    })).toEqual([]);
+    expect(validateCanonicalCommandEnvelope({
+      ...validEnvelope,
+      command: { type: "dungeon.checkpoint_decide", decision: "return_to_town" },
+    })).toEqual([]);
+    expect(validateCanonicalCommandEnvelope({
+      ...validEnvelope,
+      command: { type: "dungeon.checkpoint_decide", decision: "replace_party" },
+    })).toContain("command.decision is invalid");
+  });
+
   it("bounds condensed building upgrades", () => {
     expect(validateCanonicalCommandEnvelope({
       ...validEnvelope,
@@ -166,6 +181,84 @@ describe("authoritative shared contracts", () => {
       ...base,
       currentEncounter: { ...encounter, participantHeroIds: ["missing-hero"] },
     })).toContain("currentEncounter.participantHeroIds must reference existing heroes");
+  });
+
+  it("validates dungeon segment phase invariants", () => {
+    const hero = makeHero({ id: "segment-contract-hero" });
+    const base = {
+      ...initialTownState(42),
+      heroes: [hero],
+      dungeonProgress: createUndercityProgress([hero.id]),
+    };
+    const running = structuredClone(base);
+    running.dungeonProgress.expedition = {
+      ...running.dungeonProgress.expedition,
+      phase: "running",
+      segmentHeroIds: [hero.id],
+    };
+    expect(validateCanonicalGameState(running)).toEqual([]);
+
+    const invalidKo = structuredClone(running);
+    invalidKo.dungeonProgress.expedition.knockedOutHeroIds = ["missing-hero"];
+    expect(validateCanonicalGameState(invalidKo)).toContain(
+      "dungeonProgress.expedition.knockedOutHeroIds must be a subset of segmentHeroIds",
+    );
+
+    const invalidCheckpoint = structuredClone(running);
+    invalidCheckpoint.dungeonProgress.expedition.phase = "checkpoint_decision";
+    invalidCheckpoint.dungeonProgress.expedition.checkpointFloor = 6;
+    expect(validateCanonicalGameState(invalidCheckpoint)).toEqual(expect.arrayContaining([
+      "dungeonProgress.expedition.checkpointFloor is invalid",
+    ]));
+
+    const knockedOutParticipant = structuredClone(running);
+    knockedOutParticipant.heroes[0] = makeHero({
+      id: hero.id,
+      currentHp: 0,
+      isActive: false,
+      status: "resting",
+    });
+    knockedOutParticipant.dungeonProgress.expedition.knockedOutHeroIds = [hero.id];
+    knockedOutParticipant.currentEncounter = {
+      encounterId: "invalid-ko-participant",
+      kind: "pending",
+      status: "active",
+      dungeonId: "undercity",
+      floor: 1,
+      room: 1,
+      participantHeroIds: [hero.id],
+    };
+    expect(validateCanonicalGameState(knockedOutParticipant)).toContain(
+      "currentEncounter.participantHeroIds must be operational and not knocked out",
+    );
+
+    const checkpoint = structuredClone(running);
+    checkpoint.currentEncounter = null;
+    checkpoint.autoExplore = false;
+    checkpoint.activeDungeonFloor = 6;
+    checkpoint.activeDungeonRoom = 1;
+    checkpoint.dungeonProgress.expedition = {
+      ...checkpoint.dungeonProgress.expedition,
+      phase: "checkpoint_decision",
+      floor: 6,
+      room: 1,
+      checkpointFloor: 5,
+      autoExploreBeforeCheckpoint: true,
+    };
+    expect(validateCanonicalGameState(checkpoint)).toEqual([]);
+
+    expect(validateCanonicalGameState({ ...checkpoint, autoExplore: true })).toContain(
+      "checkpoint decision requires autoExplore to be false",
+    );
+    expect(validateCanonicalGameState({ ...checkpoint, activeDungeonFloor: 5 })).toContain(
+      "activeDungeonFloor must match dungeonProgress.expedition.floor",
+    );
+    const misplacedCheckpoint = structuredClone(checkpoint);
+    misplacedCheckpoint.dungeonProgress.expedition.floor = 5;
+    misplacedCheckpoint.activeDungeonFloor = 5;
+    expect(validateCanonicalGameState(misplacedCheckpoint)).toContain(
+      "checkpoint decision position must follow the completed checkpoint",
+    );
   });
 
   it("validates encounter history unions and transcript fields", () => {

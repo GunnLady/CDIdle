@@ -24,6 +24,7 @@ export default function DungeonProgressControls(props: {
   const noParty = props.activeHeroCount === 0;
   const progressionUnavailable = props.journey.awaitingFarmSelection;
   const navigationDisabled = props.encounterActive || props.journey.halted || progressionUnavailable || props.journey.mode === "farm";
+  const farmZoneSelectionDisabled = props.journey.mode === "farm" && !props.journey.halted;
   const autoDisabled = !props.canMutate || props.journey.halted || progressionUnavailable || (!props.autoExplore && noParty);
   const autoUnavailableReason = !props.canMutate ? "Lecture seule" : props.journey.halted ? "Reprenez l’expédition" : progressionUnavailable ? "Choisissez une zone à farmer" : !props.autoExplore && noParty ? "Aucun héros actif" : undefined;
   const autoAction = <Button type="button" variant={props.autoExplore ? "primary" : "secondary"} disabled={autoDisabled} onClick={props.onToggleAutoExplore} className="w-full whitespace-nowrap uppercase">{props.autoExplore ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}{props.autoExplore ? "Arrêter l’auto" : "Exploration auto"}</Button>;
@@ -42,7 +43,7 @@ export default function DungeonProgressControls(props: {
         </div>
         {props.journey.halted && <div className="mt-3 flex items-center justify-between gap-3 rounded-ui-control border border-amber-700/50 bg-amber-950/30 p-2"><span>Expédition arrêtée après {props.journey.haltReason === "wipe" ? "un wipe" : "un repli"}.</span><Button type="button" variant="primary" disabled={!props.canMutate || noParty} onClick={props.onResume}>Reprendre</Button></div>}
       </div>
-      {props.journey.farmZones.length > 0 && <div className="rounded-ui-control border border-ui-border-subtle bg-ui-surface p-3"><p className="mb-2 text-xs font-bold uppercase text-ui-text-muted">Zone à farmer</p><div className="flex flex-wrap gap-2">{props.journey.farmZones.map((zone) => <Button key={zone.id} type="button" variant={zone.selected ? "primary" : "secondary"} disabled={!props.canMutate || props.encounterActive} onClick={() => props.onSelectFarmZone(zone.id)}>{zone.name}</Button>)}</div></div>}
+      {props.journey.farmZones.length > 0 && <div className="rounded-ui-control border border-ui-border-subtle bg-ui-surface p-3"><p className="mb-2 text-xs font-bold uppercase text-ui-text-muted">Zone à farmer</p><div className="flex flex-wrap gap-2">{props.journey.farmZones.map((zone) => <Button key={zone.id} type="button" variant={zone.selected ? "primary" : "secondary"} disabled={!props.canMutate || props.encounterActive || farmZoneSelectionDisabled} onClick={() => props.onSelectFarmZone(zone.id)}>{zone.name}</Button>)}</div></div>}
     </div>
     <div className="mt-3 grid grid-cols-1 gap-2 border-t border-[#5c402b]/30 pt-3 sm:grid-cols-3">
       {autoUnavailableReason ? <Tooltip label="Pourquoi l’exploration automatique est indisponible" content={autoUnavailableReason} className="w-full min-w-0">{autoAction}</Tooltip> : <div className="w-full min-w-0">{autoAction}</div>}

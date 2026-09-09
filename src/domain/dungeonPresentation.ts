@@ -2,6 +2,7 @@ import type {
   CanonicalActiveDungeonEncounter,
   CanonicalDungeonEncounterRecord,
   CanonicalDungeonProgress,
+  CanonicalPendingClassTransition,
   CanonicalDungeonTranscriptEvent,
 } from "../../shared/contracts/authoritative";
 import { getDungeonRoomCount } from "../../shared/domain/dungeon-progression";
@@ -50,6 +51,7 @@ export interface DungeonProgressBannerHeroView {
   maxMana: number;
   healthPercent: number;
   manaPercent: number;
+  isKnockedOut: boolean;
 }
 
 export interface DungeonProgressBannerView {
@@ -58,9 +60,12 @@ export interface DungeonProgressBannerView {
   autoExplore: boolean;
   party: Array<DungeonProgressBannerHeroView | null>;
   canToggleAutoExplore: boolean;
+  action: "pause" | "resume" | "continue_checkpoint" | "open_dungeon";
+  canUseAction: boolean;
 }
 
 export interface DungeonPartyHeroView extends HeroRosterEntryView {
+  isKnockedOut: boolean;
   attackPower: number;
   estimatedDps: string;
   physicalDefense: number;
@@ -142,16 +147,27 @@ export function createDungeonRoomProgressView(floor: number, room: number): Dung
 
 export function createDungeonProgressBannerView(input: {
   heroes: Hero[];
+  dungeonProgress?: CanonicalDungeonProgress;
   floor: number;
   room: number;
   autoExplore: boolean;
   encounter: CanonicalActiveDungeonEncounter | null;
   isExploring: boolean;
   canMutate: boolean;
+  pendingClassTransitions?: CanonicalPendingClassTransition[];
 }): DungeonProgressBannerView {
-  const activeHeroes = input.heroes.filter((hero) => hero.isActive).slice(0, ACTIVE_HERO_LIMIT);
+  const expedition = input.dungeonProgress?.expedition;
+  const segmentActive = expedition && expedition.phase !== "preparing";
+  const heroesById = new Map(input.heroes.map((hero) => [hero.id, hero]));
+  const partyHeroes = segmentActive
+    ? expedition.segmentHeroIds.flatMap((heroId) => {
+        const hero = heroesById.get(heroId);
+        return hero ? [hero] : [];
+      }).slice(0, ACTIVE_HERO_LIMIT)
+    : input.heroes.filter((hero) => hero.isActive).slice(0, ACTIVE_HERO_LIMIT);
+  const knockedOutHeroIds = new Set(segmentActive ? expedition.knockedOutHeroIds : []);
   const party = Array.from({ length: ACTIVE_HERO_LIMIT }, (_, index): DungeonProgressBannerHeroView | null => {
-    const hero = activeHeroes[index];
+    const hero = partyHeroes[index];
     if (!hero) return null;
     const maxHp = Math.max(1, hero.calculatedStats.maxHp);
     const maxMana = Math.max(0, hero.calculatedStats.maxMana);
@@ -168,9 +184,26 @@ export function createDungeonProgressBannerView(input: {
       maxMana,
       healthPercent: Math.round((currentHp / maxHp) * 100),
       manaPercent: maxMana > 0 ? Math.round((currentMana / maxMana) * 100) : 0,
+      isKnockedOut: knockedOutHeroIds.has(hero.id),
     };
   });
-  const status = activeHeroes.length === 0
+  const operationalHeroCount = partyHeroes.filter((hero) => !knockedOutHeroIds.has(hero.id) && hero.currentHp > 0).length;
+  const checkpointPending = expedition?.phase === "checkpoint_decision";
+  const pendingHeroIds = new Set((input.pendingClassTransitions ?? []).map((pending) => pending.heroId));
+  const segmentHasPendingVocation = Boolean(expedition?.segmentHeroIds.some((heroId) => pendingHeroIds.has(heroId)));
+  const canContinueCheckpointDirectly = Boolean(
+    checkpointPending
+    && input.canMutate
+    && expedition.autoExploreBeforeCheckpoint
+    && expedition.knockedOutHeroIds.length === 0
+    && !segmentHasPendingVocation
+    && (expedition.checkpointFloor ?? UNDERCITY_MAX_FLOOR) < UNDERCITY_MAX_FLOOR,
+  );
+  const action: DungeonProgressBannerView["action"] = checkpointPending
+    ? canContinueCheckpointDirectly ? "continue_checkpoint" : "open_dungeon"
+    : input.autoExplore ? "pause" : "resume";
+  const canToggleAutoExplore = input.canMutate && operationalHeroCount > 0 && !input.encounter && !checkpointPending;
+  const status = partyHeroes.length === 0
     ? "Aucun groupe"
     : input.encounter && input.isExploring
       ? "Combat en cours"
@@ -186,13 +219,18 @@ export function createDungeonProgressBannerView(input: {
     status,
     autoExplore: input.autoExplore,
     party,
-    canToggleAutoExplore: input.canMutate && activeHeroes.length > 0 && !input.encounter,
+    canToggleAutoExplore,
+    action,
+    canUseAction: checkpointPending
+      ? action === "open_dungeon" || canContinueCheckpointDirectly
+      : canToggleAutoExplore,
   };
 }
 
 export function createDungeonPartyView(
   heroes: Hero[],
   roster: HeroRosterEntryView[],
+  progress?: CanonicalDungeonProgress,
 ): { party: Array<DungeonPartyHeroView | null>; reserves: DungeonPartyHeroView[] } {
   const rosterById = new Map(roster.map((entry) => [entry.id, entry]));
   const projected = heroes.flatMap((hero): DungeonPartyHeroView[] => {
@@ -201,6 +239,7 @@ export function createDungeonPartyView(
     const maxMana = Math.max(0, hero.calculatedStats.maxMana);
     return [{
       ...entry,
+      isKnockedOut: Boolean(progress?.expedition.knockedOutHeroIds.includes(hero.id)),
       attackPower: Math.floor(normalAttackPower(hero)),
       estimatedDps: hero.calculatedStats.estimatedDps.toFixed(2),
       physicalDefense: Math.floor(hero.calculatedStats.physicalDefense),
@@ -218,10 +257,18 @@ export function createDungeonPartyView(
       isMaxLevel: hero.level >= HERO_MAX_LEVEL,
     }];
   });
-  const active = projected.filter((hero) => hero.isActive).slice(0, ACTIVE_HERO_LIMIT);
+  const projectedById = new Map(projected.map((hero) => [hero.id, hero]));
+  const engagedIds = progress && progress.expedition.phase !== "preparing"
+    ? progress.expedition.segmentHeroIds
+    : projected.filter((hero) => hero.isActive).map((hero) => hero.id);
+  const engaged = engagedIds.flatMap((heroId) => {
+    const hero = projectedById.get(heroId);
+    return hero ? [hero] : [];
+  }).slice(0, ACTIVE_HERO_LIMIT);
+  const engagedSet = new Set(engagedIds);
   return {
-    party: Array.from({ length: ACTIVE_HERO_LIMIT }, (_, index) => active[index] ?? null),
-    reserves: projected.filter((hero) => !hero.isActive),
+    party: Array.from({ length: ACTIVE_HERO_LIMIT }, (_, index) => engaged[index] ?? null),
+    reserves: projected.filter((hero) => !engagedSet.has(hero.id)),
   };
 }
 

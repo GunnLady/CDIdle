@@ -12,6 +12,10 @@ import {
   type HeroEligibilityError,
 } from "../../../shared/domain/hero.ts";
 import { refreshHeroProgressionThreshold } from "../../../shared/domain/hero-xp.ts";
+import {
+  decideDungeonHeroMutation,
+  type DungeonHeroMutation,
+} from "../../../shared/domain/dungeon-segment.ts";
 import { generateAuthoritativeNovice } from "./novice-authority.ts";
 import { TownCommandError, type TownCommandHandler } from "./command-handler.ts";
 
@@ -21,9 +25,20 @@ function throwRecruitmentError(error: HeroEligibilityError): never {
   throw new TownCommandError("INSUFFICIENT_RESOURCES", "insufficient gold");
 }
 
+function requireHeroMutation(
+  town: Parameters<typeof decideDungeonHeroMutation>[0],
+  heroId: string,
+  mutation: DungeonHeroMutation,
+): void {
+  const decision = decideDungeonHeroMutation(town, heroId, mutation);
+  if (decision.allowed === false) {
+    throw new TownCommandError(decision.code, "hero is locked in the current dungeon segment");
+  }
+}
+
 export const chooseHeroVocation: TownCommandHandler<"hero.choose_vocation"> = (context, command) => {
   const town = context.town;
-  if (town.currentEncounter) throw new TownCommandError("ENCOUNTER_ACTIVE", "hero vocation cannot change during an encounter");
+  requireHeroMutation(town, command.heroId, "choose_vocation");
   const heroes = town.heroes ?? [];
   const pending = town.pendingClassTransitions.find((entry) => entry.heroId === command.heroId);
   if (!pending) throw new TownCommandError("VOCATION_NOT_PENDING", "hero has no pending vocation");
@@ -137,7 +152,7 @@ export const dismissHero: TownCommandHandler<"hero.dismiss"> = (context, command
   const town = context.town;
   const dismissed = town.heroes.find((hero) => hero.id === command.heroId);
   if (!dismissed) throw new TownCommandError("HERO_NOT_FOUND", "hero not found");
-  if (town.currentEncounter) throw new TownCommandError("ENCOUNTER_ACTIVE", "hero cannot be dismissed during an encounter");
+  requireHeroMutation(town, command.heroId, "dismiss");
   const returnedItems = Object.values(dismissed.equipment ?? {})
     .filter((item): item is NonNullable<typeof item> => Boolean(item));
   return {
@@ -159,7 +174,7 @@ export const changeHeroActivity: TownCommandHandler<"hero.activity"> = (context,
   const town = context.town;
   const hero = town.heroes.find((entry) => entry.id === command.heroId);
   if (!hero) throw new TownCommandError("HERO_NOT_FOUND", "hero not found");
-  if (town.currentEncounter) throw new TownCommandError("ENCOUNTER_ACTIVE", "hero activity cannot change during an encounter");
+  requireHeroMutation(town, command.heroId, command.active ? "join_party" : "leave_party");
   if (command.active && Number(hero.currentHp ?? 0) <= 0) throw new TownCommandError("INVALID_HEALTH", "hero has no health");
   const occupiedSlots = town.heroes.filter((entry) => entry.isActive).length;
   if (command.active && !hero.isActive && occupiedSlots >= ACTIVE_HERO_LIMIT) {
