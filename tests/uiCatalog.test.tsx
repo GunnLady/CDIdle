@@ -19,6 +19,12 @@ describe("UI catalog", () => {
     expect(screen.getByRole("checkbox", { name: "Accepter l’amélioration" })).toBeInTheDocument();
     expect(screen.getByTestId("catalog-selection-metrics")).toBeInTheDocument();
     expect(screen.getByTestId("catalog-navigation-status")).toBeInTheDocument();
+    expect(screen.getByTestId("catalog-dungeon-scene-prototype")).toBeInTheDocument();
+    expect(screen.getAllByTestId("dungeon-scene-actor")).toHaveLength(7);
+    expect(screen.getByTestId("dungeon-scene-prototype-stage")).toHaveAttribute("data-kind", "battle");
+    expect(screen.getByTestId("dungeon-scene-prototype-stage")).toHaveAttribute("data-phase", "impact");
+    expect(screen.getByText("−11")).toBeInTheDocument();
+    expect(screen.getByText("Prototype de présentation · aucune commande de jeu")).toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 2, name: "Boutons" })).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Ouvrir le dialogue" }));
     expect(screen.getByRole("dialog", { name: "Confirmer l'action" })).toBeInTheDocument();
@@ -31,6 +37,12 @@ describe("UI catalog", () => {
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Simuler une notification" }));
     expect(screen.getByText("La synchronisation est terminée.").closest("[role=status]")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Boss" }));
+    expect(screen.getByTestId("dungeon-scene-prototype-stage")).toHaveAttribute("data-kind", "boss");
+    expect(screen.getByText("Roi des Rats")).toBeInTheDocument();
+    expect(screen.getAllByText(/Protection/)).toHaveLength(2);
+    await user.click(screen.getByText("Consulter le journal de la fixture"));
+    expect(screen.getByText("Les Lames du Roi prennent position.")).toBeVisible();
   });
 
   it("keeps the primitive catalog interactive without product compositions", async () => {

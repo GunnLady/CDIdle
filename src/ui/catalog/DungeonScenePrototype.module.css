@@ -1,0 +1,256 @@
+.prototype {
+  container-name: dungeon-scene-pc;
+  container-type: inline-size;
+}
+
+.stage {
+  position: relative;
+  min-height: 31rem;
+  overflow: hidden;
+  border: 1px solid rgb(92 64 43 / 82%);
+  border-radius: 0.75rem;
+  background:
+    radial-gradient(circle at 48% 18%, rgb(150 105 49 / 20%), transparent 25%),
+    linear-gradient(180deg, rgb(14 18 18) 0 57%, rgb(30 22 13) 57% 100%);
+  box-shadow: inset 0 -4rem 7rem rgb(0 0 0 / 58%);
+  isolation: isolate;
+}
+
+.stage::before {
+  position: absolute;
+  inset: 0;
+  content: "";
+  pointer-events: none;
+  background:
+    linear-gradient(90deg, rgb(42 74 69 / 22%), transparent 32% 66%, rgb(94 45 28 / 18%)),
+    repeating-linear-gradient(93deg, transparent 0 9rem, rgb(213 172 87 / 4%) 9.1rem 9.25rem);
+}
+
+.stage::after {
+  position: absolute;
+  z-index: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 43%;
+  content: "";
+  pointer-events: none;
+  background:
+    linear-gradient(8deg, transparent 49%, rgb(196 151 73 / 12%) 50%, transparent 51%),
+    repeating-linear-gradient(8deg, rgb(39 28 17 / 88%) 0 2.8rem, rgb(24 18 12 / 92%) 2.85rem 5.7rem);
+  clip-path: polygon(0 28%, 100% 0, 100% 100%, 0 100%);
+}
+
+.formationLabel {
+  position: absolute;
+  z-index: 1;
+  top: 0.75rem;
+  color: rgb(231 215 188 / 56%);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.56rem;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.formationLabel[data-team="heroes"] { left: 1rem; }
+.formationLabel[data-team="enemies"] { right: 1rem; }
+
+.actor {
+  position: absolute;
+  z-index: var(--actor-layer);
+  left: var(--actor-x);
+  top: var(--actor-y);
+  width: clamp(5rem, 10cqw, 7.25rem);
+  transform:
+    translate(-50%, -50%)
+    translate(var(--actor-motion-x), var(--actor-motion-y))
+    rotate(var(--actor-motion-rotate))
+    scale(calc(var(--actor-scale) * var(--actor-motion-scale)));
+  transform-origin: 50% 82%;
+  transition: transform 80ms linear;
+  will-change: transform;
+}
+
+.actor::after {
+  position: absolute;
+  z-index: -1;
+  right: 13%;
+  bottom: 2.7rem;
+  left: 13%;
+  height: 0.6rem;
+  border-radius: 50%;
+  background: rgb(0 0 0 / 58%);
+  content: "";
+  filter: blur(2px);
+}
+
+.portraitShell,
+.enemyShell {
+  position: relative;
+  display: grid;
+  width: 100%;
+  height: clamp(6rem, 12cqw, 8.4rem);
+  place-items: center;
+}
+
+.portrait {
+  width: 100% !important;
+  height: 100% !important;
+  filter: drop-shadow(0 0.4rem 0.3rem rgb(0 0 0 / 62%));
+}
+
+.enemyShell {
+  align-content: end;
+}
+
+.enemyGlyph {
+  display: grid;
+  width: 72%;
+  aspect-ratio: 0.78;
+  place-items: center;
+  border: 2px solid rgb(202 160 80 / 50%);
+  border-radius: 48% 48% 36% 36%;
+  background: linear-gradient(145deg, #513622, #17100b 74%);
+  box-shadow: inset 0 0 1.2rem rgb(0 0 0 / 70%), 0 0.5rem 0.5rem rgb(0 0 0 / 48%);
+  color: #e3c27d;
+  font-family: Georgia, serif;
+  font-size: clamp(1.5rem, 3.3cqw, 2.4rem);
+  font-weight: 900;
+}
+
+.enemyGlyph[data-glyph="guard"] { border-radius: 42% 42% 50% 50%; color: #a9b4bd; }
+.enemyGlyph[data-glyph="king"] { border-color: #d4af37; color: #f0ca68; transform: scale(1.12); }
+
+.actor[data-state="ko"] .portraitShell,
+.actor[data-state="ko"] .enemyShell {
+  filter: grayscale(0.72) brightness(0.58);
+  transform: translateY(0.75rem) rotate(-8deg) scaleY(0.72);
+  transform-origin: 50% 100%;
+}
+
+.actor[data-state="chosen"] .portraitShell {
+  filter: drop-shadow(0 0 0.75rem rgb(251 191 36 / 70%));
+}
+
+.actorMeta {
+  position: relative;
+  min-height: 2.7rem;
+  overflow: hidden;
+  border: 1px solid rgb(92 64 43 / 78%);
+  border-radius: 0.42rem;
+  background: rgb(10 7 5 / 88%);
+  padding: 0.3rem;
+  box-shadow: 0 0.25rem 0.45rem rgb(0 0 0 / 45%);
+  text-align: center;
+}
+
+.name {
+  display: block;
+  overflow: hidden;
+  color: #f4e8d1;
+  font-size: 0.64rem;
+  font-weight: 900;
+  line-height: 1.05;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.role {
+  display: block;
+  margin-top: 0.13rem;
+  overflow: hidden;
+  color: #a58d74;
+  font-size: 0.48rem;
+  letter-spacing: 0.08em;
+  line-height: 1;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.bar {
+  display: block;
+  height: 0.23rem;
+  margin-top: 0.25rem;
+  overflow: hidden;
+  border-radius: 99px;
+  background: rgb(0 0 0 / 76%);
+}
+
+.bar > span { display: block; height: 100%; }
+.bar[data-kind="hp"] > span { background: #c84f4f; }
+.bar[data-kind="mana"] > span { background: #4b8bc8; }
+
+.object {
+  position: absolute;
+  z-index: 1;
+  top: 46%;
+  left: 52%;
+  width: 8rem;
+  transform: translate(-50%, -50%);
+  color: #e1bd68;
+  text-align: center;
+}
+
+.objectGlyph {
+  display: grid;
+  width: 3.8rem;
+  height: 3.8rem;
+  margin: auto;
+  place-items: center;
+  border: 1px solid rgb(202 160 80 / 52%);
+  border-radius: 50%;
+  background: rgb(17 11 6 / 78%);
+  box-shadow: 0 0 1.5rem rgb(202 160 80 / 20%);
+  font-size: 1.7rem;
+}
+
+.objectLabel { display: block; margin-top: 0.35rem; font-size: 0.6rem; }
+
+.impact {
+  position: absolute;
+  z-index: 30;
+  left: var(--impact-x);
+  top: var(--impact-y);
+  transform: translate(-50%, -120%);
+  color: #fff0a8;
+  font-family: Georgia, serif;
+  font-size: clamp(1.1rem, 2.7cqw, 1.8rem);
+  font-weight: 900;
+  text-shadow: 0 0 0.45rem #d44728, 0 2px 0 #471309;
+  animation: prototype-impact 250ms ease-out both;
+}
+
+.timeline { accent-color: #caa050; }
+
+@keyframes prototype-impact {
+  from { opacity: 0; transform: translate(-50%, -70%) scale(0.7); }
+  45% { opacity: 1; transform: translate(-50%, -125%) scale(1.2); }
+  to { opacity: 1; transform: translate(-50%, -145%) scale(1); }
+}
+
+@container dungeon-scene-pc (max-width: 42rem) {
+  .stage { min-height: 34rem; }
+  .actor {
+    left: var(--actor-zoom-x);
+    top: var(--actor-zoom-y);
+    width: clamp(4.4rem, 16cqw, 6rem);
+    transform:
+      translate(-50%, -50%)
+      translate(var(--actor-zoom-motion-x), var(--actor-zoom-motion-y))
+      rotate(var(--actor-motion-rotate))
+      scale(calc(var(--actor-zoom-scale) * var(--actor-motion-scale)));
+  }
+  .portraitShell,
+  .enemyShell { height: clamp(5rem, 18cqw, 6.8rem); }
+  .formationLabel[data-team="heroes"] { top: auto; bottom: 0.6rem; }
+  .formationLabel[data-team="enemies"] { right: auto; left: 1rem; }
+  .object { top: 47%; left: 50%; }
+  .impact { left: var(--impact-zoom-x); top: var(--impact-zoom-y); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .actor { transition: none; will-change: auto; }
+  .impact { animation: none; }
+}

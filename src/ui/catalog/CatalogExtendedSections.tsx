@@ -23,6 +23,7 @@ import IconButton from "../primitives/IconButton";
 import Select from "../primitives/Select";
 import TextField from "../primitives/TextField";
 import CatalogSection from "./CatalogSection";
+import DungeonScenePrototype from "./DungeonScenePrototype";
 
 type CatalogTab = "city" | "heroes" | "dungeon" | "storage";
 type DialogExample = "basic" | "choice" | "blocking" | null;
@@ -80,6 +81,10 @@ export default function CatalogExtendedSections() {
         <div className="grid gap-3"><Progress label="Points de vie" value={72} max={100} size="compact" tone="health" /><Progress label="Mana" value={31} max={60} size="compact" tone="mana" /><Progress label="Expérience" value={840} max={1200} size="compact" tone="experience" /><Progress label="Progression sans valeur affichée" value={45} showValue={false} /></div>
         <RoomProgress label="Salles du Donjon" steps={[{ id: "1", label: "1", state: "completed" }, { id: "2", label: "2", state: "current" }, { id: "3", label: "3", state: "upcoming" }, { id: "boss", label: "4", state: "upcoming", boss: true }]} />
       </div>
+    </CatalogSection>
+
+    <CatalogSection title="Donjon 2D — prototype PC" subtitle="Composition, états et vocabulaire de mouvement sur fixtures locales" testId="catalog-dungeon-scene-prototype">
+      <DungeonScenePrototype />
     </CatalogSection>
 
     <CatalogSection title="Divulgation et journal" subtitle="Contenu repliable, filtres et chronologie" testId="catalog-disclosure-log">

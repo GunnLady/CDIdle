@@ -1,0 +1,385 @@
+{
+  "schemaVersion": 1,
+  "approval": "approved",
+  "approvalEvidence": "Demande utilisateur : « Crée les huit tickets ».",
+  "createdOn": "2026-09-10",
+  "creationValidation": {
+    "command": "npm.cmd run board:validate",
+    "ticketCount": 104,
+    "errors": 0,
+    "approvedContentMatches": true
+  },
+  "plan": "docs/development/dungeon-2d-encounter-plan.md",
+  "baseCommit": "24be0dbc20d1615348b667a7cadff1edd40b361c",
+  "description": "Archive de l'aperçu approuvé des huit tickets créés. Les fichiers Markdown du Workboard sont désormais la source de vérité de leur contenu et de leur statut.",
+  "files": [
+    {
+      "path": "workboard/data/ToDo/CDI-097/ticket.md",
+      "operation": "create",
+      "ticketId": "CDI-097"
+    },
+    {
+      "path": "workboard/data/Later/CDI-098/ticket.md",
+      "operation": "create",
+      "ticketId": "CDI-098"
+    },
+    {
+      "path": "workboard/data/Later/CDI-099/ticket.md",
+      "operation": "create",
+      "ticketId": "CDI-099"
+    },
+    {
+      "path": "workboard/data/Later/CDI-100/ticket.md",
+      "operation": "create",
+      "ticketId": "CDI-100"
+    },
+    {
+      "path": "workboard/data/Later/CDI-101/ticket.md",
+      "operation": "create",
+      "ticketId": "CDI-101"
+    },
+    {
+      "path": "workboard/data/Later/CDI-102/ticket.md",
+      "operation": "create",
+      "ticketId": "CDI-102"
+    },
+    {
+      "path": "workboard/data/Later/CDI-103/ticket.md",
+      "operation": "create",
+      "ticketId": "CDI-103"
+    },
+    {
+      "path": "workboard/data/Later/CDI-104/ticket.md",
+      "operation": "create",
+      "ticketId": "CDI-104"
+    }
+  ],
+  "existingTicketChanges": [],
+  "configurationChanges": [],
+  "githubSynchronization": false,
+  "tickets": [
+    {
+      "id": "CDI-097",
+      "title": "Valider la composition responsive de la scène Donjon 2D",
+      "status": "ToDo",
+      "area": "ui",
+      "priority": "P1",
+      "size": "M",
+      "risk": "medium",
+      "depends_on": [],
+      "blocks": [
+        "CDI-098",
+        "CDI-099"
+      ],
+      "related_docs": [
+        "docs/development/dungeon-2d-encounter-plan.md",
+        "src/components/dungeon/CurrentEncounterPanel.tsx",
+        "src/components/dungeon/DungeonPage.tsx",
+        "src/ui/catalog",
+        "tests/browser/fixtures/dungeonHarness.tsx",
+        "docs/development/design-system.md"
+      ],
+      "sections": {
+        "Objectif": "Valider structure, actions, lisibilité et vocabulaire de mouvement de la future scène avant sa généralisation artistique.",
+        "Resultat utilisateur": "Le joueur reconnaît son équipe CDIdle et comprend une rencontre animée dans l'espace actuellement occupé par le transcript.",
+        "Contexte": "La direction CDIdle est confirmée. La référence SLT est analysée dans le plan ; son rendu DOM n'exige pas de nouveau moteur. La scène actuelle mesure 675 px et les tests figent cette hauteur.",
+        "Perimetre autorise": "- Préparer un prototype isolé réutilisant le harness ou le catalogue privé existant.\n- Montrer attente, combat à quatre héros et trois ennemis, boss avec gardes, repos/KO et une épreuve.\n- Établir emplacements, échelle, couches, PV/PM, noms, résumé et accès au journal.\n- Prototyper anticipation, déplacement, impact et retour sur quelques silhouettes CDIdle.\n- Fixer responsive et distinction entre commandes d'exploration et simple présentation.",
+        "Hors perimetre": "- Brancher le prototype sur la partie persistée.\n- Produire toute la bibliothèque artistique.\n- Introduire placement tactique, son, vitesse de progression ou nouveau moteur.",
+        "Contrat d'implementation": "- Plans et positions calculés hors des composants React.\n- Utiliser Panel, commandes et tokens existants ; éviter un nouvel habillage global.\n- Le prototype ne rend pas le catalogue privé accessible dans le bundle public.\n- Silhouettes actuelles, sans utiliser les vingt variantes comme frames.\n- Démontrer le mouvement avec une horloge de présentation déterministe et des données de fixture.",
+        "Dependances": "Aucune dépendance bloquante. S'appuyer sur CDI-076/CDI-077 livrés et les sources actuelles.",
+        "Criteres d'acceptation": "- [ ] Une composition est validée aux cinq largeurs 360/768/1024/1280/1440 px et au zoom 200 %.\n- [ ] Quatre héros et trois ennemis, dont deux gardes et le Roi, restent identifiables sans débordement horizontal.\n- [ ] Attente, KO, repos et épreuve ont des états explicites ; actions et journal restent accessibles.\n- [ ] L'utilisateur valide les silhouettes transformées, l'anticipation et les impacts ; sinon le besoin de poses dédiées est décidé avant CDI-099.\n- [ ] Le contrat de composition, les dimensions et les profils d'animation retenus sont ajoutés au plan sans imposer de nouvelle règle de combat.",
+        "Tests": "- Contrôles structurels du harness et du modèle de placement.\n- Couverture responsive du prototype selon le dispositif navigateur autorisé.\n- npm.cmd run typecheck\n- npm.cmd run lint -- --quiet\n- npm.cmd run build\n- npm.cmd run check:bundle\n- npm.cmd run board:validate",
+        "Validation manuelle": "L'utilisateur compare le prototype à la direction SLT décrite dans le plan et valide structure, actions et responsive avant l'habillage final. Si les outils navigateur ne sont pas autorisés, fournir le terminal, la commande et l'URL exacts.",
+        "Preservation": "- Conserver autorité serveur, RNG, résultats, XP, loot, révisions, idempotence et règles de segment.\n- Aucun changement de cadence de progression, aucune commande réseau depuis une animation.\n- Conserver les changements utilisateur et les autres écrans ; pas de refactor collatéral.\n- Commit, push et déploiement suivent les confirmations AGENTS.md ; contrôles visuels par l'utilisateur.",
+        "Risques": "- Réduire une scène desktop entière sur mobile rendrait les noms illisibles.\n- Une silhouette qui glisse sans impact ne répond pas au rendu attendu.",
+        "Handoff": "Fournir composition retenue, captures utilisateur ou verdict daté, mesures responsive, profils de mouvement, limites et décision sur les poses dédiées ; référencer V01/V14/V15/V18."
+      },
+      "source": "Demande utilisateur du 10 septembre 2026 - scènes Donjon 2D inspirées de SLT",
+      "github_issue": null
+    },
+    {
+      "id": "CDI-098",
+      "title": "Fiabiliser la trace autoritaire pour les scènes de rencontre",
+      "status": "Later",
+      "area": "architecture",
+      "priority": "P1",
+      "size": "L",
+      "risk": "high",
+      "depends_on": [
+        "CDI-097"
+      ],
+      "blocks": [
+        "CDI-100"
+      ],
+      "related_docs": [
+        "docs/development/dungeon-2d-encounter-plan.md",
+        "shared/contracts/authoritative.ts",
+        "shared/domain/authoritative-dungeon.ts",
+        "shared/domain/undercity.ts",
+        "shared/domain/undercity-combat.ts",
+        "docs/development/canonical-state-migrations.md",
+        "docs/development/supabase-egress-budget.md"
+      ],
+      "sections": {
+        "Objectif": "Fournir des événements et un état initial compacts permettant une représentation exacte des rencontres, sans rejouer le moteur métier.",
+        "Resultat utilisateur": "Chaque impact, soin, coût de mana et KO concerne le bon personnage ; une ancienne rencontre reste consultable.",
+        "Contexte": "Le record actuel manque d'acteurs initiaux complets. La branche de compétence monocible peut réaffecter monster après le coup létal avant de journaliser la cible ; ce constat statique doit être reproduit. Les intentions sont filtrées à l'affichage actuel.",
+        "Perimetre autorise": "- Construire la matrice auteur/cibles/PV/PM/effets pour tous les événements actuels.\n- Reproduire puis corriger la trace de compétence létale visant un membre d'un groupe.\n- Ajouter une extension versionnée et facultative d'acteurs initiaux au record des nouvelles rencontres.\n- Fournir des clés visuelles stables pour blueprint/membre ennemi et identité de héros au départ.\n- Compléter les champs nécessaires de mana, cibles multiples, changement/fin d'effet et intentions.\n- Vérifier validation API, persistance, cache, bootstrap, cross-tab et records historiques.",
+        "Hors perimetre": "- Modifier calculs, choix de cible, tirages RNG, équilibre, cadence, résultats ou récompenses.\n- Parser les messages français pour retrouver des cibles.\n- Reconstruire fictivement les données manquantes des historiques.\n- Introduire un second transcript ou une copie du héros complet à chaque action.",
+        "Contrat d'implementation": "- Les valeurs nouvelles sont capturées au point où le domaine les connaît.\n- Distinguer acteur attaquant, cible touchée, dégâts calculés et PV effectivement retirés ; conserver l'ordre des impacts multiples.\n- Les ajouts purement visuels n'ajoutent pas de durée au calendrier actuel.\n- Aucune URL d'asset ou position viewport dans le domaine métier.\n- Compatibilité additive avec absence de l'extension ; migration uniquement si une preuve la rend nécessaire.\n- Garder l'historique à quinze entrées et mesurer l'augmentation réelle des enveloppes avant généralisation.",
+        "Dependances": "CDI-097 fixe les informations nécessaires à la scène. Les acquis de contrats/migrations et du budget CDI-095 sont à préserver.",
+        "Criteres d'acceptation": "- [ ] Un test reproduit la mauvaise cible potentielle au coup létal puis prouve id/PV corrects, y compris avec un survivant suivant.\n- [ ] Les acteurs initiaux identifient quatre membres au maximum, les KO de segment pertinents et les participants réels ; les valeurs ne viennent pas du snapshot final.\n- [ ] Les neuf types de rencontre, le mana, les soins, multi-frappes, cibles multiples et intentions ont une matrice de données exploitable sans texte.\n- [ ] À état et graine identiques, les sorties métier et le RNG restent identiques hors enrichissement/correction de trace.\n- [ ] Anciennes sauvegardes et événements inconnus restent acceptés selon les frontières de compatibilité existantes.\n- [ ] Les coûts en octets de quinze rencontres, dont traces longues réelles, sont mesurés et compatibles avec les budgets du plan.\n- [ ] Persistance, bootstrap et replay sont prouvés sur le runtime Supabase local si le contrat persisté change.",
+        "Tests": "- Étendre authoritativeContracts, authoritativeDungeonGolden, undercityProductDomain, dungeonSegmentHarness et les tests de migrations/cache concernés.\n- Fixtures de compétences létales, soin, buff/debuff collectif, mana, repos et épreuves.\n- npm.cmd run test:egress-budget\n- npm.cmd run check:determinism\n- npm.cmd run typecheck\n- npm.cmd run lint -- --quiet\n- npm.cmd run test:integration (runtime Supabase local ; preuve persistée)\n- npm.cmd run board:validate",
+        "Validation manuelle": "Vérifier une réponse locale avec la nouvelle extension puis une ancienne rencontre chargée sans elle, sans partager de bearer ni snapshot joueur. Cette validation porte sur les données, pas sur le rendu.",
+        "Preservation": "- Conserver autorité serveur, RNG, résultats, XP, loot, révisions, idempotence et règles de segment.\n- Aucun changement de cadence de progression, aucune commande réseau depuis une animation.\n- Conserver les changements utilisateur et les autres écrans ; pas de refactor collatéral.\n- Commit, push et déploiement suivent les confirmations AGENTS.md ; contrôles visuels par l'utilisateur.",
+        "Risques": "- Ajouter des détails sur chaque événement peut gonfler tous les snapshots.\n- Une correction de trace ne doit pas modifier involontairement le résultat du combat.\n- Le maximum historique de 500 actions indiqué dans un ancien plan ne remplace pas les bornes effectivement présentes dans le code.",
+        "Handoff": "Fournir contrat versionné, matrice d'événements, fixtures avant/après, preuves de parité, métriques d'octets et compatibilité ; référencer V02–V07/V11/V13/V17."
+      },
+      "source": "Demande utilisateur du 10 septembre 2026 - scènes Donjon 2D inspirées de SLT",
+      "github_issue": null
+    },
+    {
+      "id": "CDI-099",
+      "title": "Préparer les assets CDIdle des scènes de combat et rencontre",
+      "status": "Later",
+      "area": "art",
+      "priority": "P1",
+      "size": "L",
+      "risk": "medium",
+      "depends_on": [
+        "CDI-097"
+      ],
+      "blocks": [
+        "CDI-101",
+        "CDI-102"
+      ],
+      "related_docs": [
+        "docs/development/dungeon-2d-encounter-plan.md",
+        "src/assets/heroSpriteSheets.ts",
+        "src/domain/heroPortrait.ts",
+        "src/components/HeroPortrait.tsx",
+        "shared/domain/undercity.ts",
+        "assets/design/hero-sprites/human-tier1-class-spritesheets-v1.prompt.md"
+      ],
+      "sections": {
+        "Objectif": "Disposer d'une bibliothèque visuelle CDIdle complète, cohérente et légère pour le contenu actuel des rencontres.",
+        "Resultat utilisateur": "Le joueur retrouve ses héros, distingue les ennemis et reconnaît l'ambiance de chaque zone et les rencontres hors combat.",
+        "Contexte": "Les dix classes humaines actuelles offrent deux sexes et vingt variantes, soit 400 identités statiques. Les planches ne sont pas des cycles d'animation. Le prototype CDI-097 fixe l'échelle et valide le mode de mouvement.",
+        "Perimetre autorise": "- Préparer les sprites détourés en conservant classe, sexe, visage, cheveux, peau et variante stables.\n- Couvrir tous les membres des trente blueprints UnderCity et identifier élites/boss, avec réemploi de familles lorsque lisible.\n- Préparer les cinq ambiances de zone, accessoires des huit types hors combat et effets génériques de combat.\n- Définir clés de catalogue, cadrages, ancrages, tailles, origine, versions, fallback et chargement à la demande.\n- Optimiser les découpes, transparences et téléchargements ; réutiliser le cache existant quand pertinent.",
+        "Hors perimetre": "- Copier le code ou les ressources de SLT sans vérification distincte des droits.\n- Redessiner les héros ou perdre la continuité d'identité lors d'une vocation.\n- Ajouter des monstres, races jouables, compétences ou zones de gameplay.\n- Dessiner des cycles complets pour 400 identités si le prototype n'en établit pas le besoin.",
+        "Contrat d'implementation": "- Catalogue de présentation séparé du catalogue métier.\n- Aucun détourage à chaque frame ; extraction réutilisable ou ressources préparées.\n- Aucun fallback ne fait planter la scène ; pas de masquage silencieux d'un acteur.\n- Les propriétés du héros au départ de la rencontre déterminent son apparence historique.\n- L'inventaire artistique et sa couverture sont généralisables aux variantes sans multiplier inutilement les fichiers.",
+        "Dependances": "CDI-097 doit avoir validé composition, échelle et besoin éventuel de poses dédiées. CDI-098 fournira les clés de données compatibles ; coordonner leur convention.",
+        "Criteres d'acceptation": "- [ ] Les 400 identités humaines actuelles sont résolubles, avec conservation de la variante à travers les classes.\n- [ ] Les cinq zones et les trente blueprints ont une couverture visuelle complète de leurs membres ; Roi et gardes sont distincts.\n- [ ] Les huit rencontres hors combat disposent des accessoires nécessaires.\n- [ ] Le manifeste décrit provenance, variantes, ancrage, échelle et fallback ; une vérification détecte les entrées manquantes.\n- [ ] Les assets ne chargent que les acteurs/zone utiles et respectent le budget proposé de 2 MiB supplémentaires à froid, ou une révision motivée du budget est explicitement acceptée avant clôture.\n- [ ] L'utilisateur valide un échantillon représentatif puis la cohérence finale sur décors sombres, dont les cas de détourage délicats.",
+        "Tests": "- Vérification de couverture du catalogue contre HERO_SPRITE_SHEETS et UNDERCITY_ZONES, sans dupliquer manuellement le catalogue métier.\n- Contrôle des fichiers, dimensions, poids et identité stable ; simuler asset absent/chargement lent.\n- npm.cmd test -- --run tests/heroPortrait.test.ts\n- npm.cmd run typecheck\n- npm.cmd run build\n- npm.cmd run check:bundle\n- npm.cmd run board:validate",
+        "Validation manuelle": "Validation utilisateur de silhouettes, transparence, perspective, tailles, différenciation ennemie et cohérence des cinq ambiances. Les effets artificiels ne doivent pas recouvrir les informations essentielles.",
+        "Preservation": "- Conserver autorité serveur, RNG, résultats, XP, loot, révisions, idempotence et règles de segment.\n- Aucun changement de cadence de progression, aucune commande réseau depuis une animation.\n- Conserver les changements utilisateur et les autres écrans ; pas de refactor collatéral.\n- Commit, push et déploiement suivent les confirmations AGENTS.md ; contrôles visuels par l'utilisateur.",
+        "Risques": "- Masse de travail artistique sous-estimée si les poses dédiées deviennent nécessaires.\n- Franges vertes et cache non borné si le détourage runtime est réutilisé sans contrôle.\n- Des ressources trop similaires rendent les cibles impossibles à suivre.",
+        "Handoff": "Fournir manifeste complet, sources/prompts autorisés, mesures de poids, décisions de réemploi et preuves visuelles ; référencer V01/V13/V18."
+      },
+      "source": "Demande utilisateur du 10 septembre 2026 - scènes Donjon 2D inspirées de SLT",
+      "github_issue": null
+    },
+    {
+      "id": "CDI-100",
+      "title": "Construire le lecteur déterministe des scènes de rencontre",
+      "status": "Later",
+      "area": "frontend",
+      "priority": "P1",
+      "size": "L",
+      "risk": "high",
+      "depends_on": [
+        "CDI-098"
+      ],
+      "blocks": [
+        "CDI-101",
+        "CDI-102"
+      ],
+      "related_docs": [
+        "docs/development/dungeon-2d-encounter-plan.md",
+        "src/domain/encounterPlayback.ts",
+        "src/hooks/useEncounterPlayback.ts",
+        "src/domain/dungeonPresentation.ts",
+        "src/hooks/useAuthoritativeCommandDispatch.ts",
+        "tests/encounterPlayback.test.ts"
+      ],
+      "sections": {
+        "Objectif": "Projeter la trace autoritaire vers une chronologie visuelle indépendante du moteur métier, testable à toute position temporelle.",
+        "Resultat utilisateur": "Les impacts, jauges et états restent synchronisés malgré un changement d'écran, une animation désactivée ou une nouvelle rencontre.",
+        "Contexte": "Le dispatch attend actuellement la lecture, laquelle définit une partie de la cadence idle. Les PV du snapshot global sont déjà finaux au démarrage de cette lecture.",
+        "Perimetre autorise": "- Créer un adaptateur pur des records anciens/nouveaux et un modèle d'acteurs/événements visuels.\n- Définir ordre, regroupement, points d'impact et projection des PV/PM/effets.\n- Construire un lecteur à horloge injectée avec annulation, rattrapage direct et gestion de génération.\n- Distinguer horloge de cadence applicative et interpolation graphique.\n- Définir l'état neutre et le résumé fidèle pour les données historiques insuffisantes.",
+        "Hors perimetre": "- Relancer resolveFight, tirer des probabilités ou modifier l'état canonique.\n- Donner à animationend/onComplete l'autorité de démarrer le prochain combat.\n- Ajouter commandes de vitesse/replay ou animations dépendantes du framerate.",
+        "Contrat d'implementation": "- Respecter le calendrier du plan : événements de cadence existants à 400 ms, clôture à 400 ms, sans délai ajouté par les métadonnées visuelles.\n- L'ordre des conséquences est canonique ; seules les animations décoratives se chevauchent.\n- Une projection à t fournit les mêmes valeurs qu'une lecture pas à pas jusqu'à t.\n- encounterId + sequence + indice d'impact donnent une identité visuelle stable ; session/génération invalident les callbacks périmés.\n- Promesses et ressources toujours libérées après annulation, même si aucun événement de fin CSS n'arrive.",
+        "Dependances": "CDI-098 fournit contrat et fixtures fiables.",
+        "Criteres d'acceptation": "- [ ] Projection et lecture séquentielle donnent exactement les mêmes acteurs, PV/PM et effets pour chaque point d'impact.\n- [ ] Coup létal, soins, multi-cibles, repos/réanimation et événements inconnus sont couverts.\n- [ ] Lecture visible, désactivée et hors page Donjon ont le même calendrier de fin ; raf/60/120 Hz n'influe pas sur le résultat.\n- [ ] Nouvelle rencontre, revision obsolète, reset et changement de session neutralisent toute ancienne mise à jour.\n- [ ] Doublon/replay ne relance pas indéfiniment la scène ; aucun backlog illimité après suspension.\n- [ ] Une campagne de cent rencontres ne laisse ni promesse suspendue ni collection ou minuterie croissante.",
+        "Tests": "- Étendre tests/encounterPlayback.test.ts avec horloge injectée, annulations et parité de durée.\n- Ajouter des tests de projection et chronologie basés sur les fixtures de CDI-098.\n- Exercer erreurs, record vide, inconnu, ancien, cible absente et reprise à mi-action.\n- npm.cmd run typecheck\n- npm.cmd run lint -- --quiet\n- npm.cmd run check:determinism\n- npm.cmd run board:validate",
+        "Validation manuelle": "La fidélité temporelle se prouve automatiquement. La vérification d'une jauge et d'un impact sur le prototype est complémentaire et ne remplace pas la preuve de cadence.",
+        "Preservation": "- Conserver autorité serveur, RNG, résultats, XP, loot, révisions, idempotence et règles de segment.\n- Aucun changement de cadence de progression, aucune commande réseau depuis une animation.\n- Conserver les changements utilisateur et les autres écrans ; pas de refactor collatéral.\n- Commit, push et déploiement suivent les confirmations AGENTS.md ; contrôles visuels par l'utilisateur.",
+        "Risques": "- Une fin anticipée du lecteur accélérerait l'économie.\n- Utiliser le roster vivant à la place des acteurs initiaux fait disparaître les héros KO avant leur chute animée.",
+        "Handoff": "Fournir contrat du lecteur, points d'impact, règles d'annulation, calendrier de référence et preuves de parité ; référencer V01/V02/V04/V06/V09–V13/V16."
+      },
+      "source": "Demande utilisateur du 10 septembre 2026 - scènes Donjon 2D inspirées de SLT",
+      "github_issue": null
+    },
+    {
+      "id": "CDI-101",
+      "title": "Animer les combats CDIdle et leurs groupes ennemis",
+      "status": "Later",
+      "area": "ui",
+      "priority": "P1",
+      "size": "L",
+      "risk": "medium",
+      "depends_on": [
+        "CDI-099",
+        "CDI-100"
+      ],
+      "blocks": [
+        "CDI-103"
+      ],
+      "related_docs": [
+        "docs/development/dungeon-2d-encounter-plan.md",
+        "src/components/dungeon/CurrentEncounterPanel.tsx",
+        "shared/domain/undercity-combat.ts",
+        "src/ui/foundations/tokens.css"
+      ],
+      "sections": {
+        "Objectif": "Réaliser la scène de combat 2D complète à partir du lecteur et des assets validés.",
+        "Resultat utilisateur": "Les quatre héros affrontent visiblement les ennemis ; attaques, soins, esquives, critiques et KO sont compréhensibles.",
+        "Contexte": "Le modèle garde la direction CDIdle. SLT inspire les trajectoires, ombres et impacts ; les mouvements ne résolvent aucun combat.",
+        "Perimetre autorise": "- Composer décor, sol, acteurs, jauges, statuts, effets et résultat.\n- Implémenter repos animé, entrée, anticipation, mêlée, projectiles, sorts, impacts, retour et KO.\n- Couvrir coups normaux/critiques, multi-frappes, dégâts multicibles, esquive, soin allié et soutien ennemi.\n- Représenter buffs/debuffs et intentions/protection du Roi à partir des données disponibles.\n- Implémenter mouvements réduits, informations HTML et bornes d'effets dès ce lot.",
+        "Hors perimetre": "- Intégrer la scène à l'automatisation de production (CDI-103).\n- Ajouter collision, ciblage, pathfinding ou résolution en temps réel.\n- Produire des effets de jeu absents des événements.",
+        "Contrat d'implementation": "- Composants de rendu sans règles métier ; la chronologie et les ancrages restent hors React.\n- Impacts et nombres flottants consomment les mêmes points temporels que les jauges.\n- Un héros vaincu reste dans son emplacement de segment ; il ne frappe plus.\n- Profils d'attaque issus des données de rencontre, pas d'une classe supposée ou d'un nom français.\n- Transformations locales et ressources nettoyées ; pas de rerender de tout App par frame.",
+        "Dependances": "CDI-099 fournit assets et CDI-100 fournit lecteur/projection ; le prototype CDI-097 gouverne la composition.",
+        "Criteres d'acceptation": "- [ ] Toutes les familles de combat V02–V06 sont représentées sur le bon acteur avec valeurs exactes.\n- [ ] Les variantes des héros, les élites et les boss restent reconnaissables à toutes les tailles validées.\n- [ ] Une compétence létale n'anime pas le survivant suivant comme cible du coup précédent.\n- [ ] Aucun effet décoratif ne déborde sur les commandes, ne masque une information obligatoire ou ne devient une condition de progression.\n- [ ] Le mode de mouvements réduits et l'asset manquant conservent une scène utile et un résumé accessible.\n- [ ] Nombre d'effets simultanés et ressources respectent les limites du plan.",
+        "Tests": "- Tests de composants sur déclenchement des bons profils, cibles et états accessibles.\n- Contrôles du harness avec combat normal, trois ennemis et Roi avec gardes.\n- Éviter de tester les courbes CSS pixel par pixel ; tester les transitions utiles.\n- npm.cmd run typecheck\n- npm.cmd run lint -- --quiet\n- npm.cmd run build\n- npm.cmd run check:bundle\n- npm.cmd run board:validate",
+        "Validation manuelle": "L'utilisateur valide un combat physique, un combat mêlant magie et soin, une multi-frappe, une esquive, un KO et le Roi avec ses gardes. Retenir le verdict sur rythme et lisibilité.",
+        "Preservation": "- Conserver autorité serveur, RNG, résultats, XP, loot, révisions, idempotence et règles de segment.\n- Aucun changement de cadence de progression, aucune commande réseau depuis une animation.\n- Conserver les changements utilisateur et les autres écrans ; pas de refactor collatéral.\n- Commit, push et déploiement suivent les confirmations AGENTS.md ; contrôles visuels par l'utilisateur.",
+        "Risques": "- Effets trop nombreux, nombres superposés, profondeur incohérente.\n- Des jauges indépendantes de la chronologie trahissent l'action représentée.",
+        "Handoff": "Fournir les profils de mouvement, exemples représentatifs, limites de rendu et validations ; référencer V02–V06/V14."
+      },
+      "source": "Demande utilisateur du 10 septembre 2026 - scènes Donjon 2D inspirées de SLT",
+      "github_issue": null
+    },
+    {
+      "id": "CDI-102",
+      "title": "Animer les huit rencontres hors combat du Donjon",
+      "status": "Later",
+      "area": "ui",
+      "priority": "P1",
+      "size": "M",
+      "risk": "medium",
+      "depends_on": [
+        "CDI-099",
+        "CDI-100"
+      ],
+      "blocks": [
+        "CDI-103"
+      ],
+      "related_docs": [
+        "docs/development/dungeon-2d-encounter-plan.md",
+        "shared/domain/authoritative-dungeon.ts",
+        "shared/contracts/authoritative.ts",
+        "src/domain/dungeonPresentation.ts"
+      ],
+      "sections": {
+        "Objectif": "Donner une mise en scène spécifique à chaque rencontre hors combat avec le même lecteur et la même identité visuelle.",
+        "Resultat utilisateur": "Le joueur voit son héros désamorcer un piège, traiter une épreuve, découvrir un trésor ou récupérer au repos.",
+        "Contexte": "Les types actuels sont treasure, rest, trap, enigma, ambush, ritual, obstacle et negotiation. Ambush est une épreuve dans le domaine actuel, pas un combat supplémentaire.",
+        "Perimetre autorise": "- Réaliser les huit scènes décrites dans le plan.\n- Mettre en avant le héros réellement sélectionné pour les épreuves.\n- Montrer succès/échec, soins, mana, réanimation, or et loot depuis les événements structurés.\n- Réutiliser acteurs, décor, chronologie et résultats accessibles des autres scènes.",
+        "Hors perimetre": "- Ajouter choix de dialogue, mini-jeu, jets locaux, combat d'embuscade ou clic de collecte.\n- Appliquer une perte/prime depuis l'animation.\n- Interpréter tout outcome defeat comme wipe.",
+        "Contrat d'implementation": "- Les variantes partagent un système de composition, sans huit moteurs indépendants.\n- Les conséquences exactes viennent de heroChanges, recovery et des récompenses reçues, pas d'un pourcentage recalculé dans React.\n- Les données manquantes déclenchent le résumé fidèle prévu par CDI-100.\n- Le repos inclut les KO éligibles du segment ; aucun héros resté en ville n'est ajouté artificiellement.",
+        "Dependances": "CDI-099 fournit accessoires/décors et CDI-100 le lecteur commun.",
+        "Criteres d'acceptation": "- [ ] Les huit types sont couverts, avec succès et échec pour les six épreuves lorsque applicables.\n- [ ] Coffre vide/contenu, récompenses et plans ne sont pas inventés ou dupliqués.\n- [ ] Repos à PV/PM partiels et repos avec réanimation du segment donnent les valeurs exactes.\n- [ ] Le héros affiché pour l'épreuve correspond à challenge.hero_selected.\n- [ ] La négociation échouée et les autres échecs non-combat ne présentent pas un wipe fictif.\n- [ ] Mouvements réduits, clavier et résumé conservent l'information.",
+        "Tests": "- Fixtures de toutes les branches non-combat, dont repos avec plusieurs KO.\n- Tests du mapping des types et conséquences, avec couverture exhaustive de l'union canonique.\n- Réutiliser les harnesses d'épreuves et de segments existants.\n- npm.cmd run typecheck\n- npm.cmd run lint -- --quiet\n- npm.cmd run build\n- npm.cmd run board:validate",
+        "Validation manuelle": "L'utilisateur valide coffre, repos/réanimation et les six épreuves, dont leurs issues contrastées. Aucune interaction supplémentaire n'est requise pour que l'idle avance.",
+        "Preservation": "- Conserver autorité serveur, RNG, résultats, XP, loot, révisions, idempotence et règles de segment.\n- Aucun changement de cadence de progression, aucune commande réseau depuis une animation.\n- Conserver les changements utilisateur et les autres écrans ; pas de refactor collatéral.\n- Commit, push et déploiement suivent les confirmations AGENTS.md ; contrôles visuels par l'utilisateur.",
+        "Risques": "- Uniformiser toutes les épreuves sous une animation générique ferait perdre le résultat recherché.\n- Les montants de récupération plafonnés ne se déduisent pas d'un simple pourcentage.",
+        "Handoff": "Fournir matrice des huit scènes et branches, exemples et verdict visuel ; référencer V06/V07/V14."
+      },
+      "source": "Demande utilisateur du 10 septembre 2026 - scènes Donjon 2D inspirées de SLT",
+      "github_issue": null
+    },
+    {
+      "id": "CDI-103",
+      "title": "Intégrer les scènes 2D au Donjon et préserver son automatisation",
+      "status": "Later",
+      "area": "frontend",
+      "priority": "P1",
+      "size": "L",
+      "risk": "high",
+      "depends_on": [
+        "CDI-101",
+        "CDI-102"
+      ],
+      "blocks": [
+        "CDI-104"
+      ],
+      "related_docs": [
+        "docs/development/dungeon-2d-encounter-plan.md",
+        "src/components/dungeon/DungeonPage.tsx",
+        "src/components/dungeon/CurrentEncounterPanel.tsx",
+        "src/components/dungeon/DungeonHistoryPanel.tsx",
+        "src/hooks/useDungeonAutomation.ts",
+        "src/hooks/useAuthoritativeCommandDispatch.ts",
+        "src/hooks/useCrossTabGameSynchronization.ts",
+        "docs/development/dungeon-segment-ko-milestone-plan.md"
+      ],
+      "sections": {
+        "Objectif": "Remplacer effectivement le transcript principal par les scènes 2D tout en conservant les commandes, le journal et les garanties de synchronisation.",
+        "Resultat utilisateur": "Les rencontres animées s'enchaînent en exploration manuelle et automatique, puis laissent place aux décisions de jalon au bon moment.",
+        "Contexte": "Le snapshot est appliqué avant le playback ; celui-ci participe à l'attente de l'automate. L'intégration doit traiter cet ordre explicitement, ainsi que le partage entre onglets.",
+        "Perimetre autorise": "- Brancher les scènes combat/non-combat dans CurrentEncounterPanel et adapter la présentation des ennemis pour éviter les doublons.\n- Conserver historique, exploration, pause auto, retraite, jalons, vocation et sélection de farm.\n- Raccorder lecture, annulation et calendrier à l'orchestration existante.\n- Traiter page hors Donjon, document masqué, changement de leader, replay/conflit et snapshot récent.\n- Fournir préférence locale d'animations et résumé/journal accessibles.",
+        "Hors perimetre": "- Modifier les règles de KO, de progression, de farm ou de cadence.\n- Introduire un poll réseau, WebSocket, commande par impact ou backlog de scènes.\n- Supprimer l'historique ou refondre les autres pages.",
+        "Contrat d'implementation": "- Une invocation nominale par rencontre automatique ; pas de nouvelles mutations depuis le lecteur.\n- Définir la priorité résultat/rencontre suivante/jalon pour qu'une animation obsolète ne masque pas une action actuelle.\n- Les valeurs animées restent locales à la scène et ne remplacent jamais celles du snapshot global.\n- Document masqué : pas de nouveaux départs ; reprise sans rafale. Autre page visible : comportement applicatif existant conservé, scène arrêtée.\n- Reset, logout et compte suivant purgent la lecture et les ressources ; observateur en lecture seule.\n- Conserver le journal détaillé et une annonce synthétique unique ; préférence reduced-motion respectée.",
+        "Dependances": "CDI-101 et CDI-102 livrent les scènes complètes ; intégrer avec les règles de segment actuelles.",
+        "Criteres d'acceptation": "- [ ] Le transcript principal est remplacé par une scène pour les neuf types, sans laisser les événements hors combat au seul ancien texte.\n- [ ] Exploration manuelle et automatique conservent les mêmes résultats, cadence et nombre de requêtes qu'avant.\n- [ ] Jalons 5/10/50, KO, vocation, continuer/retour et choix de zone farm restent disponibles et cohérents.\n- [ ] Navigation, onglet masqué, autre onglet/leader, replay et conflits n'ajoutent ni double commande ni lecture périmée.\n- [ ] Reset, changement de compte et panne réseau ne montrent pas une ancienne victoire ni des acteurs d'une autre session.\n- [ ] Historique, lecture seule, mouvements réduits et préférence d'animation restent utilisables.\n- [ ] Les assertions anciennes sur le transcript/hauteur sont remplacées par des contrôles pertinents de scène et d'accessibilité.",
+        "Tests": "- Étendre DungeonPanel, dungeonPresentation, useDungeonAutomation, useCrossTabGameSynchronization et dungeonSegmentHarness.\n- Comparer les horaires et comptes de commandes dans les modes visible, hors Donjon et mouvements réduits.\n- Mettre à jour tests/browser/dungeonPage.responsive.browser.spec.ts et les fixtures associées.\n- npm.cmd run typecheck\n- npm.cmd run lint -- --quiet\n- npm.cmd test -- --run (suite rapide complète après intégration)\n- npm.cmd run build\n- npm.cmd run check:bundle\n- npm.cmd run board:validate",
+        "Validation manuelle": "Parcours local utilisateur : rencontre manuelle, auto-run, KO/repos, arrivée au jalon puis continuer/retour, étage 50/farm, navigation, mode observateur et retour d'onglet. La qualité finale et les mesures sont consolidées dans CDI-104.",
+        "Preservation": "- Conserver autorité serveur, RNG, résultats, XP, loot, révisions, idempotence et règles de segment.\n- Aucun changement de cadence de progression, aucune commande réseau depuis une animation.\n- Conserver les changements utilisateur et les autres écrans ; pas de refactor collatéral.\n- Commit, push et déploiement suivent les confirmations AGENTS.md ; contrôles visuels par l'utilisateur.",
+        "Risques": "- Le playback attend une animation qui ne se termine pas et bloque l'automate.\n- L'arrivée du snapshot final fait disparaître trop tôt un KO ou affiche le résultat avant le coup.\n- Les limites d'autorisation navigateur sont à respecter pour les contrôles.",
+        "Handoff": "Fournir raccordement exact, comportement de priorité des panneaux, parité de cadence et procédures de reprise ; référencer V06/V08–V14."
+      },
+      "source": "Demande utilisateur du 10 septembre 2026 - scènes Donjon 2D inspirées de SLT",
+      "github_issue": null
+    },
+    {
+      "id": "CDI-104",
+      "title": "Valider et préparer la livraison des rencontres animées",
+      "status": "Later",
+      "area": "quality",
+      "priority": "P1",
+      "size": "M",
+      "risk": "high",
+      "depends_on": [
+        "CDI-103"
+      ],
+      "blocks": [],
+      "related_docs": [
+        "docs/development/dungeon-2d-encounter-plan.md",
+        "docs/development/supabase-egress-budget.md",
+        "docs/development/ci-quality.md",
+        "scripts/check-bundle-budget.mjs",
+        "scripts/test-temporal-concurrency.mjs",
+        "tests/browser/canonicalPipeline.browser.spec.ts",
+        "tests/browser/dungeonPage.responsive.browser.spec.ts",
+        "AGENTS.md"
+      ],
+      "sections": {
+        "Objectif": "Établir les preuves de fidélité, de robustesse, de performance et de qualité visuelle du remplacement complet.",
+        "Resultat utilisateur": "Le joueur dispose de scènes lisibles, fluides et fiables pendant les sessions idle, y compris après reprise ou synchronisation.",
+        "Contexte": "Les validations de fixtures ne prouvent ni la fluidité réelle ni la persistance Supabase. La matrice V01–V18 du plan décrit les preuves à réunir.",
+        "Perimetre autorise": "- Auditer tous les critères du plan, les omissions, régressions, compatibilités et le code devenu mort.\n- Exécuter campagne longue, scénario représentatif et scénario maximal réel.\n- Mesurer JS, assets, egress, mémoire/ressources et temps de rendu.\n- Vérifier le pipeline Supabase local, replay et concurrence si le contrat évolue.\n- Consolider validation visuelle utilisateur, documentation et préparation de livraison.",
+        "Hors perimetre": "- Déclarer les FPS ou l'egress à partir d'une simulation uniquement.\n- Relever silencieusement les budgets ou masquer des actions pour les tenir.\n- Déployer sans confirmation explicite.\n- Réouvrir les calibrations de gameplay sans écart pertinent.",
+        "Contrat d'implementation": "- Relier chaque V01–V18 à une preuve datée, son environnement et sa limite.\n- Respecter 250 KiB gzip JS total / 300 KiB par fichier ; mesurer les assets séparément.\n- Identifier le matériel pour les cibles 60 FPS desktop/30 FPS mobile ; vérifier l'absence de travail de scène hors vue.\n- Cent rencontres déterministes sans croissance des nœuds/timers/écouteurs ; aucun ralentissement accumulé ni commande supplémentaire.\n- Maintenir historique borné et budgets egress, dont quinze traces enrichies longues.\n- Vérification distante et CI uniquement dans la séquence de publication autorisée, avec cdidle-ci-monitor lorsqu'applicable.",
+        "Dependances": "CDI-103 fournit l'intégration complète. Les tickets source doivent être Done ; aucune validation ancienne du plan KO n'est présumée acquise.",
+        "Criteres d'acceptation": "- [ ] V01–V18 ont tous une preuve ou une correction ; aucun écart réel non corrigé n'est dissimulé derrière un test vert.\n- [ ] Les scénarios à quatre héros/trois ennemis, multi-frappes et cinq zones restent lisibles aux viewports définis et au zoom 200 %.\n- [ ] L'utilisateur valide le rendu final des combats, boss, repos/réanimation et épreuves dans l'application.\n- [ ] Les mesures réelles de fluidité, charge artistique, ressources et egress respectent les budgets ou une décision explicite documente leur révision.\n- [ ] Le pipeline local prouve contrat nouveau/ancien, persistance, replay et concurrence sans double progression.\n- [ ] Audit pré-push, documentation et vérifications proportionnées sont complets ; publication/CI, si demandées, sont vérifiées distinctement.",
+        "Tests": "- npm.cmd run typecheck\n- npm.cmd run lint -- --quiet\n- npm.cmd run check:determinism\n- npm.cmd test -- --run\n- npm.cmd run test:egress-budget\n- npm.cmd run test:integration (Supabase local requis)\n- npm.cmd run test:db (si contrat/migration DB concerné)\n- npm.cmd run test:layout-browser et npm.cmd run test:browser dans le cadre navigateur autorisé\n- npm.cmd run build\n- npm.cmd run check:bundle\n- npm.cmd run board:validate\n- git diff --check\n- Mesure de performance réelle décrite dans le handoff, sans collecte de secrets.",
+        "Validation manuelle": "L'utilisateur réalise la validation visuelle finale. Pour un contrôle interactif indisponible dans Codex, donner commande PowerShell, terminal, URL, objectif et résultat attendu ; attendre la preuve. Réaliser les décisions sensibles de jalon sur une partie locale dédiée.",
+        "Preservation": "- Conserver autorité serveur, RNG, résultats, XP, loot, révisions, idempotence et règles de segment.\n- Aucun changement de cadence de progression, aucune commande réseau depuis une animation.\n- Conserver les changements utilisateur et les autres écrans ; pas de refactor collatéral.\n- Commit, push et déploiement suivent les confirmations AGENTS.md ; contrôles visuels par l'utilisateur.",
+        "Risques": "- Mesure sur une machine trop puissante ou une scène calme donnant une confiance excessive.\n- Une trace plus riche augmente l'egress même sans requêtes supplémentaires.\n- Un test historique de transcript peut rester vert tout en ne couvrant plus le rendu livré.",
+        "Handoff": "Mettre à jour le plan avec preuves V01–V18, métriques, verdict utilisateur, limites et procédure de repli. Distinguer implémentation, tests, commit, push, CI et déploiement."
+      },
+      "source": "Demande utilisateur du 10 septembre 2026 - scènes Donjon 2D inspirées de SLT",
+      "github_issue": null
+    }
+  ]
+}
