@@ -1,7 +1,7 @@
 ---
 id: CDI-105
 title: Corriger la cible journalisée par une compétence létale
-status: ToDo
+status: Done
 area: architecture
 priority: P1
 size: S
@@ -62,10 +62,10 @@ Les dépendances directes et leurs liens blocks font foi ; les acquis déjà liv
 
 ## Criteres d'acceptation
 
-- [ ] Un test échoue avant correction sur une compétence tuant la cible avec un survivant suivant, puis réussit sur le bon id/PV.
-- [ ] Le cas sans survivant et une attaque non létale restent corrects.
-- [ ] État final, RNG, XP, loot et résultat sont identiques hors correction du log.
-- [ ] Le changement reste local, sans extension du schéma ni refactor du moteur.
+- [x] Un test échoue avant correction sur une compétence tuant la cible avec un survivant suivant, puis réussit sur le bon id/PV.
+- [x] Le cas sans survivant et une attaque non létale restent corrects.
+- [x] État final, RNG, XP, loot et résultat sont identiques hors correction du log.
+- [x] Le changement reste local, sans extension du schéma ni refactor du moteur.
 
 ## Tests
 
@@ -81,6 +81,10 @@ Ces validations sont à exécuter lors de l'implémentation du ticket ; le redé
 ## Validation manuelle
 
 Aucune validation artistique requise. Présenter la trace minimale avant/après, sans secret ni donnée joueur ; la représentation visuelle sera validée dans CDI-101/CDI-113.
+
+Preuve du 10 septembre 2026 : le test de reproduction attendait `0:member:0`, `Rat des canaux`, 0/16 PV et recevait avant correction `0:member:1`, `Rat galeux`, 16/16 PV. Après capture de la cible au point d'impact, les cas avec survivant, sans survivant et non létal passent. Les consommations RNG sont figées respectivement à 25, 5 et 41 tirages ; l'état final et les récompenses de la fixture létale restent inchangés.
+
+Validations Codex : 93 tests ciblés réussis sur le producteur, les règles de rencontre et le domaine UnderCity ; déterminisme, lint, typecheck ciblé, Workboard et `git diff --check` réussis. Le typecheck global local reste indisponible uniquement à cause du répertoire temporaire ignoré `tmp/deployment-2026-09-10/backend-v27`, hors périmètre.
 
 ## Preservation
 

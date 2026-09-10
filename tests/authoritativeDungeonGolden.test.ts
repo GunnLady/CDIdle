@@ -52,6 +52,40 @@ function state(overrides: Partial<AuthoritativeDungeonState> = {}): Authoritativ
   };
 }
 
+function undercitySkillState(physicalDamage: number): AuthoritativeDungeonState {
+  const hero = makeHero({
+    id: "skill-finisher",
+    name: "Ariane",
+    activeSkills: ["heavy_blow"],
+    currentMana: 100,
+    baseStats: { str: physicalDamage, agi: 1, end: 500, int: 1, wiz: 1, dex: 1, luk: 1 },
+    calculatedStats: {
+      ...makeHero().calculatedStats,
+      maxHp: 2_000,
+      hp: 2_000,
+      maxMana: 100,
+      mana: 100,
+      physicalDamage,
+      physicalDefense: 1_000,
+      criticalChance: 0,
+      dodgeChance: 0,
+    },
+    currentHp: 2_000,
+  });
+  return state({
+    heroes: [hero],
+    currentEncounter: {
+      encounterId: "undercity-skill-target",
+      kind: "pending",
+      status: "active",
+      dungeonId: "undercity",
+      floor: 1,
+      room: 1,
+      participantHeroIds: [hero.id],
+    },
+  });
+}
+
 describe("authoritative dungeon golden behavior characterized from 640f89f", () => {
   it("preserves encounter, monster and combat RNG order for an ordinary fight", () => {
     const tape = tapeRng([
@@ -588,6 +622,72 @@ describe("authoritative dungeon golden behavior characterized from 640f89f", () 
       hitResults: [{ hit: 1, critical: true, damage: expect.any(Number) }],
     });
     expect(result.encounter.transcript[1].message).toMatch(/^\[Coup critique\]/);
+  });
+
+  it("logs the defeated skill target before selecting the next living undercity enemy", () => {
+    const tape = tapeRng([0.10, 0.00, 0.00, ...Array(200).fill(0.99)]);
+    const result = resolveAuthoritativeDungeonEncounter(
+      undercitySkillState(12),
+      "undercity-lethal-skill",
+      tape.rng,
+    );
+    const event = result.encounter.transcript.find((entry) => entry.type === "hero.skill.damage");
+
+    expect(result.encounter.enemies).toHaveLength(3);
+    expect(result.encounter).toMatchObject({
+      outcome: "victory",
+      rewards: { gold: 3, loot: [] },
+    });
+    expect(result.state).toMatchObject({
+      activeDungeonFloor: 1,
+      activeDungeonRoom: 2,
+      resources: { gold: 3 },
+    });
+    expect(event).toMatchObject({
+      monsterId: "0:member:0",
+      monsterName: "Rat des canaux",
+      enemyHp: 0,
+      enemyMaxHp: 16,
+    });
+    expect(tape.draws()).toBe(25);
+  });
+
+  it("keeps a lethal single-enemy skill event on its only undercity target", () => {
+    const tape = tapeRng([0.10, 0.00, 0.50, ...Array(200).fill(0.99)]);
+    const result = resolveAuthoritativeDungeonEncounter(
+      undercitySkillState(35),
+      "undercity-single-target-skill",
+      tape.rng,
+    );
+    const event = result.encounter.transcript.find((entry) => entry.type === "hero.skill.damage");
+
+    expect(result.encounter.enemies).toHaveLength(1);
+    expect(event).toMatchObject({
+      monsterId: "0.5",
+      monsterName: "Slime des égouts",
+      enemyHp: 0,
+      enemyMaxHp: 48,
+    });
+    expect(tape.draws()).toBe(5);
+  });
+
+  it("keeps a non-lethal skill event on the current undercity target", () => {
+    const tape = tapeRng([0.10, 0.00, 0.00, ...Array(200).fill(0.99)]);
+    const result = resolveAuthoritativeDungeonEncounter(
+      undercitySkillState(8),
+      "undercity-non-lethal-skill",
+      tape.rng,
+    );
+    const event = result.encounter.transcript.find((entry) => entry.type === "hero.skill.damage");
+
+    expect(event).toMatchObject({
+      monsterId: "0:member:0",
+      monsterName: "Rat des canaux",
+      enemyMaxHp: 16,
+    });
+    expect(Number(event?.enemyHp)).toBeGreaterThan(0);
+    expect(Number(event?.enemyHp)).toBeLessThan(16);
+    expect(tape.draws()).toBe(41);
   });
 
   it("coordinates a healer and a magical damage dealer in an ordinary room", () => {

@@ -381,7 +381,7 @@ pas leur contenu actuel.
 | [CDI-102](../../workboard/data/Later/CDI-102/ticket.md) | Mettre en scène trésors, repos et réanimations | Later | M / medium | CDI-103, CDI-106 |
 | [CDI-103](../../workboard/data/Later/CDI-103/ticket.md) | Intégrer le premier combat et sécuriser son cycle de lecture | Later | L / high | CDI-101 |
 | [CDI-104](../../workboard/data/Later/CDI-104/ticket.md) | Consolider la recette et préparer la livraison des rencontres 2D | Later | M / high | CDI-116 |
-| [CDI-105](../../workboard/data/ToDo/CDI-105/ticket.md) | Corriger la cible journalisée par une compétence létale | ToDo | S / high | Aucune |
+| [CDI-105](../../workboard/data/Done/CDI-105/ticket.md) | Corriger la cible journalisée par une compétence létale | Done | S / high | Aucune |
 | [CDI-106](../../workboard/data/Later/CDI-106/ticket.md) | Compléter les traces et projections de ressources et de cibles | Later | M / high | CDI-098, CDI-100 |
 | [CDI-107](../../workboard/data/Later/CDI-107/ticket.md) | Construire le lecteur temporel annulable à cadence constante | Later | M / high | CDI-100 |
 | [CDI-108](../../workboard/data/Later/CDI-108/ticket.md) | Compléter les assets des Égouts infestés | Later | M / medium | CDI-099 |

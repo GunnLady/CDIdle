@@ -662,8 +662,9 @@ function resolveFight(
               .map((hit) => `${hit.damage}${hit.critical ? " [critique]" : ""}`)
               .join(", ");
             totalDamage = damage;
+            const impactedMonster = monster;
             if (isUndercity) {
-              damageUndercityEnemy(enemyGroup, monster.id, damage);
+              damageUndercityEnemy(enemyGroup, impactedMonster.id, damage);
               monster = primaryUndercityEnemy(enemyGroup);
             }
             log(
@@ -673,10 +674,10 @@ function resolveFight(
                 : `${criticalHitCount > 0 ? "[Coup critique] " : ""}${hero.name} declenche ${skill.name} et inflige ${damage} degats ${effect.damageType}.`,
               "combat-hero",
               {
-                round, heroId: hero.id, heroName: hero.name, monsterId: monster.id,
-                monsterName: monster.name, skillId, skillName: skill.name, hitCount,
+                round, heroId: hero.id, heroName: hero.name, monsterId: impactedMonster.id,
+                monsterName: impactedMonster.name, skillId, skillName: skill.name, hitCount,
                 hitResults, criticalHitCount, damage, damageType: effect.damageType,
-                enemyHp: isUndercity ? monster.hp : Math.max(0, monster.hp - damage), enemyMaxHp: monster.maxHp,
+                enemyHp: isUndercity ? impactedMonster.hp : Math.max(0, impactedMonster.hp - damage), enemyMaxHp: impactedMonster.maxHp,
                 decisionReason: chosenAction.reason,
               },
             );
