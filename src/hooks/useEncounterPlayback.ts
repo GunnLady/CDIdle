@@ -13,7 +13,6 @@ export function useEncounterPlayback(activeTabRef: RefObject<ActiveTab>) {
     runtimeRef.current = new EncounterPlaybackRuntime({
       isVisible: () => activeTabRef.current === "dungeon",
       onChange: setEncounterPlayback,
-      wait: (durationMs) => new Promise<void>((resolve) => window.setTimeout(resolve, durationMs)),
     });
   }
   const runtime = runtimeRef.current;
@@ -28,7 +27,7 @@ export function useEncounterPlayback(activeTabRef: RefObject<ActiveTab>) {
     setEncounterPlayback({ encounterId, visibleCount: 0, complete: false });
   }, []);
   const resetEncounterPlayback = useCallback(() => {
-    runtime.cancel();
+    runtime.reset();
     setEncounterPlayback(null);
   }, [runtime]);
 

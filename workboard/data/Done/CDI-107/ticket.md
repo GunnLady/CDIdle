@@ -1,7 +1,7 @@
 ---
 id: CDI-107
 title: Construire le lecteur temporel annulable à cadence constante
-status: Later
+status: Done
 area: frontend
 priority: P1
 size: M
@@ -65,12 +65,12 @@ Les dépendances directes et leurs liens blocks font foi ; les acquis déjà liv
 
 ## Criteres d'acceptation
 
-- [ ] Lecture active/désactivée, hors page et raf à 60/120 Hz donnent le même instant de fin et les mêmes valeurs.
-- [ ] Projection directe après suspension égale la lecture séquentielle ; aucun backlog illimité ni rafale de scènes.
-- [ ] Nouvelle rencontre/révision, reset ou changement de session invalident toute ancienne mise à jour.
-- [ ] Doublon/replay ne redémarre pas une boucle de lecture.
-- [ ] Asset lent/manquant, absence de fin CSS, record vide/inconnu et annulation ne laissent aucune promesse suspendue.
-- [ ] Cent rencontres déterministes ne font croître ni collections ni minuteries ; les ressources sont libérées.
+- [x] Lecture active/désactivée, hors page et raf à 60/120 Hz donnent le même instant de fin et les mêmes valeurs.
+- [x] Projection directe après suspension égale la lecture séquentielle ; aucun backlog illimité ni rafale de scènes.
+- [x] Nouvelle rencontre/révision, reset ou changement de session invalident toute ancienne mise à jour.
+- [x] Doublon/replay ne redémarre pas une boucle de lecture.
+- [x] Asset lent/manquant, absence de fin CSS, record vide/inconnu et annulation ne laissent aucune promesse suspendue.
+- [x] Cent rencontres déterministes ne font croître ni collections ni minuteries ; les ressources sont libérées.
 
 ## Tests
 
@@ -86,6 +86,29 @@ Ces validations sont à exécuter lors de l'implémentation du ticket ; le redé
 ## Validation manuelle
 
 La fidélité temporelle est prouvée automatiquement. Une vérification visuelle ultérieure est complémentaire, pas une preuve suffisante de cadence.
+
+Preuves Codex du 10 septembre 2026 : l'horloge injectée utilise des échéances
+absolues et projette directement le curseur attendu après suspension. La durée
+reste `(N + 1) × 400 ms`, indépendamment d'un échantillonnage à 60/120 Hz, du
+rendu désactivé ou d'une page hors vue. Rencontre, révision, reset et session
+invalident les générations anciennes ; doublons actifs et replays terminés sont
+dédupliqués. Une annulation règle la promesse même avec une horloge injectée
+défaillante, tandis que l'horloge système supprime immédiatement sa minuterie.
+La mémoire de replay est bornée à 32 identités et une campagne de cent
+rencontres finit sans minuterie active.
+
+Validations réussies : 13 tests ciblés ; suite complète, 127 fichiers et 1 043
+tests ; tests voisins du dispatch et de la synchronisation cross-tab, 11 tests ;
+`npm.cmd run check:determinism` ; `npm.cmd run lint -- --quiet` ; typecheck avec
+une configuration temporaire excluant uniquement `tmp` ; build Vite, 2 016
+modules ; budget bundle, 252 142 octets gzip JS et plus gros chunk 121 584
+octets ; Workboard, 116 tickets et zéro erreur ; `git diff --check` sans erreur.
+
+La commande exacte `npm.cmd run typecheck` échoue hors périmètre sur les imports
+manquants du dossier utilisateur ignoré
+`tmp/deployment-2026-09-10/backend-v27`. Ce dossier n'a pas été modifié. La
+configuration temporaire de contrôle a été supprimée après le typecheck isolé
+réussi. Aucune validation visuelle n'est requise pour ce lecteur sans rendu.
 
 ## Preservation
 
@@ -103,3 +126,16 @@ La fidélité temporelle est prouvée automatiquement. Une vérification visuell
 Fournir contrat d'horloge, durée de référence, règles d'annulation/dédoublonnage et preuves de ressources. V09/V10/V11/V12/V16. CDI-103 prouve ces mécanismes dans les vrais hooks.
 
 Indiquer fichiers, commandes réellement exécutées, résultats et limites. Ne pas clore avec un écart réel non corrigé ; ne pas attribuer au présent ticket la livraison de ses successeurs.
+
+Contrat livré dans `encounterPlayback.ts` : horloge monotone injectable,
+échéances absolues, calcul pur du curseur, rattrapage direct, génération
+annulable, identité session/rencontre/révision, déduplication bornée et promesses
+toujours réglées. `useEncounterPlayback.ts` utilise l'horloge système et vide la
+mémoire de replay lors d'un reset. Le lecteur consomme la chronologie CDI-100
+sans dupliquer sa projection de présentation et sans appeler le métier depuis
+un callback visuel.
+
+Limites transmises : CDI-103 reste propriétaire du raccordement réel de la
+session, des révisions, de la visibilité document/page et du cycle
+dispatch/cross-tab ; CDI-101 consomme le curseur dans la première scène de
+combat. Les contrôles de vitesse, pause et replay manuel restent hors périmètre.

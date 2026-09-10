@@ -458,7 +458,7 @@ pas leur contenu actuel.
 | [CDI-104](../../workboard/data/Later/CDI-104/ticket.md) | Consolider la recette et préparer la livraison des rencontres 2D | Later | M / high | CDI-116 |
 | [CDI-105](../../workboard/data/Done/CDI-105/ticket.md) | Corriger la cible journalisée par une compétence létale | Done | S / high | Aucune |
 | [CDI-106](../../workboard/data/Later/CDI-106/ticket.md) | Compléter les traces et projections de ressources et de cibles | Later | M / high | CDI-098, CDI-100 |
-| [CDI-107](../../workboard/data/Later/CDI-107/ticket.md) | Construire le lecteur temporel annulable à cadence constante | Later | M / high | CDI-100 |
+| [CDI-107](../../workboard/data/Done/CDI-107/ticket.md) | Construire le lecteur temporel annulable à cadence constante | Done | M / high | CDI-100 |
 | [CDI-108](../../workboard/data/Later/CDI-108/ticket.md) | Compléter les assets des Égouts infestés | Later | M / medium | CDI-099 |
 | [CDI-109](../../workboard/data/Later/CDI-109/ticket.md) | Produire les assets des Galeries des contrebandiers | Later | M / medium | CDI-099 |
 | [CDI-110](../../workboard/data/Later/CDI-110/ticket.md) | Produire les assets des Citernes oubliées | Later | M / medium | CDI-099 |
@@ -477,8 +477,8 @@ six variantes du même contrat de défi après extraction de trésor/repos (115)
 Des poses dédiées décidées dans CDI-097 nécessiteraient de réestimer l'art.
 
 Priorité : P1 pour les vingt tickets du chantier ; ce rang ne signifie pas
-incident de production généralisé. CDI-097, CDI-098, CDI-099 et CDI-105 sont
-Done ; les autres restent Later jusqu'à leurs prérequis Done.
+incident de production généralisé. CDI-097, CDI-098, CDI-099, CDI-100, CDI-105
+et CDI-107 sont Done ; les autres restent Later jusqu'à leurs prérequis Done.
 Les acquis CDI-076, CDI-078, CDI-080, CDI-083, CDI-094 et CDI-095 restent des
 références livrées sans modification de leurs tickets. L'ancien modèle de
 bestiaire CDI-086 ne gouverne pas le contenu UnderCity actuel.
@@ -582,8 +582,9 @@ Les preuves détaillées et la note sur le document de déploiement modifié
 concurremment figurent dans la [section d'application du redécoupage](dungeon-2d-resizing-proposal.md).
 Aucun code applicatif ni état Git n'a été modifié par cette application.
 
-Les prochains tickets exécutables sont CDI-097 (prototype) et CDI-105
-(correction de trace indépendante). Leur implémentation n'a pas commencé.
+Au moment du redécoupage, les prochains tickets exécutables étaient CDI-097
+(prototype) et CDI-105 (correction de trace indépendante) ; leur implémentation
+n'avait alors pas commencé.
 Le présent document ne déclare aucune animation livrée ni validation visuelle
 future déjà obtenue. Commit, push et déploiement restent des étapes distinctes
 avec les confirmations prévues dans AGENTS.md.
