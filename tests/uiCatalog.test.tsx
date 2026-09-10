@@ -1,4 +1,4 @@
-import { cleanup, render, screen, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it } from "vitest";
 import UiCatalog from "../src/ui/catalog/UiCatalog";
@@ -22,6 +22,9 @@ describe("UI catalog", () => {
     expect(screen.getByTestId("catalog-dungeon-scene-prototype")).toBeInTheDocument();
     expect(screen.getAllByTestId("dungeon-scene-actor")).toHaveLength(7);
     expect(screen.getByTestId("dungeon-scene-prototype-stage")).toHaveAttribute("data-kind", "battle");
+    expect(screen.getByTestId("dungeon-scene-prototype-stage")).toHaveAttribute("data-phase", "idle");
+    expect(screen.queryByText("−11")).not.toBeInTheDocument();
+    fireEvent.change(screen.getByRole("slider", { name: "Instant de la scène" }), { target: { value: "1050" } });
     expect(screen.getByTestId("dungeon-scene-prototype-stage")).toHaveAttribute("data-phase", "impact");
     expect(screen.getByText("−11")).toBeInTheDocument();
     expect(screen.getByText("Prototype de présentation · aucune commande de jeu")).toBeInTheDocument();

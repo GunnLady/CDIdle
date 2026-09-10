@@ -34,6 +34,7 @@
     "build": "vite build",
     "build:alpha": "vite build --mode alpha --sourcemap hidden",
     "check:bundle": "node scripts/check-bundle-budget.mjs",
+    "check:dungeon-visuals": "node scripts/check-dungeon-visual-assets.mjs",
     "check:secrets": "node scripts/check-secrets.mjs",
     "smoke:game-api": "node scripts/smoke-game-api.mjs",
     "test:integration": "node scripts/test-temporal-concurrency.mjs",
@@ -80,7 +81,7 @@
     "test:watch": "vitest --watch",
     "test:coverage": "vitest --coverage --run",
     "check:coverage": "node scripts/check-coverage-thresholds.mjs",
-    "check": "npm run board:validate && npm run check:secrets && npm run check:logs && npm run check:migrations && npm run typecheck && npm run lint && npm run test:coverage && npm run check:coverage && npm run test:db && npm run test:layout-browser && npm run test:browser && npm run build && npm run check:bundle"
+    "check": "npm run board:validate && npm run check:secrets && npm run check:logs && npm run check:migrations && npm run check:dungeon-visuals && npm run typecheck && npm run lint && npm run test:coverage && npm run check:coverage && npm run test:db && npm run test:layout-browser && npm run test:browser && npm run build && npm run check:bundle"
   },
   "dependencies": {
     "@supabase/supabase-js": "2.110.8",

@@ -3,6 +3,7 @@ import {
   createDungeonScenePrototypeFixture,
   DUNGEON_SCENE_PROTOTYPE_DURATION_MS,
   DUNGEON_SCENE_PROTOTYPE_KINDS,
+  getDungeonScenePrototypeDepthScale,
   getDungeonScenePrototypeFrame,
   getDungeonScenePrototypePlacements,
 } from "../src/domain/dungeonScenePrototype";
@@ -21,6 +22,11 @@ describe("dungeon scene prototype presentation model", () => {
     }
 
     expect(createDungeonScenePrototypeFixture("battle").actors.filter((actor) => actor.team === "enemies")).toHaveLength(3);
+    expect(createDungeonScenePrototypeFixture("battle").actors.filter((actor) => actor.team === "enemies").map((actor) => actor.visualKey)).toEqual([
+      "undercity:rat-pack:a",
+      "undercity:rat-pack:b",
+      "undercity:rat-pack:c",
+    ]);
     const boss = createDungeonScenePrototypeFixture("boss");
     expect(boss.actors.filter((actor) => actor.team === "enemies")).toHaveLength(3);
     expect(boss.actors.filter((actor) => actor.state === "guarding")).toHaveLength(2);
@@ -50,6 +56,53 @@ describe("dungeon scene prototype presentation model", () => {
         }
         const identity = placements.map((placement) => `${placement.xPercent}:${placement.yPercent}`);
         expect(new Set(identity).size).toBe(identity.length);
+        const heroIds = new Set(fixture.actors.filter((actor) => actor.team === "heroes").map((actor) => actor.id));
+        if (layout === "standard") {
+          expect(placements.filter((placement) => heroIds.has(placement.actorId))
+            .every((placement) => placement.xPercent <= 40 && placement.yPercent >= 44)).toBe(true);
+          expect(placements.filter((placement) => !heroIds.has(placement.actorId))
+            .every((placement) => placement.xPercent >= 60 && placement.yPercent >= 50)).toBe(true);
+          expect(placements.filter((placement) => placement.yPercent >= 70)
+            .every((placement) => placement.xPercent <= 30 || placement.xPercent >= 70)).toBe(true);
+        } else {
+          expect(placements.every((placement) => placement.yPercent >= 40)).toBe(true);
+        }
+      }
+    }
+  });
+
+  it("keeps the melee fighter in front with ranged and support heroes behind on the left bank", () => {
+    const fixture = createDungeonScenePrototypeFixture("battle");
+    const placements = new Map(getDungeonScenePrototypePlacements(fixture, "standard")
+      .map((placement) => [placement.actorId, placement]));
+    const warrior = placements.get("prototype-ariane")!;
+    const archer = placements.get("prototype-borin")!;
+    const acolyte = placements.get("prototype-celia")!;
+    const mage = placements.get("prototype-dorian")!;
+
+    expect(warrior.xPercent).toBeGreaterThan(Math.max(archer.xPercent, acolyte.xPercent, mage.xPercent));
+    expect(archer.xPercent).toBeGreaterThan(acolyte.xPercent);
+    expect(archer.xPercent).toBeLessThan(warrior.xPercent);
+    expect(archer.yPercent).toBeLessThan(warrior.yPercent);
+    expect(mage.yPercent).toBeGreaterThan(archer.yPercent);
+    expect(archer.yPercent).toBe(Math.min(warrior.yPercent, archer.yPercent, acolyte.yPercent, mage.yPercent));
+    expect(acolyte.xPercent).toBe(Math.min(warrior.xPercent, archer.xPercent, acolyte.xPercent, mage.xPercent));
+    expect(mage.yPercent).toBe(Math.max(warrior.yPercent, archer.yPercent, acolyte.yPercent, mage.yPercent));
+    expect([warrior, archer, acolyte, mage].every((placement) => placement.xPercent <= 40)).toBe(true);
+  });
+
+  it("applies one light monotonic depth scale to every actor", () => {
+    expect(getDungeonScenePrototypeDepthScale(44, "standard")).toBe(0.94);
+    expect(getDungeonScenePrototypeDepthScale(76, "standard")).toBe(1.04);
+    expect(getDungeonScenePrototypeDepthScale(44, "zoomed")).toBe(0.86);
+    expect(getDungeonScenePrototypeDepthScale(76, "zoomed")).toBe(0.94);
+
+    const fixture = createDungeonScenePrototypeFixture("battle");
+    for (const layout of ["standard", "zoomed"] as const) {
+      const byDepth = [...getDungeonScenePrototypePlacements(fixture, layout)]
+        .sort((left, right) => left.yPercent - right.yPercent);
+      for (let index = 1; index < byDepth.length; index += 1) {
+        expect(byDepth[index].scale).toBeGreaterThanOrEqual(byDepth[index - 1].scale);
       }
     }
   });

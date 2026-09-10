@@ -8,6 +8,7 @@ import { HERO_SPRITE_SHEETS } from "../src/assets/heroSpriteSheets";
 import {
   HERO_SPRITE_SLICES,
   getHeroPortraitCacheKey,
+  parseHeroPortraitCacheKey,
   resolveHeroPortraitIdentity,
 } from "../src/domain/heroPortrait";
 import { makeHero } from "./fixtures/game";
@@ -46,6 +47,13 @@ describe("hero portrait identity", () => {
     expect(getHeroPortraitCacheKey("Novice", "Female", 7)).toBe("Novice_Female_7");
     expect(getHeroPortraitCacheKey("Mage", "Female", 7)).toBe("Mage_Female_7");
     expect(getHeroPortraitCacheKey("Mage", "Male", 7)).toBe("Mage_Male_7");
+  });
+
+  it("parses the compact encounter key without accepting unknown identities", () => {
+    expect(parseHeroPortraitCacheKey("Aède_Female_19")).toEqual({ classType: "Aède", gender: "Female", variant: 19 });
+    expect(parseHeroPortraitCacheKey("Mage_Male_20")).toBeNull();
+    expect(parseHeroPortraitCacheKey("Unknown_Male_0")).toBeNull();
+    expect(parseHeroPortraitCacheKey("Mage_Other_0")).toBeNull();
   });
 });
 

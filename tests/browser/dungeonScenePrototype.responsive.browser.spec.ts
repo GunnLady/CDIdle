@@ -31,6 +31,12 @@ for (const width of [1024, 1280, 1440] as const) {
     await prototype.scrollIntoViewIfNeeded();
     await expect(prototype).toBeVisible();
     await expect(page.getByTestId("dungeon-scene-actor")).toHaveCount(7);
+    await expect(page.getByTestId("dungeon-scene-prototype-stage")).toHaveAttribute("data-asset-status", "ready");
+    await expect(prototype.locator("img[src*='rat-pack-']")).toHaveCount(3);
+    await page.getByLabel("Instant de la scène").fill("1050");
+    await expect(prototype.locator("[data-testid='dungeon-scene-actor'][data-active='true']"))
+      .toHaveAttribute("data-team", "heroes");
+    await expect(page.getByTestId("dungeon-scene-impact")).toHaveAttribute("data-visual-key", "effect:physical-impact");
     await expectSceneWithinViewport(page);
 
     await page.getByRole("button", { name: "Boss" }).click();

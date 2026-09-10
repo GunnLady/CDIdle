@@ -1,5 +1,6 @@
 import { Pause, Play, RotateCcw } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { ENCOUNTER_VISUAL_KEYS } from "../../assets/encounterVisuals";
 import HeroPortrait from "../../components/HeroPortrait";
 import {
   createDungeonScenePrototypeFixture,
@@ -7,8 +8,10 @@ import {
   DUNGEON_SCENE_PROTOTYPE_KINDS,
   getDungeonScenePrototypeFrame,
   getDungeonScenePrototypePlacements,
+  type DungeonScenePrototypeActor,
   type DungeonScenePrototypeKind,
 } from "../../domain/dungeonScenePrototype";
+import { useEncounterVisualAsset } from "../../hooks/useEncounterVisualAsset";
 import Button from "../primitives/Button";
 import styles from "./DungeonScenePrototype.module.css";
 
@@ -16,9 +19,29 @@ type PrototypeStyle = CSSProperties & Record<`--${string}`, string | number>;
 
 const enemyGlyph = { rat: "R", guard: "G", king: "♛" } as const;
 
+function PrototypeEnemyVisual({ actor }: { actor: DungeonScenePrototypeActor }) {
+  const visual = useEncounterVisualAsset(actor.visualKey ?? ENCOUNTER_VISUAL_KEYS.fallback.actor);
+  return <div
+    className={styles.enemyShell}
+    data-asset-status={visual.loading ? "loading" : visual.status}
+    data-visual-key={actor.visualKey ?? ENCOUNTER_VISUAL_KEYS.fallback.actor}
+  >
+    {visual.url
+      ? <img
+          alt=""
+          aria-hidden="true"
+          className={styles.enemySprite}
+          draggable={false}
+          src={visual.url}
+          style={{ "--enemy-visual-scale": visual.descriptor.scale } as PrototypeStyle}
+        />
+      : <span className={styles.enemyGlyph} data-glyph={actor.glyph} aria-hidden="true">{enemyGlyph[actor.glyph ?? "rat"]}</span>}
+  </div>;
+}
+
 export default function DungeonScenePrototype() {
   const [kind, setKind] = useState<DungeonScenePrototypeKind>("battle");
-  const [elapsedMs, setElapsedMs] = useState(1_050);
+  const [elapsedMs, setElapsedMs] = useState(0);
   const [playing, setPlaying] = useState(false);
   const animationFrame = useRef<number | null>(null);
   const elapsedMsRef = useRef(elapsedMs);
@@ -27,6 +50,10 @@ export default function DungeonScenePrototype() {
   const zoomed = useMemo(() => getDungeonScenePrototypePlacements(fixture, "zoomed"), [fixture]);
   const frame = getDungeonScenePrototypeFrame(fixture, elapsedMs, "standard");
   const zoomedFrame = getDungeonScenePrototypeFrame(fixture, elapsedMs, "zoomed");
+  const stageVisualKey = kind === "waiting" || kind === "battle"
+    ? ENCOUNTER_VISUAL_KEYS.sewers.background
+    : ENCOUNTER_VISUAL_KEYS.fallback.background;
+  const stageVisual = useEncounterVisualAsset(stageVisualKey);
 
   useEffect(() => {
     elapsedMsRef.current = elapsedMs;
@@ -49,7 +76,7 @@ export default function DungeonScenePrototype() {
 
   const selectKind = (next: DungeonScenePrototypeKind) => {
     setKind(next);
-    setElapsedMs(next === "waiting" ? 0 : 1_050);
+    setElapsedMs(0);
     setPlaying(false);
   };
 
@@ -92,7 +119,9 @@ export default function DungeonScenePrototype() {
         className={styles.stage}
         data-kind={kind}
         data-phase={frame.phase}
+        data-asset-status={stageVisual.loading ? "loading" : stageVisual.status}
         data-testid="dungeon-scene-prototype-stage"
+        style={{ "--stage-art": stageVisual.url ? `url("${stageVisual.url}")` : "none" } as PrototypeStyle}
       >
         <span className={styles.formationLabel} data-team="heroes">Escouade</span>
         <span className={styles.formationLabel} data-team="enemies">Rencontre</span>
@@ -123,8 +152,9 @@ export default function DungeonScenePrototype() {
             };
             const hp = Math.round((Math.max(0, actor.hp) / actor.maxHp) * 100);
             const mana = actor.maxMana ? Math.round(((actor.mana ?? 0) / actor.maxMana) * 100) : null;
-            return <li key={actor.id} className={styles.actor} style={actorStyle} data-actor-id={actor.id} data-state={actor.state} data-team={actor.team} data-testid="dungeon-scene-actor">
-              {actor.hero ? <div className={styles.portraitShell}><HeroPortrait hero={actor.hero} size="xl" noBorder noBg noPadding className={styles.portrait} /></div> : <div className={styles.enemyShell}><span className={styles.enemyGlyph} data-glyph={actor.glyph} aria-hidden="true">{enemyGlyph[actor.glyph ?? "rat"]}</span></div>}
+            const active = actor.id === fixture.focusActorId && frame.phase !== "idle" && frame.phase !== "result";
+            return <li key={actor.id} className={styles.actor} style={actorStyle} data-active={active} data-actor-id={actor.id} data-state={actor.state} data-team={actor.team} data-testid="dungeon-scene-actor">
+              {actor.hero ? <div className={styles.portraitShell}><HeroPortrait hero={actor.hero} size="xl" noBorder noBg noPadding className={styles.portrait} /></div> : <PrototypeEnemyVisual actor={actor} />}
               <div className={styles.actorMeta}>
                 <span className={styles.name}>{actor.name}</span>
                 <span className={styles.role}>{actor.role}{actor.state === "ko" ? " · KO" : actor.state === "guarding" ? " · Protection" : ""}</span>
@@ -136,6 +166,7 @@ export default function DungeonScenePrototype() {
         </ol>
         {frame.impactVisible && impactPlacement && impactZoomedPlacement && <output
           className={styles.impact}
+          data-visual-key={ENCOUNTER_VISUAL_KEYS.effects.physicalImpact}
           data-testid="dungeon-scene-impact"
           style={{
             "--impact-x": `${impactPlacement.xPercent}%`,

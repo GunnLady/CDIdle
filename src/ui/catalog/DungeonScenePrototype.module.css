@@ -9,9 +9,14 @@
   overflow: hidden;
   border: 1px solid rgb(92 64 43 / 82%);
   border-radius: 0.75rem;
-  background:
-    radial-gradient(circle at 48% 18%, rgb(150 105 49 / 20%), transparent 25%),
+  background-color: rgb(14 18 18);
+  background-image:
+    radial-gradient(circle at 48% 18%, rgb(150 105 49 / 16%), transparent 28%),
+    var(--stage-art),
     linear-gradient(180deg, rgb(14 18 18) 0 57%, rgb(30 22 13) 57% 100%);
+  background-position: center, center, center;
+  background-repeat: no-repeat;
+  background-size: auto, cover, auto;
   box-shadow: inset 0 -4rem 7rem rgb(0 0 0 / 58%);
   isolation: isolate;
 }
@@ -24,21 +29,6 @@
   background:
     linear-gradient(90deg, rgb(42 74 69 / 22%), transparent 32% 66%, rgb(94 45 28 / 18%)),
     repeating-linear-gradient(93deg, transparent 0 9rem, rgb(213 172 87 / 4%) 9.1rem 9.25rem);
-}
-
-.stage::after {
-  position: absolute;
-  z-index: 0;
-  right: 0;
-  bottom: 0;
-  left: 0;
-  height: 43%;
-  content: "";
-  pointer-events: none;
-  background:
-    linear-gradient(8deg, transparent 49%, rgb(196 151 73 / 12%) 50%, transparent 51%),
-    repeating-linear-gradient(8deg, rgb(39 28 17 / 88%) 0 2.8rem, rgb(24 18 12 / 92%) 2.85rem 5.7rem);
-  clip-path: polygon(0 28%, 100% 0, 100% 100%, 0 100%);
 }
 
 .formationLabel {
@@ -70,6 +60,17 @@
   transform-origin: 50% 82%;
   transition: transform 80ms linear;
   will-change: transform;
+  isolation: isolate;
+}
+
+.actor[data-team="heroes"] {
+  --actor-aura-solid: #ffd36d;
+  --actor-aura-glow: rgb(255 191 58 / 68%);
+}
+
+.actor[data-team="enemies"] {
+  --actor-aura-solid: #f05252;
+  --actor-aura-glow: rgb(220 38 38 / 72%);
 }
 
 .actor::after {
@@ -102,6 +103,29 @@
 
 .enemyShell {
   align-content: end;
+}
+
+.enemySprite {
+  width: 100%;
+  height: 100%;
+  transform: scale(var(--enemy-visual-scale, 1));
+  transform-origin: 50% 86%;
+  object-fit: contain;
+  filter: drop-shadow(0 0.45rem 0.3rem rgb(0 0 0 / 72%));
+  image-rendering: pixelated;
+}
+
+.actor[data-active="true"] .portrait,
+.actor[data-active="true"] .enemySprite,
+.actor[data-active="true"] .enemyGlyph {
+  filter:
+    drop-shadow(1px 0 0 var(--actor-aura-solid))
+    drop-shadow(-1px 0 0 var(--actor-aura-solid))
+    drop-shadow(0 1px 0 var(--actor-aura-solid))
+    drop-shadow(0 -1px 0 var(--actor-aura-solid))
+    drop-shadow(0 0 0.26rem var(--actor-aura-glow))
+    drop-shadow(0 0 0.58rem var(--actor-aura-glow))
+    drop-shadow(0 0.45rem 0.3rem rgb(0 0 0 / 62%));
 }
 
 .enemyGlyph {

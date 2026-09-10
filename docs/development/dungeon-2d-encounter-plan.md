@@ -441,7 +441,7 @@ pas leur contenu actuel.
 | --- | --- | --- | --- | --- |
 | [CDI-097](../../workboard/data/Done/CDI-097/ticket.md) | Valider la composition PC de la scène Donjon 2D | Done | M / medium | Aucune |
 | [CDI-098](../../workboard/data/Done/CDI-098/ticket.md) | Capturer les acteurs initiaux dans un contrat de rencontre compatible | Done | L / high | CDI-097 |
-| [CDI-099](../../workboard/data/Later/CDI-099/ticket.md) | Préparer le catalogue visuel et le kit pilote CDIdle | Later | L / medium | CDI-097 |
+| [CDI-099](../../workboard/data/Done/CDI-099/ticket.md) | Préparer le catalogue visuel et le kit pilote CDIdle | Done | L / medium | CDI-097 |
 | [CDI-100](../../workboard/data/Later/CDI-100/ticket.md) | Projeter les rencontres en états de scène déterministes | Later | M / high | CDI-098, CDI-105 |
 | [CDI-101](../../workboard/data/Later/CDI-101/ticket.md) | Construire la scène de combat simple CDIdle | Later | M / medium | CDI-099, CDI-107 |
 | [CDI-102](../../workboard/data/Later/CDI-102/ticket.md) | Mettre en scène trésors, repos et réanimations | Later | M / medium | CDI-103, CDI-106 |
@@ -468,8 +468,8 @@ six variantes du même contrat de défi après extraction de trésor/repos (115)
 Des poses dédiées décidées dans CDI-097 nécessiteraient de réestimer l'art.
 
 Priorité : P1 pour les vingt tickets du chantier ; ce rang ne signifie pas
-incident de production généralisé. CDI-097 et CDI-105 sont en ToDo ; les autres
-restent Later jusqu'à leurs prérequis Done. Aucun ticket n'a été mis en Doing.
+incident de production généralisé. CDI-097, CDI-098, CDI-099 et CDI-105 sont
+Done ; les autres restent Later jusqu'à leurs prérequis Done.
 Les acquis CDI-076, CDI-078, CDI-080, CDI-083, CDI-094 et CDI-095 restent des
 références livrées sans modification de leurs tickets. L'ancien modèle de
 bestiaire CDI-086 ne gouverne pas le contenu UnderCity actuel.

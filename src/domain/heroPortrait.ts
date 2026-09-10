@@ -1,4 +1,6 @@
 import type { Hero } from "../types";
+import { CANONICAL_HERO_CLASSES, type CanonicalHeroClass } from "../../shared/domain/hero-classes";
+import { HERO_PORTRAIT_VARIANT_COUNT } from "../../shared/domain/hero-portrait-identity";
 import {
   getStableHeroPortraitVariant,
   normalizeHeroPortraitVariant,
@@ -47,4 +49,20 @@ export function getHeroPortraitCacheKey(
   variant: number,
 ): string {
   return `${classType}_${gender}_${variant}`;
+}
+
+export function parseHeroPortraitCacheKey(value: string): {
+  classType: CanonicalHeroClass;
+  gender: HeroPortraitGender;
+  variant: number;
+} | null {
+  const match = /^(.+)_(Male|Female)_(\d+)$/.exec(value);
+  if (!match) return null;
+  const classType = match[1] as CanonicalHeroClass;
+  const variant = Number(match[3]);
+  if (!CANONICAL_HERO_CLASSES.includes(classType)
+    || !Number.isInteger(variant)
+    || variant < 0
+    || variant >= HERO_PORTRAIT_VARIANT_COUNT) return null;
+  return { classType, gender: match[2] as HeroPortraitGender, variant };
 }

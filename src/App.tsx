@@ -64,6 +64,7 @@ import { useCrossTabGameSynchronization } from "./hooks/useCrossTabGameSynchroni
 import { useDeveloperCheatActions } from "./hooks/useDeveloperCheatActions";
 import { useDungeonPageActions } from "./hooks/useDungeonPageActions";
 import { DEFAULT_UNLOCKED_ITEM_BLUEPRINTS } from "./utils/gameCalculations";
+import { clearVisualAssetSession } from "./assets/visualAssetSession";
 
 const cheatsEnabled = import.meta.env.MODE === "development" || import.meta.env.MODE === "staging";
 import { useDungeonSystem } from "./hooks/useDungeonSystem";
@@ -110,6 +111,8 @@ export default function App() {
   ) => Promise<void>>(async () => undefined);
   const transportOnline = browserOnline && apiAvailable;
   const isOnline = transportOnline && canonicalStateFailureDetails === null;
+
+  useEffect(() => () => clearVisualAssetSession(), [currentUser?.id]);
   // Google signup is gated by the server-side alpha_allowlist hook and every
   // game-api request is rechecked against the same allowlist at runtime.
   const cheatsAllowedForUser = cheatsEnabled && currentUser?.app_metadata?.provider === "google";

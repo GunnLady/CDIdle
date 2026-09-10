@@ -1,7 +1,7 @@
 ---
 id: CDI-099
 title: Préparer le catalogue visuel et le kit pilote CDIdle
-status: Later
+status: Done
 area: art
 priority: P1
 size: L
@@ -72,12 +72,12 @@ Les dépendances directes et leurs liens blocks font foi ; les acquis déjà liv
 
 ## Criteres d'acceptation
 
-- [ ] Les 400 identités actuelles se résolvent avec conservation de la variante à travers les classes et contrôle de couverture automatique.
-- [ ] Le kit livre le décor des Égouts et les trois membres de rat-pack, leurs ancrages et les effets simples retenus par CDI-097.
-- [ ] Le manifeste détecte entrées/fichiers manquants ; un acteur sans ressource reste représenté par un fallback utile.
-- [ ] Aucun détourage par frame ni chargement de toute la bibliothèque pour une scène ; le cache et les poids sont mesurés.
-- [ ] L'utilisateur valide l'échantillon représentatif et les détourages délicats sur fond sombre ; la cohérence des planches est contrôlée sans prétendre à 400 avis individuels.
-- [ ] Si le prototype exige de nouvelles poses, la production est réestimée et la décision documentée avant généralisation.
+- [x] Les 400 identités actuelles se résolvent avec conservation de la variante à travers les classes et contrôle de couverture automatique.
+- [x] Le kit livre le décor des Égouts et les trois membres de rat-pack, leurs ancrages et les effets simples retenus par CDI-097.
+- [x] Le manifeste détecte entrées/fichiers manquants ; un acteur sans ressource reste représenté par un fallback utile.
+- [x] Aucun détourage par frame ni chargement de toute la bibliothèque pour une scène ; le cache et les poids sont mesurés.
+- [x] L'utilisateur valide l'échantillon représentatif et les détourages délicats sur fond sombre ; la cohérence des planches est contrôlée sans prétendre à 400 avis individuels.
+- [x] Si le prototype exige de nouvelles poses, la production est réestimée et la décision documentée avant généralisation.
 
 ## Tests
 
@@ -113,3 +113,52 @@ Faire valider par l'utilisateur silhouettes, franges vertes, échelles et kit de
 Fournir catalogue, sources/prompts autorisés, couverture des 400 identités, mesures et verdict du pilote. V01/V13/V18. CDI-108 réutilise le décor et rat-pack ; ne pas marquer la bibliothèque complète livrée.
 
 Indiquer fichiers, commandes réellement exécutées, résultats et limites. Ne pas clore avec un écart réel non corrigé ; ne pas attribuer au présent ticket la livraison de ses successeurs.
+
+## Preuves d'implementation
+
+- Le catalogue `encounterVisuals` versionne les clés de présentation sans URL
+  dans le domaine : les 400 clés héros reprennent exactement l'identité
+  `classe_sexe_variante` de CDI-098 ; `rat-pack` conserve les clés membres
+  immuables `a`, `b`, `c`. Ancrages, échelles, provenance et fallbacks sont
+  portés par les descripteurs.
+- L'extraction chroma des héros est sortie du composant React. Les planches et
+  sprites traités utilisent des caches asynchrones bornés à 4 et 32 entrées ;
+  les ressources de rencontre sont bornées à 16 entrées. Les caches sont
+  purgés au changement ou à la fin de session.
+- Les assets sont chargés à la demande. Le build de production peut éliminer
+  le catalogue de démonstration non utilisé hors catalogue UI ; aucune image
+  du kit n'est intégrée au JS principal.
+- Le kit v1 livre le décor des Égouts et les trois rats distincts dans
+  `src/assets/images/dungeon/undercity/sewers/`. Les prompts, références et
+  transformations sont consignés dans
+  `assets/design/dungeon-2d/undercity-sewers-kit-v1.prompt.md`.
+- `npm.cmd run check:dungeon-visuals` : 20 planches, 400 identités, quatre
+  fichiers exacts, dimensions attendues, transparence pixel réellement
+  présente sur chaque rat et 493 053 octets sur le budget froid de 2 MiB.
+- L'audit avant validation a corrigé deux écarts : le contrôle alpha ne se
+  contente plus du type RGBA et la clé `effect:physical-impact` est maintenant
+  traçable dans le rendu et le test navigateur.
+- `npm.cmd test -- --run` : 126 fichiers et 1 026 tests passés sur la version
+  finale. Les paquets ciblés couvrent catalogue, cache, cadrage opaque,
+  profondeur, formation, phases et rendu du catalogue UI.
+- `npm.cmd run lint -- --quiet`, le typecheck isolé excluant seulement le
+  dossier utilisateur `tmp`, `npm.cmd run build`, `npm.cmd run check:bundle`
+  et `npm.cmd run board:validate` passent. Le bundle JS total mesure 248 611
+  octets gzip, avec un plus gros fichier à 121 584 octets.
+- CDI-097 a validé le prototype avec silhouettes transformées et sans poses
+  dédiées ; aucune réestimation artistique n'est donc déclenchée ici.
+- Verdict utilisateur PC : rats validés, absence de franges vertes confirmée,
+  fond Égouts validé après retrait du faux plancher brun, héros recadrés,
+  formation en losange replacée sur les deux berges et scaling léger de
+  profondeur validé. Le contour d'action or du héros est validé ; l'animation
+  actuelle est acceptée pour une attaque d'arme au corps-à-corps.
+- `npm.cmd run test:layout-browser -- tests/browser/dungeonScenePrototype.responsive.browser.spec.ts`
+  a été exécuté par l'utilisateur sur la version finale : 4 tests passés en
+  5,8 s. Codex n'a ni ouvert ni piloté de navigateur.
+- Suivi différé non bloquant : le même mécanisme sélectionne un contour rouge
+  pour `data-team="enemies"`, mais aucune fixture actuelle ne fait agir un
+  ennemi. CDI-101 devra le faire valider lors de la première action ennemie :
+  contour rouge ajusté à la silhouette active, sans contour or concurrent.
+  Projectiles, soins et compétences restent attribués à CDI-113.
+- Aucun écart réel CDI-099 ne reste ouvert. Aucun commit, push ou déploiement
+  n'a été lancé par cette étape.

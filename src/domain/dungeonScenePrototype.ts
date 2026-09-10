@@ -29,6 +29,7 @@ export interface DungeonScenePrototypeActor {
   state: "ready" | "wounded" | "ko" | "guarding" | "chosen";
   hero?: DungeonScenePrototypeHero;
   glyph?: "rat" | "guard" | "king";
+  visualKey?: string;
 }
 
 export interface DungeonScenePrototypeFixture {
@@ -102,7 +103,8 @@ const enemy = (
   hp: number,
   maxHp: number,
   state: DungeonScenePrototypeActor["state"] = "ready",
-): DungeonScenePrototypeActor => ({ id, name, role, glyph, team: "enemies", slot, hp, maxHp, state });
+  visualKey?: string,
+): DungeonScenePrototypeActor => ({ id, name, role, glyph, team: "enemies", slot, hp, maxHp, state, visualKey });
 
 const baseHeroes = () => [
   hero("prototype-ariane", "Ariane", "Guerrier", "Female", 1, 0, 34, 8),
@@ -112,9 +114,9 @@ const baseHeroes = () => [
 ] satisfies DungeonScenePrototypeActor[];
 
 const battleEnemies = () => [
-  enemy("prototype-rat-channel", "Rat des canaux", "Ordinaire", "rat", 0, 15, 24),
-  enemy("prototype-rat-mangy", "Rat galeux", "Ordinaire", "rat", 1, 9, 20, "wounded"),
-  enemy("prototype-rat-plague", "Rat pestiféré", "Soutien", "rat", 2, 18, 22),
+  enemy("prototype-rat-channel", "Rat des canaux", "Ordinaire", "rat", 0, 15, 24, "ready", "undercity:rat-pack:a"),
+  enemy("prototype-rat-mangy", "Rat galeux", "Ordinaire", "rat", 1, 9, 20, "wounded", "undercity:rat-pack:b"),
+  enemy("prototype-rat-plague", "Rat pestiféré", "Soutien", "rat", 2, 18, 22, "ready", "undercity:rat-pack:c"),
 ] satisfies DungeonScenePrototypeActor[];
 
 const fixtures: Record<DungeonScenePrototypeKind, () => DungeonScenePrototypeFixture> = {
@@ -215,29 +217,29 @@ const fixtures: Record<DungeonScenePrototypeKind, () => DungeonScenePrototypeFix
 
 const standardSlots = {
   heroes: [
-    { xPercent: 18, yPercent: 64, scale: 1.06, layer: 4 },
-    { xPercent: 29, yPercent: 42, scale: 0.94, layer: 2 },
-    { xPercent: 10, yPercent: 35, scale: 0.9, layer: 1 },
-    { xPercent: 34, yPercent: 76, scale: 1, layer: 5 },
+    { xPercent: 35, yPercent: 62, layer: 4 },
+    { xPercent: 25, yPercent: 44, layer: 2 },
+    { xPercent: 10, yPercent: 50, layer: 1 },
+    { xPercent: 17, yPercent: 74, layer: 3 },
   ],
   enemies: [
-    { xPercent: 69, yPercent: 62, scale: 1.04, layer: 4 },
-    { xPercent: 82, yPercent: 40, scale: 0.96, layer: 2 },
-    { xPercent: 89, yPercent: 72, scale: 1, layer: 5 },
+    { xPercent: 69, yPercent: 66, layer: 4 },
+    { xPercent: 82, yPercent: 56, layer: 2 },
+    { xPercent: 89, yPercent: 76, layer: 5 },
   ],
 } as const;
 
 const zoomedSlots = {
   heroes: [
-    { xPercent: 14, yPercent: 67, scale: 0.92, layer: 4 },
-    { xPercent: 38, yPercent: 76, scale: 0.86, layer: 5 },
-    { xPercent: 62, yPercent: 67, scale: 0.9, layer: 4 },
-    { xPercent: 86, yPercent: 76, scale: 0.86, layer: 5 },
+    { xPercent: 14, yPercent: 68, layer: 4 },
+    { xPercent: 38, yPercent: 76, layer: 5 },
+    { xPercent: 62, yPercent: 68, layer: 4 },
+    { xPercent: 86, yPercent: 76, layer: 5 },
   ],
   enemies: [
-    { xPercent: 22, yPercent: 27, scale: 0.9, layer: 2 },
-    { xPercent: 50, yPercent: 20, scale: 0.96, layer: 1 },
-    { xPercent: 78, yPercent: 27, scale: 0.9, layer: 2 },
+    { xPercent: 22, yPercent: 47, layer: 2 },
+    { xPercent: 50, yPercent: 44, layer: 1 },
+    { xPercent: 78, yPercent: 47, layer: 2 },
   ],
 } as const;
 
@@ -254,6 +256,20 @@ const clamp = (value: number, min: number, max: number) => Math.min(max, Math.ma
 const progress = (value: number, start: number, end: number) => clamp((value - start) / (end - start), 0, 1);
 const easeOut = (value: number) => 1 - ((1 - value) ** 3);
 
+const depthScaleRanges = {
+  standard: { backY: 44, frontY: 76, backScale: 0.94, frontScale: 1.04 },
+  zoomed: { backY: 44, frontY: 76, backScale: 0.86, frontScale: 0.94 },
+} as const;
+
+export function getDungeonScenePrototypeDepthScale(
+  yPercent: number,
+  layout: DungeonScenePrototypeLayout,
+): number {
+  const range = depthScaleRanges[layout];
+  const depth = clamp((yPercent - range.backY) / (range.frontY - range.backY), 0, 1);
+  return Number((range.backScale + ((range.frontScale - range.backScale) * depth)).toFixed(3));
+}
+
 export function createDungeonScenePrototypeFixture(kind: DungeonScenePrototypeKind): DungeonScenePrototypeFixture {
   return fixtures[kind]();
 }
@@ -263,7 +279,14 @@ export function getDungeonScenePrototypePlacements(
   layout: DungeonScenePrototypeLayout,
 ): readonly DungeonScenePrototypePlacement[] {
   const slots = layout === "standard" ? standardSlots : zoomedSlots;
-  return fixture.actors.map((actor) => ({ actorId: actor.id, ...slots[actor.team][actor.slot] }));
+  return fixture.actors.map((actor) => {
+    const slot = slots[actor.team][actor.slot];
+    return {
+      actorId: actor.id,
+      ...slot,
+      scale: getDungeonScenePrototypeDepthScale(slot.yPercent, layout),
+    };
+  });
 }
 
 export function getDungeonScenePrototypeFrame(
