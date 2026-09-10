@@ -302,6 +302,65 @@ describe("authoritative shared contracts", () => {
     ]));
   });
 
+  it("accepts legacy encounter records and validates the optional initial actor contract", () => {
+    const legacyEncounter = {
+      encounterId: "legacy-history",
+      dungeonId: "undercity",
+      kind: "rest" as const,
+      floor: 1,
+      room: 2,
+      outcome: "victory" as const,
+      roundCount: 0,
+      enemy: null,
+      transcript: [],
+      rewards: { gold: 0, loot: [] },
+    };
+    const heroActor = ["actor-hero", "Novice_Female_7", 12, 20, 4, 10, 0] as const;
+    const currentState = {
+      ...initialTownState(42),
+      heroes: [makeHero({ id: heroActor[0], name: "Ariane" })],
+      encounterHistory: [
+        legacyEncounter,
+        {
+          ...legacyEncounter,
+          encounterId: "current-history",
+          initialActors: { v: 1 as const, h: [heroActor], e: [] },
+        },
+      ],
+    };
+
+    expect(validateCanonicalGameState(currentState)).toEqual([]);
+
+    const invalidState = structuredClone(currentState) as unknown as Record<string, unknown>;
+    const history = invalidState.encounterHistory as Array<Record<string, unknown>>;
+    history[1].initialActors = {
+      v: 2,
+      h: [["actor-hero", "unknown", 0, 20, 11, 10, 0]],
+      e: [["wrong", 4, 3]],
+    };
+    expect(validateCanonicalGameState(invalidState)).toEqual(expect.arrayContaining([
+      "encounterHistory[1].initialActors.v must be 1",
+      "encounterHistory[1].initialActors.h[0][1] visual key is invalid",
+      "encounterHistory[1].initialActors.h[0][4] current mana exceeds maximum",
+      "encounterHistory[1].initialActors.h[0][6] knocked-out flag must be 1 when current hp is 0",
+      "encounterHistory[1].initialActors.e must be empty outside fights",
+      "encounterHistory[1].initialActors.e[0][1] current hp exceeds maximum",
+    ]));
+
+    const mismatchedFight = structuredClone(currentState) as unknown as Record<string, unknown>;
+    const fightHistory = mismatchedFight.encounterHistory as Array<Record<string, unknown>>;
+    fightHistory[1] = {
+      ...fightHistory[1],
+      kind: "fight",
+      enemy: { id: "enemy-0", name: "Rat", hp: 0, maxHp: 10 },
+      enemies: [{ id: "enemy-0", name: "Rat", hp: 0, maxHp: 10 }],
+      initialActors: { v: 1, h: [heroActor], b: "rat-pack", e: [["a", 10, 10], ["b", 10, 10]] },
+    };
+    expect(validateCanonicalGameState(mismatchedFight)).toContain(
+      "encounterHistory[1].initialActors.e must align with enemies",
+    );
+  });
+
   it("validates persisted item, material, blueprint and forge preview shapes", () => {
     const errors = validateCanonicalGameState({
       stateVersion: CURRENT_CANONICAL_STATE_VERSION,

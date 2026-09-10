@@ -116,6 +116,12 @@ describe("authoritative dungeon golden behavior characterized from 640f89f", () 
       },
       rewards: { gold: 3, loot: [] },
     });
+    expect(result.encounter.initialActors).toMatchObject({
+      v: 1,
+      h: [["hero-fixture", expect.any(String), 200, 200, 10, 10, 0]],
+      b: "legacy-single",
+      e: [["a", 48, 48]],
+    });
     expect(result.encounter.transcript.map((event) => event.type)).toEqual([
       "encounter.started",
       "hero.hit",
@@ -304,6 +310,11 @@ describe("authoritative dungeon golden behavior characterized from 640f89f", () 
         ],
       },
     });
+    expect(result.encounter.initialActors).toMatchObject({
+      v: 1,
+      h: [["hero-fixture", expect.any(String), 200, 200, 10, 10, 0]],
+      e: [],
+    });
     expect(result.encounter.transcript.map((event) => event.type)).toEqual([
       "encounter.started",
       "treasure.inspected",
@@ -369,6 +380,11 @@ describe("authoritative dungeon golden behavior characterized from 640f89f", () 
 
     expect(tape.draws()).toBe(1);
     expect(result.encounter.kind).toBe("rest");
+    expect(result.encounter.initialActors).toMatchObject({
+      v: 1,
+      h: [[hero.id, expect.any(String), 1, 20, 0, 10, 0]],
+      e: [],
+    });
     expect(result.encounter.transcript.map((event) => event.type)).toEqual([
       "encounter.started",
       "rest.started",
@@ -417,6 +433,11 @@ describe("authoritative dungeon golden behavior characterized from 640f89f", () 
 
     expect(tape.draws()).toBe(3);
     expect(result.encounter).toMatchObject({ kind, outcome: "victory" });
+    expect(result.encounter.initialActors).toMatchObject({
+      v: 1,
+      h: [[capable.id, expect.any(String), capable.currentHp, capable.calculatedStats.maxHp, 0, 100, 0]],
+      e: [],
+    });
     expect(result.encounter.transcript.map((event) => event.type)).toEqual(expect.arrayContaining([
       "challenge.hero_selected",
       "challenge.attempted",
@@ -634,6 +655,16 @@ describe("authoritative dungeon golden behavior characterized from 640f89f", () 
     const event = result.encounter.transcript.find((entry) => entry.type === "hero.skill.damage");
 
     expect(result.encounter.enemies).toHaveLength(3);
+    expect(result.encounter.initialActors).toMatchObject({
+      v: 1,
+      h: [["skill-finisher", expect.any(String), 2_000, 2_000, 100, 100, 0]],
+      b: "rat-pack",
+      e: [
+        ["a", 16, 16],
+        ["b", 16, 16],
+        ["c", 16, 16],
+      ],
+    });
     expect(result.encounter).toMatchObject({
       outcome: "victory",
       rewards: { gold: 3, loot: [] },

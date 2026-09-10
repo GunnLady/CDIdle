@@ -1,7 +1,7 @@
 ---
 id: CDI-098
 title: Capturer les acteurs initiaux dans un contrat de rencontre compatible
-status: Later
+status: Done
 area: architecture
 priority: P1
 size: L
@@ -69,12 +69,12 @@ Les dépendances directes et leurs liens blocks font foi ; les acquis déjà liv
 
 ## Criteres d'acceptation
 
-- [ ] Quatre membres au maximum, participants réels et KO de segment pertinents sont capturés avec identités, places, PV/PM initiaux, sans utiliser le snapshot final.
-- [ ] Les neuf types de rencontre ont une matrice des données disponibles/manquantes et un propriétaire pour chaque complément.
-- [ ] API, cache, bootstrap et cross-tab acceptent les records anciens/nouveaux et préservent l'extension.
-- [ ] État métier, RNG, XP et récompenses restent identiques à état/graine identiques hors extension de trace.
-- [ ] Les octets ajoutés sur profils petits/moyens/grands et quinze traces réelles longues respectent le budget egress documenté.
-- [ ] Le runtime Supabase local prouve persistance, lecture et replay de l'extension ; les anciens records restent consultables.
+- [x] Quatre membres au maximum, participants réels et KO de segment pertinents sont capturés avec identités, places, PV/PM initiaux, sans utiliser le snapshot final.
+- [x] Les neuf types de rencontre ont une matrice des données disponibles/manquantes et un propriétaire pour chaque complément.
+- [x] API, cache, bootstrap et cross-tab acceptent les records anciens/nouveaux et préservent l'extension.
+- [x] État métier, RNG, XP et récompenses restent identiques à état/graine identiques hors extension de trace.
+- [x] Les octets ajoutés sur profils petits/moyens/grands et quinze traces réelles longues respectent le budget egress documenté.
+- [x] Le runtime Supabase local prouve persistance, lecture et replay de l'extension ; les anciens records restent consultables.
 
 ## Tests
 
@@ -109,3 +109,46 @@ Vérifier les réponses locales nouvelle/ancienne sans copier de bearer ni de sn
 Fournir contrat, matrice avec propriétaires, fixtures, preuves de parité/compatibilité locale et métriques d'octets. V01/V06/V11/V13/V17. Les compléments CDI-106/CDI-114 restent explicitement ouverts.
 
 Indiquer fichiers, commandes réellement exécutées, résultats et limites. Ne pas clore avec un écart réel non corrigé ; ne pas attribuer au présent ticket la livraison de ses successeurs.
+
+## Preuves d'implementation
+
+- `initialActors` v1 est produit avant toute mutation pour les neuf types. Les
+  héros suivent l'ordre du segment, jusqu'à quatre, y compris les KO ; la clé
+  `visual` du tuple fige classe, genre et variante de portrait. En combat,
+  `b` et la clé de membre immuable du tuple `e` identifient jusqu'à trois ennemis ;
+  l'ordre des tableaux porte la place d'équipe.
+- L'audit pré-push a remplacé les clés membres positionnelles par des clés
+  explicites dans chaque blueprint, imposé l'alignement des ennemis initiaux et
+  finaux, et rendu `initialActors` obligatoire dans le type du producteur.
+- L'événement de résolution ne duplique plus le record complet : il référence
+  `state.encounterHistory` par `encounterId`, avec lecture des anciens événements
+  enrichis encore supportée côté client.
+- Les records historiques sans extension restent valides. Aucune migration de
+  `stateVersion` ni backfill n'est requis ; la migration courante conserve
+  l'extension lorsqu'elle existe.
+- La matrice des neuf types et des compléments CDI-105/CDI-106/CDI-114 est dans
+  `docs/development/dungeon-2d-encounter-plan.md`. CDI-106 et CDI-114 restent
+  explicitement ouverts.
+- `npm.cmd test -- --run` : 124 fichiers, 1 013 tests passés.
+- Paquet ciblé contrats/domaine/API/segment/migrations/cache/bootstrap/
+  cross-tab/adaptateur/egress/catalogue/hook : 12 fichiers, 211 tests passés.
+- `npm.cmd run test:egress-budget` : 7 tests passés ; profils JSON 2 991,
+  46 647 et 85 094 octets ; 7 320 octets ajoutés sur quinze traces maximales
+  avec IDs de production, soit 488 par rencontre ; projection médiane 4,385 Go
+  sur 31 jours et 1 385 commandes quotidiennes dans la cible.
+- `npm.cmd run test:integration` : Supabase local passé ; ancien record sans
+  extension relu, nouveau record persisté puis relu au bootstrap, replay
+  identique et une seule ligne de commande.
+- L'audit final a corrigé le worker produit qui lisait encore l'ancien payload
+  `event.encounter` : il résout désormais `event.encounterId` dans
+  `state.encounterHistory`. `npm.cmd run test:undercity-product` passe sur 10
+  processus, 10 runs et 2 920 rencontres.
+- `npm.cmd run check:determinism`, `npm.cmd run lint -- --quiet`,
+  `npm.cmd run build` et `npm.cmd run board:validate` : passés.
+- `npm.cmd run typecheck` reste pollué uniquement par les imports absents du
+  dossier utilisateur ignoré `tmp/deployment-2026-09-10/backend-v27`.
+  `npm.cmd exec -- tsc --noEmit -p tsconfig.cdi098.json`, configuration
+  temporaire excluant seulement `tmp`, est passé ; le fichier temporaire a été
+  supprimé.
+- Aucun contrôle visuel n'est requis pour ce contrat sans modification de
+  rendu. Aucun navigateur, déploiement, commit ou push n'a été lancé.

@@ -47,6 +47,28 @@ describe("game cache contract", () => {
     await expect(readGameCache("user-b")).resolves.toMatchObject({ cityName: "B", revision: 2 });
   });
 
+  it("round-trips the optional initial encounter actors without projecting current heroes", async () => {
+    const initialActors = {
+      v: 1 as const,
+      h: [["historical-hero", "Novice_Female_3", 12, 20, 4, 10, 0] as [string, string, number, number, number, number, 0]],
+      e: [],
+    };
+    const cached = {
+      ...cacheSnapshot("Actors", 8),
+      encounterHistory: [{
+        encounterId: "cached-encounter", dungeonId: "undercity", kind: "rest" as const,
+        floor: 1, room: 2, outcome: "victory" as const, roundCount: 0,
+        enemy: null, initialActors, transcript: [], rewards: { gold: 0, loot: [] },
+      }],
+    };
+
+    await writeGameCache("actor-user", cached);
+
+    await expect(readGameCache("actor-user")).resolves.toMatchObject({
+      encounterHistory: [{ initialActors }],
+    });
+  });
+
   it("deletes only the targeted user snapshot without allowing resurrection", async () => {
     await writeGameCache("deleted-user", cacheSnapshot("Old kingdom", 42));
     await writeGameCache("other-user", cacheSnapshot("Other kingdom", 7));

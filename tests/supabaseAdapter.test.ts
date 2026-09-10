@@ -434,6 +434,12 @@ describe("Supabase game-api adapter", () => {
     }
     expect(replay.state).toEqual(first.state);
     expect(replay.state.encounterHistory).toHaveLength(1);
+    expect(replay.state.encounterHistory[0]).toMatchObject({
+      initialActors: {
+        v: 1,
+        h: [["hero-auto-replay", expect.any(String), 10_000, 10_000, expect.any(Number), expect.any(Number), 0]],
+      },
+    });
     expect(applyCount).toBe(1);
     expect(commitCount).toBe(1);
   });

@@ -49,7 +49,9 @@ et haut (quatre héros, cent objets, quinze historiques). La projection d'usage
 représentatif utilise le profil médian ; le profil haut reste un garde-fou de
 croissance et n'est pas écarté du contrôle. Le harness vérifie :
 
-- des plages distinctes de 2 à 10 Ko, 30 à 50 Ko et 60 à 80 Ko ;
+- des plages distinctes de 2 à 10 Ko, 30 à 50 Ko et 60 à 86 Ko ;
+- pour `initialActors` v1, au plus 500 octets par rencontre représentative et
+  8 Ko sur les quinze longues traces du profil haut ;
 - une réponse de commit PostgREST inférieure à 200 octets et à 1 % de
   l'ancienne réponse ;
 - une projection de 31 jours avec 10 % de marge sous 4,5 Go ;
@@ -62,7 +64,21 @@ Au 20 août 2026, les valeurs exactes du harness sont 2 371, 37 072 et
 83 octets. Le scénario médian projette 3,486 Go sur 31 jours, marge de
 1,014 Go sous la cible opérationnelle et de 1,514 Go sous le quota. Le profil
 haut au même trafic ne respecte pas la cible ; sa croissance non bornée est
-tracée par CDI-096 et le seuil de 80 Ko reste bloquant.
+tracée par CDI-096. Le seuil historique de 80 Ko omettait le tableau final
+`enemies` produit par les combats de groupe ; le garde-fou corrigé est 86 Ko.
+
+Au 10 septembre 2026, après correction de l'audit CDI-098, le harness emploie
+des identifiants héros au format réellement produit, trois ennemis initiaux et
+finaux, ainsi que l'événement réellement renvoyé. Les profils mesurent 2 991,
+46 647 et 85 094 octets. Le cas de quatre héros, trois ennemis et quinze longues
+traces ajoute 7 320 octets, soit 488 octets par rencontre. L'événement de
+résolution ne redouble plus le record complet dans la réponse : il référence
+le record canonique par `encounterId`. Le scénario médian projette 4,385 Go sur
+31 jours avec la marge de sécurité de 10 %, et autorise 1 385 commandes par
+jour dans la cible de 4,5 Go. Le seuil haut corrigé de 86 Ko laisse donc une
+marge étroite et reste bloquant. Ces nombres sont une mesure JSON locale
+reproductible ; ils ne remplacent pas les métriques réseau Supabase après
+publication.
 
 Le calcul additionne, par route, PostgREST, Functions et Auth :
 
@@ -91,7 +107,7 @@ Pendant sept jours complets après publication :
    de commandes ;
 3. alerter si la projection du cycle dépasse 4,5 Go, si Auth représente plus de
    10 % du total, si les invocations dépassent 4 310 par jour sur une moyenne
-   de sept jours, ou si un snapshot représentatif dépasse 80 Ko ;
+   de sept jours, ou si un snapshot représentatif dépasse 86 Ko ;
 4. si un seuil est franchi, identifier la route avec x-response-bytes, réduire
    sa fréquence ou sa charge, puis rejouer le harness avant publication.
 

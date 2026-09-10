@@ -241,6 +241,20 @@ describe(`dungeon segment harness — ${DUNGEON_SEGMENT_HARNESS_SOURCE}`, () => 
     harness.state.dungeonProgress.expedition.knockedOutHeroIds = [...knockedOutIds];
     const xpBefore = new Map(harness.state.heroes.map((hero) => [hero.id, hero.xp]));
     harness.resolveRoom(createDungeonSegmentRng([0.99]));
+    const initialActors = harness.state.encounterHistory.at(-1)?.initialActors;
+    expect(initialActors).toMatchObject({ v: 1, e: [] });
+    expect(initialActors?.h).toHaveLength(4);
+    expect(initialActors?.h.map((hero) => ({
+      id: hero[0],
+      hp: [hero[2], hero[3]],
+      mana: [hero[4], hero[5]],
+      ko: hero[6] === 1,
+    }))).toEqual([
+      { id: "segment-hero-1", hp: [1_000, 1_000], mana: [0, 0], ko: false },
+      { id: "segment-hero-2", hp: [1_000, 1_000], mana: [0, 0], ko: false },
+      { id: "segment-hero-3", hp: [0, 1_000], mana: [2, 10], ko: true },
+      { id: "segment-hero-ko", hp: [0, 20], mana: [2, 10], ko: true },
+    ]);
     expect(harness.hero("segment-hero-ko")).toMatchObject({
       currentHp: 4,
       currentMana: 4,

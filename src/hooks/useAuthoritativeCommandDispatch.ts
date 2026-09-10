@@ -114,9 +114,17 @@ export function useAuthoritativeCommandDispatch(
           () => current.ports.sendCommand(envelope),
         );
         current.setCanonicalStateFailureDetails(null);
-        const resolvedEncounter = (result.events ?? [])
-          .find((event) => event.type === "dungeon.encounter_resolved")
-          ?.encounter as CanonicalDungeonEncounterRecord | undefined;
+        const resolvedEvent = (result.events ?? [])
+          .find((event) => event.type === "dungeon.encounter_resolved");
+        const legacyEventEncounter = resolvedEvent?.encounter as CanonicalDungeonEncounterRecord | undefined;
+        const resolvedEncounterId = typeof resolvedEvent?.encounterId === "string"
+          ? resolvedEvent.encounterId
+          : legacyEventEncounter?.encounterId;
+        const resolvedEncounter = resolvedEncounterId
+          ? [...result.state.encounterHistory].reverse()
+              .find((encounter) => encounter.encounterId === resolvedEncounterId)
+            ?? legacyEventEncounter
+          : undefined;
         await applyAuthoritativeCommandSuccess(
           result,
           options.beforeApplyAuthoritativeState,

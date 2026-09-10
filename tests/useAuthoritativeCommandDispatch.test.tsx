@@ -1,6 +1,6 @@
 import { act, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { CanonicalGameState } from '../shared/contracts/authoritative';
+import type { CanonicalDungeonEncounterRecord, CanonicalGameState } from '../shared/contracts/authoritative';
 import type { AuthoritativeCommandSuccess, AuthoritativeGameEnvelope } from '../src/domain/commands';
 import type { AuthoritativeCommandDispatchDependencies } from '../src/hooks/useAuthoritativeCommandDispatch';
 import { useAuthoritativeCommandDispatch } from '../src/hooks/useAuthoritativeCommandDispatch';
@@ -23,6 +23,18 @@ vi.mock('../src/lib/canonicalBootstrap', async () => {
 });
 
 const canonicalState = {} as CanonicalGameState;
+const resolvedEncounter: CanonicalDungeonEncounterRecord = {
+  encounterId: 'encounter-command-1',
+  dungeonId: 'undercity',
+  kind: 'rest',
+  floor: 1,
+  room: 1,
+  outcome: 'victory',
+  roundCount: 0,
+  enemy: null,
+  transcript: [],
+  rewards: { gold: 0, loot: [] },
+};
 const successEnvelope: AuthoritativeCommandSuccess = {
   ok: true,
   revision: 8,
@@ -130,6 +142,27 @@ describe('authoritative command dispatch hook', () => {
       successEnvelope.lastProcessedAt,
     );
     expect(order).toEqual(['acknowledge', 'apply', 'publish']);
+  });
+
+  it('plays a resolved encounter from canonical history when the compact event only carries its id', async () => {
+    const envelope = {
+      ...successEnvelope,
+      state: { ...canonicalState, encounterHistory: [resolvedEncounter] },
+      events: [{
+        type: 'dungeon.encounter_resolved',
+        dungeonId: 'undercity',
+        encounterId: resolvedEncounter.encounterId,
+      }],
+    } satisfies AuthoritativeCommandSuccess;
+    transportMocks.callGameApi.mockResolvedValue(envelope);
+    const dependencies = createDependencies();
+    const { result } = renderHook(() => useAuthoritativeCommandDispatch(dependencies));
+
+    await act(async () => {
+      await result.current({ type: 'dungeon.resolve' });
+    });
+
+    expect(dependencies.playEncounterTranscript).toHaveBeenCalledWith(resolvedEncounter);
   });
 
   it('accepts an idempotent replay as an authoritative success', async () => {

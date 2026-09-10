@@ -44,8 +44,22 @@ describe("authoritative dungeon commands", () => {
     expect(resolved.state.activeDungeonRoom).toBe(2);
     expect(resolved.state.resources?.gold).toBeGreaterThan(0);
     expect(resolved.state.encounterHistory).toHaveLength(1);
-    expect(resolved.state.encounterHistory?.[0]).toMatchObject({ encounterId: "encounter-cmd-resolve", floor: 1, room: 1 });
-    expect(resolved.events[0]).toMatchObject({ type: "dungeon.encounter_resolved", encounter: { outcome: "victory", transcript: expect.any(Array), rewards: { gold: expect.any(Number) } } });
+    expect(resolved.state.encounterHistory?.[0]).toMatchObject({
+      encounterId: "encounter-cmd-resolve",
+      floor: 1,
+      room: 1,
+      initialActors: {
+        v: 1,
+        h: [["hero-1", expect.any(String), 20, 20, 10, 10, 0]],
+        b: expect.any(String),
+        e: expect.any(Array),
+      },
+    });
+    expect(resolved.events[0]).toEqual({
+      type: "dungeon.encounter_resolved",
+      dungeonId: "undercity",
+      encounterId: "encounter-cmd-resolve",
+    });
   });
 
   it("continues the expedition after a failed non-combat encounter without wiping living heroes", () => {
@@ -169,6 +183,7 @@ describe("authoritative dungeon commands", () => {
       current = applyDungeonCommand(current, { type: "dungeon.resolve" }, fixedRng()).state;
     }
     expect(current.encounterHistory).toHaveLength(15);
+    expect(current.encounterHistory.every((encounter) => encounter.initialActors?.v === 1)).toBe(true);
     expect(current.encounterHistory?.[0]).toMatchObject({ encounterId: "encounter-history-1", room: 2 });
     expect(current.encounterHistory?.[14]).toMatchObject({ encounterId: "encounter-history-15", room: 16 });
   });
@@ -215,6 +230,7 @@ describe("authoritative dungeon commands", () => {
     const first = applyDungeonCommand(started.state, { type: "dungeon.resolve" }, fixedRng());
     const second = applyDungeonCommand(started.state, { type: "dungeon.resolve" }, fixedRng());
     expect(second).toEqual(first);
+    expect(second.state.encounterHistory[0].initialActors).toEqual(first.state.encounterHistory[0].initialActors);
   });
 
   it("retreats an active encounter without reward or progression", () => {

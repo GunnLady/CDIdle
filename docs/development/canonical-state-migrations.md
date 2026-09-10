@@ -121,6 +121,21 @@ vidé. Le coffre projette ces formes historiques au lieu de les filtrer
 silencieusement. Le test pgTAP `028_item_instance_id_recovery.sql` couvre la
 conversion, l'unicité des instances, les droits des helpers et l'idempotence.
 
+## Extension des acteurs initiaux de rencontre
+
+CDI-098 ajoute `encounterHistory[].initialActors` comme extension facultative,
+interne au record et versionnée par `initialActors.v`. Cette évolution ne
+change pas les invariants obligatoires de l'état canonique : un record ancien
+sans extension reste valide et consultable, tandis qu'un nouveau record v1 est
+validé puis conservé tel quel par les migrations courantes. Il n'y a donc ni
+incrément de `stateVersion` ni backfill SQL ; inventer les acteurs perdus d'une
+ancienne rencontre serait moins fidèle qu'une absence explicite.
+
+La preuve couvre la migration TypeScript idempotente et le pipeline Supabase
+local : persistance JSONB, bootstrap et replay de la commande renvoient la même
+extension structurelle. PostgreSQL peut réordonner les clés JSONB ; l'égalité
+porte sur les données, jamais sur l'ordre textuel des propriétés.
+
 ## Retirer une migration
 
 Une étape ne peut être retirée qu'après preuve qu'aucun snapshot persistant ne

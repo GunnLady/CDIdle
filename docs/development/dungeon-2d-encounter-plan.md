@@ -257,6 +257,72 @@ pure de base est portée par CDI-100 et le lecteur temporel par CDI-107.
   cross-tab, replay et état persistant. Justifier une migration seulement si
   elle devient nécessaire ; ne pas reconstruire des événements anciens perdus.
 
+#### Extension initiale livrée par CDI-098
+
+`CanonicalDungeonEncounterRecord.initialActors` est facultatif afin que les
+records historiques restent valides. Pour une nouvelle rencontre, sa forme
+compacte et versionnée est :
+
+```ts
+{
+  v: 1;
+  h: Array<[
+    id: string,
+    visual: string,
+    currentHp: number,
+    maximumHp: number,
+    currentMana: number,
+    maximumMana: number,
+    knockedOut: 0 | 1,
+  ]>;
+  b?: string;
+  e: Array<[memberKey: string, currentHp: number, maximumHp: number]>;
+}
+```
+
+Les clés filaires courtes et les tuples évitent de répéter les noms de champs
+dans quinze rencontres ; les types nommés documentent chaque position.
+L'index dans `h` ou `e` est la place stable, de gauche à droite, dans son
+équipe. `visual` fige la clé de portrait CDIdle déjà résolue
+`<classe>_<genre>_<variante>` ; elle ne dépend donc ni du héros vivant après
+la rencontre ni d'une vocation ultérieure. Le nom n'est pas dupliqué : si le
+héros n'existe plus dans le roster, CDI-100 emploie le libellé neutre prévu au
+lieu d'inventer une identité historique.
+
+En combat, l'identité de contenu ennemie est le couple `b` + `memberKey`.
+Chaque membre du blueprint possède une clé courte explicite et immuable,
+indépendante de sa position ; un réordonnancement déplace la clé avec son
+membre. Nom, rôle, boss et identifiant d'instance restent dans `enemies` sur le
+même index et ne sont pas dupliqués. Le validateur impose le même nombre
+d'ennemis initiaux et finaux. Il ne rejette pas un blueprint retiré du
+catalogue courant : une trace historique inconnue reste consultable avec le
+fallback neutre. Hors combat, `b` est absent et `e` est vide. L'extension est
+capturée avant
+toute résolution, consommation de PM, perte de PV, réanimation ou attribution
+d'XP. Un record sans extension n'est jamais complété avec des valeurs déduites.
+
+L'événement `dungeon.encounter_resolved` ne duplique plus le record complet :
+il transporte son `encounterId`, et le client lit le record déjà présent dans
+`state.encounterHistory`. Le client accepte encore l'ancien événement enrichi.
+
+#### Matrice des neuf types et propriétaires restants
+
+| Type | Acteurs initiaux disponibles après CDI-098 | Données d'action encore incomplètes | Propriétaire |
+|---|---|---|---|
+| `fight` | Héros du segment, KO inclus ; groupe ennemi, clés de contenu et PV initiaux | Cible létale correcte livrée ; coûts de PM, cibles multiples et valeurs effectivement appliquées à uniformiser ; statuts et intentions à compléter | CDI-105 livré ; CDI-106 ; CDI-114 |
+| `trap` | Héros du segment, PV/PM/KO initiaux ; aucun ennemi inventé | Cibles et pertes appliquées à normaliser depuis `heroChanges` | CDI-106 |
+| `enigma` | Même capture, avant sélection et restauration/consommation | Coût ou gain de PM et cible sélectionnée à projeter uniformément | CDI-106 |
+| `ambush` | Même capture, avant la conséquence collective | Cibles multiples et PV effectivement retirés à expliciter | CDI-106 |
+| `ritual` | Même capture, avant restauration ou contrecoup | Coût ou gain de PM et cible sélectionnée à expliciter | CDI-106 |
+| `obstacle` | Même capture, avant la perte collective | Cibles multiples et PV effectivement retirés à expliciter | CDI-106 |
+| `negotiation` | Même capture ; aucun ennemi inventé | Variation d'or déjà tracée, projection ressource à uniformiser | CDI-106 |
+| `treasure` | Même capture ; aucun ennemi inventé | Récompenses exactes déjà dans `rewards`, pas de complément acteur requis | Aucun pour le contrat initial |
+| `rest` | Héros du segment et KO capturés avant réanimation | Cibles et valeurs de récupération déjà présentes, projection uniforme à finaliser | CDI-106 |
+
+Pour tous les types, la durée et l'expiration des effets ainsi que la
+représentation fiable des intentions restent la responsabilité de CDI-114.
+La matrice ne déclare donc pas ces champs livrés par CDI-098.
+
 Fichiers pressentis : contrats et producteur partagé existants ; modules de
 présentation `src/domain/encounterScene.ts`, `encounterTimeline.ts` et catalogue
 `src/assets/encounterVisuals.ts` ; composants sous
@@ -374,7 +440,7 @@ pas leur contenu actuel.
 | Ticket | Livrable | Statut au redécoupage | Taille / risque | Dépendances |
 | --- | --- | --- | --- | --- |
 | [CDI-097](../../workboard/data/Done/CDI-097/ticket.md) | Valider la composition PC de la scène Donjon 2D | Done | M / medium | Aucune |
-| [CDI-098](../../workboard/data/Later/CDI-098/ticket.md) | Capturer les acteurs initiaux dans un contrat de rencontre compatible | Later | L / high | CDI-097 |
+| [CDI-098](../../workboard/data/Done/CDI-098/ticket.md) | Capturer les acteurs initiaux dans un contrat de rencontre compatible | Done | L / high | CDI-097 |
 | [CDI-099](../../workboard/data/Later/CDI-099/ticket.md) | Préparer le catalogue visuel et le kit pilote CDIdle | Later | L / medium | CDI-097 |
 | [CDI-100](../../workboard/data/Later/CDI-100/ticket.md) | Projeter les rencontres en états de scène déterministes | Later | M / high | CDI-098, CDI-105 |
 | [CDI-101](../../workboard/data/Later/CDI-101/ticket.md) | Construire la scène de combat simple CDIdle | Later | M / medium | CDI-099, CDI-107 |

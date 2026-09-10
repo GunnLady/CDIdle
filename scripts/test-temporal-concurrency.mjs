@@ -1,4 +1,5 @@
 import { readFileSync } from 'node:fs';
+import { isDeepStrictEqual } from 'node:util';
 import {
   createLocalTestToken,
   LOCAL_TEST_USER_ID,
@@ -102,6 +103,7 @@ async function prepareCheckpointState(checkpointFloor = 5) {
   }
   snapshot = started.body;
   const state = structuredClone(snapshot.state);
+  state.heroes = state.heroes.map((hero) => ({ ...hero, isActive: true, status: 'idle' }));
   const heroIds = state.heroes.map((hero) => hero.id);
   for (const heroId of heroIds) {
     state.dungeonProgress.heroes[heroId] = {
@@ -115,6 +117,18 @@ async function prepareCheckpointState(checkpointFloor = 5) {
   state.activeDungeonRoom = 1;
   state.currentEncounter = null;
   state.autoExplore = false;
+  state.encounterHistory = [{
+    encounterId: `legacy-record-${checkpointFloor}`,
+    dungeonId: 'undercity',
+    kind: 'rest',
+    floor: checkpointFloor,
+    room: 1,
+    outcome: 'victory',
+    roundCount: 0,
+    enemy: null,
+    transcript: [],
+    rewards: { gold: 0, loot: [] },
+  }];
   state.dungeonProgress.expedition = {
     ...state.dungeonProgress.expedition,
     mode: 'progression',
@@ -139,6 +153,10 @@ async function prepareCheckpointState(checkpointFloor = 5) {
   const prepared = await request('/bootstrap');
   if (prepared.status !== 200 || !Number.isInteger(prepared.body?.revision)) {
     throw new Error(`checkpoint fixture bootstrap failed: HTTP ${prepared.status} ${JSON.stringify(prepared.body)}`);
+  }
+  const legacyRecord = prepared.body.state?.encounterHistory?.[0];
+  if (legacyRecord?.encounterId !== `legacy-record-${checkpointFloor}` || legacyRecord.initialActors !== undefined) {
+    throw new Error(`legacy encounter compatibility failed: ${JSON.stringify(legacyRecord)}`);
   }
   return { revision: prepared.body.revision, state: prepared.body.state };
 }
@@ -165,6 +183,47 @@ const persistedCheckpointCommands = await adminRequest(
 );
 if (persistedCheckpointCommands.status !== 200 || persistedCheckpointCommands.body?.length !== 1) {
   throw new Error(`checkpoint replay persisted more than once: ${JSON.stringify(persistedCheckpointCommands)}`);
+}
+
+const actorCommandId = crypto.randomUUID();
+const actorPayload = envelope(
+  actorCommandId,
+  replayedCheckpointDecision.body.revision,
+  { type: 'dungeon.auto_advance', floor: 6 },
+);
+const firstActorEncounter = await request('/commands', actorPayload);
+const replayedActorEncounter = await request('/commands', actorPayload);
+const actorRecord = firstActorEncounter.body?.state?.encounterHistory?.at(-1);
+const actorEvent = firstActorEncounter.body?.events
+  ?.find((event) => event.type === 'dungeon.encounter_resolved');
+if (firstActorEncounter.status !== 200 || firstActorEncounter.body?.replayed !== false
+  || replayedActorEncounter.status !== 200 || replayedActorEncounter.body?.replayed !== true
+  || firstActorEncounter.body?.revision !== replayedActorEncounter.body?.revision
+  || actorRecord?.initialActors?.v !== 1
+  || actorRecord.initialActors.h?.length !== 2
+  || actorEvent?.encounterId !== actorRecord.encounterId
+  || Object.hasOwn(actorEvent ?? {}, 'encounter')
+  || !isDeepStrictEqual(
+    replayedActorEncounter.body?.state?.encounterHistory?.at(-1)?.initialActors,
+    actorRecord.initialActors,
+  )) {
+  throw new Error(`initial actor replay failed: ${JSON.stringify([firstActorEncounter, replayedActorEncounter])}`);
+}
+committedCommandCount += 1;
+const persistedActors = await request('/bootstrap');
+if (persistedActors.status !== 200
+  || !isDeepStrictEqual(
+    persistedActors.body?.state?.encounterHistory?.at(-1)?.initialActors,
+    actorRecord.initialActors,
+  )) {
+  throw new Error(`initial actor persistence/bootstrap failed: ${JSON.stringify(persistedActors)}`);
+}
+const persistedActorCommands = await adminRequest(
+  `game_commands?select=command_id&user_id=eq.${LOCAL_TEST_USER_ID}&command_id=eq.${actorCommandId}`,
+  { method: 'GET' },
+);
+if (persistedActorCommands.status !== 200 || persistedActorCommands.body?.length !== 1) {
+  throw new Error(`initial actor command persisted more than once: ${JSON.stringify(persistedActorCommands)}`);
 }
 
 const competingCheckpoint = await prepareCheckpointState(10);

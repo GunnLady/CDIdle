@@ -2,7 +2,6 @@ import assert from "node:assert/strict";
 import { applyDungeonCommand } from "../supabase/functions/game-api/dungeon-authority.ts";
 import type { CanonicalGameState } from "../shared/contracts/authoritative.ts";
 import type { Hero } from "../shared/contracts/game.ts";
-import type { AuthoritativeDungeonEncounter } from "../shared/domain/authoritative-dungeon.ts";
 import { initialTownState } from "../supabase/functions/game-api/town-authority.ts";
 import { calculateXpNeeded } from "../shared/domain/hero-xp.ts";
 import { createUndercityProgress } from "../shared/domain/undercity-progression.ts";
@@ -79,8 +78,11 @@ function resolveCurrent(state: CanonicalGameState, seed: number, entropy: number
     commandId,
   });
   const resolved = applyDungeonCommand(started.state, { type: "dungeon.resolve", dungeonId: UNDERCITY_DUNGEON_ID }, new ScriptedRng(seed, [0, entropy]));
-  const encounter = resolved.events.find((event) => event.type === "dungeon.encounter_resolved")?.encounter as AuthoritativeDungeonEncounter | undefined;
-  assert(encounter, "La résolution autoritaire doit publier la rencontre résolue");
+  const resolvedEvent = resolved.events.find((event) => event.type === "dungeon.encounter_resolved");
+  const encounter = typeof resolvedEvent?.encounterId === "string"
+    ? resolved.state.encounterHistory.find((entry) => entry.encounterId === resolvedEvent.encounterId)
+    : undefined;
+  assert(encounter, "La résolution autoritaire doit référencer la rencontre canonique résolue");
   return { ...resolved, encounter };
 }
 

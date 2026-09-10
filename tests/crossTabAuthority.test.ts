@@ -25,6 +25,23 @@ const snapshot: CrossTabAuthoritySnapshot = {
       reason: "prayer",
       candidates: [{ classType: "Mage", affinity: 0.9 }],
     }],
+    encounterHistory: [{
+      encounterId: "cross-tab-actors",
+      dungeonId: "undercity",
+      kind: "rest",
+      floor: 1,
+      room: 2,
+      outcome: "victory",
+      roundCount: 0,
+      enemy: null,
+      initialActors: {
+        v: 1,
+        h: [["historical-hero", "Novice_Female_3", 10, 20, 5, 10, 0]],
+        e: [],
+      },
+      transcript: [],
+      rewards: { gold: 0, loot: [] },
+    }],
   },
   serverTime: "2026-07-27T18:00:00.000Z",
   lastProcessedAt: "2026-07-27T17:59:59.000Z",
@@ -91,6 +108,8 @@ describe("cross-tab authoritative synchronization", () => {
     channel.onmessage?.({ data: createCrossTabAuthorityMessage("tab-b", snapshot) } as MessageEvent);
     expect(onSnapshot).toHaveBeenCalledWith(snapshot);
     expect(onSnapshot.mock.calls[0][0].state.pendingClassTransitions).toEqual(snapshot.state.pendingClassTransitions);
+    expect(onSnapshot.mock.calls[0][0].state.encounterHistory[0].initialActors)
+      .toEqual(snapshot.state.encounterHistory[0].initialActors);
   });
 
   it("notifies another tab that the authenticated account was deleted", () => {

@@ -63,6 +63,22 @@ describe("UnderCity product domain", () => {
     for (const zone of UNDERCITY_ZONES) {
       expect(new Set([...zone.encounters, zone.elite, zone.boss].map((encounter) => encounter.members.length))).toEqual(new Set([1, 2, 3]));
     }
+    const blueprintMemberKeys = Object.fromEntries(UNDERCITY_ZONES.flatMap((zone) => (
+      [...zone.encounters, zone.elite, zone.boss]
+        .map((encounter) => [encounter.id, encounter.members.map((member) => member.key)] as const)
+    )));
+    expect(blueprintMemberKeys).toEqual({
+      "rat-pack": ["a", "b", "c"], "beetle-swarm": ["a", "b", "c"], "pipe-slime": ["a"], "colossal-rat": ["a"], "sewer-warden": ["a", "b"], "vermin-mother": ["a"],
+      "smuggler-escort": ["a", "b", "c"], "goblin-scavengers": ["a", "b"], "hound-handler": ["a", "b"], "tribute-cutthroat": ["a"], "smuggler-captain": ["a", "b", "c"], "tribute-collector": ["a", "b", "c"],
+      "water-parasites": ["a", "b", "c"], "reservoir-slime": ["a"], "refuge-warden": ["a"], "cistern-leeches": ["a", "b"], "valve-sentinel": ["a", "b"], "dead-water-warden": ["a"],
+      "banished-sentinel": ["a"], "exile-patrol": ["a", "b"], "bastion-defenders": ["a", "b", "c"], "barricade-colossus": ["a"], "barricade-warden": ["a", "b", "c"], "outcast-standard-bearer": ["a", "b", "c"],
+      "court-guard": ["a", "b", "c"], "court-vermin": ["a", "b"], "chamberlain-escort": ["a", "b", "c"], "court-champion": ["a"], "king-herald": ["a", "b", "c"], "rat-king": ["a", "b", "c"],
+    });
+    for (const zone of UNDERCITY_ZONES) {
+      for (const encounter of [...zone.encounters, zone.elite, zone.boss]) {
+        expect(new Set(encounter.members.map((member) => member.key)).size).toBe(encounter.members.length);
+      }
+    }
     expect(getUndercityFixedVictoryId(45, getDungeonRoomCount(45), getDungeonRoomCount(45))).toBe("undercity:elite:45");
     expect(getUndercityFixedVictoryId(50, getDungeonRoomCount(50), getDungeonRoomCount(50))).toBe("undercity:boss:50");
   });

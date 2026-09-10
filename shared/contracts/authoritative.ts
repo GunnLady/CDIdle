@@ -9,6 +9,7 @@ import {
   CANONICAL_HERO_CLASS_TIERS,
   type CanonicalHeroClass,
 } from "../domain/hero-classes.ts";
+import { HERO_PORTRAIT_VARIANT_COUNT } from "../domain/hero-portrait-identity.ts";
 
 export { CANONICAL_HERO_CLASSES, CANONICAL_HERO_CLASS_TIERS };
 
@@ -44,6 +45,29 @@ export interface CanonicalDungeonEnemyRecord {
   effects?: string[];
 }
 
+export type CanonicalDungeonInitialHeroActor = [
+  id: string,
+  visual: string,
+  currentHp: number,
+  maximumHp: number,
+  currentMana: number,
+  maximumMana: number,
+  knockedOut: 0 | 1,
+];
+
+export type CanonicalDungeonInitialEnemyActor = [
+  memberKey: string,
+  currentHp: number,
+  maximumHp: number,
+];
+
+export interface CanonicalDungeonInitialActors {
+  v: 1;
+  h: CanonicalDungeonInitialHeroActor[];
+  b?: string;
+  e: CanonicalDungeonInitialEnemyActor[];
+}
+
 export interface CanonicalDungeonEncounterRecord {
   encounterId: string;
   dungeonId?: string;
@@ -54,6 +78,7 @@ export interface CanonicalDungeonEncounterRecord {
   roundCount: number;
   enemy: { id?: string; name?: string; hp: number; maxHp: number; isBoss?: boolean } | null;
   enemies?: CanonicalDungeonEnemyRecord[];
+  initialActors?: CanonicalDungeonInitialActors;
   transcript: CanonicalDungeonTranscriptEvent[];
   rewards: { gold: number; loot: CanonicalDungeonLoot[] };
 }
@@ -498,6 +523,78 @@ function requireFiniteFields(
   }
 }
 
+function validateDungeonInitialActors(
+  value: unknown,
+  path: string,
+  encounterKind: unknown,
+): string[] {
+  const errors: string[] = [];
+  if (!isRecord(value)) return [`${path} must be an object`];
+  if (!hasOnlyKeys(value, ["v", "h", "b", "e"])) errors.push(`${path} contains unsupported fields`);
+  if (value.v !== 1) errors.push(`${path}.v must be 1`);
+
+  if (!Array.isArray(value.h)) errors.push(`${path}.h must be an array`);
+  else {
+    if (value.h.length < 1 || value.h.length > 4) errors.push(`${path}.h must contain 1 to 4 actors`);
+    const heroIds = new Set<string>();
+    value.h.forEach((actor, index) => {
+      const actorPath = `${path}.h[${index}]`;
+      if (!Array.isArray(actor) || actor.length !== 7) {
+        errors.push(`${actorPath} must be a 7-value hero tuple`);
+        return;
+      }
+      const [id, visualKey, currentHp, maximumHp, currentMana, maximumMana, knockedOut] = actor;
+      if (typeof id !== "string" || !id.trim()) errors.push(`${actorPath}[0] id is required`);
+      else if (heroIds.has(id)) errors.push(`${actorPath}[0] id must be unique`);
+      else heroIds.add(id);
+      if (typeof visualKey !== "string" || !visualKey.trim()) errors.push(`${actorPath}[1] visual key is required`);
+      else {
+        const visual = /^(.+)_(Male|Female)_(\d+)$/.exec(visualKey);
+        if (!visual
+          || !CANONICAL_HERO_CLASSES.includes(visual[1] as CanonicalHeroClass)
+          || Number(visual[3]) < 0
+          || Number(visual[3]) >= HERO_PORTRAIT_VARIANT_COUNT) errors.push(`${actorPath}[1] visual key is invalid`);
+      }
+      if (![currentHp, maximumHp, currentMana, maximumMana].every((entry) => isFiniteNumber(entry) && entry >= 0)) errors.push(`${actorPath} vitals must be finite non-negative values`);
+      if (isFiniteNumber(maximumHp) && maximumHp <= 0) errors.push(`${actorPath}[3] maximum hp must be greater than 0`);
+      if (isFiniteNumber(currentHp) && isFiniteNumber(maximumHp) && currentHp > maximumHp) errors.push(`${actorPath}[2] current hp exceeds maximum`);
+      if (isFiniteNumber(currentMana) && isFiniteNumber(maximumMana) && currentMana > maximumMana) errors.push(`${actorPath}[4] current mana exceeds maximum`);
+      if (knockedOut !== 0 && knockedOut !== 1) errors.push(`${actorPath}[6] knocked-out flag must be 0 or 1`);
+      if (currentHp === 0 && knockedOut !== 1) errors.push(`${actorPath}[6] knocked-out flag must be 1 when current hp is 0`);
+    });
+  }
+
+  if (!Array.isArray(value.e)) errors.push(`${path}.e must be an array`);
+  else {
+    if (value.e.length > 3) errors.push(`${path}.e exceeds encounter capacity`);
+    if (encounterKind === "fight" && value.e.length < 1) errors.push(`${path}.e must contain at least one actor for a fight`);
+    if (encounterKind !== "fight" && value.e.length > 0) errors.push(`${path}.e must be empty outside fights`);
+    if (encounterKind === "fight" && (typeof value.b !== "string" || !value.b.trim())) errors.push(`${path}.b blueprint id is required for a fight`);
+    if (encounterKind !== "fight" && value.b !== undefined) errors.push(`${path}.b blueprint id must be absent outside fights`);
+    const memberKeys = new Set<string>();
+    value.e.forEach((actor, index) => {
+      const actorPath = `${path}.e[${index}]`;
+      if (!Array.isArray(actor) || actor.length !== 3) {
+        errors.push(`${actorPath} must be a 3-value enemy tuple`);
+        return;
+      }
+      const [memberKey, currentHp, maximumHp] = actor;
+      if (typeof memberKey !== "string" || !memberKey.trim()) errors.push(`${actorPath}[0] member key is required`);
+      if (typeof memberKey === "string" && memberKey.trim()) {
+        if (memberKeys.has(memberKey)) errors.push(`${actorPath}[0] member key must be unique`);
+        else memberKeys.add(memberKey);
+      }
+      if (![currentHp, maximumHp].every((entry) => isFiniteNumber(entry) && entry >= 0)) {
+        errors.push(`${actorPath} hp values must be finite and non-negative`);
+      } else {
+        if (maximumHp <= 0) errors.push(`${actorPath}[2] maximum hp must be greater than 0`);
+        if (currentHp > maximumHp) errors.push(`${actorPath}[1] current hp exceeds maximum`);
+      }
+    });
+  }
+  return errors;
+}
+
 export function validateCanonicalHero(input: unknown, path = "hero"): string[] {
   if (!isRecord(input)) return [`${path} must be an object`];
   const hero = input;
@@ -828,6 +925,13 @@ export function validateCanonicalGameState(input: unknown): string[] {
         if (!Number.isInteger(entry[field])) errors.push(`${path}.${field} must be an integer`);
       }
       if (entry.dungeonId !== undefined && (typeof entry.dungeonId !== "string" || !entry.dungeonId.trim())) errors.push(`${path}.dungeonId is invalid`);
+      if (entry.initialActors !== undefined) {
+        errors.push(...validateDungeonInitialActors(entry.initialActors, `${path}.initialActors`, entry.kind));
+        if (entry.kind === "fight" && isRecord(entry.initialActors) && Array.isArray(entry.initialActors.e)) {
+          if (!Array.isArray(entry.enemies)) errors.push(`${path}.enemies is required when initialActors is present for a fight`);
+          else if (entry.initialActors.e.length !== entry.enemies.length) errors.push(`${path}.initialActors.e must align with enemies`);
+        }
+      }
       if (entry.enemies !== undefined) {
         if (!Array.isArray(entry.enemies)) errors.push(`${path}.enemies must be an array`);
         else {

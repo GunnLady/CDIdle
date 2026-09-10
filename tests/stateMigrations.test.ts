@@ -175,6 +175,30 @@ describe("canonical state migrations", () => {
     expect(validateCanonicalGameState(first)).toEqual([]);
   });
 
+  it("preserves the optional initial actor extension on a current canonical state", () => {
+    const initialActors = {
+      v: 1 as const,
+      h: [["historical-hero", "Novice_Female_7", 20, 20, 10, 10, 0] as [string, string, number, number, number, number, 0]],
+      b: "rat-pack",
+      e: [["a", 16, 16] as [string, number, number]],
+    };
+    const current = {
+      ...initialTownState(42),
+      encounterHistory: [{
+        encounterId: "current-actors", dungeonId: "undercity", kind: "fight" as const,
+        floor: 1, room: 1, outcome: "victory" as const, roundCount: 1,
+        enemy: { id: "enemy-instance", name: "Rat des canaux", hp: 0, maxHp: 16 },
+        enemies: [{ id: "enemy-instance", name: "Rat des canaux", hp: 0, maxHp: 16 }],
+        initialActors, transcript: [], rewards: { gold: 3, loot: [] },
+      }],
+    };
+
+    const migrated = migrateCanonicalState(current as unknown as Record<string, unknown>, migrationContext());
+
+    expect(migrated.encounterHistory[0].initialActors).toEqual(initialActors);
+    expect(validateCanonicalGameState(migrated)).toEqual([]);
+  });
+
   it("recovers legacy ids and item stacks from a current snapshot", () => {
     const current = initialTownState(42) as unknown as Record<string, unknown>;
     current.storedItems = [

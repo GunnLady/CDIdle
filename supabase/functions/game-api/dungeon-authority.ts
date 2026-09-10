@@ -184,7 +184,14 @@ function resolveEncounter(state: DungeonState, rng: DungeonRng) {
       checkpointReached ? false : next.autoExplore,
     );
   }
-  return { state: next, events: [{ type: "dungeon.encounter_resolved", dungeonId: UNDERCITY_DUNGEON_ID, encounter }] };
+  return {
+    state: next,
+    events: [{
+      type: "dungeon.encounter_resolved",
+      dungeonId: UNDERCITY_DUNGEON_ID,
+      encounterId: encounter.encounterId,
+    }],
+  };
 }
 
 export function applyDungeonCommand(current: CanonicalGameState, command: Record<string, unknown>, rng?: DungeonRng): CanonicalStateTransition {

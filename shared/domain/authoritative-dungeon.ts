@@ -10,7 +10,11 @@ import type {
   StoredForgeMaterialStack,
   StoredItemInstance,
 } from "../contracts/game.ts";
-import type { CanonicalDungeonLoot, CanonicalGameState } from "../contracts/authoritative.ts";
+import type {
+  CanonicalDungeonInitialActors,
+  CanonicalDungeonLoot,
+  CanonicalGameState,
+} from "../contracts/authoritative.ts";
 import { BOSSES_LIBRARY, ITEM_LIBRARY, MONSTERS_LIBRARY, getSkillById } from "../data/game-data.ts";
 import { BOSS_LOOT_TABLES_REGISTRY } from "./items/boss-loot-tables.ts";
 import {
@@ -52,6 +56,7 @@ import {
   type DungeonChallengeDifficultyResolver,
 } from "./dungeon-challenges.ts";
 import { CANONICAL_HERO_STAT_PRESENTATION } from "./hero-stats.ts";
+import { getStableHeroPortraitVariant, normalizeHeroPortraitVariant } from "./hero-portrait-identity.ts";
 import { createDungeonItemRewardRng, shouldAwardDungeonItem } from "./dungeon-loot-policy.ts";
 import type { Rng } from "./random.ts";
 import {
@@ -156,9 +161,53 @@ export type AuthoritativeDungeonEncounter = {
     intent?: string;
     effects?: string[];
   }>;
+  initialActors: CanonicalDungeonInitialActors;
   transcript: AuthoritativeDungeonTranscriptEvent[];
   rewards: { gold: number; loot: CanonicalDungeonLoot[] };
 };
+
+function captureInitialHeroes(source: AuthoritativeDungeonState): CanonicalDungeonInitialActors["h"] {
+  const expedition = source.dungeonProgress?.expedition;
+  const participantHeroIds = source.currentEncounter?.participantHeroIds ?? [];
+  const segmentHeroIds = expedition?.segmentHeroIds?.length
+    ? expedition.segmentHeroIds
+    : participantHeroIds;
+  const heroIds = segmentHeroIds.length > 0
+    ? segmentHeroIds
+    : source.heroes.filter((hero) => hero.isActive).map((hero) => hero.id);
+  const knockedOutHeroIds = new Set(expedition?.knockedOutHeroIds ?? []);
+  const heroesById = new Map(source.heroes.map((hero) => [hero.id, hero]));
+  return heroIds.slice(0, 4).flatMap((heroId) => {
+    const hero = heroesById.get(heroId);
+    if (!hero) return [];
+    const portraitGender = hero.gender === "Female" ? "Female" : "Male";
+    const portraitVariant = hero.spriteIndex === undefined
+      ? getStableHeroPortraitVariant(hero.id)
+      : normalizeHeroPortraitVariant(hero.spriteIndex);
+    return [[
+      hero.id,
+      `${hero.classType}_${portraitGender}_${portraitVariant}`,
+      hero.currentHp,
+      hero.calculatedStats.maxHp,
+      hero.currentMana,
+      hero.calculatedStats.maxMana,
+      knockedOutHeroIds.has(hero.id) || hero.currentHp <= 0 ? 1 : 0,
+    ]];
+  });
+}
+
+function captureInitialActors(
+  source: AuthoritativeDungeonState,
+  enemies: CanonicalDungeonInitialActors["e"] = [],
+  blueprintId?: string,
+): CanonicalDungeonInitialActors {
+  return {
+    v: 1,
+    h: captureInitialHeroes(source),
+    ...(blueprintId === undefined ? {} : { b: blueprintId }),
+    e: enemies,
+  };
+}
 
 export type AuthoritativeDungeonState = CanonicalGameState;
 
@@ -527,9 +576,14 @@ function resolveFight(
   const isUndercity = source.currentEncounter?.dungeonId === UNDERCITY_DUNGEON_ID;
   const encounterBlueprint = isUndercity
     ? getUndercityEncounterBlueprint(floor, room, getDungeonRoomCount(floor), scaledMonster.itemRewardEntropy)
-    : { id: "legacy-single", name: canonicalMonsterName, behavior: "swarm" as const, members: [{ name: canonicalMonsterName, role: "ordinary" as const }] };
+    : { id: "legacy-single", name: canonicalMonsterName, behavior: "swarm" as const, members: [{ key: "a", name: canonicalMonsterName, role: "ordinary" as const }] };
   let monster = { ...scaledMonster.monster, name: encounterBlueprint.name };
   const enemyGroup = createUndercityCombatGroup(monster, encounterBlueprint);
+  const initialActors = captureInitialActors(source, enemyGroup.members.map((enemy, slot) => [
+    encounterBlueprint.members[slot].key,
+    enemy.hp,
+    enemy.maxHp,
+  ]), encounterBlueprint.id);
   monster = primaryUndercityEnemy(enemyGroup);
   const resources: Resources = {
     gold: 0,
@@ -1229,6 +1283,7 @@ function resolveFight(
       room,
       outcome: victory ? "victory" : "defeat",
       roundCount: round,
+      initialActors,
       enemies: enemyGroup.members.map((enemy) => ({ id: enemy.id, name: enemy.name, hp: enemy.hp, maxHp: enemy.maxHp, isBoss: enemy.isBoss, role: enemy.role, intent: enemy.intent, effects: [] })),
       enemy: {
         id: monster.id,
@@ -1254,6 +1309,7 @@ function resolveNonFight(
   xpRewardPolicy: DungeonXpRewardPolicy,
   challengeDifficultyResolver: DungeonChallengeDifficultyResolver,
 ): AuthoritativeDungeonResolution {
+  const initialActors = captureInitialActors(source);
   let heroes = clone(source.heroes ?? []);
   const isUndercity = source.currentEncounter?.dungeonId === UNDERCITY_DUNGEON_ID;
   const resources: Resources = {
@@ -1658,6 +1714,7 @@ function resolveNonFight(
       outcome: victory ? "victory" : "defeat",
       roundCount: 0,
       enemy: null,
+      initialActors,
       transcript,
       rewards: { gold: goldReward, loot },
     },
