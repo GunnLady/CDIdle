@@ -99,6 +99,37 @@ describe("DungeonPanel authoritative structure", () => {
     expect(screen.getByRole("button", { name: "Explorer la salle" })).toBeDisabled();
   });
 
+  it("labels unavailable legacy health instead of reconstructing it from the final record", () => {
+    const legacyGroup = {
+      ...encounter,
+      encounterId: "legacy-health-gap",
+      enemies: [
+        { id: "enemy-1", name: "Rat touché", hp: 0, maxHp: 12 },
+        { id: "enemy-2", name: "Rat non observé", hp: 0, maxHp: 14 },
+      ],
+      transcript: [{
+        sequence: 0,
+        type: "hero.hit",
+        heroId: "hero-1",
+        heroName: "Ragnor",
+        monsterId: "enemy-1",
+        damage: 6,
+        enemyHp: 6,
+        enemyMaxHp: 12,
+      }],
+    } satisfies CanonicalDungeonEncounterRecord;
+
+    render(<DungeonPanel
+      {...props}
+      encounterHistory={[legacyGroup]}
+      encounterPlayback={{ encounterId: legacyGroup.encounterId, visibleCount: 1, complete: false }}
+    />);
+
+    const current = within(screen.getByTestId("dungeon-current-encounter"));
+    expect(current.getByText("6/12 PV")).toBeInTheDocument();
+    expect(current.getByText("PV historiques inconnus")).toBeInTheDocument();
+  });
+
   it("keeps retreat available throughout the dungeon flow", () => {
     const view = render(<DungeonPanel {...props} isExploring={false} />);
     expect(screen.getByRole("button", { name: "Repli au campement" })).toBeEnabled();

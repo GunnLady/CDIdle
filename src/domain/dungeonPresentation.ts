@@ -22,7 +22,11 @@ import type { BattleLogEntry, Hero } from "../types";
 import { getHeroMainHandWeapon } from "../utils/gameCalculations";
 import type { HeroRosterEntryView } from "./heroPresentation";
 import { HERO_MAX_LEVEL } from "../../shared/data/hero-progression-models";
-import { getEncounterPlaybackTranscript } from "./encounterPlayback";
+import {
+  createEncounterSceneProjection,
+  getEncounterPlaybackTranscript,
+  type EncounterSceneState,
+} from "./encounterSceneProjection";
 
 export interface DungeonProgressView {
   floor: number;
@@ -87,7 +91,8 @@ export interface DungeonEncounterView {
   state: "pending" | "playing" | "victory" | "defeat";
   transcript: Array<{ id: string; message: string; category: CanonicalDungeonTranscriptEvent["category"] }>;
   result?: string;
-  enemies: Array<{ id: string; name: string; hp: number; maxHp: number; role?: string; intent?: string; effects: string[] }>;
+  enemies: Array<{ id: string; name: string; hp: number | null; maxHp: number | null; role?: string; intent?: string; effects: string[] }>;
+  scene: EncounterSceneState | null;
 }
 
 export interface DungeonHistoryView {
@@ -296,29 +301,23 @@ function formatEnemyRole(role?: string): string {
 
 function createPlaybackEnemies(
   record: CanonicalDungeonEncounterRecord,
-  visibleTranscript: CanonicalDungeonTranscriptEvent[],
-  complete: boolean,
+  scene: EncounterSceneState,
 ): DungeonEncounterView["enemies"] {
-  const enemies = (record.enemies ?? []).map((enemy) => ({
-    ...enemy,
-    role: formatEnemyRole(enemy.role),
-    effects: enemy.effects ?? [],
-  }));
-  if (complete) return enemies;
-
-  const playbackEnemies = enemies.map((enemy) => ({ ...enemy, hp: enemy.maxHp }));
-  const enemiesById = new Map(playbackEnemies.map((enemy) => [enemy.id, enemy]));
-  for (const event of visibleTranscript) {
-    if (typeof event.enemyHp !== "number" || !Number.isFinite(event.enemyHp)) continue;
-    const targetMonsterId = typeof event.targetMonsterId === "string"
-      ? event.targetMonsterId
-      : event.monsterId;
-    const target = targetMonsterId
-      ? enemiesById.get(targetMonsterId)
-      : playbackEnemies.length === 1 ? playbackEnemies[0] : undefined;
-    if (target) target.hp = Math.max(0, Math.min(target.maxHp, event.enemyHp));
-  }
-  return playbackEnemies;
+  const recordEnemies = record.enemies ?? [];
+  return scene.actors.filter((actor) => actor.team === "enemies").map((actor) => {
+    const recorded = actor.sourceId
+      ? recordEnemies.find((enemy) => enemy.id === actor.sourceId)
+      : recordEnemies[actor.slot];
+    return {
+      id: actor.sourceId ?? actor.id,
+      name: actor.name,
+      hp: actor.currentHp,
+      maxHp: actor.maximumHp,
+      role: formatEnemyRole(recorded?.role),
+      intent: recorded?.intent,
+      effects: recorded?.effects ?? [],
+    };
+  });
 }
 
 export function createEncounterView(
@@ -328,6 +327,7 @@ export function createEncounterView(
 ): DungeonEncounterView {
   const complete = playback?.complete ?? true;
   const playbackTranscript = getEncounterPlaybackTranscript(record);
+  const scene = createEncounterSceneProjection(record, heroNames, playback ?? undefined);
   const visibleTranscript = playback
     ? playbackTranscript.slice(0, playback.visibleCount)
     : playbackTranscript;
@@ -341,7 +341,8 @@ export function createEncounterView(
       ? record.kind === "fight" ? "Combat en cours" : "Rencontre en cours"
       : record.outcome === "victory" ? "Victoire" : "Défaite",
     state,
-    enemies: createPlaybackEnemies(record, visibleTranscript, complete),
+    scene,
+    enemies: createPlaybackEnemies(record, scene),
     transcript: visibleTranscript.map((event) => ({
       id: `${record.encounterId}-${event.sequence}`,
       message: formatTranscriptEvent(event, heroNames),
@@ -374,6 +375,7 @@ export function createCurrentEncounterView(
       state: "pending",
       transcript: [],
       enemies: [],
+      scene: null,
     };
   }
   const latest = encounterHistory.at(-1);

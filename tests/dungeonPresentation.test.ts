@@ -115,6 +115,13 @@ describe("dungeon presentation projections", () => {
     const view = createCurrentEncounterView(null, [record], { encounterId: "challenge", visibleCount: 1, complete: false }, []);
     expect(view?.transcript.map((event) => event.message)).toEqual(["Calcul canonique exact."]);
     expect(view).toMatchObject({ state: "playing", statusLabel: "Rencontre en cours" });
+    expect(view?.scene).toMatchObject({
+      encounterId: "challenge",
+      visibleCount: 1,
+      complete: false,
+      activeStep: { sequence: 0, summary: "Calcul canonique exact." },
+      limitations: ["initial-actors-unavailable"],
+    });
   });
 
   it("hides redundant enemy intents while keeping the resolved enemy action", () => {
@@ -190,8 +197,9 @@ describe("dungeon presentation projections", () => {
     const damaged = createCurrentEncounterView(null, [record], { encounterId: record.encounterId, visibleCount: 1, complete: false }, []);
     expect(damaged?.enemies).toEqual([
       expect.objectContaining({ id: "guard", hp: 4 }),
-      expect.objectContaining({ id: "support", hp: 8 }),
+      expect.objectContaining({ id: "support", hp: null }),
     ]);
+    expect(damaged?.scene?.actors.find((actor) => actor.sourceId === "support")?.currentHp).toBeNull();
 
     const healed = createCurrentEncounterView(null, [record], { encounterId: record.encounterId, visibleCount: 2, complete: false }, []);
     expect(healed?.enemies[0]).toMatchObject({ id: "guard", hp: 7 });

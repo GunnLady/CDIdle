@@ -237,6 +237,15 @@ corrige la cible létale ; CDI-106 complète ressources, cibles et conséquences
 CDI-114 couvre les statuts/intentions de la trace jusqu'au rendu. La projection
 pure de base est portée par CDI-100 et le lecteur temporel par CDI-107.
 
+CDI-100 livre `encounterSceneProjection.ts` comme adaptateur pur unique : il
+conserve les acteurs historiques, ordonne et regroupe les événements, produit
+des impacts identifiés de manière stable et calcule l'état directement ou pas
+à pas avec le même résultat. Une valeur absente reste `null` et le panneau
+historique l'annonce au lieu de la reconstruire depuis l'état final. Le filtre
+`enemy.intent` reste partagé avec le lecteur existant et n'ajoute aucun pas au
+calendrier. CDI-106, CDI-107 et CDI-114 conservent respectivement les
+enrichissements de trace, l'horloge annulable et les statuts/intentions.
+
 - Conserver un unique transcript autoritaire ; ne pas créer un second moteur
   ni un deuxième journal persistant concurrent.
 - Ajouter une extension versionnée et facultative au record pour les nouvelles
@@ -442,7 +451,7 @@ pas leur contenu actuel.
 | [CDI-097](../../workboard/data/Done/CDI-097/ticket.md) | Valider la composition PC de la scène Donjon 2D | Done | M / medium | Aucune |
 | [CDI-098](../../workboard/data/Done/CDI-098/ticket.md) | Capturer les acteurs initiaux dans un contrat de rencontre compatible | Done | L / high | CDI-097 |
 | [CDI-099](../../workboard/data/Done/CDI-099/ticket.md) | Préparer le catalogue visuel et le kit pilote CDIdle | Done | L / medium | CDI-097 |
-| [CDI-100](../../workboard/data/Later/CDI-100/ticket.md) | Projeter les rencontres en états de scène déterministes | Later | M / high | CDI-098, CDI-105 |
+| [CDI-100](../../workboard/data/Done/CDI-100/ticket.md) | Projeter les rencontres en états de scène déterministes | Done | M / high | CDI-098, CDI-105 |
 | [CDI-101](../../workboard/data/Later/CDI-101/ticket.md) | Construire la scène de combat simple CDIdle | Later | M / medium | CDI-099, CDI-107 |
 | [CDI-102](../../workboard/data/Later/CDI-102/ticket.md) | Mettre en scène trésors, repos et réanimations | Later | M / medium | CDI-103, CDI-106 |
 | [CDI-103](../../workboard/data/Later/CDI-103/ticket.md) | Intégrer le premier combat et sécuriser son cycle de lecture | Later | L / high | CDI-101 |

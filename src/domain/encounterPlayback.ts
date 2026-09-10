@@ -1,4 +1,7 @@
 import type { CanonicalDungeonEncounterRecord } from "../../shared/contracts/authoritative";
+import { getEncounterPlaybackTranscript } from "./encounterSceneProjection";
+
+export { getEncounterPlaybackTranscript } from "./encounterSceneProjection";
 
 export const ENCOUNTER_PLAYBACK_STEP_MS = 400;
 export const DUNGEON_AUTO_EXPLORE_DELAY_MS = 4_750;
@@ -14,10 +17,6 @@ export type EncounterPlaybackRuntimeOptions = {
   onChange: (state: EncounterPlaybackState) => void;
   wait: (durationMs: number) => Promise<void>;
 };
-
-export function getEncounterPlaybackTranscript(encounter: CanonicalDungeonEncounterRecord) {
-  return encounter.transcript.filter((event) => event.type !== "enemy.intent");
-}
 
 export class EncounterPlaybackRuntime {
   private generation = 0;

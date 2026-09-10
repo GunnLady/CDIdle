@@ -1,7 +1,7 @@
 ---
 id: CDI-100
 title: Projeter les rencontres en états de scène déterministes
-status: Later
+status: Done
 area: frontend
 priority: P1
 size: M
@@ -10,7 +10,7 @@ source: Demande utilisateur du 10 septembre 2026 - scènes Donjon 2D inspirées 
 depends_on: ["CDI-098","CDI-105"]
 blocks: ["CDI-106","CDI-107"]
 github_issue: null
-related_docs: ["docs/development/dungeon-2d-encounter-plan.md","docs/development/dungeon-2d-resizing-proposal.md","src/domain/encounterPlayback.ts","src/hooks/useEncounterPlayback.ts","src/domain/dungeonPresentation.ts","src/hooks/useAuthoritativeCommandDispatch.ts","tests/encounterPlayback.test.ts"]
+related_docs: ["docs/development/dungeon-2d-encounter-plan.md","docs/development/dungeon-2d-resizing-proposal.md","src/domain/encounterSceneProjection.ts","src/domain/encounterPlayback.ts","src/hooks/useEncounterPlayback.ts","src/domain/dungeonPresentation.ts","src/components/dungeon/CurrentEncounterPanel.tsx","src/hooks/useAuthoritativeCommandDispatch.ts","tests/encounterSceneProjection.test.ts","tests/encounterPlayback.test.ts","tests/dungeonPresentation.test.ts","tests/DungeonPanel.test.tsx"]
 ---
 
 # CDI-100 — Projeter les rencontres en états de scène déterministes
@@ -67,11 +67,11 @@ Les dépendances directes et leurs liens blocks font foi ; les acquis déjà liv
 
 ## Criteres d'acceptation
 
-- [ ] Les records anciens/nouveaux, vides et inconnus produisent un modèle utile sans plantage ni valeur inventée.
-- [ ] Les fixtures de coup normal/létal, KO et conséquences explicitement disponibles donnent les bonnes identités et valeurs à chaque impact.
-- [ ] Projection directe et parcours séquentiel donnent les mêmes acteurs, PV/PM et résultat, y compris en milieu d'action.
-- [ ] Un héros absent du roster courant et un KO de segment ne disparaissent pas de leur rencontre historique.
-- [ ] Aucune minuterie, règle de combat ou écriture de snapshot n'est introduite ; les extensions à venir sont attribuées à CDI-106/CDI-114.
+- [x] Les records anciens/nouveaux, vides et inconnus produisent un modèle utile sans plantage ni valeur inventée.
+- [x] Les fixtures de coup normal/létal, KO et conséquences explicitement disponibles donnent les bonnes identités et valeurs à chaque impact.
+- [x] Projection directe et parcours séquentiel donnent les mêmes acteurs, PV/PM et résultat, y compris en milieu d'action.
+- [x] Un héros absent du roster courant et un KO de segment ne disparaissent pas de leur rencontre historique.
+- [x] Aucune minuterie, règle de combat ou écriture de snapshot n'est introduite ; les extensions à venir sont attribuées à CDI-106/CDI-114.
 
 ## Tests
 
@@ -87,6 +87,12 @@ Ces validations sont à exécuter lors de l'implémentation du ticket ; le redé
 ## Validation manuelle
 
 La fidélité des valeurs est prouvée par les fixtures. La qualité du rendu sera validée dans CDI-101 ; aucune application n'a besoin d'être pilotée pour approuver ce modèle pur.
+
+Preuves Codex du 10 septembre 2026 : la projection ciblée couvre records avec/sans `initialActors`, record vide, événement inconnu, attaque normale puis létale, dégâts annoncés versus PV réellement retirés, KO, héros retiré du roster, conséquences `heroChanges`, repos/réanimation PV-PM, regroupement multi-frappe et identifiants stables. La projection directe égale l'application pas à pas à chaque nombre d'événements visible et l'entrée reste immuable. Le panneau existant consomme désormais la même projection et affiche `PV historiques inconnus` lorsqu'un ancien record ne permet pas de connaître la valeur.
+
+Validations réussies : 39 tests ciblés ; suite complète, 127 fichiers et 1 034 tests ; `npm.cmd run check:determinism` ; `npm.cmd run lint -- --quiet` ; typecheck avec une configuration temporaire excluant uniquement `tmp` ; build Vite, 2 016 modules ; budget bundle, 251 343 octets gzip JS et plus gros chunk 121 584 octets ; Workboard, 116 tickets et zéro erreur ; `git diff --check` sans erreur.
+
+La commande exacte `npm.cmd run typecheck` échoue hors périmètre sur les imports manquants du dossier utilisateur ignoré `tmp/deployment-2026-09-10/backend-v27`. Ce dossier n'a pas été modifié. La configuration temporaire de contrôle a été supprimée après le typecheck isolé réussi.
 
 ## Preservation
 
@@ -105,3 +111,7 @@ La fidélité des valeurs est prouvée par les fixtures. La qualité du rendu se
 Fournir contrat du modèle pur, règles d'impact/identité, tests de projection et limites explicites. V01/V02/V03/V06/V13. CDI-107 consomme ce modèle ; CDI-106/CDI-114 l'enrichissent.
 
 Indiquer fichiers, commandes réellement exécutées, résultats et limites. Ne pas clore avec un écart réel non corrigé ; ne pas attribuer au présent ticket la livraison de ses successeurs.
+
+Contrat livré dans `encounterSceneProjection.ts` : acteurs historiques à valeurs inconnues explicites, étapes ordonnées sans `enemy.intent`, regroupement d'action stable, impacts identifiés par rencontre/séquence/index, état initial, application immuable pas à pas, projection directe et clôture sur le résultat autoritaire. `encounterPlayback.ts` conserve exactement la cadence existante et réexporte le filtre partagé ; `dungeonPresentation.ts` fournit l'état de scène au rendu sans dupliquer la reconstruction de PV.
+
+Limites transmises : CDI-106 doit compléter au producteur puis projeter les coûts/récupérations de ressources, cibles multiples et conséquences encore absentes ; CDI-107 doit porter horloge, rattrapage, annulation et promesses ; CDI-114 reste propriétaire des intentions, statuts et protections. Aucun de ces comportements n'est simulé ou déduit du texte par CDI-100.
