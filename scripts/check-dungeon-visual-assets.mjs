@@ -6,6 +6,7 @@ import { inflateSync } from "node:zlib";
 
 const projectRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const kitDirectory = join(projectRoot, "src", "assets", "images", "dungeon", "undercity", "sewers");
+const encounterDirectory = join(projectRoot, "src", "assets", "images", "dungeon", "encounters");
 const kitBudgetBytes = 2 * 1024 * 1024;
 
 const kitManifest = [
@@ -13,6 +14,13 @@ const kitManifest = [
   { file: "rat-pack-canal-rat-v1.png", width: 384, height: 384, alpha: true },
   { file: "rat-pack-mangy-rat-v1.png", width: 384, height: 384, alpha: true },
   { file: "rat-pack-plague-rat-v1.png", width: 384, height: 384, alpha: true },
+];
+
+const encounterManifest = [
+  { file: "treasure-chest-open-v3.png", width: 640, height: 585, alpha: true },
+  { file: "rest-camp-v2.png", width: 768, height: 512, alpha: true },
+  { file: "treasure-vault-background-v2.jpg", width: 1536, height: 658, alpha: false },
+  { file: "rest-chamber-background-v1.jpg", width: 1536, height: 658, alpha: false },
 ];
 
 const tier1Sheets = [
@@ -133,6 +141,17 @@ const measuredKit = kitManifest.map((entry) => {
 const kitBytes = measuredKit.reduce((total, entry) => total + entry.bytes, 0);
 assert(kitBytes <= kitBudgetBytes, `Sewer kit exceeds ${kitBudgetBytes} bytes`);
 
+const actualEncounterFiles = readdirSync(encounterDirectory).sort();
+assert.deepEqual(actualEncounterFiles, encounterManifest.map((entry) => entry.file).sort(), "Encounter asset manifest differs from files");
+const measuredEncounters = encounterManifest.map((entry) => {
+  const path = join(encounterDirectory, entry.file);
+  const dimensions = readImageInfo(path);
+  assert.deepEqual(dimensions, { width: entry.width, height: entry.height, alpha: entry.alpha }, `${entry.file} format mismatch`);
+  return { ...entry, bytes: statSync(path).size };
+});
+const encounterBytes = measuredEncounters.reduce((total, entry) => total + entry.bytes, 0);
+assert(encounterBytes <= kitBudgetBytes, `Encounter assets exceed ${kitBudgetBytes} bytes`);
+
 const heroImageDirectory = join(projectRoot, "src", "assets", "images");
 for (const relativePath of heroSheets) {
   const dimensions = readImageInfo(join(heroImageDirectory, relativePath));
@@ -149,4 +168,6 @@ console.log(JSON.stringify({
   kitBudgetBytes,
   kitBytes,
   assets: measuredKit,
+  encounterBytes,
+  encounterAssets: measuredEncounters,
 }, null, 2));

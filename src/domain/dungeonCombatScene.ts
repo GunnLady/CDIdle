@@ -18,7 +18,14 @@ export const DUNGEON_COMBAT_EFFECT_LIMIT = 16;
 export type DungeonCombatActionMode = "entry" | "idle" | "melee" | "neutral" | "result";
 export type DungeonCombatActorMotion = "enter" | "idle" | "melee" | "focus";
 export type DungeonCombatActorReaction = "none" | "impact" | "dodge" | "ko";
-export type DungeonCombatEffectKind = "damage" | "critical" | "dodge" | "defeat";
+export type DungeonCombatEffectKind =
+  | "damage"
+  | "critical"
+  | "dodge"
+  | "defeat"
+  | "recovery-health"
+  | "recovery-mana"
+  | "revival";
 
 export interface DungeonCombatSceneActorView {
   id: string;
@@ -29,6 +36,9 @@ export interface DungeonCombatSceneActorView {
   currentHp: number | null;
   maximumHp: number | null;
   healthPercent: number | null;
+  currentMana: number | null;
+  maximumMana: number | null;
+  manaPercent: number | null;
   state: "ready" | "wounded" | "ko";
   active: boolean;
   motion: DungeonCombatActorMotion;
@@ -51,10 +61,12 @@ export interface DungeonCombatSceneView {
   actionKey: string;
   actionMode: DungeonCombatActionMode;
   actionSummary: string;
-  environment: "sewers" | "fallback";
+  environment: "sewers" | "treasure-vault" | "rest-chamber" | "fallback";
   actors: DungeonCombatSceneActorView[];
   effects: DungeonCombatSceneEffectView[];
   result: EncounterSceneResult | null;
+  nonCombat?: "treasure" | "rest";
+  nonCombatDetails?: string[];
 }
 
 export interface DungeonCombatEnemyRole {
@@ -127,30 +139,50 @@ function impactReaction(
   impact: EncounterSceneImpact | undefined,
 ): DungeonCombatActorReaction {
   if (!impact) return "none";
+  if (impact.kind === "healing" || impact.kind === "recovery") return "none";
   if (impact.kind === "dodge") return "dodge";
   if (impact.knockedOutAfter === true || actor.knockedOut === true || impact.hp?.after === 0) return "ko";
   return "impact";
 }
 
-function numericEffectValue(impact: EncounterSceneImpact): number | null {
-  return impact.appliedValue ?? impact.announcedValue;
-}
+type EffectDetail = readonly [idSuffix: string, kind: DungeonCombatEffectKind, label: string];
 
-function effectKind(
-  step: EncounterSceneStep,
-  impact: EncounterSceneImpact,
-): DungeonCombatEffectKind {
-  if (impact.kind === "dodge") return "dodge";
-  if (step.type === "hero.hit.critical") return "critical";
-  if (impact.kind === "defeat") return "defeat";
-  return "damage";
-}
+function effectDetails(step: EncounterSceneStep, impact: EncounterSceneImpact): EffectDetail[] {
+  const recovery = step.type === "party.restored" || impact.kind === "healing" || impact.kind === "recovery";
+  if (!recovery) {
+    const kind = impact.kind === "dodge"
+      ? "dodge"
+      : step.type === "hero.hit.critical" ? "critical" : impact.kind === "defeat" ? "defeat" : "damage";
+    const value = impact.appliedValue ?? impact.announcedValue;
+    const label = kind === "dodge"
+      ? "Esquive"
+      : impact.appliedValue === null && impact.announcedValue !== null
+        ? `−${impact.announcedValue}?`
+        : value === null ? "−?" : `−${value}`;
+    return [["effect", kind, label]];
+  }
 
-function effectLabel(kind: DungeonCombatEffectKind, impact: EncounterSceneImpact): string {
-  if (kind === "dodge") return "Esquive";
-  const value = numericEffectValue(impact);
-  if (impact.appliedValue === null && impact.announcedValue !== null) return `−${impact.announcedValue}?`;
-  return value === null ? "−?" : `−${value}`;
+  const details: EffectDetail[] = [];
+  if (impact.hp?.before === 0 && impact.hp.after > 0) {
+    details.push(["revival", "revival", "Réanimé"]);
+  }
+  if (impact.hp && impact.hp.after !== impact.hp.before) {
+    const total = impact.hp.maximum === null ? impact.hp.after : `${impact.hp.after}/${impact.hp.maximum}`;
+    details.push([
+      "health",
+      "recovery-health",
+      `PV +${impact.hp.after - impact.hp.before} · ${total}`,
+    ]);
+  }
+  if (impact.mana && impact.mana.after !== impact.mana.before) {
+    const total = impact.mana.maximum === null ? impact.mana.after : `${impact.mana.after}/${impact.mana.maximum}`;
+    details.push([
+      "mana",
+      "recovery-mana",
+      `PM +${impact.mana.after - impact.mana.before} · ${total}`,
+    ]);
+  }
+  return details;
 }
 
 function selectVisibleActors(scene: EncounterSceneState): Array<{ actor: EncounterSceneActor; index: number }> {
@@ -175,25 +207,25 @@ export function createDungeonCombatSceneView(
   const activeActor = step?.sourceActorId
     ? selections.find(({ actor }) => actor.id === step.sourceActorId && actorState(actor) !== "ko")?.actor
     : undefined;
-  const visibleImpacts = mode !== "melee" || !step
+  const visibleImpacts = !step || (mode !== "melee" && step.type !== "party.restored")
     ? []
     : step.impacts.filter((impact) => selectedIds.has(impact.targetActorId));
-  const effectImpacts = visibleImpacts.slice(0, DUNGEON_COMBAT_EFFECT_LIMIT);
   const targetOffsets = new Map<string, number>();
-  const effects = effectImpacts.flatMap((impact): DungeonCombatSceneEffectView[] => {
+  const effects = visibleImpacts.flatMap((impact): DungeonCombatSceneEffectView[] => {
     const target = selections.find(({ actor }) => actor.id === impact.targetActorId)?.actor;
     if (!target) return [];
-    const offset = targetOffsets.get(target.id) ?? 0;
-    targetOffsets.set(target.id, offset + 1);
-    const kind = effectKind(step, impact);
-    return [{
-      id: impact.id,
-      targetActorId: target.id,
-      kind,
-      label: effectLabel(kind, impact),
-      offset,
-    }];
-  });
+    return effectDetails(step, impact).map(([idSuffix, kind, label]) => {
+      const offset = targetOffsets.get(target.id) ?? 0;
+      targetOffsets.set(target.id, offset + 1);
+      return {
+        id: `${impact.id}:${idSuffix}`,
+        targetActorId: target.id,
+        kind,
+        label,
+        offset,
+      };
+    });
+  }).slice(0, DUNGEON_COMBAT_EFFECT_LIMIT);
   const impactsByActorId = new Map(visibleImpacts.map((impact) => [impact.targetActorId, impact]));
   const rolesById = new Map(enemyRoles.map((enemy) => [enemy.id, enemy.role ?? "Ennemi"]));
   const actors = selections.flatMap(({ actor, index }): DungeonCombatSceneActorView[] => {
@@ -211,6 +243,9 @@ export function createDungeonCombatSceneView(
       currentHp: actor.currentHp,
       maximumHp: actor.maximumHp,
       healthPercent: percentage(actor.currentHp, actor.maximumHp),
+      currentMana: actor.currentMana,
+      maximumMana: actor.maximumMana,
+      manaPercent: percentage(actor.currentMana, actor.maximumMana),
       state: actorState(actor),
       active,
       motion: mode === "entry" ? "enter" : active ? mode === "melee" ? "melee" : "focus" : "idle",
@@ -228,7 +263,6 @@ export function createDungeonCombatSceneView(
         ? "Défaite."
         : "Combat terminé."
     : step?.summary ?? "Les équipes prennent position.";
-
   return {
     actionKey: step?.id ?? `${scene.encounterId}:${mode}`,
     actionMode: mode,

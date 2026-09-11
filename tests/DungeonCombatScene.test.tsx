@@ -1,4 +1,4 @@
-import { cleanup, render, screen, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import DungeonCombatScene from "../src/components/dungeon/DungeonCombatScene";
 import {
@@ -21,7 +21,7 @@ vi.mock("../src/hooks/useEncounterVisualAsset", () => ({
       provenance: "fixture",
       anchor: { x: 0.5, y: 0.9 },
       scale: 1,
-      fallbackGlyph: "?",
+      fallbackGlyph: key === "encounter:treasure" ? "◇" : key === "encounter:rest-camp" ? "✦" : "?",
       fallback: key === "fallback:actor" || key === "fallback:background",
     },
     url: key.startsWith("fallback:") ? null : `/fixture/${encodeURIComponent(key)}.png`,
@@ -121,10 +121,30 @@ describe("DungeonCombatScene", () => {
     expect(scene).toHaveAttribute("data-action-mode", "melee");
     expect(within(scene).getAllByTestId("dungeon-combat-actor")).toHaveLength(2);
     expect(within(scene).getByLabelText(/Ariane, Guerrier, 20\/20 PV, Prêt/)).toHaveAttribute("data-active", "true");
+    expect(within(scene).getByRole("progressbar", { name: "PM de Ariane : 5 sur 10" })).toHaveAttribute("data-resource", "mana");
     expect(within(scene).getByRole("progressbar", { name: "PV de Rat des canaux : 10 sur 16" })).toBeInTheDocument();
+    expect(within(scene).queryByRole("progressbar", { name: /PM de Rat des canaux/ })).not.toBeInTheDocument();
     expect(within(scene).getAllByTestId("dungeon-combat-effect")).toHaveLength(DUNGEON_COMBAT_EFFECT_LIMIT);
     expect(within(scene).getAllByLabelText("−6, Rat des canaux")).toHaveLength(DUNGEON_COMBAT_EFFECT_LIMIT);
     expect(within(scene).getAllByTestId("dungeon-combat-effect")[0]).toHaveAttribute("data-target-actor-id", enemy.id);
+  });
+
+  it("shows mana below health for any actor that has a mana resource", () => {
+    const magicalEnemy = { ...enemy, currentMana: 3, maximumMana: 8 } satisfies EncounterSceneActor;
+    const noManaHero = { ...hero, currentMana: 0, maximumMana: 0 } satisfies EncounterSceneActor;
+    render(<DungeonCombatScene view={createDungeonCombatSceneView(state({
+      actors: [noManaHero, magicalEnemy],
+    }))} />);
+
+    const enemyActor = screen.getByTestId("dungeon-combat-scene")
+      .querySelector<HTMLElement>("[data-team='enemies']");
+    expect(enemyActor).not.toBeNull();
+    const bars = within(enemyActor!).getAllByRole("progressbar");
+    expect(bars).toHaveLength(2);
+    expect(bars[0]).toHaveAccessibleName("PV de Rat des canaux : 10 sur 16");
+    expect(bars[1]).toHaveAccessibleName("PM de Rat des canaux : 3 sur 8");
+    expect(bars[1]).toHaveAttribute("data-resource", "mana");
+    expect(screen.queryByRole("progressbar", { name: /PM de Ariane/ })).not.toBeInTheDocument();
   });
 
   it("keeps an incomplete legacy actor neutral and explicit", () => {
@@ -181,5 +201,51 @@ describe("DungeonCombatScene", () => {
     expect(scene).toHaveAttribute("data-animations", "disabled");
     expect(within(scene).getAllByTestId("dungeon-combat-actor")).toHaveLength(2);
     expect(within(scene).getByTestId("dungeon-combat-effect")).toBeInTheDocument();
+  });
+
+  it("renders the reusable non-combat composition with exact accessible details", () => {
+    const view = createDungeonCombatSceneView(state({ actors: [hero], activeStep: null }));
+    view.actionMode = "neutral";
+    view.actionSummary = "Récupération appliquée. Ariane : Réanimé, PV +4 · 20/20, PM +2 · 5/10.";
+    view.effects = [];
+    view.nonCombat = "rest";
+    view.nonCombatDetails = ["Repos terminé"];
+    view.effects = [
+      { id: "revival", targetActorId: hero.id, kind: "revival", label: "Réanimé", offset: 0 },
+      { id: "health", targetActorId: hero.id, kind: "recovery-health", label: "PV +4 · 20/20", offset: 1 },
+      { id: "mana", targetActorId: hero.id, kind: "recovery-mana", label: "PM +2 · 5/10", offset: 2 },
+    ];
+
+    render(<DungeonCombatScene view={view} animationsEnabled={false} />);
+
+    const scene = screen.getByTestId("dungeon-combat-scene");
+    expect(scene).toHaveAccessibleName("Scène de rencontre");
+    expect(scene).toHaveAttribute("tabindex", "0");
+    expect(scene).toHaveAttribute("data-animations", "disabled");
+    expect(within(scene).getByText(view.actionSummary)).toHaveClass("sr-only");
+    expect(within(scene).getByLabelText("Acteurs présents")).toBeInTheDocument();
+    expect(within(scene).getByLabelText("Repos")).toHaveTextContent("Repos terminé");
+    expect(within(scene).getByLabelText("Réanimé, Ariane")).toHaveAttribute("data-kind", "revival");
+    expect(within(scene).getByLabelText("PV +4 · 20/20, Ariane")).toHaveAttribute("data-kind", "recovery-health");
+    expect(within(scene).getByLabelText("PM +2 · 5/10, Ariane")).toHaveAttribute("data-kind", "recovery-mana");
+    expect(within(scene).getByLabelText("Réanimé, Ariane").style.getPropertyValue("--effect-delay")).toBe("0ms");
+    expect(within(scene).getByLabelText("PV +4 · 20/20, Ariane").style.getPropertyValue("--effect-delay")).toBe("600ms");
+    expect(within(scene).getByLabelText("PM +2 · 5/10, Ariane").style.getPropertyValue("--effect-delay")).toBe("1200ms");
+    expect(scene.querySelector('img[src*="encounter%3Arest-camp"]')).not.toBeNull();
+    expect(within(scene).queryByTestId("dungeon-combat-neutral-action")).not.toBeInTheDocument();
+  });
+
+  it("shows the catalog fallback when a non-combat asset cannot render", () => {
+    const view = createDungeonCombatSceneView(state({ actors: [], activeStep: null }));
+    view.actionSummary = "Coffre vide";
+    view.nonCombat = "treasure";
+    const { container } = render(<DungeonCombatScene view={view} />);
+    const image = container.querySelector<HTMLImageElement>('img[src*="encounter%3Atreasure"]');
+    expect(image).not.toBeNull();
+
+    fireEvent.error(image!);
+
+    expect(screen.getByText("◇")).toBeInTheDocument();
+    expect(screen.getByText("◇").parentElement).toHaveAttribute("data-asset-status", "fallback");
   });
 });

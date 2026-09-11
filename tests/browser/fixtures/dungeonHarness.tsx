@@ -1,10 +1,18 @@
 import { useState } from "react";
 import { createRoot } from "react-dom/client";
-import type { CanonicalDungeonEncounterRecord } from "../../../shared/contracts/authoritative";
+import type {
+  CanonicalDungeonEncounterRecord,
+  CanonicalDungeonInitialActors,
+} from "../../../shared/contracts/authoritative";
 import DungeonPage from "../../../src/components/dungeon/DungeonPage";
 import DungeonCombatScene from "../../../src/components/dungeon/DungeonCombatScene";
 import { createDungeonCombatSceneView } from "../../../src/domain/dungeonCombatScene";
-import { createEncounterSceneProjection } from "../../../src/domain/encounterSceneProjection";
+import { createDungeonNonCombatSceneView } from "../../../src/domain/dungeonNonCombatScene";
+import {
+  createEncounterSceneProjection,
+  createEncounterSceneTimeline,
+  projectEncounterScene,
+} from "../../../src/domain/encounterSceneProjection";
 import type { Hero } from "../../../src/types";
 import { makeHero } from "../../fixtures/game";
 import { createUndercityProgress } from "../../../shared/domain/undercity-progression";
@@ -16,6 +24,28 @@ const requestedStep = Number(harnessParams.get("step") ?? 2);
 const visibleCount = Number.isInteger(requestedStep) ? Math.max(0, Math.min(6, requestedStep)) : 2;
 const playbackComplete = harnessParams.get("complete") === "1";
 const combatSceneOnly = harnessParams.get("combat-scene") === "1";
+const requestedNonCombatScene = harnessParams.get("non-combat-scene");
+const nonCombatScene = requestedNonCombatScene === "treasure" || requestedNonCombatScene === "rest"
+  ? requestedNonCombatScene
+  : null;
+
+const initialParty = {
+  v: 1 as const,
+  h: [
+    ["ariane", "Guerrier_Female_1", 40, 100, 5, 20, 0],
+    ["mage-history", "Mage_Male_2", 0, 80, 0, 20, 1],
+    ["archer-history", "Archer_Female_7", 95, 100, 19, 20, 0],
+    ["acolyte-history", "Acolyte_Male_1", 70, 90, 12, 18, 0],
+  ],
+  e: [],
+} satisfies CanonicalDungeonInitialActors;
+
+const historicalHeroNames = new Map([
+  ["ariane", "Ariane"],
+  ["mage-history", "Milo"],
+  ["archer-history", "Céleste"],
+  ["acolyte-history", "Abel"],
+]);
 
 const encounterRecord = {
   encounterId: "encounter-harness",
@@ -52,6 +82,62 @@ const encounterRecord = {
   rewards: { gold: 8, loot: [] },
 } satisfies CanonicalDungeonEncounterRecord;
 
+const treasureRecord = {
+  encounterId: "treasure-harness",
+  dungeonId: "undercity",
+  kind: "treasure",
+  floor: 3,
+  room: 4,
+  outcome: "victory",
+  roundCount: 0,
+  enemy: null,
+  initialActors: initialParty,
+  transcript: [
+    { sequence: 0, type: "encounter.started" },
+    { sequence: 1, type: "treasure.opened", treasureOutcome: "item" },
+    { sequence: 2, type: "reward.gold", gold: 17 },
+    { sequence: 3, type: "reward.material", materialId: "metal_scrap", name: "Débris métalliques", rarity: "common", count: 2 },
+  ],
+  rewards: {
+    gold: 17,
+    loot: [{ type: "material", materialId: "metal_scrap", name: "Débris métalliques", rarity: "common", count: 2 }],
+  },
+} satisfies CanonicalDungeonEncounterRecord;
+
+const restRecord = {
+  encounterId: "rest-harness",
+  dungeonId: "undercity",
+  kind: "rest",
+  floor: 3,
+  room: 5,
+  outcome: "victory",
+  roundCount: 0,
+  enemy: null,
+  initialActors: {
+    ...initialParty,
+    h: [
+      ["ariane", "Guerrier_Female_1", 40, 100, 5, 20, 0],
+      ["mage-history", "Mage_Male_2", 0, 80, 0, 20, 1],
+      ["archer-history", "Archer_Female_7", 95, 100, 19, 20, 0],
+      ["acolyte-history", "Acolyte_Male_1", 0, 90, 2, 18, 1],
+    ],
+  },
+  transcript: [
+    { sequence: 0, type: "rest.started" },
+    {
+      sequence: 1,
+      type: "party.restored",
+      heroes: [
+        { heroId: "ariane", hpBefore: 40, hpAfter: 60, manaBefore: 5, manaAfter: 9, revived: false },
+        { heroId: "mage-history", hpBefore: 0, hpAfter: 16, manaBefore: 0, manaAfter: 4, revived: true },
+        { heroId: "archer-history", hpBefore: 95, hpAfter: 100, manaBefore: 19, manaAfter: 20, revived: false },
+        { heroId: "acolyte-history", hpBefore: 0, hpAfter: 18, manaBefore: 2, manaAfter: 6, revived: true },
+      ],
+    },
+  ],
+  rewards: { gold: 0, loot: [] },
+} satisfies CanonicalDungeonEncounterRecord;
+
 function Harness() {
   const [mutationCount, setMutationCount] = useState(0);
   const [heroes, setHeroes] = useState<Hero[]>([
@@ -81,6 +167,18 @@ function Harness() {
       { id: "rat-b", role: "Protecteur" },
       { id: "rat-c", role: "Soutien" },
     ]);
+    return <main className="mx-auto w-full max-w-[1200px] p-6">
+      <DungeonCombatScene view={view} />
+      <button type="button" className="mt-4 min-h-12 w-full rounded border border-amber-700 bg-amber-950 px-4 text-amber-100">Explorer la salle</button>
+    </main>;
+  }
+
+  if (nonCombatScene) {
+    const record = nonCombatScene === "treasure" ? treasureRecord : restRecord;
+    const timeline = createEncounterSceneTimeline(record, historicalHeroNames);
+    const scene = projectEncounterScene(timeline);
+    const view = createDungeonNonCombatSceneView(record, timeline, scene);
+    if (!view) throw new Error(`Scène non-combat inconnue : ${nonCombatScene}`);
     return <main className="mx-auto w-full max-w-[1200px] p-6">
       <DungeonCombatScene view={view} />
       <button type="button" className="mt-4 min-h-12 w-full rounded border border-amber-700 bg-amber-950 px-4 text-amber-100">Explorer la salle</button>

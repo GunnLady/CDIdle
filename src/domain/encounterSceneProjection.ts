@@ -176,6 +176,7 @@ function rewardForEvent(event: CanonicalDungeonTranscriptEvent): EncounterSceneR
   const data = event as UnknownRecord;
   const goldLost = finiteNumber(event.goldLost);
   if (goldLost !== null && goldLost > 0) return [rewardView("gold-loss", goldLost)];
+  if (event.treasureOutcome === "empty") return [rewardView("empty", 0)];
   if (!event.type.startsWith("reward.")) return [];
   if (event.type.endsWith(".none")) return [rewardView("empty", 0)];
   if (finiteNumber(event.gold) !== null) return [rewardView("gold", event.gold, data)];
@@ -185,13 +186,20 @@ function rewardForEvent(event: CanonicalDungeonTranscriptEvent): EncounterSceneR
 }
 
 function finalRewardsForEncounter(encounter: CanonicalDungeonEncounterRecord): EncounterSceneReward[] {
+  const received = encounter.transcript.flatMap(rewardForEvent);
   const rewards = encounter.rewards.loot.map((loot) => {
     const data = loot as unknown as UnknownRecord;
-    return rewardView(
+    const reward = rewardView(
       loot.type,
       loot.count,
       data,
     );
+    const historicalName = received.find((candidate) => (
+      candidate.kind === reward.kind
+      && candidate.contentId === reward.contentId
+      && candidate.name
+    ))?.name;
+    return historicalName ? { ...reward, name: historicalName } : reward;
   });
   if (encounter.rewards.gold > 0) {
     rewards.unshift(rewardView("gold", encounter.rewards.gold));

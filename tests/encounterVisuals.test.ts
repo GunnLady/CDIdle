@@ -49,8 +49,8 @@ describe("encounter visual catalog", () => {
     clearEncounterVisualAssetSession();
     expect(getEncounterVisualAssetCacheStats()).toEqual({ size: 0, limit: ENCOUNTER_VISUAL_CACHE_LIMIT });
     const manifest = getStaticEncounterVisualManifest();
-    expect(manifest).toHaveLength(5);
-    expect(manifest.filter((entry) => entry.load)).toHaveLength(4);
+    expect(manifest).toHaveLength(9);
+    expect(manifest.filter((entry) => entry.load)).toHaveLength(8);
 
     const [first, duplicate] = await Promise.all([
       loadEncounterVisualAsset(ENCOUNTER_VISUAL_KEYS.sewers.ratPack.a),
@@ -65,6 +65,33 @@ describe("encounter visual catalog", () => {
     expect(missing).toMatchObject({ status: "fallback", url: null, descriptor: { fallback: true, fallbackGlyph: "?" } });
     clearEncounterVisualAssetSession();
     expect(getEncounterVisualAssetCacheStats().size).toBe(0);
+  });
+
+  it("registers dedicated backgrounds and reusable props for treasure and rest", async () => {
+    for (const [kind, keys] of Object.entries(ENCOUNTER_VISUAL_KEYS.encounters)) {
+      expect(resolveEncounterVisualDescriptor(keys.prop)).toMatchObject({
+        key: keys.prop,
+        kind: "prop",
+        version: 1,
+        fallback: false,
+      });
+      expect(resolveEncounterVisualDescriptor(keys.background)).toMatchObject({
+        key: keys.background,
+        kind: "background",
+        version: 1,
+        fallback: false,
+      });
+      const [prop, background] = await Promise.all([
+        loadEncounterVisualAsset(keys.prop),
+        loadEncounterVisualAsset(keys.background),
+      ]);
+      expect(prop.status).toBe("ready");
+      expect(prop.url).toMatch(/treasure-chest-open-v3|rest-camp-v2/);
+      expect(background.status).toBe("ready");
+      expect(background.url).toContain(kind === "treasure"
+        ? "treasure-vault-background-v2"
+        : "rest-chamber-background-v1");
+    }
   });
 });
 

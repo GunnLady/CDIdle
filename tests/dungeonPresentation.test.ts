@@ -122,7 +122,7 @@ describe("dungeon presentation projections", () => {
       activeStep: { sequence: 0, summary: "Calcul canonique exact." },
       limitations: ["initial-actors-unavailable"],
     });
-    expect(view?.combatScene).toBeNull();
+    expect(view?.visualScene).toBeNull();
   });
 
   it("hides redundant enemy intents while keeping the resolved enemy action", () => {
@@ -144,7 +144,7 @@ describe("dungeon presentation projections", () => {
     const view = createCurrentEncounterView(null, [record], null, []);
 
     expect(view?.transcript.map((event) => event.message)).toEqual(["Rat attaque Ariane et inflige 3 dégâts."]);
-    expect(view?.combatScene).not.toBeNull();
+    expect(view?.visualScene).not.toBeNull();
   });
 
   it("translates every canonical enemy role for presentation", () => {
@@ -170,7 +170,7 @@ describe("dungeon presentation projections", () => {
         enemies: [{ id: role, name: role, hp: 0, maxHp: 1, role }],
       };
       const view = createCurrentEncounterView(null, [singleEnemyRecord], null, []);
-      return view?.combatScene?.actors.find((actor) => actor.team === "enemies")?.role;
+      return view?.visualScene?.actors.find((actor) => actor.team === "enemies")?.role;
     });
 
     expect(translated).toEqual([

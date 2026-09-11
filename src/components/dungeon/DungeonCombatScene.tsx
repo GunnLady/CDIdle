@@ -1,4 +1,4 @@
-import type { CSSProperties } from "react";
+import { useState, type CSSProperties } from "react";
 import { ENCOUNTER_VISUAL_KEYS } from "../../assets/encounterVisuals";
 import type {
   DungeonCombatSceneActorView,
@@ -10,6 +10,13 @@ import styles from "./DungeonCombatScene.module.css";
 
 type SceneStyle = CSSProperties & Record<`--${string}`, string | number>;
 
+const BACKGROUND_KEYS: Record<DungeonCombatSceneView["environment"], string> = {
+  fallback: ENCOUNTER_VISUAL_KEYS.fallback.background,
+  "rest-chamber": ENCOUNTER_VISUAL_KEYS.encounters.rest.background,
+  sewers: ENCOUNTER_VISUAL_KEYS.sewers.background,
+  "treasure-vault": ENCOUNTER_VISUAL_KEYS.encounters.treasure.background,
+};
+
 function actorHealthLabel(actor: DungeonCombatSceneActorView): string {
   if (actor.currentHp === null || actor.maximumHp === null) {
     return actor.team === "heroes" ? "PV historiques du héros inconnus" : "PV historiques inconnus";
@@ -17,9 +24,14 @@ function actorHealthLabel(actor: DungeonCombatSceneActorView): string {
   return `${actor.currentHp}/${actor.maximumHp} PV`;
 }
 
-function ActorVisual({ actor }: { actor: DungeonCombatSceneActorView }) {
-  const visualKey = actor.visualKey ?? ENCOUNTER_VISUAL_KEYS.fallback.actor;
+function VisualAsset({ className, testId, visualKey }: {
+  className: string;
+  testId?: string;
+  visualKey: string;
+}) {
   const visual = useEncounterVisualAsset(visualKey);
+  const [failedUrl, setFailedUrl] = useState<string | null>(null);
+  const url = visual.url === failedUrl ? null : visual.url;
   const style = {
     "--visual-scale": visual.descriptor.scale,
     "--visual-anchor-x": `${visual.descriptor.anchor.x * 100}%`,
@@ -28,38 +40,41 @@ function ActorVisual({ actor }: { actor: DungeonCombatSceneActorView }) {
 
   return (
     <div
-      className={styles.visualShell}
-      data-asset-status={visual.loading ? "loading" : visual.status}
-      data-testid="dungeon-combat-visual"
+      className={className}
+      data-asset-status={visual.loading ? "loading" : url ? visual.status : "fallback"}
+      data-testid={testId}
     >
-      {visual.url
+      {url
         ? <img
             alt=""
-            aria-hidden="true"
             className={styles.sprite}
             draggable={false}
-            src={visual.url}
+            onError={() => setFailedUrl(url)}
+            src={url}
             style={style}
           />
-        : <span className={styles.fallbackGlyph} aria-hidden="true">{visual.descriptor.fallbackGlyph || "?"}</span>}
+        : <span aria-hidden="true">{visual.descriptor.fallbackGlyph || "?"}</span>}
     </div>
   );
 }
 
-function VitalBar(props: {
+function ResourceBar(props: {
   actorName: string;
+  kind: "health" | "mana";
   percentage: number | null;
   current: number | null;
   maximum: number | null;
 }) {
   if (props.percentage === null || props.current === null || props.maximum === null) return null;
+  const resource = props.kind === "health" ? "PV" : "PM";
   return (
     <span
-      aria-label={`PV de ${props.actorName} : ${props.current} sur ${props.maximum}`}
+      aria-label={`${resource} de ${props.actorName} : ${props.current} sur ${props.maximum}`}
       aria-valuemax={props.maximum}
       aria-valuemin={0}
       aria-valuenow={props.current}
       className={styles.vitalBar}
+      data-resource={props.kind}
       role="progressbar"
     >
       <span style={{ width: `${props.percentage}%` }} />
@@ -106,17 +121,29 @@ function CombatActor(props: {
       >
         <div className={styles.idleLayer} data-idle-motion="true">
           <div className={styles.reactionLayer} data-reaction={actor.reaction}>
-            <ActorVisual actor={actor} />
+            <VisualAsset
+              className={styles.visualShell}
+              testId="dungeon-combat-visual"
+              visualKey={actor.visualKey ?? ENCOUNTER_VISUAL_KEYS.fallback.actor}
+            />
           </div>
         </div>
       </div>
       <div className={styles.actorMeta}>
         <span className={styles.actorName}>{actor.name}</span>
-        <VitalBar
+        <ResourceBar
           actorName={actor.name}
           current={actor.currentHp}
+          kind="health"
           maximum={actor.maximumHp}
           percentage={actor.healthPercent}
+        />
+        <ResourceBar
+          actorName={actor.name}
+          current={actor.currentMana}
+          kind="mana"
+          maximum={actor.maximumMana}
+          percentage={actor.manaPercent}
         />
         <span className={actor.healthPercent === null ? styles.unknownVital : styles.vitalText}>{health}</span>
       </div>
@@ -131,8 +158,8 @@ function CombatEffect({ actorName, effect }: {
   key?: string;
 }) {
   const style = {
-    "--effect-stack-x": `${((effect.offset % 4) - 1.5) * 1.15}rem`,
-    "--effect-stack-y": `${Math.floor(effect.offset / 4) * 0.9}rem`,
+    "--effect-delay": `${effect.offset * 600}ms`,
+    "--effect-static-y": `${effect.offset * 1.45}rem`,
   } as SceneStyle;
   return (
     <output
@@ -156,19 +183,20 @@ export default function DungeonCombatScene({
   view: DungeonCombatSceneView;
   animationsEnabled?: boolean;
 }) {
-  const backgroundKey = view.environment === "sewers"
-    ? ENCOUNTER_VISUAL_KEYS.sewers.background
-    : ENCOUNTER_VISUAL_KEYS.fallback.background;
+  const backgroundKey = BACKGROUND_KEYS[view.environment];
   const background = useEncounterVisualAsset(backgroundKey);
   const resultLabel = view.result === "victory" ? "Victoire" : view.result === "defeat" ? "Défaite" : null;
+  const kind = view.nonCombat;
 
   return (
     <section
-      aria-label="Scène du combat en cours"
+      aria-label="Scène de rencontre"
       className={styles.scene}
       data-action-mode={view.actionMode}
       data-animations={animationsEnabled ? "enabled" : "disabled"}
+      data-encounter-kind={kind}
       data-testid="dungeon-combat-scene"
+      tabIndex={0}
     >
       <p aria-live="polite" className="sr-only">{view.actionSummary}</p>
       <div
@@ -177,7 +205,7 @@ export default function DungeonCombatScene({
         data-testid="dungeon-combat-stage"
         style={{ "--stage-art": background.url ? `url("${background.url}")` : "none" } as SceneStyle}
       >
-        <ol className="m-0 list-none p-0" aria-label="Acteurs présents dans le combat">
+        <ol className="m-0 list-none p-0" aria-label="Acteurs présents">
           {view.actors.map((actor) => <CombatActor
             key={actor.id}
             actionKey={view.actionKey}
@@ -185,12 +213,29 @@ export default function DungeonCombatScene({
             effects={view.effects.filter((effect) => effect.targetActorId === actor.id)}
           />)}
         </ol>
-        {view.actionMode === "neutral" && (
+        {kind && <>
+          <VisualAsset className={styles.accessory} visualKey={ENCOUNTER_VISUAL_KEYS.encounters[kind].prop} />
+          <ul
+            aria-label={kind === "treasure" ? "Trésor" : "Repos"}
+            className={styles.nonCombatSummary}
+          >
+            {(view.nonCombatDetails ?? [view.actionSummary]).map((detail, index) => (
+              <li
+                className={styles.nonCombatSummaryItem}
+                data-testid="dungeon-non-combat-summary-item"
+                key={`${view.actionKey}:summary:${index}`}
+              >
+                {detail}
+              </li>
+            ))}
+          </ul>
+        </>}
+        {!kind && view.actionMode === "neutral" && (
           <p className={styles.neutralNotice} data-testid="dungeon-combat-neutral-action">
             Action avancée fidèle au journal.
           </p>
         )}
-        {resultLabel && view.actionMode === "result" && (
+        {!kind && resultLabel && view.actionMode === "result" && (
           <div className={styles.result} data-result={view.result} data-testid="dungeon-combat-result">
             <strong>{resultLabel}</strong>
           </div>

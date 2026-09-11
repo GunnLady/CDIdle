@@ -418,6 +418,14 @@ complet dans CDI-116 puis à consolider lors de CDI-104 :
 - Budget artistique initial proposé : ≤ 2 MiB de téléchargements supplémentaires
   à froid pour une scène de zone et son groupe affiché ; mesurer séparément le
   trafic déjà nécessaire aux portraits. À confirmer avec les assets réels.
+- Mesure CDI-102 : les accessoires transparents ImageGen CDIdle v1 pèsent
+  586 490 octets pour le coffre ouvert (640 × 585) et 342 451 octets pour le
+  camp de repos (768 × 512). Leurs décors dédiés ImageGen pèsent 255 476 octets
+  pour la salle du trésor et 284 551 octets pour la salle de repos
+  (1 536 × 658 chacun), soit 1 468 968 octets au total. Le contrôle
+  `check:dungeon-visuals` vérifie dimensions, transparence, inventaire et plafond
+  de 2 MiB ; cadrage, ancrage, version, provenance et fallback restent portés
+  par le catalogue de rencontre.
 - Maximum initial de travail visuel : 4 héros, 3 ennemis, 16 effets temporaires
   simultanés. Les nombres peuvent être regroupés si leur total reste exact ;
   aucun événement métier ne disparaît du journal.
@@ -469,7 +477,7 @@ pas leur contenu actuel.
 | [CDI-099](../../workboard/data/Done/CDI-099/ticket.md) | Préparer le catalogue visuel et le kit pilote CDIdle | Done | L / medium | CDI-097 |
 | [CDI-100](../../workboard/data/Done/CDI-100/ticket.md) | Projeter les rencontres en états de scène déterministes | Done | M / high | CDI-098, CDI-105 |
 | [CDI-101](../../workboard/data/Done/CDI-101/ticket.md) | Construire la scène de combat simple CDIdle | Done | M / medium | CDI-099, CDI-107 |
-| [CDI-102](../../workboard/data/Later/CDI-102/ticket.md) | Mettre en scène trésors, repos et réanimations | Later | M / medium | CDI-103, CDI-106 |
+| [CDI-102](../../workboard/data/Done/CDI-102/ticket.md) | Mettre en scène trésors, repos et réanimations | Done | M / medium | CDI-103, CDI-106 |
 | [CDI-103](../../workboard/data/Done/CDI-103/ticket.md) | Intégrer le premier combat et sécuriser son cycle de lecture | Done | L / high | CDI-101 |
 | [CDI-104](../../workboard/data/Later/CDI-104/ticket.md) | Consolider la recette et préparer la livraison des rencontres 2D | Later | M / high | CDI-116 |
 | [CDI-105](../../workboard/data/Done/CDI-105/ticket.md) | Corriger la cible journalisée par une compétence létale | Done | S / high | Aucune |
@@ -493,8 +501,9 @@ six variantes du même contrat de défi après extraction de trésor/repos (115)
 Des poses dédiées décidées dans CDI-097 nécessiteraient de réestimer l'art.
 
 Priorité : P1 pour les vingt tickets du chantier ; ce rang ne signifie pas
-incident de production généralisé. CDI-097, CDI-098, CDI-099, CDI-100, CDI-105,
-CDI-106 et CDI-107 sont Done ; les autres restent Later jusqu'à leurs prérequis Done.
+incident de production généralisé. CDI-097, CDI-098, CDI-099, CDI-100, CDI-101,
+CDI-102, CDI-103, CDI-105, CDI-106 et CDI-107 sont Done ; les autres restent
+Later jusqu'à leurs prérequis Done.
 Les acquis CDI-076, CDI-078, CDI-080, CDI-083, CDI-094 et CDI-095 restent des
 références livrées sans modification de leurs tickets. L'ancien modèle de
 bestiaire CDI-086 ne gouverne pas le contenu UnderCity actuel.

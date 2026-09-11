@@ -50,6 +50,7 @@ export default function CurrentEncounterPanel(props: {
   const disabled = !props.canMutate || props.activeHeroCount === 0 || props.isExploring;
   const unavailableReason = !props.canMutate ? "Lecture seule" : props.activeHeroCount === 0 ? "Déployez au moins un héros" : undefined;
   const exploreAction = <Button type="button" variant="primary" block busy={props.isExploring} disabled={disabled && !props.isExploring} onClick={props.onExplore} className="min-h-12 uppercase tracking-widest">{props.isExploring ? "Exploration en cours…" : "Explorer la salle"}</Button>;
+  const visualScene = props.view?.visualScene ?? null;
 
   return <Panel title="Rencontre actuelle" subtitle={props.view?.location ?? "Aucune rencontre engagée"} testId="dungeon-current-encounter" variant="strong" className="flex h-[675px] min-h-[675px] max-h-[675px] w-full flex-col overflow-hidden" contentClassName="flex min-h-0 flex-1 flex-col">
     <div className="flex min-h-0 flex-1 flex-col">
@@ -58,7 +59,7 @@ export default function CurrentEncounterPanel(props: {
           <div><h4 className="font-serif text-sm font-bold text-[#e7d7bc]">{props.view.title}</h4><p className="mt-1 text-[10px] text-[#8f7a67]">{props.view.location}</p></div>
           <div className="flex flex-col items-end gap-2">
             <span className={`text-[9px] font-bold uppercase ${stateClass[props.view.state]}`}>{props.view.statusLabel}</span>
-            {props.view.combatScene && <button
+            {visualScene && <button
               type="button"
               aria-pressed={props.animationsEnabled}
               onClick={props.onToggleAnimations}
@@ -68,8 +69,8 @@ export default function CurrentEncounterPanel(props: {
             </button>}
           </div>
         </div>
-        {props.view.combatScene ? <div className="mt-3 flex min-h-0 flex-1 flex-col gap-2">
-          <DungeonCombatScene view={props.view.combatScene} animationsEnabled={props.animationsRunning} />
+        {visualScene ? <div className="mt-3 flex min-h-0 flex-1 flex-col gap-2">
+          <DungeonCombatScene view={visualScene} animationsEnabled={props.animationsRunning} />
           <details className="min-h-0 shrink rounded-lg border border-[#3a281a] bg-[#0f0a07] open:flex open:flex-1 open:flex-col">
             <summary className="cursor-pointer px-3 py-2 text-[10px] font-bold uppercase tracking-wide text-[#a99378]">Journal détaillé</summary>
             <EncounterTranscript view={props.view} live={false} />

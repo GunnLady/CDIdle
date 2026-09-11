@@ -1,7 +1,7 @@
 ---
 id: CDI-102
 title: Mettre en scène trésors, repos et réanimations
-status: Later
+status: Done
 area: ui
 priority: P1
 size: M
@@ -65,12 +65,12 @@ Les dépendances directes et leurs liens blocks font foi ; les acquis déjà liv
 
 ## Criteres d'acceptation
 
-- [ ] Coffre vide ou avec or/matériau/plan affiche exactement le contenu reçu, sans invention ni duplication.
-- [ ] Repos avec PV/PM partiels, valeurs plafonnées et plusieurs KO réanimés montre les bons acteurs et valeurs.
-- [ ] Les deux scènes et leurs accessoires sont effectivement branchés dans le Donjon, pas seulement dans un harness.
-- [ ] Composition non-combat, accessibilité, clavier/résumé, reduced-motion et fallback sont réutilisables par CDI-115.
-- [ ] Les accessoires sont documentés/mesurés et respectent les budgets du plan ; l'utilisateur valide coffre et repos/réanimation.
-- [ ] Cadence, requêtes et règles de segment restent inchangées.
+- [x] Coffre vide ou avec or/matériau/plan affiche exactement le contenu reçu, sans invention ni duplication.
+- [x] Repos avec PV/PM partiels, valeurs plafonnées et plusieurs KO réanimés montre les bons acteurs et valeurs.
+- [x] Les deux scènes et leurs accessoires sont effectivement branchés dans le Donjon, pas seulement dans un harness.
+- [x] Composition non-combat, accessibilité, clavier/résumé, reduced-motion et fallback sont réutilisables par CDI-115.
+- [x] Les accessoires sont documentés/mesurés et respectent les budgets du plan ; l'utilisateur valide coffre et repos/réanimation.
+- [x] Cadence, requêtes et règles de segment restent inchangées.
 
 ## Tests
 
@@ -82,11 +82,18 @@ Les dépendances directes et leurs liens blocks font foi ; les acquis déjà liv
 - npm.cmd run lint -- --quiet
 - npm.cmd run board:validate
 
-Ces validations sont à exécuter lors de l'implémentation du ticket ; le redécoupage documentaire ne les déclare pas passées.
+Validations exécutées le 11 septembre 2026 :
+
+- `npm.cmd test` : 132 fichiers et 1072 tests passés.
+- suite Playwright PC `dungeonCombatScene.responsive.browser.spec.ts` : 9 tests passés, dont 1024/1280/1440 px, zoom équivalent 200 %, reduced-motion, bulles en cascade et barres PM conditionnelles.
+- `npm.cmd run build` puis `npm.cmd run check:bundle` : build passé, 255121 B gzip JS et plus gros chunk à 121290 B.
+- `npm.cmd run typecheck` et `npm.cmd run lint -- --quiet` : passés.
+- `npm.cmd run check:dungeon-visuals` : 1468968 octets pour les quatre assets de rencontre, sous le budget de 2 Mio.
+- `npm.cmd run board:validate` : 116 tickets, 0 erreur.
 
 ## Validation manuelle
 
-L'utilisateur contrôle dans le Donjon un trésor, un repos partiel et une réanimation de segment, avec commandes et historique accessibles.
+L'utilisateur a validé dans le Donjon PC la salle de coffre, le camp de repos, les compositions, les ombres, les bulles unitaires et leur cadence 600/1000 ms. Les commandes et l'historique restent accessibles.
 
 ## Preservation
 
@@ -102,6 +109,8 @@ L'utilisateur contrôle dans le Donjon un trésor, un repos partiel et une réan
 
 ## Handoff
 
-Fournir deux scènes intégrées, accessoires/provenance, fixtures de récupération/butin et verdict utilisateur. V06/V07/V14/V18. Transmettre la composition commune à CDI-115.
+Deux scènes intégrées sont livrées avec accessoires/provenance, fixtures de récupération/butin, réanimations multiples, barres PV/PM conditionnelles et verdict visuel utilisateur. V06/V07/V14/V18. La composition commune est transmise à CDI-115 ; les six épreuves restent hors de ce ticket.
+
+Limite explicite : le contrat historique actuel ne fournit pas de mana aux ennemis. Le rendu accepte et teste déjà une barre PM ennemie lorsqu'une projection porte `currentMana` et `maximumMana`, mais aucun monstre actuel ne l'affiche. Si le gameplay ajoute cette ressource, la clôture du sujet exigera une nouvelle version de `CanonicalDungeonInitialEnemyActor`, sa production serveur et un test d'intégration sur un record autoritaire réel.
 
 Indiquer fichiers, commandes réellement exécutées, résultats et limites. Ne pas clore avec un écart réel non corrigé ; ne pas attribuer au présent ticket la livraison de ses successeurs.

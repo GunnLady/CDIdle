@@ -4,6 +4,7 @@ export const DUNGEON_SCENE_HERO_LIMIT = 4;
 export const DUNGEON_SCENE_ENEMY_LIMIT = 3;
 
 export type DungeonSceneLayout = "standard" | "zoomed";
+export type DungeonNonCombatSceneKind = "treasure" | "rest";
 
 export interface DungeonSceneSlot {
   xPercent: number;
@@ -46,6 +47,37 @@ const depthScaleRanges = {
   zoomed: { backY: 44, frontY: 76, backScale: 0.86, frontScale: 0.94 },
 } as const;
 
+const nonCombatSceneSlots = {
+  standard: {
+    treasure: [
+      { xPercent: 39, yPercent: 84, layer: 5 },
+      { xPercent: 28, yPercent: 73, layer: 2 },
+      { xPercent: 72, yPercent: 73, layer: 1 },
+      { xPercent: 61, yPercent: 84, layer: 4 },
+    ],
+    rest: [
+      { xPercent: 41, yPercent: 78, layer: 5 },
+      { xPercent: 32, yPercent: 62, layer: 2 },
+      { xPercent: 67, yPercent: 64, layer: 1 },
+      { xPercent: 60, yPercent: 79, layer: 4 },
+    ],
+  },
+  zoomed: {
+    treasure: [
+      { xPercent: 34, yPercent: 82, layer: 5 },
+      { xPercent: 12, yPercent: 72, layer: 2 },
+      { xPercent: 88, yPercent: 72, layer: 1 },
+      { xPercent: 66, yPercent: 82, layer: 4 },
+    ],
+    rest: [
+      { xPercent: 40, yPercent: 79, layer: 5 },
+      { xPercent: 25, yPercent: 63, layer: 2 },
+      { xPercent: 74, yPercent: 66, layer: 1 },
+      { xPercent: 60, yPercent: 80, layer: 4 },
+    ],
+  },
+} as const;
+
 export function getDungeonSceneDepthScale(
   yPercent: number,
   layout: DungeonSceneLayout,
@@ -61,4 +93,17 @@ export function getDungeonSceneSlot(
   layout: DungeonSceneLayout,
 ): DungeonSceneSlot | null {
   return sceneSlots[layout][team][slot] ?? null;
+}
+
+export function getDungeonNonCombatSceneSlot(
+  kind: DungeonNonCombatSceneKind,
+  slot: number,
+  layout: DungeonSceneLayout,
+): DungeonSceneSlot | null {
+  const position = nonCombatSceneSlots[layout][kind][slot];
+  if (!position) return null;
+  return {
+    ...position,
+    scale: getDungeonSceneDepthScale(position.yPercent, layout),
+  };
 }

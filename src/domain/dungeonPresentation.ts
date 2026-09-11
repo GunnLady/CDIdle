@@ -23,14 +23,16 @@ import { getHeroMainHandWeapon } from "../utils/gameCalculations";
 import type { HeroRosterEntryView } from "./heroPresentation";
 import { HERO_MAX_LEVEL } from "../../shared/data/hero-progression-models";
 import {
-  createEncounterSceneProjection,
+  createEncounterSceneTimeline,
   getEncounterPlaybackTranscript,
+  projectEncounterScene,
   type EncounterSceneState,
 } from "./encounterSceneProjection";
 import {
   createDungeonCombatSceneView,
   type DungeonCombatSceneView,
 } from "./dungeonCombatScene";
+import { createDungeonNonCombatSceneView } from "./dungeonNonCombatScene";
 
 export interface DungeonProgressView {
   floor: number;
@@ -96,7 +98,7 @@ export interface DungeonEncounterView {
   transcript: Array<{ id: string; message: string; category: CanonicalDungeonTranscriptEvent["category"] }>;
   result?: string;
   scene: EncounterSceneState | null;
-  combatScene: DungeonCombatSceneView | null;
+  visualScene: DungeonCombatSceneView | null;
 }
 
 export interface DungeonHistoryView {
@@ -116,6 +118,15 @@ const encounterKindLabels: Record<CanonicalDungeonEncounterRecord["kind"], strin
   treasure: "Trésor",
   rest: "Repos",
 };
+
+function formatTranscriptEvent(event: CanonicalDungeonTranscriptEvent, heroNames: Map<string, string>): string {
+  if (event.message) return event.message;
+  if (event.type !== "hero.hit" && event.type !== "enemy.hit") return event.type;
+  const heroName = event.heroName ?? (event.heroId ? heroNames.get(event.heroId) : undefined) ?? "Un héros";
+  return event.type === "hero.hit"
+    ? `Tour ${event.round} — ${heroName} inflige ${event.damage} dégâts.`
+    : `Tour ${event.round} — L'ennemi inflige ${event.damage} dégâts à ${heroName}.`;
+}
 
 function normalAttackPower(hero: Hero): number {
   const weapon = getHeroMainHandWeapon(hero);
@@ -281,13 +292,6 @@ export function createDungeonPartyView(
   };
 }
 
-function formatTranscriptEvent(event: CanonicalDungeonTranscriptEvent, heroNames: Map<string, string>): string {
-  if (event.message) return event.message;
-  const heroName = event.heroName ?? (event.heroId ? heroNames.get(event.heroId) : undefined) ?? "Un héros";
-  if (event.type === "hero.hit") return `Tour ${event.round} — ${heroName} inflige ${event.damage} dégâts.`;
-  return `Tour ${event.round} — L'ennemi inflige ${event.damage} dégâts à ${heroName}.`;
-}
-
 const enemyRoleLabels = {
   ordinary: "Combattant",
   protector: "Protecteur",
@@ -310,10 +314,9 @@ export function createEncounterView(
 ): DungeonEncounterView {
   const complete = playback?.complete ?? true;
   const playbackTranscript = getEncounterPlaybackTranscript(record);
-  const scene = createEncounterSceneProjection(record, heroNames, playback ?? undefined);
-  const visibleTranscript = playback
-    ? playbackTranscript.slice(0, playback.visibleCount)
-    : playbackTranscript;
+  const timeline = createEncounterSceneTimeline(record, heroNames);
+  const scene = projectEncounterScene(timeline, playback ?? undefined);
+  const visibleTranscript = playback ? playbackTranscript.slice(0, playback.visibleCount) : playbackTranscript;
   const state = complete ? record.outcome : "playing";
   const title = record.enemy?.name ?? encounterKindLabels[record.kind];
   return {
@@ -325,12 +328,12 @@ export function createEncounterView(
       : record.outcome === "victory" ? "Victoire" : "Défaite",
     state,
     scene,
-    combatScene: record.kind === "fight"
+    visualScene: record.kind === "fight"
       ? createDungeonCombatSceneView(scene, (record.enemies ?? []).map((enemy) => ({
           id: enemy.id,
           role: formatEnemyRole(enemy.role),
         })))
-      : null,
+      : createDungeonNonCombatSceneView(record, timeline, scene),
     transcript: visibleTranscript.map((event) => ({
       id: `${record.encounterId}-${event.sequence}`,
       message: formatTranscriptEvent(event, heroNames),
@@ -363,7 +366,7 @@ export function createCurrentEncounterView(
       state: "pending",
       transcript: [],
       scene: null,
-      combatScene: null,
+      visualScene: null,
     };
   }
   const latest = encounterHistory.at(-1);

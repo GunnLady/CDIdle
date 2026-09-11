@@ -135,11 +135,11 @@
 }
 
 .actor[data-active="true"] .sprite,
-.actor[data-active="true"] .fallbackGlyph {
+.actor[data-active="true"] .visualShell > span {
   animation: active-actor-outline 400ms ease-out both;
 }
 
-.fallbackGlyph {
+.visualShell > span {
   display: grid;
   width: 72%;
   aspect-ratio: 1;
@@ -209,6 +209,10 @@
   transition: width 180ms ease-out;
 }
 
+.vitalBar[data-resource="mana"] > span {
+  background: linear-gradient(90deg, #22549b, #3e9fe0);
+}
+
 .unknownVital {
   padding: 0 0.2rem 0.1rem;
 }
@@ -251,7 +255,8 @@
   position: absolute;
   z-index: 40;
   left: 50%;
-  top: calc(18% - var(--effect-stack-y));
+  top: -1rem;
+  width: max-content;
   min-width: 2.2rem;
   border: 1px solid rgb(255 225 160 / 46%);
   border-radius: 999px;
@@ -265,8 +270,9 @@
   padding: 0.23rem 0.4rem;
   text-align: center;
   text-shadow: 0 0.08rem 0.12rem #240300;
-  transform: translateX(calc(-50% + var(--effect-stack-x)));
-  animation: floating-effect 700ms ease-out both;
+  white-space: nowrap;
+  transform: translateX(-50%);
+  animation: floating-effect 1000ms ease-out var(--effect-delay) both;
 }
 
 .effect[data-kind="critical"] {
@@ -283,6 +289,127 @@
 .effect[data-kind="defeat"] {
   border-color: #f05252;
   color: #ff7d72;
+}
+
+.effect[data-kind="recovery-health"] {
+  background: rgb(35 6 10 / 88%);
+  border-color: #e45d68;
+  color: #ff98a1;
+}
+
+.effect[data-kind="recovery-mana"] {
+  background: rgb(4 17 31 / 88%);
+  border-color: #479ed8;
+  color: #8bd3ff;
+}
+
+.effect[data-kind="revival"] {
+  background: rgb(5 26 17 / 88%);
+  border-color: #78e6a1;
+  color: #9ff3bc;
+}
+
+.accessory {
+  position: absolute;
+  z-index: 13;
+  left: 50%;
+  top: 64%;
+  display: grid;
+  width: clamp(6.5rem, 10cqi, 8rem);
+  aspect-ratio: 1.08;
+  place-items: end center;
+  translate: -50% -100%;
+  animation: accessory-arrival 400ms cubic-bezier(0.18, 0.85, 0.34, 1) both;
+  pointer-events: none;
+}
+
+.accessory::before {
+  position: absolute;
+  z-index: 0;
+  bottom: calc(4.1% - 2rem);
+  left: 50%;
+  width: 110%;
+  height: 4rem;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at 50% 18%, rgb(0 0 0 / 98%) 0 34%, rgb(0 0 0 / 74%) 58%, transparent 100%);
+  content: "";
+  filter: blur(0.3rem);
+  transform: translateX(-50%) scaleY(0.9);
+  transform-origin: center top;
+}
+
+.scene[data-encounter-kind="rest"] .accessory {
+  left: 50%;
+  top: 90%;
+  width: clamp(10rem, 20cqi, 13rem);
+  filter: drop-shadow(0 0.65rem 0.45rem rgb(0 0 0 / 58%));
+}
+
+.scene[data-encounter-kind="rest"] .accessory::before {
+  display: none;
+}
+
+.accessory img {
+  position: absolute;
+  z-index: 1;
+  left: var(--visual-anchor-x);
+  bottom: calc(100% - var(--visual-anchor-y));
+  width: calc(100% * var(--visual-scale));
+  height: calc(100% * var(--visual-scale));
+  max-width: none;
+  object-fit: contain;
+  object-position: center bottom;
+  transform: translate(calc(-1 * var(--visual-anchor-x)), calc(100% - var(--visual-anchor-y)));
+  user-select: none;
+}
+
+.accessory > span {
+  display: grid;
+  width: 5rem;
+  aspect-ratio: 1;
+  place-items: center;
+  border: 1px solid rgb(231 215 188 / 38%);
+  border-radius: 50%;
+  background: rgb(5 10 11 / 78%);
+  color: #e8c77d;
+  font-family: serif;
+  font-size: 2rem;
+}
+
+.nonCombatSummary {
+  position: absolute;
+  z-index: 44;
+  top: 0.75rem;
+  left: 50%;
+  display: flex;
+  width: max-content;
+  max-width: min(32rem, 80%);
+  max-height: 13rem;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  justify-content: center;
+  overflow: auto;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  translate: -50% 0;
+  animation: encounter-summary-arrival 400ms ease-out both;
+  pointer-events: auto;
+}
+
+.nonCombatSummaryItem {
+  max-width: 16rem;
+  border: 1px solid rgb(190 145 77 / 48%);
+  border-radius: 0.45rem;
+  background: linear-gradient(145deg, rgb(20 14 9 / 94%), rgb(5 10 11 / 90%));
+  box-shadow: 0 0.4rem 1rem rgb(0 0 0 / 45%);
+  margin: 0;
+  padding: 0.65rem;
+  color: #f0dfbf;
+  font-family: serif;
+  font-size: 0.9rem;
+  font-weight: 700;
+  overflow-wrap: anywhere;
 }
 
 .neutralNotice {
@@ -414,10 +541,20 @@
 }
 
 @keyframes floating-effect {
-  from { opacity: 0; transform: translate(calc(-50% + var(--effect-stack-x)), 0.15rem) scale(0.86); }
-  22% { opacity: 1; transform: translate(calc(-50% + var(--effect-stack-x)), -0.08rem) scale(1.06); }
-  72% { opacity: 1; transform: translate(calc(-50% + var(--effect-stack-x)), -0.38rem) scale(1); }
-  to { opacity: 0; transform: translate(calc(-50% + var(--effect-stack-x)), -0.55rem) scale(0.98); }
+  from { opacity: 0; transform: translate(-50%, 0.15rem) scale(0.86); }
+  18% { opacity: 1; transform: translate(-50%, -0.1rem) scale(1.06); }
+  62% { opacity: 1; transform: translate(-50%, -1.15rem) scale(1); }
+  to { opacity: 0; transform: translate(-50%, -2.15rem) scale(0.98); }
+}
+
+@keyframes accessory-arrival {
+  from { opacity: 0; transform: translateY(0.8rem) scale(0.94); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes encounter-summary-arrival {
+  from { opacity: 0; transform: translateY(-0.35rem); }
+  to { opacity: 1; transform: none; }
 }
 
 .scene[data-animations="disabled"] .motionLayer,
@@ -425,15 +562,21 @@
 .scene[data-animations="disabled"] .reactionLayer,
 .scene[data-animations="disabled"] .visualShell::before,
 .scene[data-animations="disabled"] .actor[data-active="true"] .sprite,
-.scene[data-animations="disabled"] .actor[data-active="true"] .fallbackGlyph,
+.scene[data-animations="disabled"] .actor[data-active="true"] .visualShell > span,
 .scene[data-animations="disabled"] .effect {
   animation: none !important;
   transition: none !important;
 }
 
+.scene[data-animations="disabled"] .accessory,
+.scene[data-animations="disabled"] .nonCombatSummary {
+  animation: none !important;
+}
+
 .scene[data-animations="disabled"] .effect {
+  top: calc(-1rem - var(--effect-static-y));
   opacity: 1;
-  transform: translateX(calc(-50% + var(--effect-stack-x)));
+  transform: translateX(-50%);
 }
 
 .scene[data-animations="disabled"] .actor[data-active="true"] .visualShell::before {
@@ -442,7 +585,7 @@
 }
 
 .scene[data-animations="disabled"] .actor[data-active="true"] .sprite,
-.scene[data-animations="disabled"] .actor[data-active="true"] .fallbackGlyph {
+.scene[data-animations="disabled"] .actor[data-active="true"] .visualShell > span {
   filter:
     drop-shadow(1px 0 0 var(--actor-aura-solid))
     drop-shadow(-1px 0 0 var(--actor-aura-solid))
@@ -457,15 +600,21 @@
   .reactionLayer,
   .visualShell::before,
   .actor[data-active="true"] .sprite,
-  .actor[data-active="true"] .fallbackGlyph,
+  .actor[data-active="true"] .visualShell > span,
   .effect {
     animation: none !important;
     transition: none !important;
   }
 
+  .accessory,
+  .nonCombatSummary {
+    animation: none !important;
+  }
+
   .effect {
+    top: calc(-1rem - var(--effect-static-y));
     opacity: 1;
-    transform: translateX(calc(-50% + var(--effect-stack-x)));
+    transform: translateX(-50%);
   }
 
   .actor[data-active="true"] .visualShell::before {
@@ -474,7 +623,7 @@
   }
 
   .actor[data-active="true"] .sprite,
-  .actor[data-active="true"] .fallbackGlyph {
+  .actor[data-active="true"] .visualShell > span {
     filter:
       drop-shadow(1px 0 0 var(--actor-aura-solid))
       drop-shadow(-1px 0 0 var(--actor-aura-solid))

@@ -32,6 +32,49 @@ async function expectCombatSceneContained(page: Page) {
   expect(result.actionOverlap).toBe(false);
 }
 
+async function expectNonCombatSceneComposed(
+  page: Page,
+  assetName: string,
+  expectedActorRatio: readonly [minimum: number, maximum: number],
+) {
+  const result = await page.evaluate((requestedAsset) => {
+    const stage = document.querySelector<HTMLElement>("[data-testid='dungeon-combat-stage']");
+    const image = stage?.querySelector<HTMLImageElement>(`img[src*='${requestedAsset}']`);
+    const accessory = image?.parentElement;
+    const summary = stage?.querySelector<HTMLElement>("[aria-label='Trésor'], [aria-label='Repos']");
+    if (!stage || !image || !accessory || !summary) {
+      return { missing: true, documentOverflow: 0, accessoryVisibleRatio: 0, actorRatio: 0, summaryContained: false };
+    }
+    const stageBounds = stage.getBoundingClientRect();
+    const accessoryBounds = accessory.getBoundingClientRect();
+    const summaryBounds = summary.getBoundingClientRect();
+    const visibleWidth = Math.max(0, Math.min(stageBounds.right, accessoryBounds.right) - Math.max(stageBounds.left, accessoryBounds.left));
+    const visibleHeight = Math.max(0, Math.min(stageBounds.bottom, accessoryBounds.bottom) - Math.max(stageBounds.top, accessoryBounds.top));
+    const visibleArea = visibleWidth * visibleHeight;
+    const accessoryArea = accessoryBounds.width * accessoryBounds.height;
+    const actor = stage.querySelector<HTMLElement>("[data-testid='dungeon-combat-actor']");
+    const actorWidth = actor?.getBoundingClientRect().width ?? 0;
+    return {
+      missing: false,
+      documentOverflow: document.documentElement.scrollWidth - window.innerWidth,
+      accessoryVisibleRatio: accessoryArea > 0 ? visibleArea / accessoryArea : 0,
+      actorRatio: actorWidth > 0 ? accessoryBounds.width / actorWidth : 0,
+      summaryContained: summaryBounds.left >= stageBounds.left - 1
+        && summaryBounds.right <= stageBounds.right + 1
+        && summaryBounds.top >= stageBounds.top - 1
+        && summaryBounds.bottom <= stageBounds.bottom + 1,
+    };
+  }, assetName);
+
+  expect(result.missing).toBe(false);
+  expect(result.documentOverflow).toBeLessThanOrEqual(0);
+  expect(result.accessoryVisibleRatio).toBeGreaterThan(0.9);
+  expect(result.actorRatio).toBeGreaterThanOrEqual(expectedActorRatio[0]);
+  expect(result.actorRatio).toBeLessThanOrEqual(expectedActorRatio[1]);
+  expect(result.summaryContained).toBe(true);
+  await expectCombatSceneContained(page);
+}
+
 for (const width of [1024, 1280, 1440] as const) {
   test(`keeps the production combat scene readable at ${width}px PC width`, async ({ page }) => {
     await page.setViewportSize({ width, height: 1000 });
@@ -44,6 +87,8 @@ for (const width of [1024, 1280, 1440] as const) {
     await expect(page.getByTestId("dungeon-combat-actor")).toHaveCount(7);
     await expect(scene.locator("img[src*='rat-pack-']")).toHaveCount(3);
     await expect(scene.locator("[data-team='heroes'] img")).toHaveCount(4);
+    await expect(scene.getByRole("progressbar", { name: /^PM de / })).toHaveCount(4);
+    await expect(scene.locator("[data-team='enemies'] [data-resource='mana']")).toHaveCount(0);
     const heroPortraitSources = await scene.locator("[data-team='heroes'] img").evaluateAll((images) => (
       images.map((image) => (image as HTMLImageElement).currentSrc)
     ));
@@ -119,4 +164,82 @@ test("keeps dodge, critical, KO, result and reduced motion tied to the authorita
   await page.goto("/tests/browser/fixtures/dungeon-harness.html?combat-scene=1&step=4");
   expect(await scene.locator("[data-motion='melee']").evaluate((element) => getComputedStyle(element).animationName)).toBe("none");
   await expectCombatSceneContained(page);
+});
+
+for (const width of [1024, 1280, 1440] as const) {
+  test(`keeps treasure and rest scenes composed at ${width}px PC width`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 1000 });
+
+    await page.goto("/tests/browser/fixtures/dungeon-harness.html?non-combat-scene=treasure");
+    const treasureScene = page.getByTestId("dungeon-combat-scene");
+    await expect(treasureScene).toBeVisible();
+    await expect(page.getByTestId("dungeon-combat-stage")).toHaveAttribute("data-asset-status", "ready");
+    await expect(page.getByTestId("dungeon-combat-stage")).toHaveCSS("background-image", /treasure-vault-background-v2/);
+    await expect(treasureScene.locator("img[src*='treasure-chest-open-v3']").locator("..")).toHaveAttribute("data-asset-status", "ready");
+    await expect(page.getByTestId("dungeon-non-combat-summary-item")).toHaveCount(2);
+    await expect(page.getByTestId("dungeon-non-combat-summary-item").nth(0)).toHaveText("+17 or");
+    await expect(page.getByTestId("dungeon-non-combat-summary-item").nth(1)).toHaveText("Débris métalliques ×2");
+    await expect(treasureScene.getByTestId("dungeon-combat-actor")).toHaveCount(4);
+    await expect(treasureScene.getByTestId("dungeon-combat-effect")).toHaveCount(0);
+    await expectNonCombatSceneComposed(page, "treasure-chest-open-v3", [0.85, 1.25]);
+
+    await page.goto("/tests/browser/fixtures/dungeon-harness.html?non-combat-scene=rest");
+    const restScene = page.getByTestId("dungeon-combat-scene");
+    await expect(restScene).toBeVisible();
+    await expect(page.getByTestId("dungeon-combat-stage")).toHaveCSS("background-image", /rest-chamber-background-v1/);
+    await expect(restScene.locator("img[src*='rest-camp-v2']").locator("..")).toHaveAttribute("data-asset-status", "ready");
+    await expect(page.getByLabel("Repos")).toHaveText("Repos terminé");
+    await expect(restScene.getByTestId("dungeon-combat-actor")).toHaveCount(4);
+    await expect(restScene.getByTestId("dungeon-combat-effect")).toHaveCount(10);
+    await expect(restScene.getByText("Réanimé", { exact: true })).toHaveCount(2);
+    await expect(restScene.getByText("PV +16 · 16/80", { exact: true })).toHaveAttribute("data-kind", "recovery-health");
+    await expect(restScene.getByText("PM +4 · 4/20", { exact: true })).toHaveAttribute("data-kind", "recovery-mana");
+    await expect(restScene.getByText("PV +18 · 18/90", { exact: true })).toHaveAttribute("data-kind", "recovery-health");
+    await expect(restScene.getByText("PM +4 · 6/18", { exact: true })).toHaveAttribute("data-kind", "recovery-mana");
+    const restoredTarget = await restScene.getByText("PV +16 · 16/80", { exact: true }).getAttribute("data-target-actor-id");
+    expect(restoredTarget).not.toBeNull();
+    const sequentialEffects = restScene.locator(`[data-target-actor-id='${restoredTarget}']`);
+    await expect(sequentialEffects).toHaveCount(3);
+    expect(await sequentialEffects.evaluateAll((effects) => effects.map((effect) => getComputedStyle(effect).animationDelay))).toEqual([
+      "0s",
+      "0.6s",
+      "1.2s",
+    ]);
+    expect(new Set(await sequentialEffects.evaluateAll((effects) => effects.map((effect) => getComputedStyle(effect).whiteSpace)))).toEqual(new Set(["nowrap"]));
+    const cascade = await sequentialEffects.evaluateAll((effects) => {
+      for (const effect of effects.slice(0, 2)) {
+        const animation = effect.getAnimations()[0];
+        animation?.pause();
+        if (animation) animation.currentTime = 750;
+      }
+      const first = effects[0]?.getBoundingClientRect();
+      const second = effects[1]?.getBoundingClientRect();
+      return {
+        firstBottom: first?.bottom ?? 0,
+        firstOpacity: Number(getComputedStyle(effects[0]!).opacity),
+        secondOpacity: Number(getComputedStyle(effects[1]!).opacity),
+        secondTop: second?.top ?? 0,
+      };
+    });
+    expect(cascade.firstOpacity).toBeGreaterThan(0.4);
+    expect(cascade.secondOpacity).toBeGreaterThan(0.4);
+    expect(cascade.firstBottom).toBeLessThanOrEqual(cascade.secondTop + 1);
+    await expectNonCombatSceneComposed(page, "rest-camp-v2", [1.6, 2.1]);
+  });
+}
+
+test("disables treasure and rest arrival motion when reduced motion is requested", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 1000 });
+  await page.emulateMedia({ reducedMotion: "reduce" });
+
+  for (const kind of ["treasure", "rest"] as const) {
+    const assetName = kind === "treasure" ? "treasure-chest-open-v3" : "rest-camp-v2";
+    const label = kind === "treasure" ? "Trésor" : "Repos";
+    await page.goto(`/tests/browser/fixtures/dungeon-harness.html?non-combat-scene=${kind}`);
+    const scene = page.getByTestId("dungeon-combat-scene");
+    const accessory = scene.locator(`img[src*='${assetName}']`).locator("..");
+    await expect(accessory).toHaveAttribute("data-asset-status", "ready");
+    expect(await accessory.evaluate((element) => getComputedStyle(element).animationName)).toBe("none");
+    expect(await page.getByLabel(label).evaluate((element) => getComputedStyle(element).animationName)).toBe("none");
+  }
 });

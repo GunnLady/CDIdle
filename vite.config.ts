@@ -21,6 +21,8 @@ export default defineConfig(({mode}) => {
       target: "es2022",
       rollupOptions: {
         output: {
+          // Limit wrapper/compression overhead without collapsing substantive route chunks.
+          experimentalMinChunkSize: 4_000,
           manualChunks(id) {
             if (id.includes('node_modules')) return 'vendor';
           },

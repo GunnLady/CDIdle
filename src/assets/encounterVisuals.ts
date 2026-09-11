@@ -14,6 +14,10 @@ import sewersStageUrl from "./images/dungeon/undercity/sewers/undercity-sewers-s
 import canalRatUrl from "./images/dungeon/undercity/sewers/rat-pack-canal-rat-v1.png";
 import mangyRatUrl from "./images/dungeon/undercity/sewers/rat-pack-mangy-rat-v1.png";
 import plagueRatUrl from "./images/dungeon/undercity/sewers/rat-pack-plague-rat-v1.png";
+import restCampUrl from "./images/dungeon/encounters/rest-camp-v2.png";
+import restChamberBackgroundUrl from "./images/dungeon/encounters/rest-chamber-background-v1.jpg";
+import treasureChestOpenUrl from "./images/dungeon/encounters/treasure-chest-open-v3.png";
+import treasureVaultBackgroundUrl from "./images/dungeon/encounters/treasure-vault-background-v2.jpg";
 
 export const ENCOUNTER_VISUAL_CATALOG_VERSION = 1;
 export const ENCOUNTER_VISUAL_CACHE_LIMIT = 16;
@@ -30,13 +34,23 @@ export const ENCOUNTER_VISUAL_KEYS = {
   effects: {
     physicalImpact: "effect:physical-impact",
   },
+  encounters: {
+    rest: {
+      background: "undercity:rest-chamber:background",
+      prop: "encounter:rest-camp",
+    },
+    treasure: {
+      background: "undercity:treasure-vault:background",
+      prop: "encounter:treasure",
+    },
+  },
   fallback: {
     actor: "fallback:actor",
     background: "fallback:background",
   },
 } as const;
 
-export type EncounterVisualKind = "background" | "enemy" | "hero" | "effect";
+export type EncounterVisualKind = "background" | "enemy" | "hero" | "effect" | "prop";
 
 export interface EncounterVisualDescriptor {
   key: string;
@@ -52,62 +66,37 @@ export interface EncounterVisualDescriptor {
 
 const loadedUrl = (url: string) => () => Promise.resolve(url);
 
-const staticCatalog: Readonly<Record<string, EncounterVisualDescriptor>> = {
-  [ENCOUNTER_VISUAL_KEYS.sewers.background]: {
-    key: ENCOUNTER_VISUAL_KEYS.sewers.background,
-    kind: "background",
-    version: 1,
-    provenance: "CDIdle ImageGen kit Égouts v1",
-    anchor: { x: 0.5, y: 1 },
-    scale: 1,
-    fallbackGlyph: "",
-    fallback: false,
-    load: loadedUrl(sewersStageUrl),
-  },
-  [ENCOUNTER_VISUAL_KEYS.sewers.ratPack.a]: {
-    key: ENCOUNTER_VISUAL_KEYS.sewers.ratPack.a,
-    kind: "enemy",
-    version: 1,
-    provenance: "CDIdle ImageGen rat-pack v1",
-    anchor: { x: 0.5, y: 0.86 },
-    scale: 0.9,
-    fallbackGlyph: "R",
-    fallback: false,
-    load: loadedUrl(canalRatUrl),
-  },
-  [ENCOUNTER_VISUAL_KEYS.sewers.ratPack.b]: {
-    key: ENCOUNTER_VISUAL_KEYS.sewers.ratPack.b,
-    kind: "enemy",
-    version: 1,
-    provenance: "CDIdle ImageGen rat-pack v1",
-    anchor: { x: 0.5, y: 0.88 },
-    scale: 1,
-    fallbackGlyph: "R",
-    fallback: false,
-    load: loadedUrl(mangyRatUrl),
-  },
-  [ENCOUNTER_VISUAL_KEYS.sewers.ratPack.c]: {
-    key: ENCOUNTER_VISUAL_KEYS.sewers.ratPack.c,
-    kind: "enemy",
-    version: 1,
-    provenance: "CDIdle ImageGen rat-pack v1",
-    anchor: { x: 0.5, y: 0.87 },
-    scale: 0.94,
-    fallbackGlyph: "R",
-    fallback: false,
-    load: loadedUrl(plagueRatUrl),
-  },
-  [ENCOUNTER_VISUAL_KEYS.effects.physicalImpact]: {
-    key: ENCOUNTER_VISUAL_KEYS.effects.physicalImpact,
-    kind: "effect",
-    version: 1,
-    provenance: "CDI-097 CSS impact profile",
-    anchor: { x: 0.5, y: 0.2 },
-    scale: 1,
-    fallbackGlyph: "✦",
-    fallback: false,
-  },
-};
+type StaticVisual = readonly [
+  key: string,
+  kind: EncounterVisualKind,
+  provenance: string,
+  anchorY: number,
+  scale: number,
+  fallbackGlyph: string,
+  url?: string,
+];
+
+const staticCatalog: Readonly<Record<string, EncounterVisualDescriptor>> = Object.fromEntries(([
+  [ENCOUNTER_VISUAL_KEYS.sewers.background, "background", "CDIdle ImageGen kit Égouts v1", 1, 1, "", sewersStageUrl],
+  [ENCOUNTER_VISUAL_KEYS.sewers.ratPack.a, "enemy", "CDIdle ImageGen rat-pack v1", 0.86, 0.9, "R", canalRatUrl],
+  [ENCOUNTER_VISUAL_KEYS.sewers.ratPack.b, "enemy", "CDIdle ImageGen rat-pack v1", 0.88, 1, "R", mangyRatUrl],
+  [ENCOUNTER_VISUAL_KEYS.sewers.ratPack.c, "enemy", "CDIdle ImageGen rat-pack v1", 0.87, 0.94, "R", plagueRatUrl],
+  [ENCOUNTER_VISUAL_KEYS.effects.physicalImpact, "effect", "CDI-097 CSS impact profile", 0.2, 1, "✦"],
+  [ENCOUNTER_VISUAL_KEYS.encounters.treasure.background, "background", "CDIdle ImageGen salle de trésor v1", 1, 1, "", treasureVaultBackgroundUrl],
+  [ENCOUNTER_VISUAL_KEYS.encounters.treasure.prop, "prop", "CDIdle ImageGen coffre v3", 0.94, 1, "◇", treasureChestOpenUrl],
+  [ENCOUNTER_VISUAL_KEYS.encounters.rest.background, "background", "CDIdle ImageGen salle de repos v1", 1, 1, "", restChamberBackgroundUrl],
+  [ENCOUNTER_VISUAL_KEYS.encounters.rest.prop, "prop", "CDIdle ImageGen repos v2", 0.93, 1, "✦", restCampUrl],
+] satisfies StaticVisual[]).map(([key, kind, provenance, anchorY, scale, fallbackGlyph, url]) => [key, {
+  key,
+  kind,
+  version: 1,
+  provenance,
+  anchor: { x: 0.5, y: anchorY },
+  scale,
+  fallbackGlyph,
+  fallback: false,
+  load: url ? loadedUrl(url) : undefined,
+}]));
 
 const visualAssetCache = createBoundedAsyncAssetCache<string>(ENCOUNTER_VISUAL_CACHE_LIMIT);
 

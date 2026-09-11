@@ -113,6 +113,66 @@ describe("DungeonPanel authoritative structure", () => {
     expect(window.localStorage.getItem("cdidle:dungeon-animations")).toBe("disabled");
   });
 
+  it("integrates treasure and rest scenes in the current authoritative encounter", () => {
+    const hero = makeHero({ id: "non-combat-hero", name: "Ariane", isActive: true });
+    const initialActors: NonNullable<CanonicalDungeonEncounterRecord["initialActors"]> = {
+      v: 1,
+      h: [[hero.id, "Guerrier_Female_1", 10, 20, 2, 10, 0]],
+      e: [],
+    };
+    const treasure = {
+      encounterId: "treasure-current",
+      dungeonId: "undercity",
+      kind: "treasure",
+      floor: 2,
+      room: 8,
+      outcome: "victory",
+      roundCount: 0,
+      enemy: null,
+      initialActors,
+      transcript: [
+        { sequence: 0, type: "treasure.opened", treasureOutcome: "gold" },
+        { sequence: 1, type: "reward.gold", gold: 17 },
+      ],
+      rewards: { gold: 17, loot: [] },
+    } satisfies CanonicalDungeonEncounterRecord;
+    const rest = {
+      ...treasure,
+      encounterId: "rest-current",
+      kind: "rest",
+      transcript: [{
+        sequence: 0,
+        type: "party.restored",
+        heroes: [{ heroId: hero.id, hpBefore: 10, hpAfter: 14, manaBefore: 2, manaAfter: 4, revived: false }],
+      }],
+      rewards: { gold: 0, loot: [] },
+    } satisfies CanonicalDungeonEncounterRecord;
+
+    const view = render(<DungeonPanel
+      {...props}
+      heroes={[hero]}
+      encounterHistory={[treasure]}
+      encounterPlayback={{ encounterId: treasure.encounterId, visibleCount: 2, complete: true }}
+      isExploring={false}
+    />);
+    let current = within(screen.getByTestId("dungeon-current-encounter"));
+    expect(current.getByTestId("dungeon-combat-scene")).toHaveAccessibleName("Scène de rencontre");
+    expect(current.getByLabelText("Trésor")).toHaveTextContent("+17 or");
+    expect(current.getByText("Journal détaillé")).toBeInTheDocument();
+
+    view.rerender(<DungeonPanel
+      {...props}
+      heroes={[hero]}
+      encounterHistory={[rest]}
+      encounterPlayback={{ encounterId: rest.encounterId, visibleCount: 1, complete: true }}
+      isExploring={false}
+    />);
+    current = within(screen.getByTestId("dungeon-current-encounter"));
+    expect(current.getByTestId("dungeon-combat-scene")).toHaveAccessibleName("Scène de rencontre");
+    expect(current.getByLabelText("PV +4 · 14/20, Ariane")).toHaveAttribute("data-kind", "recovery-health");
+    expect(current.getByLabelText("PM +2 · 4/10, Ariane")).toHaveAttribute("data-kind", "recovery-mana");
+  });
+
   it("labels unavailable legacy health instead of reconstructing it from the final record", () => {
     const legacyGroup = {
       ...encounter,
