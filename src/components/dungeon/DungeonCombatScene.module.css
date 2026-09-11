@@ -1,0 +1,458 @@
+.scene {
+  container-name: dungeon-combat;
+  container-type: inline-size;
+  min-height: 0;
+}
+
+.stage {
+  position: relative;
+  isolation: isolate;
+  min-height: 22rem;
+  overflow: hidden;
+  border: 1px solid #49311f;
+  border-radius: 0.65rem;
+  background-color: #090f10;
+  background-image:
+    linear-gradient(180deg, rgb(2 8 10 / 8%) 0%, rgb(2 7 8 / 2%) 57%, rgb(1 5 6 / 28%) 100%),
+    var(--stage-art);
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+  box-shadow: inset 0 0 2.5rem rgb(0 0 0 / 32%);
+}
+
+.stage::after {
+  position: absolute;
+  z-index: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 28%;
+  background: linear-gradient(180deg, transparent, rgb(2 5 6 / 24%));
+  content: "";
+  pointer-events: none;
+}
+
+.actor {
+  --team-direction: 1;
+  --actor-aura-solid: #ffd36d;
+  --actor-aura-glow: rgb(255 191 58 / 68%);
+  position: absolute;
+  z-index: calc(10 + var(--actor-layer));
+  left: var(--actor-x);
+  top: var(--actor-y);
+  width: clamp(4.8rem, 11.5cqi, 7.2rem);
+  margin: 0;
+  list-style: none;
+  transform: translate(-50%, -72%) scale(var(--actor-scale));
+  transform-origin: 50% 88%;
+}
+
+.actor[data-team="enemies"] {
+  --team-direction: -1;
+  --actor-aura-solid: #f05252;
+  --actor-aura-glow: rgb(220 38 38 / 72%);
+}
+
+.actor::after {
+  position: absolute;
+  z-index: -1;
+  left: 50%;
+  bottom: 1.7rem;
+  width: 68%;
+  height: 0.65rem;
+  border-radius: 50%;
+  background: rgb(0 0 0 / 52%);
+  filter: blur(0.16rem);
+  content: "";
+  transform: translateX(-50%);
+}
+
+.motionLayer,
+.idleLayer,
+.reactionLayer,
+.visualShell {
+  position: relative;
+  width: 100%;
+}
+
+.motionLayer {
+  transform-origin: 50% 100%;
+}
+
+.idleLayer {
+  animation: actor-idle var(--actor-idle-duration) ease-in-out var(--actor-idle-delay) infinite;
+  transform-origin: 50% 100%;
+}
+
+.reactionLayer {
+  transform-origin: 50% 82%;
+}
+
+.visualShell {
+  display: grid;
+  height: clamp(5.5rem, 15cqi, 9.2rem);
+  place-items: end center;
+}
+
+.visualShell::before {
+  position: absolute;
+  z-index: -1;
+  inset: 7% 4% 16%;
+  border-radius: 48%;
+  content: "";
+  opacity: 0;
+  pointer-events: none;
+}
+
+.actor[data-active="true"] .visualShell::before {
+  border: 2px solid var(--actor-aura-solid);
+  box-shadow:
+    0 0 0.15rem #fff4bd,
+    0 0 0.65rem var(--actor-aura-solid),
+    0 0 1.35rem var(--actor-aura-glow);
+  animation: aura-diffusion 400ms ease-out both;
+}
+
+.actor[data-active="true"][data-team="enemies"] .visualShell::before {
+  box-shadow: 0 0 0.15rem #ffd1ca, 0 0 0.65rem var(--actor-aura-solid), 0 0 1.35rem var(--actor-aura-glow);
+}
+
+.sprite {
+  position: absolute;
+  left: var(--visual-anchor-x);
+  bottom: calc(100% - var(--visual-anchor-y));
+  max-width: none;
+  width: calc(100% * var(--visual-scale));
+  height: calc(100% * var(--visual-scale));
+  object-fit: contain;
+  object-position: center bottom;
+  image-rendering: auto;
+  transform: translate(calc(-1 * var(--visual-anchor-x)), calc(100% - var(--visual-anchor-y)));
+  transform-origin: var(--visual-anchor-x) var(--visual-anchor-y);
+  user-select: none;
+  pointer-events: none;
+}
+
+.actor[data-active="true"] .sprite,
+.actor[data-active="true"] .fallbackGlyph {
+  animation: active-actor-outline 400ms ease-out both;
+}
+
+.fallbackGlyph {
+  display: grid;
+  width: 72%;
+  aspect-ratio: 1;
+  place-items: center;
+  border: 1px solid rgb(231 215 188 / 40%);
+  border-radius: 50%;
+  background: rgb(10 14 14 / 74%);
+  color: #e7d7bc;
+  font-family: serif;
+  font-size: 1.7rem;
+  font-weight: 700;
+}
+
+.actorMeta {
+  position: relative;
+  z-index: 5;
+  display: flex;
+  min-width: 4.6rem;
+  margin: -0.15rem auto 0;
+  flex-direction: column;
+  align-items: center;
+  border: 1px solid rgb(231 215 188 / 18%);
+  border-radius: 0.3rem;
+  background: rgb(4 7 8 / 78%);
+  box-shadow: 0 0.15rem 0.35rem rgb(0 0 0 / 45%);
+  color: #e7d7bc;
+  line-height: 1.05;
+  transform: scale(calc(1 / var(--actor-scale)));
+  transform-origin: center top;
+}
+
+.actor[data-team="enemies"] .actorMeta {
+  margin-top: -0.65rem;
+}
+
+.actorName {
+  overflow: hidden;
+  max-width: 100%;
+  padding: 0.2rem 0.25rem 0;
+  font-size: 0.55rem;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.unknownVital,
+.vitalText {
+  color: #a99178;
+  font-size: 0.46rem;
+}
+
+.vitalBar {
+  display: block;
+  width: calc(100% - 0.42rem);
+  height: 0.24rem;
+  overflow: hidden;
+  margin: 0.05rem 0;
+  border-radius: 999px;
+  background: rgb(0 0 0 / 64%);
+}
+
+.vitalBar > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #8d1d29, #dc3e43);
+  transition: width 180ms ease-out;
+}
+
+.unknownVital {
+  padding: 0 0.2rem 0.1rem;
+}
+
+.vitalText {
+  padding: 0.08rem 0.2rem 0.17rem;
+}
+
+.actor[data-state="ko"] .visualShell {
+  filter: grayscale(0.75) brightness(0.65);
+  opacity: 0.76;
+  transform: translateY(0.45rem) rotate(calc(var(--team-direction) * 8deg));
+}
+
+.motionLayer[data-motion="enter"] {
+  animation: actor-enter 400ms cubic-bezier(0.18, 0.85, 0.34, 1) both;
+}
+
+.motionLayer[data-motion="melee"] {
+  animation: melee-action 400ms cubic-bezier(0.35, 0, 0.3, 1) both;
+}
+
+.motionLayer[data-motion="focus"] {
+  animation: actor-focus 400ms ease-out both;
+}
+
+.reactionLayer[data-reaction="impact"] {
+  animation: actor-impact 400ms ease-out both;
+}
+
+.reactionLayer[data-reaction="dodge"] {
+  animation: actor-dodge 400ms ease-out both;
+}
+
+.reactionLayer[data-reaction="ko"] {
+  animation: actor-ko 400ms ease-out both;
+}
+
+.effect {
+  position: absolute;
+  z-index: 40;
+  left: 50%;
+  top: calc(18% - var(--effect-stack-y));
+  min-width: 2.2rem;
+  border: 1px solid rgb(255 225 160 / 46%);
+  border-radius: 999px;
+  background: rgb(20 7 7 / 82%);
+  box-shadow: 0 0.15rem 0.5rem rgb(0 0 0 / 54%);
+  color: #ff9b85;
+  font-family: serif;
+  font-size: clamp(0.72rem, 1.6cqi, 1rem);
+  font-weight: 900;
+  line-height: 1;
+  padding: 0.23rem 0.4rem;
+  text-align: center;
+  text-shadow: 0 0.08rem 0.12rem #240300;
+  transform: translateX(calc(-50% + var(--effect-stack-x)));
+  animation: floating-effect 700ms ease-out both;
+}
+
+.effect[data-kind="critical"] {
+  border-color: #ffd36d;
+  color: #ffe187;
+  font-size: clamp(0.85rem, 1.9cqi, 1.15rem);
+}
+
+.effect[data-kind="dodge"] {
+  background: rgb(4 18 25 / 84%);
+  color: #93dcff;
+}
+
+.effect[data-kind="defeat"] {
+  border-color: #f05252;
+  color: #ff7d72;
+}
+
+.neutralNotice {
+  position: absolute;
+  z-index: 50;
+  right: 0.65rem;
+  bottom: 0.6rem;
+  left: 0.65rem;
+  margin: 0;
+  border: 1px solid rgb(231 215 188 / 18%);
+  border-radius: 0.35rem;
+  background: rgb(4 7 8 / 82%);
+  padding: 0.38rem 0.55rem;
+  color: #c9b99a;
+  font-size: 0.55rem;
+  text-align: center;
+}
+
+.result {
+  position: absolute;
+  z-index: 60;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  background: rgb(1 5 6 / 54%);
+  color: #e7d7bc;
+  text-align: center;
+  text-shadow: 0 0.15rem 0.5rem #000;
+}
+
+.result strong {
+  color: #78e6a1;
+  font-family: serif;
+  font-size: clamp(1.6rem, 5cqi, 2.8rem);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.result[data-result="defeat"] strong {
+  color: #ff7d72;
+}
+
+@container dungeon-combat (max-width: 42rem) {
+  .stage {
+    min-height: 22rem;
+  }
+
+  .actor {
+    left: var(--actor-zoom-x);
+    top: var(--actor-zoom-y);
+    width: clamp(4.3rem, 15cqi, 6.2rem);
+    transform: translate(-50%, -72%) scale(var(--actor-zoom-scale));
+  }
+
+  .actorMeta {
+    transform: scale(calc(1 / var(--actor-zoom-scale)));
+  }
+
+}
+
+@keyframes actor-enter {
+  from { opacity: 0; transform: translateX(calc(var(--team-direction) * -1.8rem)) scale(0.88); }
+  65% { opacity: 1; }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes actor-idle {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scaleX(1.006) scaleY(1.012); }
+}
+
+@keyframes melee-action {
+  0% { transform: translateX(0) rotate(0); }
+  18% { transform: translateX(calc(var(--team-direction) * -0.22rem)) rotate(calc(var(--team-direction) * -2deg)); }
+  50% { transform: translateX(calc(var(--team-direction) * 1.4rem)) rotate(calc(var(--team-direction) * 3deg)); }
+  62% { transform: translateX(calc(var(--team-direction) * 1.08rem)); }
+  100% { transform: translateX(0) rotate(0); }
+}
+
+@keyframes actor-focus {
+  0% { transform: scale(1); }
+  28% { transform: scale(1.06); }
+  100% { transform: scale(1); }
+}
+
+@keyframes actor-impact {
+  0%, 42%, 100% { filter: none; transform: translateX(0); }
+  50% { filter: brightness(1.45) saturate(0.65); transform: translateX(calc(var(--team-direction) * 0.42rem)); }
+  65% { transform: translateX(calc(var(--team-direction) * -0.18rem)); }
+}
+
+@keyframes actor-dodge {
+  0%, 100% { transform: translateX(0); }
+  44% { transform: translateX(calc(var(--team-direction) * 0.9rem)); }
+}
+
+@keyframes actor-ko {
+  0%, 45% { filter: none; transform: translateY(0) rotate(0); }
+  100% { filter: grayscale(0.75) brightness(0.65); transform: translateY(0.45rem) rotate(calc(var(--team-direction) * 8deg)); }
+}
+
+@keyframes aura-diffusion {
+  0% { opacity: 0; transform: scale(0.78); }
+  16% { opacity: 1; transform: scale(0.9); }
+  58% { opacity: 0.72; transform: scale(1.08); }
+  100% { opacity: 0; transform: scale(1.28); }
+}
+
+@keyframes active-actor-outline {
+  0%, 100% { filter: drop-shadow(0 0.42rem 0.3rem rgb(0 0 0 / 64%)); }
+  14% {
+    filter:
+      drop-shadow(1px 0 0 var(--actor-aura-solid))
+      drop-shadow(-1px 0 0 var(--actor-aura-solid))
+      drop-shadow(0 1px 0 var(--actor-aura-solid))
+      drop-shadow(0 -1px 0 var(--actor-aura-solid))
+      drop-shadow(0 0 0.22rem var(--actor-aura-glow))
+      drop-shadow(0 0 0.42rem var(--actor-aura-glow));
+  }
+  58% {
+    filter:
+      drop-shadow(1px 0 0 var(--actor-aura-solid))
+      drop-shadow(-1px 0 0 var(--actor-aura-solid))
+      drop-shadow(0 1px 0 var(--actor-aura-solid))
+      drop-shadow(0 -1px 0 var(--actor-aura-solid))
+      drop-shadow(0 0 0.45rem var(--actor-aura-glow))
+      drop-shadow(0 0 0.85rem var(--actor-aura-glow));
+  }
+}
+
+@keyframes floating-effect {
+  from { opacity: 0; transform: translate(calc(-50% + var(--effect-stack-x)), 0.15rem) scale(0.86); }
+  22% { opacity: 1; transform: translate(calc(-50% + var(--effect-stack-x)), -0.08rem) scale(1.06); }
+  72% { opacity: 1; transform: translate(calc(-50% + var(--effect-stack-x)), -0.38rem) scale(1); }
+  to { opacity: 0; transform: translate(calc(-50% + var(--effect-stack-x)), -0.55rem) scale(0.98); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .motionLayer,
+  .idleLayer,
+  .reactionLayer,
+  .visualShell::before,
+  .actor[data-active="true"] .sprite,
+  .actor[data-active="true"] .fallbackGlyph,
+  .effect {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  .effect {
+    opacity: 1;
+    transform: translateX(calc(-50% + var(--effect-stack-x)));
+  }
+
+  .actor[data-active="true"] .visualShell::before {
+    opacity: 0.78;
+    transform: none;
+  }
+
+  .actor[data-active="true"] .sprite,
+  .actor[data-active="true"] .fallbackGlyph {
+    filter:
+      drop-shadow(1px 0 0 var(--actor-aura-solid))
+      drop-shadow(-1px 0 0 var(--actor-aura-solid))
+      drop-shadow(0 1px 0 var(--actor-aura-solid))
+      drop-shadow(0 -1px 0 var(--actor-aura-solid))
+      drop-shadow(0 0 0.5rem var(--actor-aura-glow));
+  }
+
+  .vitalBar > span {
+    transition: none;
+  }
+}

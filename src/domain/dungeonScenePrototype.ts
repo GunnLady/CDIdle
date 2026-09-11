@@ -1,4 +1,9 @@
 import type { Hero } from "../types";
+import {
+  getDungeonSceneDepthScale,
+  getDungeonSceneSlot,
+  type DungeonSceneLayout,
+} from "./dungeonSceneLayout";
 
 export const DUNGEON_SCENE_PROTOTYPE_DURATION_MS = 2_300;
 
@@ -11,7 +16,7 @@ export const DUNGEON_SCENE_PROTOTYPE_KINDS = [
 ] as const;
 
 export type DungeonScenePrototypeKind = typeof DUNGEON_SCENE_PROTOTYPE_KINDS[number];
-export type DungeonScenePrototypeLayout = "standard" | "zoomed";
+export type DungeonScenePrototypeLayout = DungeonSceneLayout;
 export type DungeonScenePrototypePhase = "idle" | "anticipation" | "approach" | "impact" | "return" | "result";
 
 export type DungeonScenePrototypeHero = Pick<Hero, "id" | "name" | "classType" | "gender" | "spriteIndex">;
@@ -215,34 +220,6 @@ const fixtures: Record<DungeonScenePrototypeKind, () => DungeonScenePrototypeFix
   }),
 };
 
-const standardSlots = {
-  heroes: [
-    { xPercent: 35, yPercent: 62, layer: 4 },
-    { xPercent: 25, yPercent: 44, layer: 2 },
-    { xPercent: 10, yPercent: 50, layer: 1 },
-    { xPercent: 17, yPercent: 74, layer: 3 },
-  ],
-  enemies: [
-    { xPercent: 69, yPercent: 66, layer: 4 },
-    { xPercent: 82, yPercent: 56, layer: 2 },
-    { xPercent: 89, yPercent: 76, layer: 5 },
-  ],
-} as const;
-
-const zoomedSlots = {
-  heroes: [
-    { xPercent: 14, yPercent: 68, layer: 4 },
-    { xPercent: 38, yPercent: 76, layer: 5 },
-    { xPercent: 62, yPercent: 68, layer: 4 },
-    { xPercent: 86, yPercent: 76, layer: 5 },
-  ],
-  enemies: [
-    { xPercent: 22, yPercent: 47, layer: 2 },
-    { xPercent: 50, yPercent: 44, layer: 1 },
-    { xPercent: 78, yPercent: 47, layer: 2 },
-  ],
-} as const;
-
 const phaseLabels: Record<DungeonScenePrototypePhase, string> = {
   idle: "Position",
   anticipation: "Anticipation",
@@ -256,18 +233,11 @@ const clamp = (value: number, min: number, max: number) => Math.min(max, Math.ma
 const progress = (value: number, start: number, end: number) => clamp((value - start) / (end - start), 0, 1);
 const easeOut = (value: number) => 1 - ((1 - value) ** 3);
 
-const depthScaleRanges = {
-  standard: { backY: 44, frontY: 76, backScale: 0.94, frontScale: 1.04 },
-  zoomed: { backY: 44, frontY: 76, backScale: 0.86, frontScale: 0.94 },
-} as const;
-
 export function getDungeonScenePrototypeDepthScale(
   yPercent: number,
   layout: DungeonScenePrototypeLayout,
 ): number {
-  const range = depthScaleRanges[layout];
-  const depth = clamp((yPercent - range.backY) / (range.frontY - range.backY), 0, 1);
-  return Number((range.backScale + ((range.frontScale - range.backScale) * depth)).toFixed(3));
+  return getDungeonSceneDepthScale(yPercent, layout);
 }
 
 export function createDungeonScenePrototypeFixture(kind: DungeonScenePrototypeKind): DungeonScenePrototypeFixture {
@@ -278,13 +248,12 @@ export function getDungeonScenePrototypePlacements(
   fixture: DungeonScenePrototypeFixture,
   layout: DungeonScenePrototypeLayout,
 ): readonly DungeonScenePrototypePlacement[] {
-  const slots = layout === "standard" ? standardSlots : zoomedSlots;
   return fixture.actors.map((actor) => {
-    const slot = slots[actor.team][actor.slot];
+    const slot = getDungeonSceneSlot(actor.team, actor.slot, layout);
+    if (!slot) throw new Error(`Missing ${layout} scene slot for ${actor.team}:${actor.slot}.`);
     return {
       actorId: actor.id,
       ...slot,
-      scale: getDungeonScenePrototypeDepthScale(slot.yPercent, layout),
     };
   });
 }

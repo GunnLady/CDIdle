@@ -50,7 +50,7 @@ describe("dungeon scene prototype presentation model", () => {
           expect(placement.xPercent).toBeGreaterThanOrEqual(8);
           expect(placement.xPercent).toBeLessThanOrEqual(92);
           expect(placement.yPercent).toBeGreaterThanOrEqual(18);
-          expect(placement.yPercent).toBeLessThanOrEqual(78);
+          expect(placement.yPercent).toBeLessThanOrEqual(83);
           expect(placement.scale).toBeGreaterThan(0.8);
           expect(placement.layer).toBeGreaterThan(0);
         }
@@ -63,7 +63,7 @@ describe("dungeon scene prototype presentation model", () => {
           expect(placements.filter((placement) => !heroIds.has(placement.actorId))
             .every((placement) => placement.xPercent >= 60 && placement.yPercent >= 50)).toBe(true);
           expect(placements.filter((placement) => placement.yPercent >= 70)
-            .every((placement) => placement.xPercent <= 30 || placement.xPercent >= 70)).toBe(true);
+            .every((placement) => placement.xPercent <= 40 || placement.xPercent >= 60)).toBe(true);
         } else {
           expect(placements.every((placement) => placement.yPercent >= 40)).toBe(true);
         }

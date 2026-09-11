@@ -452,7 +452,7 @@ pas leur contenu actuel.
 | [CDI-098](../../workboard/data/Done/CDI-098/ticket.md) | Capturer les acteurs initiaux dans un contrat de rencontre compatible | Done | L / high | CDI-097 |
 | [CDI-099](../../workboard/data/Done/CDI-099/ticket.md) | Préparer le catalogue visuel et le kit pilote CDIdle | Done | L / medium | CDI-097 |
 | [CDI-100](../../workboard/data/Done/CDI-100/ticket.md) | Projeter les rencontres en états de scène déterministes | Done | M / high | CDI-098, CDI-105 |
-| [CDI-101](../../workboard/data/Later/CDI-101/ticket.md) | Construire la scène de combat simple CDIdle | Later | M / medium | CDI-099, CDI-107 |
+| [CDI-101](../../workboard/data/Done/CDI-101/ticket.md) | Construire la scène de combat simple CDIdle | Done | M / medium | CDI-099, CDI-107 |
 | [CDI-102](../../workboard/data/Later/CDI-102/ticket.md) | Mettre en scène trésors, repos et réanimations | Later | M / medium | CDI-103, CDI-106 |
 | [CDI-103](../../workboard/data/Later/CDI-103/ticket.md) | Intégrer le premier combat et sécuriser son cycle de lecture | Later | L / high | CDI-101 |
 | [CDI-104](../../workboard/data/Later/CDI-104/ticket.md) | Consolider la recette et préparer la livraison des rencontres 2D | Later | M / high | CDI-116 |

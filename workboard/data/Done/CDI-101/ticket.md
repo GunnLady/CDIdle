@@ -1,7 +1,7 @@
 ---
 id: CDI-101
 title: Construire la scène de combat simple CDIdle
-status: Later
+status: Done
 area: ui
 priority: P1
 size: M
@@ -67,12 +67,12 @@ Les dépendances directes et leurs liens blocks font foi ; les acquis déjà liv
 
 ## Criteres d'acceptation
 
-- [ ] Jusqu'à quatre héros et trois ennemis sont distincts dans la composition CDI-097 et conservent leur identité.
-- [ ] Entrée/repos animé, anticipation, mêlée, impact et retour sont présents ; aucun simple glissement sans impact ne vaut validation.
-- [ ] Coup normal, critique, esquive, coup létal sur la bonne cible, KO et résultat sont couverts par les fixtures et le rendu.
-- [ ] Les actions avancées non encore chorégraphiées utilisent un rendu neutre/résumé fidèle explicitement transitoire jusqu'à CDI-113/CDI-114.
-- [ ] Aucun effet ne recouvre les commandes ou une information obligatoire ; 16 effets maximum, nettoyage, reduced-motion et asset absent sont testés.
-- [ ] L'utilisateur valide rythme et lisibilité du combat pilote aux dimensions prévues.
+- [x] Jusqu'à quatre héros et trois ennemis sont distincts dans la composition CDI-097 et conservent leur identité.
+- [x] Entrée/repos animé, anticipation, mêlée, impact et retour sont présents ; aucun simple glissement sans impact ne vaut validation.
+- [x] Coup normal, critique, esquive, coup létal sur la bonne cible, KO et résultat sont couverts par les fixtures et le rendu.
+- [x] Les actions avancées non encore chorégraphiées utilisent un rendu neutre/résumé fidèle explicitement transitoire jusqu'à CDI-113/CDI-114.
+- [x] Aucun effet ne recouvre les commandes ou une information obligatoire ; 16 effets maximum, nettoyage, reduced-motion et asset absent sont testés.
+- [x] L'utilisateur valide rythme et lisibilité du combat pilote aux dimensions prévues.
 
 ## Tests
 
@@ -107,3 +107,7 @@ Faire valider le combat simple, le critique, l'esquive et le KO par l'utilisateu
 Fournir profils simples, limites de rendu, tests et verdict du pilote. V02/V03/V06/V14/V15/V18. La scène est prête pour CDI-103, pas encore un remplacement complet.
 
 Indiquer fichiers, commandes réellement exécutées, résultats et limites. Ne pas clore avec un écart réel non corrigé ; ne pas attribuer au présent ticket la livraison de ses successeurs.
+
+Livré : modèle de présentation déterministe, composition PC partagée avec le prototype, composant de combat isolé, identités historiques, jauges, effets bornés, KO, résultat, fallbacks et reduced-motion. Les rythmes idle sont désynchronisés sans déplacer les pieds et les acteurs à 0 PV ne peuvent pas agir.
+
+Preuves : validation visuelle utilisateur le 11 septembre 2026 ; 129 fichiers Vitest et 1052 tests passés ; 5 tests Playwright PC passés ; lint, typecheck CDI-101 hors dossier utilisateur ignoré `tmp`, build, budget bundle et Workboard validés. L'intégration à l'automate de production reste volontairement réservée à CDI-103, les compétences à CDI-113 et les statuts/intentions à CDI-114.
