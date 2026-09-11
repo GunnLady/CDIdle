@@ -136,6 +136,18 @@ local : persistance JSONB, bootstrap et replay de la commande renvoient la même
 extension structurelle. PostgreSQL peut réordonner les clés JSONB ; l'égalité
 porte sur les données, jamais sur l'ordre textuel des propriétés.
 
+CDI-106 ajoute ensuite des champs facultatifs aux événements du transcript :
+tuple compact `sourceMana`, cibles multi-acteurs par côté et slot, valeurs
+annoncées lorsqu'elles diffèrent de la variation réelle, issue primaire du
+trésor et drapeau de réanimation. L'ordre et les valeurs appliquées restent
+portés par les événements et `initialActors`; aucun snapshot d'acteur complet
+n'est dupliqué à chaque impact. Cette extension ne requiert ni incrément de
+`stateVersion` ni backfill SQL. Le validateur accepte les anciens événements et
+valide les nouveaux tuples lorsqu'ils sont présents.
+
+Le test d'intégration Supabase local persiste une trace enrichie, la relit au
+bootstrap et la retrouve identique lors du replay idempotent d'une commande.
+
 ## Retirer une migration
 
 Une étape ne peut être retirée qu'après preuve qu'aucun snapshot persistant ne

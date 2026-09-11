@@ -80,6 +80,13 @@ marge étroite et reste bloquant. Ces nombres sont une mesure JSON locale
 reproductible ; ils ne remplacent pas les métriques réseau Supabase après
 publication.
 
+Au 11 septembre 2026, CDI-106 ajoute au profil long représentatif un tuple de
+mana et trois cibles par rencontre. Le surcoût mesuré est de **51 octets par
+rencontre**, soit **765 octets sur quinze traces**. Le profil haut enrichi mesure
+**85 859 octets**, sous le garde-fou de 86 Ko. Les valeurs appliquées ne sont pas redoublées : la
+projection les calcule depuis les deltas autoritaires, et une valeur annoncée
+n'est persistée que lorsqu'elle diffère.
+
 Le calcul additionne, par route, PostgREST, Functions et Auth :
 
     octets_cycle = octets_jour * jours_cycle * facteur_securite

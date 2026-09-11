@@ -148,6 +148,50 @@ describe("encounter scene projection", () => {
     expect(modernFight).toEqual(encounterBeforeProjection);
   });
 
+  it("projects ordered skill impacts and source mana without conflating announced and applied values", () => {
+    const enriched = {
+      ...modernFight,
+      encounterId: "projection-resources",
+      transcript: [{
+        sequence: 0,
+        type: "hero.skill.damage",
+        round: 1,
+        heroId: "hero-a",
+        heroName: "Ariane",
+        monsterId: "enemy-a",
+        monsterName: "Rat des canaux",
+        enemyHp: 0,
+        enemyMaxHp: 16,
+        damage: 30,
+        announcedDamage: 30,
+        sourceMana: [10, 4, 20],
+        targets: ["e", 0, 1],
+        hitResults: [
+          { hit: 1, critical: false, damage: 10 },
+          { hit: 2, critical: true, damage: 20 },
+        ],
+      }],
+    } satisfies CanonicalDungeonEncounterRecord;
+    const timeline = createEncounterSceneTimeline(enriched, new Map([["hero-a", "Ariane"]]));
+    const projected = projectEncounterScene(timeline, { visibleCount: 1, complete: false });
+
+    expect(timeline.steps[0].impacts).toMatchObject([
+      { kind: "damage", announcedValue: 10, appliedValue: 10, hp: { before: 16, after: 6, maximum: 16 } },
+      { kind: "defeat", announcedValue: 20, appliedValue: 6, hp: { before: 6, after: 0, maximum: 16 } },
+      { kind: "resource", announcedValue: 6, appliedValue: 6, mana: { before: 10, after: 4, maximum: 20 } },
+    ]);
+    expect(timeline.steps[0].targetActorIds).toEqual([
+      actorBySource(timeline.actors, "enemy-a").id,
+      actorBySource(timeline.actors, "enemy-b").id,
+    ]);
+    expect(actorBySource(projected.actors, "enemy-a")).toMatchObject({ currentHp: 0, knockedOut: true });
+    expect(actorBySource(projected.actors, "hero-a")).toMatchObject({ currentMana: 4, maximumMana: 20 });
+
+    let sequential = createEncounterSceneInitialState(timeline);
+    sequential = applyEncounterSceneStep(sequential, timeline.steps[0]);
+    expect(sequential).toEqual(projected);
+  });
+
   it("keeps legacy and unknown records useful without inventing missing health", () => {
     const legacy = {
       encounterId: "projection-legacy",
@@ -281,6 +325,115 @@ describe("encounter scene projection", () => {
     ]);
     expect(actorBySource(projected.actors, "hero-a").currentHp).toBe(38);
     expect(actorBySource(projected.actors, "hero-b").currentHp).toBe(28);
+  });
+
+  it("projects exact treasure contents and party gold changes from structured fields", () => {
+    const treasure = {
+      encounterId: "projection-treasure",
+      kind: "treasure",
+      floor: 3,
+      room: 2,
+      outcome: "victory",
+      roundCount: 0,
+      enemy: null,
+      initialActors: {
+        v: 1,
+        h: [["hero-a", "Guerrier_Female_1", 40, 40, 10, 20, 0]],
+        e: [],
+      },
+      transcript: [
+        { sequence: 0, type: "reward.gold", gold: 12 },
+        { sequence: 1, type: "reward.material", materialId: "metal_scrap", name: "Métal", rarity: "common", count: 2 },
+      ],
+      rewards: {
+        gold: 12,
+        loot: [{ type: "material", materialId: "metal_scrap", name: "Métal", rarity: "common", count: 2 }],
+      },
+    } satisfies CanonicalDungeonEncounterRecord;
+    const timeline = createEncounterSceneTimeline(treasure);
+    const afterGold = projectEncounterScene(timeline, { visibleCount: 1, complete: false });
+    const completed = projectEncounterScene(timeline);
+
+    expect(timeline.steps[0]).toMatchObject({
+      projection: "structured",
+      rewards: [{ kind: "gold", amount: 12 }],
+    });
+    expect(afterGold.rewards).toMatchObject([{ kind: "gold", amount: 12 }]);
+    expect(completed.rewards).toMatchObject([
+      { kind: "gold", amount: 12 },
+      { kind: "material", amount: 2, contentId: "metal_scrap", name: "Métal", rarity: "common" },
+    ]);
+
+    const negotiation = {
+      ...treasure,
+      encounterId: "projection-gold-loss",
+      kind: "negotiation",
+      outcome: "defeat",
+      transcript: [{ sequence: 0, type: "challenge.negotiation.consequence", goldLost: 7 }],
+      rewards: { gold: 0, loot: [] },
+    } satisfies CanonicalDungeonEncounterRecord;
+    expect(createEncounterSceneTimeline(negotiation).steps[0].rewards).toEqual([
+      expect.objectContaining({ kind: "gold-loss", amount: 7 }),
+    ]);
+
+    const bossMaterial = {
+      ...treasure,
+      encounterId: "projection-boss-material",
+      kind: "fight",
+      transcript: [{
+        sequence: 0,
+        type: "reward.rat_king_mark",
+        materialId: "rat_king_mark",
+        name: "Marque du Roi",
+        rarity: "epic",
+        count: 2,
+      }],
+    } satisfies CanonicalDungeonEncounterRecord;
+    expect(createEncounterSceneTimeline(bossMaterial).steps[0].rewards).toEqual([
+      expect.objectContaining({ kind: "material", contentId: "rat_king_mark", amount: 2 }),
+    ]);
+
+    const empty = {
+      ...treasure,
+      encounterId: "projection-empty-treasure",
+      transcript: [{ sequence: 0, type: "reward.item.none" }],
+      rewards: { gold: 0, loot: [] },
+    } satisfies CanonicalDungeonEncounterRecord;
+    expect(projectEncounterScene(createEncounterSceneTimeline(empty)).rewards).toEqual([
+      expect.objectContaining({ kind: "empty", amount: 0 }),
+    ]);
+  });
+
+  it("projects an enemy support heal onto its explicit target", () => {
+    const support = {
+      ...modernFight,
+      encounterId: "projection-enemy-support",
+      initialActors: {
+        ...modernFight.initialActors,
+        e: [["a", 16, 16], ["b", 5, 16]],
+      },
+      transcript: [{
+        sequence: 0,
+        type: "enemy.support",
+        monsterId: "enemy-a",
+        targetMonsterId: "enemy-b",
+        healing: 3,
+        enemyHp: 8,
+        enemyMaxHp: 16,
+      }],
+    } satisfies CanonicalDungeonEncounterRecord;
+    const timeline = createEncounterSceneTimeline(support);
+
+    expect(timeline.steps[0]).toMatchObject({
+      sourceActorId: actorBySource(timeline.actors, "enemy-a").id,
+      targetActorIds: [actorBySource(timeline.actors, "enemy-b").id],
+      impacts: [{
+        kind: "healing",
+        announcedValue: 3,
+        appliedValue: 3,
+        hp: { before: 5, after: 8, maximum: 16 },
+      }],
+    });
   });
 
   it("does not add playback steps for filtered intent metadata", () => {

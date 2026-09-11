@@ -219,6 +219,25 @@ describe(`dungeon segment harness — ${DUNGEON_SEGMENT_HARNESS_SOURCE}`, () => 
     expect(resolved.state.encounterHistory.at(-1)?.kind).toBe("rest");
     expect(harness.hero("segment-hero-1")).toMatchObject({ currentHp: 700, currentMana: 10 });
     expect(harness.hero("segment-hero-2").currentHp).toBe(1_000);
+    expect(resolved.state.encounterHistory.at(-1)?.transcript).toContainEqual(expect.objectContaining({
+      type: "party.restored",
+      heroes: expect.arrayContaining([
+        expect.objectContaining({
+          heroId: "segment-hero-1",
+          hpBefore: 500,
+          hpAfter: 700,
+          manaBefore: 9,
+          manaAfter: 10,
+          revived: false,
+        }),
+        expect.objectContaining({
+          heroId: "segment-hero-2",
+          hpBefore: 1_000,
+          hpAfter: 1_000,
+          revived: false,
+        }),
+      ]),
+    }));
     for (const hero of harness.state.heroes) {
       expect(hero.xp - (xpBefore.get(hero.id) ?? 0)).toBe(expectedXp);
     }
@@ -267,6 +286,25 @@ describe(`dungeon segment harness — ${DUNGEON_SEGMENT_HARNESS_SOURCE}`, () => 
       isActive: true,
       status: "idle",
     });
+    expect(harness.state.encounterHistory.at(-1)?.transcript).toContainEqual(expect.objectContaining({
+      type: "party.restored",
+      heroes: expect.arrayContaining([
+        expect.objectContaining({
+          heroId: "segment-hero-ko",
+          hpBefore: 0,
+          hpAfter: 4,
+          manaBefore: 2,
+          manaAfter: 4,
+          revived: true,
+        }),
+        expect.objectContaining({
+          heroId: "segment-hero-3",
+          hpBefore: 0,
+          hpAfter: 200,
+          revived: true,
+        }),
+      ]),
+    }));
     const expectedXp = calculateSharedCombatXp(
       getPolicyXpPool(CANONICAL_DUNGEON_XP_REWARD_POLICY, "rest", 1),
       4,

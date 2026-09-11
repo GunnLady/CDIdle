@@ -325,6 +325,10 @@ describe("authoritative dungeon golden behavior characterized from 640f89f", () 
       "reward.xp",
     ]);
     expect(result.encounter.transcript).toContainEqual(expect.objectContaining({
+      type: "treasure.opened",
+      treasureOutcome: "gold",
+    }));
+    expect(result.encounter.transcript).toContainEqual(expect.objectContaining({
       type: "reward.xp", source: "treasure", floor: 1, xp: 13,
     }));
   });
@@ -348,6 +352,10 @@ describe("authoritative dungeon golden behavior characterized from 640f89f", () 
     ]));
     expect(result.state.storedItems).toHaveLength(1);
     expect(result.state.storedItems?.[0].instanceId).toBe("item:dungeon:golden-treasure-item:loot:0");
+    expect(result.encounter.transcript).toContainEqual(expect.objectContaining({
+      type: "treasure.opened",
+      treasureOutcome: "item",
+    }));
     expect(result.encounter.transcript.find((event) => event.type === "reward.item")?.message)
       .not.toContain("item:dungeon:golden-treasure-item:loot:0");
   });
@@ -393,6 +401,17 @@ describe("authoritative dungeon golden behavior characterized from 640f89f", () 
     ]);
     expect(result.state.heroes?.[0].currentHp).toBeGreaterThan(1);
     expect(result.state.heroes?.[0].currentMana).toBeGreaterThan(0);
+    expect(result.encounter.transcript).toContainEqual(expect.objectContaining({
+      type: "party.restored",
+      heroes: [expect.objectContaining({
+        heroId: hero.id,
+        hpBefore: 1,
+        hpAfter: 5,
+        manaBefore: 0,
+        manaAfter: 2,
+        revived: false,
+      })],
+    }));
     expect(result.encounter.transcript).toContainEqual(expect.objectContaining({
       type: "reward.xp", source: "rest", floor: 1, xp: 8,
     }));
@@ -449,6 +468,20 @@ describe("authoritative dungeon golden behavior characterized from 640f89f", () 
     expect(result.state.resources?.gold).toBe(expectedGold);
     expect(result.state.heroes?.[0].currentMana).toBe(expectedMana);
     expect(result.state.activeDungeonRoom).toBe(2);
+    const resolvedEvent = result.encounter.transcript.find((event) => event.type === `challenge.${kind}.resolved`);
+    expect(resolvedEvent).toMatchObject({
+      heroId: capable.id,
+      goldGained: expectedGold,
+    });
+    if (expectedMana > 0) {
+      expect(resolvedEvent?.heroChanges).toEqual(expect.arrayContaining([
+        expect.objectContaining({
+          heroId: capable.id,
+          manaBefore: 0,
+          manaAfter: expectedMana,
+        }),
+      ]));
+    }
     expect(result.encounter.transcript).toContainEqual(expect.objectContaining({
       type: "reward.xp", source: "challenge", floor: 1, xp: 21,
     }));
@@ -522,6 +555,19 @@ describe("authoritative dungeon golden behavior characterized from 640f89f", () 
     });
     expect(result.state.resources?.gold).toBe(expectedGold);
     expect(result.state.activeDungeonRoom).toBe(2);
+    const consequence = result.encounter.transcript.find((event) => event.type === `challenge.${kind}.consequence`);
+    expect(consequence).toMatchObject({
+      goldLost: 50 - expectedGold,
+      heroChanges: expectedHp !== 20 || expectedMana !== 20
+        ? [expect.objectContaining({
+            heroId: weak.id,
+            hpBefore: 20,
+            hpAfter: expectedHp,
+            manaBefore: 20,
+            manaAfter: expectedMana,
+          })]
+        : [],
+    });
   });
 
   it("rejects an incomplete canonical hero instead of inventing combat stats", () => {
@@ -639,6 +685,7 @@ describe("authoritative dungeon golden behavior characterized from 640f89f", () 
       skillId: "heavy_blow",
       damageType: "physical",
       round: 1,
+      sourceMana: [100, 86, 100],
       criticalHitCount: 1,
       hitResults: [{ hit: 1, critical: true, damage: expect.any(Number) }],
     });
@@ -1097,6 +1144,54 @@ describe("authoritative dungeon golden behavior characterized from 640f89f", () 
     expect(Math.min(...enemyDamage)).toBeLessThan(Math.max(...enemyDamage));
   });
 
+  it("identifies every target of a multi-enemy skill without parsing its message", () => {
+    const attacker = makeHero({
+      id: "multi-attacker",
+      name: "Attacker",
+      activeSkills: ["cleaving_strike"],
+      currentMana: 100,
+      currentHp: 2_000,
+      calculatedStats: {
+        ...makeHero().calculatedStats,
+        maxHp: 2_000,
+        hp: 2_000,
+        maxMana: 100,
+        mana: 100,
+        physicalDamage: 20,
+        physicalDefense: 1_000,
+        criticalChance: 0,
+        dodgeChance: 0,
+      },
+    });
+    const source = state({
+      heroes: [attacker],
+      currentEncounter: {
+        encounterId: "multi-target-source",
+        kind: "pending",
+        status: "active",
+        dungeonId: "undercity",
+        floor: 1,
+        room: 1,
+        participantHeroIds: [attacker.id],
+      },
+    });
+    const result = resolveAuthoritativeDungeonEncounter(
+      source,
+      "golden-multi-targets",
+      tapeRng([0.10, 0.00, 0.00, ...Array(200).fill(0.99)]).rng,
+    );
+    const event = result.encounter.transcript.find((candidate) => (
+      candidate.type === "hero.skill.damage" && candidate.skillId === "cleaving_strike"
+    ));
+
+    expect(result.encounter.enemies).toHaveLength(3);
+    expect(event).toMatchObject({
+      heroId: attacker.id,
+      targets: ["e", 0, 1, 2],
+      sourceMana: [100, 76, 100],
+    });
+  });
+
   it("forces enemy strikes onto a surviving provocateur", () => {
     const tank = makeHero({
       id: "tank",
@@ -1147,7 +1242,7 @@ describe("authoritative dungeon golden behavior characterized from 640f89f", () 
 
     expect(tauntIndex).toBeGreaterThanOrEqual(0);
     expect(result.encounter.transcript[tauntIndex]).toMatchObject({
-      targetHeroIds: ["tank"],
+      targets: ["h", 0],
       decisionReason: "taunt_protects_ally",
     });
     expect(firstEnemyHit).toMatchObject({ heroId: "tank" });
@@ -1258,6 +1353,22 @@ describe("authoritative dungeon golden behavior characterized from 640f89f", () 
     expect(tape.draws()).toBe(5);
     expect(result.encounter.transcript.filter((event) => event.type === "hero.skill.heal"))
       .toHaveLength(3);
+    const healingEvents = result.encounter.transcript.filter((event) => event.type === "hero.skill.heal");
+    expect(healingEvents).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        targetHeroId: "finisher",
+        announcedHealing: 85,
+        healing: 80,
+        heroHpBefore: 20,
+        heroHp: 100,
+      }),
+    ]));
+    expect(healingEvents.filter((event) => event.sourceMana !== undefined)).toEqual([
+      expect.objectContaining({
+        heroId: "healer",
+        sourceMana: [100, 54, 100],
+      }),
+    ]);
     expect(result.state.heroes?.find((hero) => hero.id === "healer")).toMatchObject({
       currentMana: 54,
       cooldowns: { soothing_song: 4 },

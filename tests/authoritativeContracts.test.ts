@@ -279,7 +279,16 @@ describe("authoritative shared contracts", () => {
           { id: "duplicate", name: "", hp: 11, maxHp: 10, role: "unknown", effects: [1] },
           { id: "duplicate", name: "Second", hp: 1, maxHp: 1 },
         ],
-        transcript: [{ sequence: -1, type: "", category: "debug", damage: Number.NaN }],
+        transcript: [{
+          sequence: -1,
+          type: "",
+          category: "debug",
+          damage: Number.NaN,
+          sourceMana: [10, 11, 10],
+          targets: ["e", 0, 0],
+          treasureOutcome: "unknown",
+          hitResults: [{ hit: 0, critical: "yes", damage: Number.NaN }],
+        }],
         rewards: { gold: 0, loot: [] },
       }],
     });
@@ -299,6 +308,12 @@ describe("authoritative shared contracts", () => {
       "encounterHistory[0].transcript[0].type is required",
       "encounterHistory[0].transcript[0].category is invalid",
       "encounterHistory[0].transcript[0].damage must be a finite number",
+      "encounterHistory[0].transcript[0].sourceMana must be a valid before/after/maximum tuple",
+      "encounterHistory[0].transcript[0].targets must identify unique actor slots",
+      "encounterHistory[0].transcript[0].treasureOutcome is invalid",
+      "encounterHistory[0].transcript[0].hitResults[0].hit must be an integer >= 1",
+      "encounterHistory[0].transcript[0].hitResults[0].critical must be a boolean",
+      "encounterHistory[0].transcript[0].hitResults[0].damage must be a finite non-negative number",
     ]));
   });
 

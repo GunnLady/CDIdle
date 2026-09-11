@@ -246,6 +246,22 @@ historique l'annonce au lieu de la reconstruire depuis l'état final. Le filtre
 calendrier. CDI-106, CDI-107 et CDI-114 conservent respectivement les
 enrichissements de trace, l'horloge annulable et les statuts/intentions.
 
+CDI-106 complète cette matrice sans second transcript ni parsing du message :
+
+| Conséquence | Source structurée | Projection pure |
+| --- | --- | --- |
+| Mana d'une compétence | `sourceMana: [avant, après, maximum]`, une fois par action | impact `resource` sur l'auteur ; montant déduit du delta exact |
+| Dégâts et soins | valeur appliquée existante, valeur annoncée seulement si elle diffère, PV avant/après issus de la trace et des acteurs initiaux | impacts ordonnés avec valeurs annoncée/appliquée distinctes |
+| Multi-frappe / multicible | `hitResults` ordonnés ; `targets: [côté, ...slots]` compact et aligné sur les acteurs initiaux | impacts successifs et identifiants d'acteurs cibles stables |
+| Soin ennemi | auteur `monsterId`, cible `targetMonsterId`, soin et PV finaux | source et cible ennemies distinctes |
+| Trésor | `treasureOutcome`, événements `reward.*` et `encounter.rewards` exact | contenu courant et récompenses finales typées, y compris vide |
+| Repos | `heroes[]` avec PV/PM avant/après et `revived` | impacts combinés PV/PM et sortie de KO |
+| Six épreuves | héros sélectionné, `heroChanges`, `goldGained`/`goldLost` et récompenses | conséquences d'acteurs et variation d'or sans texte français |
+
+Les champs sont additifs et facultatifs. Les records antérieurs conservent un
+résumé honnête lorsque l'état avant manque. Débuts/fins de statuts, intentions,
+protection et phase du Roi restent volontairement à CDI-114.
+
 - Conserver un unique transcript autoritaire ; ne pas créer un second moteur
   ni un deuxième journal persistant concurrent.
 - Ajouter une extension versionnée et facultative au record pour les nouvelles
@@ -316,17 +332,17 @@ il transporte son `encounterId`, et le client lit le record déjà présent dans
 
 #### Matrice des neuf types et propriétaires restants
 
-| Type | Acteurs initiaux disponibles après CDI-098 | Données d'action encore incomplètes | Propriétaire |
+| Type | Acteurs initiaux disponibles après CDI-098 | Ressources et cibles livrées par CDI-106 | Reste attribué |
 |---|---|---|---|
-| `fight` | Héros du segment, KO inclus ; groupe ennemi, clés de contenu et PV initiaux | Cible létale correcte livrée ; coûts de PM, cibles multiples et valeurs effectivement appliquées à uniformiser ; statuts et intentions à compléter | CDI-105 livré ; CDI-106 ; CDI-114 |
-| `trap` | Héros du segment, PV/PM/KO initiaux ; aucun ennemi inventé | Cibles et pertes appliquées à normaliser depuis `heroChanges` | CDI-106 |
-| `enigma` | Même capture, avant sélection et restauration/consommation | Coût ou gain de PM et cible sélectionnée à projeter uniformément | CDI-106 |
-| `ambush` | Même capture, avant la conséquence collective | Cibles multiples et PV effectivement retirés à expliciter | CDI-106 |
-| `ritual` | Même capture, avant restauration ou contrecoup | Coût ou gain de PM et cible sélectionnée à expliciter | CDI-106 |
-| `obstacle` | Même capture, avant la perte collective | Cibles multiples et PV effectivement retirés à expliciter | CDI-106 |
-| `negotiation` | Même capture ; aucun ennemi inventé | Variation d'or déjà tracée, projection ressource à uniformiser | CDI-106 |
-| `treasure` | Même capture ; aucun ennemi inventé | Récompenses exactes déjà dans `rewards`, pas de complément acteur requis | Aucun pour le contrat initial |
-| `rest` | Héros du segment et KO capturés avant réanimation | Cibles et valeurs de récupération déjà présentes, projection uniforme à finaliser | CDI-106 |
+| `fight` | Héros du segment, KO inclus ; groupe ennemi, clés de contenu et PV initiaux | Cible létale, coûts de PM, soins alliés/ennemis, multi-frappes, multicibles et valeurs appliquées projetés sans parsing | Statuts et intentions : CDI-114 |
+| `trap` | Héros du segment, PV/PM/KO initiaux ; aucun ennemi inventé | Cibles et pertes appliquées projetées depuis `heroChanges` | Aucun |
+| `enigma` | Même capture, avant sélection et restauration/consommation | Gain de PM et héros sélectionné projetés | Aucun |
+| `ambush` | Même capture, avant la conséquence collective | Cibles multiples et pertes de PV projetées | Aucun |
+| `ritual` | Même capture, avant restauration ou contrecoup | Variation de PM et héros sélectionné projetés | Aucun |
+| `obstacle` | Même capture, avant la perte collective | Cibles multiples et pertes de PV projetées | Aucun |
+| `negotiation` | Même capture ; aucun ennemi inventé | Héros sélectionné et variation d'or projetés | Aucun |
+| `treasure` | Même capture ; aucun ennemi inventé | Résultat du coffre et récompenses exactes projetés | Mise en scène : CDI-102 |
+| `rest` | Héros du segment et KO capturés avant réanimation | PV/PM avant-après, plafonds et réanimation projetés | Mise en scène : CDI-102 |
 
 Pour tous les types, la durée et l'expiration des effets ainsi que la
 représentation fiable des intentions restent la responsabilité de CDI-114.
@@ -457,7 +473,7 @@ pas leur contenu actuel.
 | [CDI-103](../../workboard/data/Done/CDI-103/ticket.md) | Intégrer le premier combat et sécuriser son cycle de lecture | Done | L / high | CDI-101 |
 | [CDI-104](../../workboard/data/Later/CDI-104/ticket.md) | Consolider la recette et préparer la livraison des rencontres 2D | Later | M / high | CDI-116 |
 | [CDI-105](../../workboard/data/Done/CDI-105/ticket.md) | Corriger la cible journalisée par une compétence létale | Done | S / high | Aucune |
-| [CDI-106](../../workboard/data/Later/CDI-106/ticket.md) | Compléter les traces et projections de ressources et de cibles | Later | M / high | CDI-098, CDI-100 |
+| [CDI-106](../../workboard/data/Done/CDI-106/ticket.md) | Compléter les traces et projections de ressources et de cibles | Done | M / high | CDI-098, CDI-100 |
 | [CDI-107](../../workboard/data/Done/CDI-107/ticket.md) | Construire le lecteur temporel annulable à cadence constante | Done | M / high | CDI-100 |
 | [CDI-108](../../workboard/data/Later/CDI-108/ticket.md) | Compléter les assets des Égouts infestés | Later | M / medium | CDI-099 |
 | [CDI-109](../../workboard/data/Later/CDI-109/ticket.md) | Produire les assets des Galeries des contrebandiers | Later | M / medium | CDI-099 |
@@ -477,8 +493,8 @@ six variantes du même contrat de défi après extraction de trésor/repos (115)
 Des poses dédiées décidées dans CDI-097 nécessiteraient de réestimer l'art.
 
 Priorité : P1 pour les vingt tickets du chantier ; ce rang ne signifie pas
-incident de production généralisé. CDI-097, CDI-098, CDI-099, CDI-100, CDI-105
-et CDI-107 sont Done ; les autres restent Later jusqu'à leurs prérequis Done.
+incident de production généralisé. CDI-097, CDI-098, CDI-099, CDI-100, CDI-105,
+CDI-106 et CDI-107 sont Done ; les autres restent Later jusqu'à leurs prérequis Done.
 Les acquis CDI-076, CDI-078, CDI-080, CDI-083, CDI-094 et CDI-095 restent des
 références livrées sans modification de leurs tickets. L'ancien modèle de
 bestiaire CDI-086 ne gouverne pas le contenu UnderCity actuel.

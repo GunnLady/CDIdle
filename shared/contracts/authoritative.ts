@@ -26,11 +26,26 @@ export interface CanonicalDungeonTranscriptEvent {
   monsterId?: string;
   monsterName?: string;
   damage?: number;
+  announcedDamage?: number;
   healing?: number;
+  announcedHealing?: number;
   enemyHp?: number;
   enemyMaxHp?: number;
   heroHp?: number;
   heroMaxHp?: number;
+  heroHpBefore?: number;
+  sourceMana?: [before: number, after: number, maximum: number];
+  targetHeroId?: string;
+  targetHeroName?: string;
+  targetMonsterId?: string;
+  targetMonsterName?: string;
+  targets?: [side: "h" | "e", ...slots: number[]];
+  treasureOutcome?: "gold" | "item" | "empty";
+  hitResults?: Array<{
+    hit: number;
+    critical: boolean;
+    damage: number;
+  }>;
   [key: string]: unknown;
 }
 
@@ -966,11 +981,46 @@ export function validateCanonicalGameState(input: unknown): string[] {
         if (!Number.isInteger(event.sequence) || Number(event.sequence) < 0) errors.push(`${eventPath}.sequence must be an integer >= 0`);
         if (typeof event.type !== "string" || !event.type.trim()) errors.push(`${eventPath}.type is required`);
         if (event.category !== undefined && !CANONICAL_TRANSCRIPT_CATEGORIES.includes(event.category as typeof CANONICAL_TRANSCRIPT_CATEGORIES[number])) errors.push(`${eventPath}.category is invalid`);
-        for (const field of ["message", "heroId", "heroName", "monsterId", "monsterName"] as const) {
+        for (const field of ["message", "heroId", "heroName", "monsterId", "monsterName", "targetHeroId", "targetHeroName", "targetMonsterId", "targetMonsterName"] as const) {
           if (event[field] !== undefined && typeof event[field] !== "string") errors.push(`${eventPath}.${field} must be a string`);
         }
-        for (const field of ["round", "damage", "healing", "enemyHp", "enemyMaxHp", "heroHp", "heroMaxHp"] as const) {
+        for (const field of [
+          "round", "damage", "announcedDamage", "healing", "announcedHealing",
+          "enemyHp", "enemyMaxHp", "heroHpBefore", "heroHp", "heroMaxHp",
+        ] as const) {
           if (event[field] !== undefined && !isFiniteNumber(event[field])) errors.push(`${eventPath}.${field} must be a finite number`);
+        }
+        if (event.targets !== undefined && (
+          !Array.isArray(event.targets)
+          || (event.targets[0] !== "h" && event.targets[0] !== "e")
+          || event.targets.length < 2
+          || event.targets.slice(1).some((slot) => !Number.isInteger(slot)
+            || Number(slot) < 0
+            || Number(slot) > (event.targets?.[0] === "e" ? 2 : 3))
+          || new Set(event.targets.slice(1)).size !== event.targets.length - 1
+        )) errors.push(`${eventPath}.targets must identify unique actor slots`);
+        if (event.treasureOutcome !== undefined && !["gold", "item", "empty"].includes(String(event.treasureOutcome))) {
+          errors.push(`${eventPath}.treasureOutcome is invalid`);
+        }
+        if (event.sourceMana !== undefined && (
+          !Array.isArray(event.sourceMana)
+          || event.sourceMana.length !== 3
+          || event.sourceMana.some((entry) => !isFiniteNumber(entry) || entry < 0)
+          || (isFiniteNumber(event.sourceMana[0]) && isFiniteNumber(event.sourceMana[1]) && event.sourceMana[1] > event.sourceMana[0])
+          || (isFiniteNumber(event.sourceMana[0]) && isFiniteNumber(event.sourceMana[2]) && event.sourceMana[0] > event.sourceMana[2])
+        )) errors.push(`${eventPath}.sourceMana must be a valid before/after/maximum tuple`);
+        if (event.hitResults !== undefined) {
+          if (!Array.isArray(event.hitResults)) errors.push(`${eventPath}.hitResults must be an array`);
+          else event.hitResults.forEach((hit, hitIndex) => {
+            const hitPath = `${eventPath}.hitResults[${hitIndex}]`;
+            if (!isRecord(hit)) {
+              errors.push(`${hitPath} must be an object`);
+              return;
+            }
+            if (!Number.isInteger(hit.hit) || Number(hit.hit) < 1) errors.push(`${hitPath}.hit must be an integer >= 1`);
+            if (typeof hit.critical !== "boolean") errors.push(`${hitPath}.critical must be a boolean`);
+            if (!isFiniteNumber(hit.damage) || hit.damage < 0) errors.push(`${hitPath}.damage must be a finite non-negative number`);
+          });
         }
       });
       if (entry.enemy !== null) {

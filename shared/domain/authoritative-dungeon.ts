@@ -667,6 +667,8 @@ function resolveFight(
         if (!skill || skill.type !== "active") throw new Error(`INVALID_DUNGEON_SKILL:${skillId}`);
         const effect = skill.effect;
         skillUsed = true;
+        const skillTranscriptIndex = transcript.length;
+        const sourceManaBefore = hero.currentMana;
         hero.currentMana = Math.max(0, hero.currentMana - (skill.manaCost ?? 0));
         if (skill.cooldownRounds) {
           hero.cooldowns = { ...(hero.cooldowns ?? {}), [skillId]: skill.cooldownRounds };
@@ -675,7 +677,9 @@ function resolveFight(
         if (effect.type === "damage") {
           const hitCount = effect.hitCount ?? 1;
           if (isUndercity && skill.target === "all_enemies") {
-            for (const target of [...livingUndercityEnemies(enemyGroup)]) {
+            const areaTargets = [...livingUndercityEnemies(enemyGroup)];
+            const targetSlots = areaTargets.map((target) => enemyGroup.members.findIndex((member) => member.id === target.id));
+            for (const [targetIndex, target] of areaTargets.entries()) {
               for (let hit = 1; hit <= hitCount && target.hp > 0; hit += 1) {
                 const critical = rng.next() < calculatedStats.criticalChance / 100;
                 const rawBase = Math.floor(requiredCalculatedStat(calculatedStats, effect.scalingStat) * effect.power);
@@ -689,8 +693,11 @@ function resolveFight(
                   "combat-hero",
                   {
                     round, heroId: hero.id, heroName: hero.name, monsterId: target.id, monsterName: target.name,
-                    skillId, skillName: skill.name, hit, hitCount, critical, damage: applied, damageType: effect.damageType,
+                    skillId, skillName: skill.name, hit, hitCount, critical, damage: applied,
+                    ...(damage === applied ? {} : { announcedDamage: damage }),
+                    damageType: effect.damageType,
                     enemyHp: isUndercity ? target.hp : Math.max(0, target.hp - totalDamage), enemyMaxHp: target.maxHp, decisionReason: chosenAction.reason,
+                    ...(targetIndex === 0 && hit === 1 ? { targets: ["e", ...targetSlots] } : {}),
                   },
                 );
               }
@@ -700,6 +707,7 @@ function resolveFight(
             const rawDamagePerHit = Math.floor(
               requiredCalculatedStat(calculatedStats, effect.scalingStat) * effect.power,
             );
+            const impactedMonster = monster;
             const hitResults = Array.from({ length: hitCount }, (_, hitIndex) => {
               const critical = rng.next() < calculatedStats.criticalChance / 100;
               const rawDamage = critical ? Math.floor(rawDamagePerHit * 1.5) : rawDamagePerHit;
@@ -716,7 +724,6 @@ function resolveFight(
               .map((hit) => `${hit.damage}${hit.critical ? " [critique]" : ""}`)
               .join(", ");
             totalDamage = damage;
-            const impactedMonster = monster;
             if (isUndercity) {
               damageUndercityEnemy(enemyGroup, impactedMonster.id, damage);
               monster = primaryUndercityEnemy(enemyGroup);
@@ -760,6 +767,8 @@ function resolveFight(
               {
                 round, heroId: hero.id, heroName: hero.name, targetHeroId: target.id,
                 targetHeroName: target.name, skillId, skillName: skill.name, healing: actual,
+                ...(healAmount === actual ? {} : { announcedHealing: healAmount }),
+                heroHpBefore: target.currentHp,
                 heroHp: heroes[targetIndex].currentHp, heroMaxHp: target.calculatedStats.maxHp,
                 decisionReason: chosenAction.reason,
               },
@@ -791,11 +800,18 @@ function resolveFight(
               round, heroId: hero.id, heroName: hero.name, monsterId: monster.id,
               monsterName: monster.name, skillId, skillName: skill.name,
               durationRounds: effect.durationRounds, modifiers: effect.modifiers,
-              ...(effect.type === "buff" ? { targetHeroIds: targets.map((target) => target.id) } : {}),
+              targets: effect.type === "buff"
+                ? ["h", ...targets.map((target) => heroes.findIndex((member) => member.id === target.id))]
+                : ["e", ...targets.map((target) => enemyGroup.members.findIndex((member) => member.id === target.id))],
               decisionReason: chosenAction.reason,
             },
           );
         }
+        transcript[skillTranscriptIndex].sourceMana = [
+          sourceManaBefore,
+          hero.currentMana,
+          hero.calculatedStats.maxMana,
+        ];
       }
 
       if (!skillUsed) {
@@ -828,6 +844,7 @@ function resolveFight(
             {
               round, heroId: hero.id, heroName: hero.name, monsterId: target.id, monsterName: target.name,
               strike, strikeCount: strikes, weaponDamage, rawDamage, damageTypes, critical, damage: applied,
+              ...(damage === applied ? {} : { announcedDamage: damage }),
               enemyHp: isUndercity ? target.hp : Math.max(0, target.hp - totalDamage), enemyMaxHp: target.maxHp, decisionReason: chosenAction.reason,
             },
           );
@@ -1344,6 +1361,7 @@ function resolveNonFight(
       "L'escouade s'approche et examine le coffre orné de runes anciennes.",
       "info",
     );
+    const treasureOpenedIndex = transcript.length;
     log(
       "treasure.opened",
       "Coffre déverrouillé : l'escouade examine son contenu.",
@@ -1351,6 +1369,7 @@ function resolveNonFight(
     );
     const treasureRewardRoll = rng.next();
     if (treasureRewardRoll < 0.5) {
+      transcript[treasureOpenedIndex].treasureOutcome = "gold";
       goldReward = applyLootModifiers(
         "goldGain",
         getDungeonGoldReward(floor, "treasure"),
@@ -1359,6 +1378,7 @@ function resolveNonFight(
       resources.gold = Number(resources.gold ?? 0) + goldReward;
       log("reward.gold", `+${goldReward} or.`, "loot", { gold: goldReward });
     } else if (ITEM_LIBRARY.length > 0) {
+      transcript[treasureOpenedIndex].treasureOutcome = "item";
       const reward = rollCatalogItemReward(floor, encounterId, loot.length, "chest", rng, isUndercity);
       addItemToStorage(storedItems, reward.instance);
       loot.push({ type: "item", ...reward.instance, count: 1 });
@@ -1368,6 +1388,7 @@ function resolveNonFight(
         count: 1,
       });
     } else {
+      transcript[treasureOpenedIndex].treasureOutcome = "empty";
       log("reward.item.none", "Le coffre est vide.", "info");
     }
     const material = rollEncounterForgeMaterial(floor, rng);
@@ -1452,6 +1473,7 @@ function resolveNonFight(
         hpAfter: next.currentHp,
         manaBefore: hero.currentMana,
         manaAfter: next.currentMana,
+        revived: revivable,
       });
       return next;
     });

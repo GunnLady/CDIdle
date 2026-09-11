@@ -117,18 +117,44 @@ async function prepareCheckpointState(checkpointFloor = 5) {
   state.activeDungeonRoom = 1;
   state.currentEncounter = null;
   state.autoExplore = false;
-  state.encounterHistory = [{
-    encounterId: `legacy-record-${checkpointFloor}`,
-    dungeonId: 'undercity',
-    kind: 'rest',
-    floor: checkpointFloor,
-    room: 1,
-    outcome: 'victory',
-    roundCount: 0,
-    enemy: null,
-    transcript: [],
-    rewards: { gold: 0, loot: [] },
-  }];
+  state.encounterHistory = [
+    {
+      encounterId: `legacy-record-${checkpointFloor}`,
+      dungeonId: 'undercity',
+      kind: 'rest',
+      floor: checkpointFloor,
+      room: 1,
+      outcome: 'victory',
+      roundCount: 0,
+      enemy: null,
+      transcript: [],
+      rewards: { gold: 0, loot: [] },
+    },
+    {
+      encounterId: `structured-trace-${checkpointFloor}`,
+      dungeonId: 'undercity',
+      kind: 'fight',
+      floor: checkpointFloor,
+      room: 2,
+      outcome: 'victory',
+      roundCount: 1,
+      enemy: { id: 'trace-enemy', name: 'Rat témoin', hp: 0, maxHp: 10 },
+      enemies: [{ id: 'trace-enemy', name: 'Rat témoin', hp: 0, maxHp: 10 }],
+      transcript: [{
+        sequence: 0,
+        type: 'hero.skill.damage',
+        heroId: heroIds[0],
+        monsterId: 'trace-enemy',
+        damage: 10,
+        enemyHp: 0,
+        enemyMaxHp: 10,
+        sourceMana: [10, 4, 10],
+        targets: ['e', 0],
+        hitResults: [{ hit: 1, critical: false, damage: 10 }],
+      }],
+      rewards: { gold: 0, loot: [] },
+    },
+  ];
   state.dungeonProgress.expedition = {
     ...state.dungeonProgress.expedition,
     mode: 'progression',
@@ -170,10 +196,16 @@ const checkpointPayload = envelope(
 );
 const firstCheckpointDecision = await request('/commands', checkpointPayload);
 const replayedCheckpointDecision = await request('/commands', checkpointPayload);
+const replayedStructuredTrace = replayedCheckpointDecision.body?.state?.encounterHistory
+  ?.find((record) => record.encounterId === 'structured-trace-5')
+  ?.transcript?.[0];
 if (firstCheckpointDecision.status !== 200 || firstCheckpointDecision.body?.replayed !== false
   || replayedCheckpointDecision.status !== 200 || replayedCheckpointDecision.body?.replayed !== true
   || firstCheckpointDecision.body?.revision !== replayedCheckpointDecision.body?.revision
-  || replayedCheckpointDecision.body?.state?.dungeonProgress?.expedition?.floor !== 6) {
+  || replayedCheckpointDecision.body?.state?.dungeonProgress?.expedition?.floor !== 6
+  || !isDeepStrictEqual(replayedStructuredTrace?.sourceMana, [10, 4, 10])
+  || !isDeepStrictEqual(replayedStructuredTrace?.targets, ['e', 0])
+  || !isDeepStrictEqual(replayedStructuredTrace?.hitResults, [{ hit: 1, critical: false, damage: 10 }])) {
   throw new Error(`checkpoint replay failed: ${JSON.stringify([firstCheckpointDecision, replayedCheckpointDecision])}`);
 }
 committedCommandCount += 1;
@@ -211,11 +243,17 @@ if (firstActorEncounter.status !== 200 || firstActorEncounter.body?.replayed !==
 }
 committedCommandCount += 1;
 const persistedActors = await request('/bootstrap');
+const persistedStructuredTrace = persistedActors.body?.state?.encounterHistory
+  ?.find((record) => record.encounterId === 'structured-trace-5')
+  ?.transcript?.[0];
 if (persistedActors.status !== 200
   || !isDeepStrictEqual(
     persistedActors.body?.state?.encounterHistory?.at(-1)?.initialActors,
     actorRecord.initialActors,
-  )) {
+  )
+  || !isDeepStrictEqual(persistedStructuredTrace?.sourceMana, [10, 4, 10])
+  || !isDeepStrictEqual(persistedStructuredTrace?.targets, ['e', 0])
+  || !isDeepStrictEqual(persistedStructuredTrace?.hitResults, [{ hit: 1, critical: false, damage: 10 }])) {
   throw new Error(`initial actor persistence/bootstrap failed: ${JSON.stringify(persistedActors)}`);
 }
 const persistedActorCommands = await adminRequest(

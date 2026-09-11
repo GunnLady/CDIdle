@@ -1,6 +1,7 @@
 import type {
   CanonicalDungeonInitialHeroActor,
   CanonicalDungeonEncounterRecord,
+  CanonicalDungeonLoot,
   CanonicalDungeonTranscriptEvent,
 } from "../../shared/contracts/authoritative";
 
@@ -48,6 +49,16 @@ export interface EncounterSceneImpact {
   knockedOutAfter: boolean | null;
 }
 
+export type EncounterSceneRewardKind = CanonicalDungeonLoot["type"] | "gold" | "gold-loss" | "empty";
+
+export interface EncounterSceneReward {
+  kind: EncounterSceneRewardKind;
+  amount: number;
+  contentId: string | null;
+  name: string | null;
+  rarity: string | null;
+}
+
 export interface EncounterSceneStep {
   id: string;
   actionId: string;
@@ -60,6 +71,7 @@ export interface EncounterSceneStep {
   sourceActorId: string | null;
   targetActorIds: string[];
   impacts: EncounterSceneImpact[];
+  rewards: EncounterSceneReward[];
   projection: "structured" | "summary";
   result: EncounterSceneResult | null;
 }
@@ -74,6 +86,7 @@ export interface EncounterSceneTimeline {
     currentHp: number;
     maximumHp: number;
   }>;
+  finalRewards: EncounterSceneReward[];
   limitations: string[];
 }
 
@@ -84,6 +97,7 @@ export interface EncounterSceneState {
   actors: EncounterSceneActor[];
   activeStep: EncounterSceneStep | null;
   result: EncounterSceneResult | null;
+  rewards: EncounterSceneReward[];
   limitations: string[];
 }
 
@@ -142,6 +156,47 @@ function eventSummary(event: CanonicalDungeonTranscriptEvent): string {
 
 function records(value: unknown): UnknownRecord[] {
   return Array.isArray(value) ? value.filter(isRecord) : [];
+}
+
+function rewardView(
+  kind: EncounterSceneRewardKind,
+  amount: unknown,
+  input: UnknownRecord = {},
+): EncounterSceneReward {
+  return {
+    kind,
+    amount: finiteNumber(amount) ?? 1,
+    contentId: nonEmptyString(input.itemId ?? input.materialId),
+    name: nonEmptyString(input.itemName ?? input.name),
+    rarity: nonEmptyString(input.rarity),
+  };
+}
+
+function rewardForEvent(event: CanonicalDungeonTranscriptEvent): EncounterSceneReward[] {
+  const data = event as UnknownRecord;
+  const goldLost = finiteNumber(event.goldLost);
+  if (goldLost !== null && goldLost > 0) return [rewardView("gold-loss", goldLost)];
+  if (!event.type.startsWith("reward.")) return [];
+  if (event.type.endsWith(".none")) return [rewardView("empty", 0)];
+  if (finiteNumber(event.gold) !== null) return [rewardView("gold", event.gold, data)];
+  if (nonEmptyString(event.materialId)) return [rewardView("material", event.count, data)];
+  if (nonEmptyString(event.itemId)) return [rewardView(event.type.includes("blueprint") ? "blueprint" : "item", event.count, data)];
+  return [];
+}
+
+function finalRewardsForEncounter(encounter: CanonicalDungeonEncounterRecord): EncounterSceneReward[] {
+  const rewards = encounter.rewards.loot.map((loot) => {
+    const data = loot as unknown as UnknownRecord;
+    return rewardView(
+      loot.type,
+      loot.count,
+      data,
+    );
+  });
+  if (encounter.rewards.gold > 0) {
+    rewards.unshift(rewardView("gold", encounter.rewards.gold));
+  }
+  return rewards;
 }
 
 function collectHistoricalNames(
@@ -423,8 +478,9 @@ function buildSteps(
       manaAfter?: unknown;
       maximumMana?: unknown;
       announcedValue?: number | null;
+      allowDuplicate?: boolean;
     }) => {
-      if (!input.actor || changedActors.has(input.actor.id)) return;
+      if (!input.actor || (changedActors.has(input.actor.id) && !input.allowDuplicate)) return;
       const state = stateByActorId.get(input.actor.id);
       if (!state) return;
       const hpAfter = finiteNumber(input.hpAfter);
@@ -470,12 +526,35 @@ function buildSteps(
     }
 
     const targetMonsterId = nonEmptyString(event.targetMonsterId) ?? nonEmptyString(event.monsterId);
-    if (finiteNumber(event.enemyHp) !== null) {
+    const hitResults = records(event.hitResults);
+    const hitActor = targetMonsterId ? enemyActorsBySource.get(targetMonsterId) ?? null : null;
+    let projectedHitHp = hitActor ? stateByActorId.get(hitActor.id)?.currentHp ?? null : null;
+    let projectedHitCount = 0;
+    for (const hit of hitResults) {
+      const announcedDamage = finiteNumber(hit.damage);
+      if (projectedHitHp === null || announcedDamage === null) break;
+      const hpBefore = projectedHitHp;
+      projectedHitHp = Math.max(0, hpBefore - announcedDamage);
+      appendImpact({
+        actor: hitActor,
+        hpBefore,
+        hpAfter: projectedHitHp,
+        maximumHp: event.enemyMaxHp,
+        announcedValue: announcedDamage,
+        allowDuplicate: true,
+      });
+      projectedHitCount += 1;
+    }
+    if (projectedHitCount === 0 && finiteNumber(event.enemyHp) !== null) {
       appendImpact({
         actor: targetMonsterId ? enemyActorsBySource.get(targetMonsterId) ?? null : null,
+        hpBefore: event.enemyHpBefore,
         hpAfter: event.enemyHp,
         maximumHp: event.enemyMaxHp,
-        announcedValue: finiteNumber(event.healing) ?? finiteNumber(event.damage),
+        announcedValue: finiteNumber(event.announcedHealing)
+          ?? finiteNumber(event.announcedDamage)
+          ?? finiteNumber(event.healing)
+          ?? finiteNumber(event.damage),
       });
     }
 
@@ -486,13 +565,40 @@ function buildSteps(
         hpBefore: event.heroHpBefore,
         hpAfter: event.heroHp,
         maximumHp: event.heroMaxHp,
-        announcedValue: finiteNumber(event.healing) ?? finiteNumber(event.damage),
+        announcedValue: finiteNumber(event.announcedHealing)
+          ?? finiteNumber(event.announcedDamage)
+          ?? finiteNumber(event.healing)
+          ?? finiteNumber(event.damage),
       });
     } else if (event.type === "enemy.dodged") {
       appendImpact({
         actor: targetHeroId ? heroActorsBySource.get(targetHeroId) ?? null : null,
       });
     }
+
+    const sourceManaBefore = finiteNumber(event.sourceMana?.[0]);
+    const sourceManaAfter = finiteNumber(event.sourceMana?.[1]);
+    if (sourceManaBefore !== null && sourceManaAfter !== null) {
+      const sourceHeroId = nonEmptyString(event.heroId);
+      appendImpact({
+        actor: sourceHeroId ? heroActorsBySource.get(sourceHeroId) ?? null : null,
+        manaBefore: sourceManaBefore,
+        manaAfter: sourceManaAfter,
+        maximumMana: event.sourceMana?.[2],
+        announcedValue: Math.abs(sourceManaBefore - sourceManaAfter),
+        allowDuplicate: true,
+      });
+    }
+
+    const explicitTargets = event.targets ?? [];
+    const explicitTargetActorIds = (explicitTargets[0] === "h"
+      ? [...heroActorsBySource.values()]
+      : explicitTargets[0] === "e"
+        ? [...enemyActorsBySource.values()]
+      : [])
+      .filter((actor) => explicitTargets.slice(1).includes(actor.slot))
+      .map((actor) => actor.id);
+    const rewards = rewardForEvent(event);
 
     steps.push({
       id,
@@ -504,9 +610,17 @@ function buildSteps(
       category: event.category ?? null,
       summary: eventSummary(event),
       sourceActorId,
-      targetActorIds: [...new Set(impacts.map((impact) => impact.targetActorId))],
+      targetActorIds: [...new Set([
+        ...explicitTargetActorIds,
+        ...impacts
+          .filter((impact) => impact.kind !== "resource" || impact.targetActorId !== sourceActorId)
+          .map((impact) => impact.targetActorId),
+      ])],
       impacts,
-      projection: impacts.length > 0 ? "structured" : "summary",
+      rewards,
+      projection: impacts.length || rewards.length
+        ? "structured"
+        : "summary",
       result: resultForEvent(event),
     });
   }
@@ -530,6 +644,7 @@ export function createEncounterSceneTimeline(
     ),
     outcome: encounter.outcome,
     finalEnemyStates: actorModel.finalEnemyStates.map((state) => ({ ...state })),
+    finalRewards: finalRewardsForEncounter(encounter),
     limitations,
   };
 }
@@ -542,6 +657,7 @@ export function createEncounterSceneInitialState(timeline: EncounterSceneTimelin
     actors: timeline.actors.map(cloneActor),
     activeStep: null,
     result: null,
+    rewards: [],
     limitations: [...timeline.limitations],
   };
 }
@@ -551,24 +667,26 @@ export function applyEncounterSceneStep(
   step: EncounterSceneStep,
 ): EncounterSceneState {
   if (!step.id.startsWith(`${state.encounterId}:event:`)) return state;
-  const impactsByActorId = new Map(step.impacts.map((impact) => [impact.targetActorId, impact]));
+  const actorsById = new Map(state.actors.map((actor) => [actor.id, actor]));
+  for (const impact of step.impacts) {
+    const actor = actorsById.get(impact.targetActorId);
+    if (!actor) continue;
+    actorsById.set(actor.id, {
+      ...actor,
+      currentHp: impact.hp?.after ?? actor.currentHp,
+      maximumHp: impact.hp?.maximum ?? actor.maximumHp,
+      currentMana: impact.mana?.after ?? actor.currentMana,
+      maximumMana: impact.mana?.maximum ?? actor.maximumMana,
+      knockedOut: impact.knockedOutAfter,
+    });
+  }
   return {
     ...state,
     visibleCount: Math.max(state.visibleCount, step.index + 1),
-    actors: state.actors.map((actor) => {
-      const impact = impactsByActorId.get(actor.id);
-      if (!impact) return actor;
-      return {
-        ...actor,
-        currentHp: impact.hp?.after ?? actor.currentHp,
-        maximumHp: impact.hp?.maximum ?? actor.maximumHp,
-        currentMana: impact.mana?.after ?? actor.currentMana,
-        maximumMana: impact.mana?.maximum ?? actor.maximumMana,
-        knockedOut: impact.knockedOutAfter,
-      };
-    }),
+    actors: state.actors.map((actor) => actorsById.get(actor.id) ?? actor),
     activeStep: step,
     result: step.result ?? state.result,
+    rewards: [...state.rewards, ...step.rewards],
   };
 }
 
@@ -593,6 +711,9 @@ export function completeEncounterSceneState(
         : actor;
     }),
     result: timeline.outcome,
+    rewards: timeline.finalRewards.length > 0
+      ? timeline.finalRewards.map((reward) => ({ ...reward }))
+      : state.rewards,
   };
 }
 

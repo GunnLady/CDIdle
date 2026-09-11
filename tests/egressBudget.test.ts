@@ -29,11 +29,13 @@ function representativeState(options: {
   storedItemCount?: number;
   encounterCount?: number;
   includeInitialActors?: boolean;
+  includeTraceDetails?: boolean;
 } = {}): CanonicalGameState {
   const heroCount = options.heroCount ?? 4;
   const storedItemCount = options.storedItemCount ?? 50;
   const encounterCount = options.encounterCount ?? 8;
   const includeInitialActors = options.includeInitialActors ?? true;
+  const includeTraceDetails = options.includeTraceDetails ?? true;
   const transcript = Array.from({ length: 12 }, (_, sequence) => ({
     sequence,
     type: sequence % 2 === 0 ? "hero.hit" : "enemy.hit",
@@ -46,6 +48,10 @@ function representativeState(options: {
     damage: 12 + sequence,
     enemyHp: Math.max(0, 100 - sequence * 8),
     enemyMaxHp: 100,
+    ...(includeTraceDetails && sequence === 0 ? {
+      sourceMana: [1_000, 976, 1_000] as [number, number, number],
+      targets: ["e", 0, 1, 2] as ["e", number, number, number],
+    } : {}),
   }));
   const encounterHistory: CanonicalDungeonEncounterRecord[] = Array.from(
     { length: encounterCount },
@@ -145,6 +151,26 @@ describe("Supabase egress budget", () => {
     expect(addedBytes).toBeGreaterThan(0);
     expect(addedBytes).toBeLessThanOrEqual(8_000);
     expect(addedBytes / 15).toBeLessThanOrEqual(500);
+  });
+
+  it("bounds compact resource and multi-target details across fifteen long traces", () => {
+    const baseline = representativeState({
+      storedItemCount: 100,
+      encounterCount: 15,
+      includeTraceDetails: false,
+    });
+    const enriched = representativeState({
+      storedItemCount: 100,
+      encounterCount: 15,
+      includeTraceDetails: true,
+    });
+    const addedBytes = jsonUtf8Bytes(enriched) - jsonUtf8Bytes(baseline);
+    const enrichedBytes = jsonUtf8Bytes(enriched);
+
+    expect(validateCanonicalGameState(enriched)).toEqual([]);
+    expect(addedBytes).toBeGreaterThan(0);
+    expect(addedBytes).toBeLessThanOrEqual(1_000);
+    expect(enrichedBytes).toBeLessThan(86_000);
   });
 
   it("proves compact commits remove the second PostgREST snapshot", () => {

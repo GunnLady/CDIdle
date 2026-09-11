@@ -1,7 +1,7 @@
 ---
 id: CDI-106
 title: Compléter les traces et projections de ressources et de cibles
-status: Later
+status: Done
 area: architecture
 priority: P1
 size: M
@@ -70,12 +70,12 @@ Les dépendances directes et leurs liens blocks font foi ; les acquis déjà liv
 
 ## Criteres d'acceptation
 
-- [ ] La matrice CDI-098 couvre les ressources/cibles de fight et des huit types hors combat ; seules les rubriques statuts/intentions restent attribuées à CDI-114.
-- [ ] Mana consommé/restauré, soins alliés/ennemis, multi-frappes et multicibles identifient les bonnes valeurs et cibles sans texte français.
-- [ ] Trésor vide/contenu, repos plafonné/réanimation et les branches des six épreuves ont conséquences/acteur sélectionné explicites.
-- [ ] Chaque complément est projeté et testé à ses points d'impact ; accès direct et séquentiel concordent.
-- [ ] Résultats, RNG, récompenses, révisions/idempotence et calendrier restent identiques hors enrichissement de trace.
-- [ ] Compatibilité ancien/nouveau, coût des traces longues et persistance/replay sur runtime local sont prouvés pour les champs ajoutés.
+- [x] La matrice CDI-098 couvre les ressources/cibles de fight et des huit types hors combat ; seules les rubriques statuts/intentions restent attribuées à CDI-114.
+- [x] Mana consommé/restauré, soins alliés/ennemis, multi-frappes et multicibles identifient les bonnes valeurs et cibles sans texte français.
+- [x] Trésor vide/contenu, repos plafonné/réanimation et les branches des six épreuves ont conséquences/acteur sélectionné explicites.
+- [x] Chaque complément est projeté et testé à ses points d'impact ; accès direct et séquentiel concordent.
+- [x] Résultats, RNG, récompenses, révisions/idempotence et calendrier restent identiques hors enrichissement de trace.
+- [x] Compatibilité ancien/nouveau, coût des traces longues et persistance/replay sur runtime local sont prouvés pour les champs ajoutés.
 
 ## Tests
 
@@ -109,5 +109,9 @@ Contrôler une trace locale et sa projection sans copier de bearer. Le verdict a
 ## Handoff
 
 Fournir matrice mise à jour, fixtures producteur/projection, preuves de parité et octets/pipeline local. V02/V04/V07/V17. Remettre explicitement les statuts/intentions restants à CDI-114.
+
+Livré : contrat additif compact pour mana, cibles, multi-frappes, valeurs annoncées et conséquences ; producteur autoritaire enrichi au point métier ; projection pure des ressources, impacts ordonnés et récompenses ; fixtures couvrant combat, trésor, repos et les six épreuves. Les statuts, intentions, protections et phases du Roi restent exclusivement dans CDI-114.
+
+Preuves : 1 064 tests Vitest passent, typecheck projet hors dossier temporaire utilisateur et lint passent, build et budget bundle passent (255 919 octets gzip JS), déterminisme et budget egress passent. L'enrichissement représentatif mesure 51 octets par rencontre, soit 765 octets sur quinze traces et 85 859 octets au profil haut. Le runtime Supabase local a prouvé persistance, bootstrap et replay des nouveaux champs. Aucun changement de gameplay, RNG, calendrier ou rendu React.
 
 Indiquer fichiers, commandes réellement exécutées, résultats et limites. Ne pas clore avec un écart réel non corrigé ; ne pas attribuer au présent ticket la livraison de ses successeurs.

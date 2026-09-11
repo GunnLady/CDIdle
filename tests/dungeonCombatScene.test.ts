@@ -66,6 +66,7 @@ function step(overrides: Partial<EncounterSceneStep> = {}): EncounterSceneStep {
     sourceActorId: "hero-0",
     targetActorIds: ["enemy-0"],
     impacts: [impact("impact-1", "enemy-0")],
+    rewards: [],
     projection: "structured",
     result: null,
     ...overrides,
@@ -88,6 +89,7 @@ function scene(overrides: Partial<EncounterSceneState> = {}): EncounterSceneStat
     ],
     activeStep: step(),
     result: null,
+    rewards: [],
     limitations: [],
     ...overrides,
   };
