@@ -16,6 +16,9 @@ export default defineConfig(({mode}) => {
       },
     },
     build: {
+      // Keep production output aligned with the project's existing TypeScript
+      // target and the current PC browser scope.
+      target: "es2022",
       rollupOptions: {
         output: {
           manualChunks(id) {

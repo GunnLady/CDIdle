@@ -149,7 +149,13 @@ function CombatEffect({ actorName, effect }: {
   );
 }
 
-export default function DungeonCombatScene({ view }: { view: DungeonCombatSceneView }) {
+export default function DungeonCombatScene({
+  view,
+  animationsEnabled = true,
+}: {
+  view: DungeonCombatSceneView;
+  animationsEnabled?: boolean;
+}) {
   const backgroundKey = view.environment === "sewers"
     ? ENCOUNTER_VISUAL_KEYS.sewers.background
     : ENCOUNTER_VISUAL_KEYS.fallback.background;
@@ -161,6 +167,7 @@ export default function DungeonCombatScene({ view }: { view: DungeonCombatSceneV
       aria-label="Scène du combat en cours"
       className={styles.scene}
       data-action-mode={view.actionMode}
+      data-animations={animationsEnabled ? "enabled" : "disabled"}
       data-testid="dungeon-combat-scene"
     >
       <p aria-live="polite" className="sr-only">{view.actionSummary}</p>

@@ -74,15 +74,15 @@ const ENTRY_EVENT_TYPES = ["combat.start", "encounter.started"];
 
 const idleRhythms = {
   heroes: [
-    { durationMs: 3_400, delayMs: -600 },
-    { durationMs: 3_700, delayMs: -1_900 },
-    { durationMs: 3_200, delayMs: -1_200 },
-    { durationMs: 3_900, delayMs: -2_800 },
+    [3_400, -600],
+    [3_700, -1_900],
+    [3_200, -1_200],
+    [3_900, -2_800],
   ],
   enemies: [
-    { durationMs: 3_600, delayMs: -2_400 },
-    { durationMs: 3_250, delayMs: -900 },
-    { durationMs: 3_850, delayMs: -1_700 },
+    [3_600, -2_400],
+    [3_250, -900],
+    [3_850, -1_700],
   ],
 } as const;
 
@@ -153,13 +153,14 @@ function effectLabel(kind: DungeonCombatEffectKind, impact: EncounterSceneImpact
   return value === null ? "−?" : `−${value}`;
 }
 
-function selectVisibleActors(scene: EncounterSceneState): EncounterSceneActor[] {
+function selectVisibleActors(scene: EncounterSceneState): Array<{ actor: EncounterSceneActor; index: number }> {
   return (["heroes", "enemies"] as const).flatMap((team) => {
     const limit = team === "heroes" ? DUNGEON_SCENE_HERO_LIMIT : DUNGEON_SCENE_ENEMY_LIMIT;
     return scene.actors
       .filter((actor) => actor.team === team)
       .sort((left, right) => left.slot - right.slot)
-      .slice(0, limit);
+      .slice(0, limit)
+      .map((actor, index) => ({ actor, index }));
   });
 }
 
@@ -167,18 +168,12 @@ export function createDungeonCombatSceneView(
   scene: EncounterSceneState,
   enemyRoles: readonly DungeonCombatEnemyRole[] = [],
 ): DungeonCombatSceneView {
-  const selectedActors = selectVisibleActors(scene);
-  const selectedIds = new Set(selectedActors.map((actor) => actor.id));
-  const selectedIndexById = new Map<string, number>();
-  for (const team of ["heroes", "enemies"] as const) {
-    selectedActors.filter((actor) => actor.team === team).forEach((actor, index) => {
-      selectedIndexById.set(actor.id, index);
-    });
-  }
+  const selections = selectVisibleActors(scene);
+  const selectedIds = new Set(selections.map(({ actor }) => actor.id));
   const mode = actionMode(scene);
   const step = scene.complete ? null : scene.activeStep;
   const activeActor = step?.sourceActorId
-    ? selectedActors.find((actor) => actor.id === step.sourceActorId && actorState(actor) !== "ko")
+    ? selections.find(({ actor }) => actor.id === step.sourceActorId && actorState(actor) !== "ko")?.actor
     : undefined;
   const visibleImpacts = mode !== "melee" || !step
     ? []
@@ -186,7 +181,7 @@ export function createDungeonCombatSceneView(
   const effectImpacts = visibleImpacts.slice(0, DUNGEON_COMBAT_EFFECT_LIMIT);
   const targetOffsets = new Map<string, number>();
   const effects = effectImpacts.flatMap((impact): DungeonCombatSceneEffectView[] => {
-    const target = selectedActors.find((actor) => actor.id === impact.targetActorId);
+    const target = selections.find(({ actor }) => actor.id === impact.targetActorId)?.actor;
     if (!target) return [];
     const offset = targetOffsets.get(target.id) ?? 0;
     targetOffsets.set(target.id, offset + 1);
@@ -201,12 +196,10 @@ export function createDungeonCombatSceneView(
   });
   const impactsByActorId = new Map(visibleImpacts.map((impact) => [impact.targetActorId, impact]));
   const rolesById = new Map(enemyRoles.map((enemy) => [enemy.id, enemy.role ?? "Ennemi"]));
-  const actors = selectedActors.flatMap((actor): DungeonCombatSceneActorView[] => {
-    const selectedIndex = selectedIndexById.get(actor.id);
-    if (selectedIndex === undefined) return [];
-    const standard = getDungeonSceneSlot(actor.team, selectedIndex, "standard");
-    const zoomed = getDungeonSceneSlot(actor.team, selectedIndex, "zoomed");
-    const idleRhythm = idleRhythms[actor.team][selectedIndex];
+  const actors = selections.flatMap(({ actor, index }): DungeonCombatSceneActorView[] => {
+    const standard = getDungeonSceneSlot(actor.team, index, "standard");
+    const zoomed = getDungeonSceneSlot(actor.team, index, "zoomed");
+    const idleRhythm = idleRhythms[actor.team][index];
     if (!standard || !zoomed || !idleRhythm) return [];
     const active = actor.id === activeActor?.id;
     return [{
@@ -222,8 +215,8 @@ export function createDungeonCombatSceneView(
       active,
       motion: mode === "entry" ? "enter" : active ? mode === "melee" ? "melee" : "focus" : "idle",
       reaction: impactReaction(actor, impactsByActorId.get(actor.id)),
-      idleDurationMs: idleRhythm.durationMs,
-      idleDelayMs: idleRhythm.delayMs,
+      idleDurationMs: idleRhythm[0],
+      idleDelayMs: idleRhythm[1],
       standard,
       zoomed,
     }];
@@ -240,7 +233,7 @@ export function createDungeonCombatSceneView(
     actionKey: step?.id ?? `${scene.encounterId}:${mode}`,
     actionMode: mode,
     actionSummary,
-    environment: selectedActors.some((actor) => actor.contentKey?.startsWith("rat-pack:"))
+    environment: selections.some(({ actor }) => actor.contentKey?.startsWith("rat-pack:"))
       ? "sewers"
       : "fallback",
     actors,

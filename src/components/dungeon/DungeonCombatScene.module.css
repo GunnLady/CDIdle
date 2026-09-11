@@ -420,6 +420,37 @@
   to { opacity: 0; transform: translate(calc(-50% + var(--effect-stack-x)), -0.55rem) scale(0.98); }
 }
 
+.scene[data-animations="disabled"] .motionLayer,
+.scene[data-animations="disabled"] .idleLayer,
+.scene[data-animations="disabled"] .reactionLayer,
+.scene[data-animations="disabled"] .visualShell::before,
+.scene[data-animations="disabled"] .actor[data-active="true"] .sprite,
+.scene[data-animations="disabled"] .actor[data-active="true"] .fallbackGlyph,
+.scene[data-animations="disabled"] .effect {
+  animation: none !important;
+  transition: none !important;
+}
+
+.scene[data-animations="disabled"] .effect {
+  opacity: 1;
+  transform: translateX(calc(-50% + var(--effect-stack-x)));
+}
+
+.scene[data-animations="disabled"] .actor[data-active="true"] .visualShell::before {
+  opacity: 0.78;
+  transform: none;
+}
+
+.scene[data-animations="disabled"] .actor[data-active="true"] .sprite,
+.scene[data-animations="disabled"] .actor[data-active="true"] .fallbackGlyph {
+  filter:
+    drop-shadow(1px 0 0 var(--actor-aura-solid))
+    drop-shadow(-1px 0 0 var(--actor-aura-solid))
+    drop-shadow(0 1px 0 var(--actor-aura-solid))
+    drop-shadow(0 -1px 0 var(--actor-aura-solid))
+    drop-shadow(0 0 0.5rem var(--actor-aura-glow));
+}
+
 @media (prefers-reduced-motion: reduce) {
   .motionLayer,
   .idleLayer,

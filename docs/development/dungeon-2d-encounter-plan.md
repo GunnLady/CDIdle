@@ -454,7 +454,7 @@ pas leur contenu actuel.
 | [CDI-100](../../workboard/data/Done/CDI-100/ticket.md) | Projeter les rencontres en états de scène déterministes | Done | M / high | CDI-098, CDI-105 |
 | [CDI-101](../../workboard/data/Done/CDI-101/ticket.md) | Construire la scène de combat simple CDIdle | Done | M / medium | CDI-099, CDI-107 |
 | [CDI-102](../../workboard/data/Later/CDI-102/ticket.md) | Mettre en scène trésors, repos et réanimations | Later | M / medium | CDI-103, CDI-106 |
-| [CDI-103](../../workboard/data/Later/CDI-103/ticket.md) | Intégrer le premier combat et sécuriser son cycle de lecture | Later | L / high | CDI-101 |
+| [CDI-103](../../workboard/data/Done/CDI-103/ticket.md) | Intégrer le premier combat et sécuriser son cycle de lecture | Done | L / high | CDI-101 |
 | [CDI-104](../../workboard/data/Later/CDI-104/ticket.md) | Consolider la recette et préparer la livraison des rencontres 2D | Later | M / high | CDI-116 |
 | [CDI-105](../../workboard/data/Done/CDI-105/ticket.md) | Corriger la cible journalisée par une compétence létale | Done | S / high | Aucune |
 | [CDI-106](../../workboard/data/Later/CDI-106/ticket.md) | Compléter les traces et projections de ressources et de cibles | Later | M / high | CDI-098, CDI-100 |

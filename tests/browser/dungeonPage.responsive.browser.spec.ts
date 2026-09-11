@@ -53,6 +53,25 @@ for (const viewport of viewports) {
   });
 }
 
+test("integrates the combat scene and keeps the PC animation preference local", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.goto("/tests/browser/fixtures/dungeon-harness.html?step=2");
+
+  const encounter = page.getByTestId("dungeon-current-encounter");
+  const scene = encounter.getByTestId("dungeon-combat-scene");
+  await expect(scene).toBeVisible();
+  await expect(encounter.getByTestId("dungeon-enemy-group")).toHaveCount(0);
+  await expect(scene).toHaveAttribute("data-animations", "enabled");
+
+  await encounter.getByRole("button", { name: "Animations : actives" }).click();
+  await expect(scene).toHaveAttribute("data-animations", "disabled");
+  await encounter.getByText("Journal détaillé").click();
+  await expect(encounter.getByTestId("dungeon-encounter-transcript")).toBeVisible();
+
+  await page.reload();
+  await expect(page.getByTestId("dungeon-combat-scene")).toHaveAttribute("data-animations", "disabled");
+});
+
 test("keeps Dungeon consultation local in read-only mode", async ({ page }) => {
   await page.setViewportSize({ width: 360, height: 800 });
   await page.goto("/tests/browser/fixtures/dungeon-harness.html?readonly=1");

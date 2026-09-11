@@ -168,4 +168,16 @@ describe("DungeonCombatScene", () => {
     expect(screen.getByTestId("dungeon-combat-result")).toHaveTextContent("Victoire");
     expect(screen.getByTestId("dungeon-combat-scene")).toHaveAttribute("data-action-mode", "result");
   });
+
+  it("disables only visual animation while preserving the combat projection", () => {
+    render(<DungeonCombatScene
+      view={createDungeonCombatSceneView(state(), [{ id: "rat-a", role: "Combattant" }])}
+      animationsEnabled={false}
+    />);
+
+    const scene = screen.getByTestId("dungeon-combat-scene");
+    expect(scene).toHaveAttribute("data-animations", "disabled");
+    expect(within(scene).getAllByTestId("dungeon-combat-actor")).toHaveLength(2);
+    expect(within(scene).getByTestId("dungeon-combat-effect")).toBeInTheDocument();
+  });
 });

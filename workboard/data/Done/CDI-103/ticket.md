@@ -1,7 +1,7 @@
 ---
 id: CDI-103
 title: Intégrer le premier combat et sécuriser son cycle de lecture
-status: Later
+status: Done
 area: frontend
 priority: P1
 size: L
@@ -79,13 +79,13 @@ Les dépendances directes et leurs liens blocks font foi ; les acquis déjà liv
 
 ## Criteres d'acceptation
 
-- [ ] Le combat pilote fonctionne dans CurrentEncounterPanel avec kit CDIdle, commandes et historique ; les assertions de hauteur/transcript modifiées couvrent réellement le nouveau rendu.
-- [ ] Manuel et auto gardent résultats, heures de fin/départ et nombre de requêtes en rendu actif/désactivé, hors page Donjon et à fréquence écran différente.
-- [ ] Jalons 5/10/50, continuer/retour, retraite, pause auto, KO, vocation et sélection de farm restent accessibles au bon moment.
-- [ ] Masquage/retour, navigation/démontage, autre onglet, changement de leader/observateur, replay, doublon, conflit et snapshot récent n'ajoutent ni commande ni scène périmée.
-- [ ] Reset, déconnexion/changement de compte et erreur réseau ne montrent pas une ancienne victoire ou les acteurs d'une autre session.
-- [ ] Les animations et préférences locales n'attendent jamais un callback CSS pour libérer le dispatch ; aucun backlog de scènes ou ressource croissante.
-- [ ] Les replis transitoires pour art/actions manquants et non-combat sont fidèles et documentés avec leurs tickets de fermeture ; aucune couverture finale fictive n'est annoncée.
+- [x] Le combat pilote fonctionne dans CurrentEncounterPanel avec kit CDIdle, commandes et historique ; les assertions de hauteur/transcript modifiées couvrent réellement le nouveau rendu.
+- [x] Manuel et auto gardent résultats, heures de fin/départ et nombre de requêtes en rendu actif/désactivé, hors page Donjon et à fréquence écran différente.
+- [x] Jalons 5/10/50, continuer/retour, retraite, pause auto, KO, vocation et sélection de farm restent accessibles au bon moment.
+- [x] Masquage/retour, navigation/démontage, autre onglet, changement de leader/observateur, replay, doublon, conflit et snapshot récent n'ajoutent ni commande ni scène périmée.
+- [x] Reset, déconnexion/changement de compte et erreur réseau ne montrent pas une ancienne victoire ou les acteurs d'une autre session.
+- [x] Les animations et préférences locales n'attendent jamais un callback CSS pour libérer le dispatch ; aucun backlog de scènes ou ressource croissante.
+- [x] Les replis transitoires pour art/actions manquants et non-combat sont fidèles et documentés avec leurs tickets de fermeture ; aucune couverture finale fictive n'est annoncée.
 
 ## Tests
 
@@ -122,3 +122,30 @@ Parcours local utilisateur : combat manuel/auto, pause/retraite, KO et jalons, v
 Fournir raccordement, preuves de cadence/requêtes, priorités, cycle de session et replis transitoires attribués. V06/V08–V14. CDI-102/113/114/115 intègrent ensuite leurs extensions ; l'art complet arrive dans CDI-108–112.
 
 Indiquer fichiers, commandes réellement exécutées, résultats et limites. Ne pas clore avec un écart réel non corrigé ; ne pas attribuer au présent ticket la livraison de ses successeurs.
+
+Clôture du 11 septembre 2026 : le combat `fight` utilise désormais la scène
+CDIdle dans `CurrentEncounterPanel`, sans cartes ennemies dupliquées ; le
+journal autoritaire reste consultable et les rencontres non-combat conservent
+leur rendu existant. La préférence locale active/désactive uniquement le
+mouvement visuel et le document masqué suspend explicitement ce mouvement.
+
+Le runtime conserve `(N + 1) × 400 ms` puis le délai auto de 4 750 ms. Les
+révisions, changements de session, annulations et snapshots cross-tab
+invalident la lecture obsolète ; une application en erreur purge la scène
+préparée. Le masquage survenant pendant `explore` diffère `resolve` jusqu'au
+retour visible, sans deuxième exploration ni rafale. Les commandes et le
+snapshot autoritaire restent indépendants du CSS et des ressources visuelles.
+
+Preuves finales : 131 fichiers / 1 059 tests Vitest passés ; 12 tests Playwright
+passés sur la scène et le panneau, dont PC 1024/1280/1440 et équivalent zoom
+200 % ; lint silencieux, build Vite et Workboard (116 tickets, 0 erreur)
+passés. Le typecheck du périmètre versionné passe avec un tsconfig temporaire
+excluant uniquement `tmp` ; la commande globale reste polluée par le dossier
+utilisateur ignoré `tmp/deployment-2026-09-10/backend-v27`. Le budget est
+revenu sous le plafond après audit : 254 923 o gzip JS sur 256 000, plus gros
+chunk 121 290 o.
+
+Limites assumées et attribuées : CDI-108 à CDI-112 livrent les autres packs
+d'art ; CDI-102 couvre les scènes hors combat ; CDI-113 à CDI-115 ajoutent les
+actions avancées, statuts et accessoires. Aucun support mobile/tablette nouveau
+n'est revendiqué et aucun déploiement n'est déclenché.

@@ -55,6 +55,7 @@ const props = {
 afterEach(() => {
   cleanup();
   vi.clearAllMocks();
+  window.localStorage.clear();
 });
 
 describe("DungeonPanel authoritative structure", () => {
@@ -97,6 +98,19 @@ describe("DungeonPanel authoritative structure", () => {
     expect(within(screen.getByTestId("dungeon-current-encounter")).getByText("0/12 PV")).toBeInTheDocument();
     expect(within(screen.getByTestId("dungeon-current-encounter")).getByText("Victoire en 1 tour(s) · +7 or")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Explorer la salle" })).toBeDisabled();
+  });
+
+  it("integrates the combat scene without duplicate enemy cards and keeps animation preference local", () => {
+    render(<DungeonPanel {...props} />);
+
+    const current = within(screen.getByTestId("dungeon-current-encounter"));
+    expect(current.getByTestId("dungeon-combat-scene")).toHaveAttribute("data-animations", "enabled");
+    expect(current.queryByTestId("dungeon-enemy-group")).not.toBeInTheDocument();
+    expect(current.getByText("Journal détaillé")).toBeInTheDocument();
+
+    fireEvent.click(current.getByRole("button", { name: "Animations : actives" }));
+    expect(current.getByTestId("dungeon-combat-scene")).toHaveAttribute("data-animations", "disabled");
+    expect(window.localStorage.getItem("cdidle:dungeon-animations")).toBe("disabled");
   });
 
   it("labels unavailable legacy health instead of reconstructing it from the final record", () => {

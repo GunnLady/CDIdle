@@ -71,11 +71,13 @@ function createDependencies(
     isAutomationLeaderRef: { current: true },
     isOnline: true,
     playEncounterTranscript: vi.fn(async () => undefined),
+    prepareEncounterPlayback: vi.fn(),
     ports: {
       requestBootstrap: transportMocks.requestCanonicalBootstrap,
       sendCommand: transportMocks.callGameApi,
     },
     publishAuthoritativeSnapshot: vi.fn(),
+    resetEncounterPlayback: vi.fn(),
     revisionRef: { current: 7 },
     setApiAvailable: vi.fn(),
     setCanonicalStateFailureDetails: vi.fn(),
@@ -145,6 +147,7 @@ describe('authoritative command dispatch hook', () => {
   });
 
   it('plays a resolved encounter from canonical history when the compact event only carries its id', async () => {
+    const order: string[] = [];
     const envelope = {
       ...successEnvelope,
       state: { ...canonicalState, encounterHistory: [resolvedEncounter] },
@@ -155,14 +158,25 @@ describe('authoritative command dispatch hook', () => {
       }],
     } satisfies AuthoritativeCommandSuccess;
     transportMocks.callGameApi.mockResolvedValue(envelope);
-    const dependencies = createDependencies();
+    const dependencies = createDependencies({
+      applyAuthoritativeState: vi.fn(async () => {
+        order.push('apply');
+        return true;
+      }),
+      prepareEncounterPlayback: vi.fn(() => order.push('prepare')),
+      playEncounterTranscript: vi.fn(async () => {
+        order.push('play');
+      }),
+    });
     const { result } = renderHook(() => useAuthoritativeCommandDispatch(dependencies));
 
     await act(async () => {
       await result.current({ type: 'dungeon.resolve' });
     });
 
-    expect(dependencies.playEncounterTranscript).toHaveBeenCalledWith(resolvedEncounter);
+    expect(dependencies.prepareEncounterPlayback).toHaveBeenCalledWith(resolvedEncounter.encounterId);
+    expect(dependencies.playEncounterTranscript).toHaveBeenCalledWith(resolvedEncounter, { revision: 8 });
+    expect(order).toEqual(['prepare', 'apply', 'play']);
   });
 
   it('accepts an idempotent replay as an authoritative success', async () => {
@@ -181,6 +195,29 @@ describe('authoritative command dispatch hook', () => {
       replayedEnvelope.lastProcessedAt,
     );
     expect(dependencies.publishAuthoritativeSnapshot).toHaveBeenCalledWith(replayedEnvelope);
+  });
+
+  it('clears a prepared scene when applying the resolved snapshot fails', async () => {
+    const envelope = {
+      ...successEnvelope,
+      state: { ...canonicalState, encounterHistory: [resolvedEncounter] },
+      events: [{
+        type: 'dungeon.encounter_resolved',
+        dungeonId: 'undercity',
+        encounterId: resolvedEncounter.encounterId,
+      }],
+    } satisfies AuthoritativeCommandSuccess;
+    transportMocks.callGameApi.mockResolvedValue(envelope);
+    const dependencies = createDependencies({
+      applyAuthoritativeState: vi.fn(async () => { throw new Error('apply failed'); }),
+    });
+    const { result } = renderHook(() => useAuthoritativeCommandDispatch(dependencies));
+
+    await expect(result.current({ type: 'dungeon.resolve' })).resolves.toBe(false);
+
+    expect(dependencies.prepareEncounterPlayback).toHaveBeenCalledWith(resolvedEncounter.encounterId);
+    expect(dependencies.resetEncounterPlayback).toHaveBeenCalledWith('user-1');
+    expect(dependencies.playEncounterTranscript).not.toHaveBeenCalled();
   });
 
   it('resynchronizes a revision conflict and exposes the optimistic retry boundary', async () => {

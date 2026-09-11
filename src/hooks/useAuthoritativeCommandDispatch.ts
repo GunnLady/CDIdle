@@ -4,6 +4,7 @@ import type { GameApplicationPorts } from "../application/gameApplicationPorts";
 import type { BattleLogEntry } from "../types";
 import type { CanonicalStateFailure } from "../domain/canonicalStateFailure";
 import { createCommandEnvelope } from "../domain/commandEnvelope";
+import type { EncounterPlaybackIdentity } from "../domain/encounterPlayback";
 import type {
   AuthoritativeCommandSuccess,
   AuthoritativeGameEnvelope,
@@ -68,7 +69,12 @@ export interface AuthoritativeCommandDispatchDependencies {
   ): Promise<T> | null;
   isAutomationLeaderRef: MutableRefObject<boolean>;
   isOnline: boolean;
-  playEncounterTranscript(encounter: CanonicalDungeonEncounterRecord): Promise<void>;
+  playEncounterTranscript(
+    encounter: CanonicalDungeonEncounterRecord,
+    identity?: EncounterPlaybackIdentity,
+  ): Promise<void>;
+  prepareEncounterPlayback(encounterId: string): void;
+  resetEncounterPlayback(expectedSessionId?: string | null): void;
   ports: Pick<GameApplicationPorts, "requestBootstrap" | "sendCommand">;
   publishAuthoritativeSnapshot(envelope: AuthoritativeSnapshotEnvelope): void;
   revisionRef: MutableRefObject<number>;
@@ -107,6 +113,7 @@ export function useAuthoritativeCommandDispatch(
       measureNetwork,
       measureApplication,
     }: CanonicalOperationContext): Promise<CommandRunResult> => {
+      let playbackPrepared = false;
       try {
         const commandId = crypto.randomUUID();
         const envelope = createCommandEnvelope(commandId, current.revisionRef.current, command);
@@ -127,7 +134,13 @@ export function useAuthoritativeCommandDispatch(
           : undefined;
         await applyAuthoritativeCommandSuccess(
           result,
-          options.beforeApplyAuthoritativeState,
+          () => {
+            options.beforeApplyAuthoritativeState?.();
+            if (resolvedEncounter) {
+              current.prepareEncounterPlayback(resolvedEncounter.encounterId);
+              playbackPrepared = true;
+            }
+          },
           () => measureApplication(() => current.applyAuthoritativeState(
             result.state,
             result.revision,
@@ -148,10 +161,11 @@ export function useAuthoritativeCommandDispatch(
           }
         }
         const playback = resolvedEncounter
-          ? current.playEncounterTranscript(resolvedEncounter)
+          ? current.playEncounterTranscript(resolvedEncounter, { revision: result.revision })
           : undefined;
         return { ok: true, ...(playback ? { playback } : {}) };
       } catch (error) {
+        if (playbackPrepared) current.resetEncounterPlayback(userId);
         if (error instanceof GameApiError && error.status === 409) {
           const commandInProgress = error.code === "COMMAND_IN_PROGRESS";
           let reloadSucceeded = false;

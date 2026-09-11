@@ -22,6 +22,7 @@ import DungeonPartyWorkspace from "./DungeonPartyWorkspace";
 import DungeonProgressControls from "./DungeonProgressControls";
 import DungeonCheckpointDecision from "./DungeonCheckpointDecision";
 import DungeonFarmVocationNotice from "./DungeonFarmVocationNotice";
+import { useDungeonAnimationPreference } from "../../hooks/useDungeonAnimationPreference";
 
 export interface DungeonPageProps {
   heroes: Hero[];
@@ -50,6 +51,7 @@ export interface DungeonPageProps {
 }
 
 export default function DungeonPage(props: DungeonPageProps) {
+  const { animationsEnabled, animationsRunning, toggleAnimations } = useDungeonAnimationPreference();
   const [selectedHeroId, setSelectedHeroId] = useState<string | null>(() => resolveSelectedHeroId(props.heroes, null));
   const [resetConfirming, setResetConfirming] = useState(false);
   const resetTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -116,7 +118,7 @@ export default function DungeonPage(props: DungeonPageProps) {
     <DungeonFarmVocationNotice heroNames={farmVocations} />
     <DungeonProgressControls view={progress} journey={journey} autoExplore={props.autoExplore} canMutate={props.canMutate && !checkpointPending} encounterActive={Boolean(props.activeEncounter)} activeHeroCount={activeHeroCount} resetConfirming={resetConfirming} onChangeFloor={props.onChangeFloor} onToggleAutoExplore={props.onToggleAutoExplore} onRetreatParty={props.onRetreatParty} onResetLevel={handleReset} onResume={props.onResume} onSelectFarmZone={props.onSelectFarmZone} />
     <div className="grid grid-cols-1 items-start gap-4">
-      <CurrentEncounterPanel view={encounter} canMutate={props.canMutate && !checkpointPending && !journey.halted && !journey.awaitingFarmSelection} activeHeroCount={activeHeroCount} isExploring={props.isExploring} onExplore={props.onExplore} />
+      <CurrentEncounterPanel view={encounter} canMutate={props.canMutate && !checkpointPending && !journey.halted && !journey.awaitingFarmSelection} activeHeroCount={activeHeroCount} isExploring={props.isExploring} animationsEnabled={animationsEnabled} animationsRunning={animationsRunning} onExplore={props.onExplore} onToggleAnimations={toggleAnimations} />
       <DungeonPartyWorkspace party={party.party} reserves={party.reserves} selectedHeroId={resolvedSelectedId} selectedHero={selectedHeroView} equipment={equipment} skills={skills} canMutate={props.canMutate && !props.activeEncounter && props.dungeonProgress.expedition.phase === "preparing"} onSelectHero={setSelectedHeroId} onToggleHeroActive={props.onToggleHeroActive} />
     </div>
     <DungeonHistoryPanel view={history} onClearBattleLogs={props.onClearBattleLogs} />

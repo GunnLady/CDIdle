@@ -142,6 +142,48 @@ describe("dungeon automation hook", () => {
     expect(dispatchCommand).toHaveBeenCalledOnce();
   });
 
+  it("does not start resolution after the document becomes hidden during exploration", async () => {
+    let releaseExplore!: (value: boolean) => void;
+    const explore = new Promise<boolean>((resolve) => { releaseExplore = resolve; });
+    const activeEncounter = { encounterId: "encounter-hidden" } as CanonicalActiveDungeonEncounter;
+    const dispatchCommand = vi.fn((command: GameCommand) => command.type === "dungeon.explore"
+      ? explore
+      : Promise.resolve(true));
+    const { result, rerender } = renderHook(
+      ({ currentEncounter }) => useDungeonAutomation({
+        activeFloor: 1,
+        autoExplore: false,
+        currentEncounter,
+        enabled: true,
+        leaderRef: { current: true },
+        dispatchCommand,
+      }),
+      { initialProps: { currentEncounter: null as CanonicalActiveDungeonEncounter | null } },
+    );
+
+    let sequence!: Promise<boolean>;
+    act(() => { sequence = result.current.exploreAndResolve(); });
+    await waitFor(() => expect(dispatchCommand).toHaveBeenCalledOnce());
+    Object.defineProperty(document, "visibilityState", { configurable: true, value: "hidden" });
+    act(() => document.dispatchEvent(new Event("visibilitychange")));
+    await act(async () => {
+      releaseExplore(true);
+      await sequence;
+    });
+    expect(dispatchCommand).not.toHaveBeenCalledWith(
+      { type: "dungeon.resolve" },
+      expect.anything(),
+    );
+
+    rerender({ currentEncounter: activeEncounter });
+    Object.defineProperty(document, "visibilityState", { configurable: true, value: "visible" });
+    act(() => document.dispatchEvent(new Event("visibilitychange")));
+    await waitFor(() => expect(dispatchCommand).toHaveBeenCalledWith(
+      { type: "dungeon.resolve" },
+      { interactive: false },
+    ));
+  });
+
   it("does not resolve after a retreat requested during exploration", async () => {
     let releaseExplore!: (value: boolean) => void;
     let releaseRetreat!: (value: boolean) => void;

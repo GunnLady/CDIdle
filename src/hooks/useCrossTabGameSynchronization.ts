@@ -8,6 +8,7 @@ import type {
   CrossTabAuthoritySnapshot,
 } from '../domain/crossTabAuthority';
 import type { CanonicalStateFailure } from '../domain/canonicalStateFailure';
+import type { EncounterPlaybackIdentity } from '../domain/encounterPlayback';
 import type { CanonicalOperationQueue } from '../lib/canonicalOperationQueue';
 import {
   canonicalStateFailure,
@@ -29,8 +30,12 @@ export interface CrossTabGameSynchronizationDependencies {
   getLatestSnapshot(): CrossTabAuthoritySnapshot | null;
   invalidateCanonicalSession(): void;
   markUserDeleted(userId: string): void;
-  playEncounterTranscript(encounter: CanonicalDungeonEncounterRecord): Promise<void>;
+  playEncounterTranscript(
+    encounter: CanonicalDungeonEncounterRecord,
+    identity?: EncounterPlaybackIdentity,
+  ): Promise<void>;
   prepareEncounterPlayback(encounterId: string): void;
+  resetEncounterPlayback(expectedSessionId?: string | null): void;
   ports: Pick<GameApplicationPorts, 'deleteGameCache' | 'signOut'>;
   ready: boolean;
   revisionRef: MutableRefObject<number>;
@@ -54,6 +59,7 @@ export function useCrossTabGameSynchronization(
     getLatestSnapshot: dependencies.getLatestSnapshot,
     applyIncomingSnapshot: async (snapshot, isCurrent) => {
       const current = dependenciesRef.current;
+      let playbackPrepared = false;
       try {
         const incomingEncounter = snapshot.state.encounterHistory.at(-1);
         const previousEncounter = current.encounterHistoryRef.current.at(-1);
@@ -63,6 +69,7 @@ export function useCrossTabGameSynchronization(
         );
         if (shouldPlayEncounter && incomingEncounter) {
           current.prepareEncounterPlayback(incomingEncounter.encounterId);
+          playbackPrepared = true;
         }
         await current.applyAuthoritativeState(
           snapshot.state,
@@ -71,14 +78,18 @@ export function useCrossTabGameSynchronization(
           snapshot.serverTime,
           snapshot.lastProcessedAt,
         );
-        if (!isCurrent()) return;
+        if (!isCurrent()) {
+          if (playbackPrepared) current.resetEncounterPlayback(current.userId);
+          return;
+        }
         const latest = dependenciesRef.current;
         latest.setApiAvailable(true);
         latest.setCanonicalStateFailureDetails(null);
         if (shouldPlayEncounter && incomingEncounter) {
-          void latest.playEncounterTranscript(incomingEncounter);
+          void latest.playEncounterTranscript(incomingEncounter, { revision: snapshot.revision });
         }
       } catch (error) {
+        if (playbackPrepared) current.resetEncounterPlayback(current.userId);
         if (!isCurrent()) return;
         const latest = dependenciesRef.current;
         const stateFailure = canonicalStateFailure(error);

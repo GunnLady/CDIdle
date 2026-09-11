@@ -16,6 +16,7 @@ export function useDungeonAutomation(options: {
   const optionsRef = useRef(options);
   optionsRef.current = options;
   const [documentVisible, setDocumentVisible] = useState(() => document.visibilityState === "visible");
+  const documentVisibleRef = useRef(document.visibilityState === "visible");
   const [isRunning, setIsRunning] = useState(false);
   const isRunningRef = useRef(false);
   const retreatRequestedRef = useRef(false);
@@ -48,7 +49,13 @@ export function useDungeonAutomation(options: {
           blockedRef.current = true;
           return false;
         }
-        if (retreatRequestedRef.current) return true;
+        const latest = optionsRef.current;
+        if (
+          retreatRequestedRef.current
+          || !documentVisibleRef.current
+          || !latest.enabled
+          || !latest.leaderRef.current
+        ) return true;
       }
       const resolved = await current.dispatchCommand({ type: "dungeon.resolve" }, { interactive });
       if (!resolved) blockedRef.current = true;
@@ -83,7 +90,11 @@ export function useDungeonAutomation(options: {
   }, []);
 
   useEffect(() => {
-    const handleVisibilityChange = () => setDocumentVisible(document.visibilityState === "visible");
+    const handleVisibilityChange = () => {
+      const visible = document.visibilityState === "visible";
+      documentVisibleRef.current = visible;
+      setDocumentVisible(visible);
+    };
     document.addEventListener("visibilitychange", handleVisibilityChange);
     return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
   }, []);

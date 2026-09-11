@@ -76,21 +76,19 @@ export default function App() {
     if (typeof window === "undefined") return "city";
     return parseActiveTabPreference(window.sessionStorage.getItem(ACTIVE_TAB_STORAGE_KEY));
   });
-  const activeTabRef = useRef(activeTab);
+  // Supabase Auth and authoritative game API sync states
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
   const {
     encounterPlayback,
     playEncounterTranscript,
     prepareEncounterPlayback,
     resetEncounterPlayback,
-  } = useEncounterPlayback(activeTabRef);
-  activeTabRef.current = activeTab;
+  } = useEncounterPlayback(activeTab, currentUser ? String(currentUser.id) : null);
 
   useEffect(() => {
     window.sessionStorage.setItem(ACTIVE_TAB_STORAGE_KEY, activeTab);
   }, [activeTab]);
 
-  // Supabase Auth and authoritative game API sync states
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isAuthLoading, setIsAuthLoading] = useState<boolean>(true);
   const [isInitialGameLoadDone, setIsInitialGameLoadDone] = useState<boolean>(false);
   const [browserOnline, setBrowserOnline] = useState<boolean>(() => typeof navigator === "undefined" || navigator.onLine);
@@ -316,6 +314,7 @@ export default function App() {
     ports: gameApplicationPorts,
     prepareEncounterPlayback,
     ready: isInitialGameLoadDone,
+    resetEncounterPlayback,
     revisionRef: gameRevisionRef,
     setApiAvailable,
     setCanonicalStateFailureDetails,
@@ -365,8 +364,10 @@ export default function App() {
     isAutomationLeaderRef,
     isOnline,
     playEncounterTranscript,
+    prepareEncounterPlayback,
     ports: gameApplicationPorts,
     publishAuthoritativeSnapshot,
+    resetEncounterPlayback,
     revisionRef: gameRevisionRef,
     setApiAvailable,
     setCanonicalStateFailureDetails,

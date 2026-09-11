@@ -10,6 +10,10 @@ import {
 } from "./heroPortraitAssets";
 import { createBoundedAsyncAssetCache } from "./visualAssetCache";
 import { registerVisualAssetSessionCleaner } from "./visualAssetSession";
+import sewersStageUrl from "./images/dungeon/undercity/sewers/undercity-sewers-stage-v1.jpg";
+import canalRatUrl from "./images/dungeon/undercity/sewers/rat-pack-canal-rat-v1.png";
+import mangyRatUrl from "./images/dungeon/undercity/sewers/rat-pack-mangy-rat-v1.png";
+import plagueRatUrl from "./images/dungeon/undercity/sewers/rat-pack-plague-rat-v1.png";
 
 export const ENCOUNTER_VISUAL_CATALOG_VERSION = 1;
 export const ENCOUNTER_VISUAL_CACHE_LIMIT = 16;
@@ -46,7 +50,7 @@ export interface EncounterVisualDescriptor {
   load?: () => Promise<string>;
 }
 
-const loadAsset = (loader: () => Promise<{ default: string }>) => () => loader().then((asset) => asset.default);
+const loadedUrl = (url: string) => () => Promise.resolve(url);
 
 const staticCatalog: Readonly<Record<string, EncounterVisualDescriptor>> = {
   [ENCOUNTER_VISUAL_KEYS.sewers.background]: {
@@ -58,7 +62,7 @@ const staticCatalog: Readonly<Record<string, EncounterVisualDescriptor>> = {
     scale: 1,
     fallbackGlyph: "",
     fallback: false,
-    load: loadAsset(() => import("./images/dungeon/undercity/sewers/undercity-sewers-stage-v1.jpg")),
+    load: loadedUrl(sewersStageUrl),
   },
   [ENCOUNTER_VISUAL_KEYS.sewers.ratPack.a]: {
     key: ENCOUNTER_VISUAL_KEYS.sewers.ratPack.a,
@@ -69,7 +73,7 @@ const staticCatalog: Readonly<Record<string, EncounterVisualDescriptor>> = {
     scale: 0.9,
     fallbackGlyph: "R",
     fallback: false,
-    load: loadAsset(() => import("./images/dungeon/undercity/sewers/rat-pack-canal-rat-v1.png")),
+    load: loadedUrl(canalRatUrl),
   },
   [ENCOUNTER_VISUAL_KEYS.sewers.ratPack.b]: {
     key: ENCOUNTER_VISUAL_KEYS.sewers.ratPack.b,
@@ -80,7 +84,7 @@ const staticCatalog: Readonly<Record<string, EncounterVisualDescriptor>> = {
     scale: 1,
     fallbackGlyph: "R",
     fallback: false,
-    load: loadAsset(() => import("./images/dungeon/undercity/sewers/rat-pack-mangy-rat-v1.png")),
+    load: loadedUrl(mangyRatUrl),
   },
   [ENCOUNTER_VISUAL_KEYS.sewers.ratPack.c]: {
     key: ENCOUNTER_VISUAL_KEYS.sewers.ratPack.c,
@@ -91,7 +95,7 @@ const staticCatalog: Readonly<Record<string, EncounterVisualDescriptor>> = {
     scale: 0.94,
     fallbackGlyph: "R",
     fallback: false,
-    load: loadAsset(() => import("./images/dungeon/undercity/sewers/rat-pack-plague-rat-v1.png")),
+    load: loadedUrl(plagueRatUrl),
   },
   [ENCOUNTER_VISUAL_KEYS.effects.physicalImpact]: {
     key: ENCOUNTER_VISUAL_KEYS.effects.physicalImpact,

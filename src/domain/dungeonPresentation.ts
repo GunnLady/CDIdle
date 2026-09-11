@@ -27,6 +27,10 @@ import {
   getEncounterPlaybackTranscript,
   type EncounterSceneState,
 } from "./encounterSceneProjection";
+import {
+  createDungeonCombatSceneView,
+  type DungeonCombatSceneView,
+} from "./dungeonCombatScene";
 
 export interface DungeonProgressView {
   floor: number;
@@ -91,8 +95,8 @@ export interface DungeonEncounterView {
   state: "pending" | "playing" | "victory" | "defeat";
   transcript: Array<{ id: string; message: string; category: CanonicalDungeonTranscriptEvent["category"] }>;
   result?: string;
-  enemies: Array<{ id: string; name: string; hp: number | null; maxHp: number | null; role?: string; intent?: string; effects: string[] }>;
   scene: EncounterSceneState | null;
+  combatScene: DungeonCombatSceneView | null;
 }
 
 export interface DungeonHistoryView {
@@ -299,27 +303,6 @@ function formatEnemyRole(role?: string): string {
     : "Ennemi";
 }
 
-function createPlaybackEnemies(
-  record: CanonicalDungeonEncounterRecord,
-  scene: EncounterSceneState,
-): DungeonEncounterView["enemies"] {
-  const recordEnemies = record.enemies ?? [];
-  return scene.actors.filter((actor) => actor.team === "enemies").map((actor) => {
-    const recorded = actor.sourceId
-      ? recordEnemies.find((enemy) => enemy.id === actor.sourceId)
-      : recordEnemies[actor.slot];
-    return {
-      id: actor.sourceId ?? actor.id,
-      name: actor.name,
-      hp: actor.currentHp,
-      maxHp: actor.maximumHp,
-      role: formatEnemyRole(recorded?.role),
-      intent: recorded?.intent,
-      effects: recorded?.effects ?? [],
-    };
-  });
-}
-
 export function createEncounterView(
   record: CanonicalDungeonEncounterRecord,
   heroNames: Map<string, string>,
@@ -342,7 +325,12 @@ export function createEncounterView(
       : record.outcome === "victory" ? "Victoire" : "Défaite",
     state,
     scene,
-    enemies: createPlaybackEnemies(record, scene),
+    combatScene: record.kind === "fight"
+      ? createDungeonCombatSceneView(scene, (record.enemies ?? []).map((enemy) => ({
+          id: enemy.id,
+          role: formatEnemyRole(enemy.role),
+        })))
+      : null,
     transcript: visibleTranscript.map((event) => ({
       id: `${record.encounterId}-${event.sequence}`,
       message: formatTranscriptEvent(event, heroNames),
@@ -374,8 +362,8 @@ export function createCurrentEncounterView(
       statusLabel: "Résolution en attente",
       state: "pending",
       transcript: [],
-      enemies: [],
       scene: null,
+      combatScene: null,
     };
   }
   const latest = encounterHistory.at(-1);

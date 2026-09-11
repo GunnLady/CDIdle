@@ -72,6 +72,7 @@ function createDependencies(
     },
     prepareEncounterPlayback: vi.fn(),
     ready: true,
+    resetEncounterPlayback: vi.fn(),
     revisionRef: { current: 2 },
     setApiAvailable: vi.fn(),
     setCanonicalStateFailureDetails: vi.fn(),
@@ -121,6 +122,7 @@ describe('cross-tab game synchronization hook', () => {
       snapshot.lastProcessedAt,
     );
     expect(order).toEqual(['prepare', 'apply', 'play']);
+    expect(dependencies.playEncounterTranscript).toHaveBeenCalledWith(encounter, { revision: 3 });
     expect(dependencies.setApiAvailable).toHaveBeenCalledWith(true);
   });
 
@@ -132,6 +134,20 @@ describe('cross-tab game synchronization hook', () => {
 
     expect(dependencies.applyAuthoritativeState).toHaveBeenCalledOnce();
     expect(dependencies.setApiAvailable).not.toHaveBeenCalled();
+    expect(dependencies.playEncounterTranscript).not.toHaveBeenCalled();
+    expect(dependencies.resetEncounterPlayback).toHaveBeenCalledWith('user-1');
+  });
+
+  it('clears a prepared scene when an incoming snapshot cannot be applied', async () => {
+    const dependencies = createDependencies({
+      applyAuthoritativeState: vi.fn(async () => { throw new Error('apply failed'); }),
+    });
+    renderHook(() => useCrossTabGameSynchronization(dependencies));
+
+    await capturedOptions().applyIncomingSnapshot(snapshot, () => true);
+
+    expect(dependencies.prepareEncounterPlayback).toHaveBeenCalledWith(encounter.encounterId);
+    expect(dependencies.resetEncounterPlayback).toHaveBeenCalledWith('user-1');
     expect(dependencies.playEncounterTranscript).not.toHaveBeenCalled();
   });
 

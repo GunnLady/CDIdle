@@ -122,6 +122,7 @@ describe("dungeon presentation projections", () => {
       activeStep: { sequence: 0, summary: "Calcul canonique exact." },
       limitations: ["initial-actors-unavailable"],
     });
+    expect(view?.combatScene).toBeNull();
   });
 
   it("hides redundant enemy intents while keeping the resolved enemy action", () => {
@@ -143,6 +144,7 @@ describe("dungeon presentation projections", () => {
     const view = createCurrentEncounterView(null, [record], null, []);
 
     expect(view?.transcript.map((event) => event.message)).toEqual(["Rat attaque Ariane et inflige 3 dégâts."]);
+    expect(view?.combatScene).not.toBeNull();
   });
 
   it("translates every canonical enemy role for presentation", () => {
@@ -160,9 +162,18 @@ describe("dungeon presentation projections", () => {
       rewards: { gold: 0, loot: [] },
     };
 
-    const view = createCurrentEncounterView(null, [record], null, []);
+    const translated = roles.map((role) => {
+      const singleEnemyRecord = {
+        ...record,
+        encounterId: `translated-${role}`,
+        enemy: { id: role, name: role, hp: 0, maxHp: 1 },
+        enemies: [{ id: role, name: role, hp: 0, maxHp: 1, role }],
+      };
+      const view = createCurrentEncounterView(null, [singleEnemyRecord], null, []);
+      return view?.combatScene?.actors.find((actor) => actor.team === "enemies")?.role;
+    });
 
-    expect(view?.enemies.map((enemy) => enemy.role)).toEqual([
+    expect(translated).toEqual([
       "Combattant",
       "Protecteur",
       "Tireur",
@@ -195,17 +206,20 @@ describe("dungeon presentation projections", () => {
     };
 
     const damaged = createCurrentEncounterView(null, [record], { encounterId: record.encounterId, visibleCount: 1, complete: false }, []);
-    expect(damaged?.enemies).toEqual([
-      expect.objectContaining({ id: "guard", hp: 4 }),
-      expect.objectContaining({ id: "support", hp: null }),
+    expect(damaged?.scene?.actors.filter((actor) => actor.team === "enemies").map((actor) => ({
+      id: actor.sourceId,
+      hp: actor.currentHp,
+    }))).toEqual([
+      { id: "guard", hp: 4 },
+      { id: "support", hp: null },
     ]);
     expect(damaged?.scene?.actors.find((actor) => actor.sourceId === "support")?.currentHp).toBeNull();
 
     const healed = createCurrentEncounterView(null, [record], { encounterId: record.encounterId, visibleCount: 2, complete: false }, []);
-    expect(healed?.enemies[0]).toMatchObject({ id: "guard", hp: 7 });
+    expect(healed?.scene?.actors.find((actor) => actor.sourceId === "guard")?.currentHp).toBe(7);
 
     const completed = createCurrentEncounterView(null, [record], { encounterId: record.encounterId, visibleCount: 4, complete: true }, []);
-    expect(completed?.enemies.map((enemy) => enemy.hp)).toEqual([0, 0]);
+    expect(completed?.scene?.actors.filter((actor) => actor.team === "enemies").map((actor) => actor.currentHp)).toEqual([0, 0]);
   });
 
   it("keeps only dungeon notes beside canonical history", () => {
