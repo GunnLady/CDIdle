@@ -4,6 +4,7 @@ import type {
   CanonicalDungeonLoot,
   CanonicalDungeonTranscriptEvent,
 } from "../../shared/contracts/authoritative";
+import { UNDERCITY_KING_MONSTROUS_INTENT } from "../../shared/domain/undercity-combat";
 
 export type EncounterSceneTeam = "heroes" | "enemies";
 export type EncounterSceneResult = CanonicalDungeonEncounterRecord["outcome"];
@@ -24,6 +25,7 @@ export interface EncounterSceneActor {
   name: string;
   visualKey: string | null;
   contentKey: string | null;
+  visualVariant: string | null;
   currentHp: number | null;
   maximumHp: number | null;
   currentMana: number | null;
@@ -71,6 +73,7 @@ export interface EncounterSceneStep {
   sourceActorId: string | null;
   targetActorIds: string[];
   impacts: EncounterSceneImpact[];
+  visualVariantChanges: Array<{ actorId: string; variant: string }>;
   rewards: EncounterSceneReward[];
   projection: "structured" | "summary";
   result: EncounterSceneResult | null;
@@ -291,6 +294,7 @@ function buildActors(
       name: names.heroes.get(sourceId) ?? neutralActorName("heroes", slot),
       visualKey: nonEmptyString(tuple?.[1]),
       contentKey: null,
+      visualVariant: null,
       currentHp: finiteNumber(tuple?.[2]),
       maximumHp: finiteNumber(tuple?.[3]),
       currentMana: finiteNumber(tuple?.[4]),
@@ -321,6 +325,7 @@ function buildActors(
       name: finalEnemy?.name ?? (sourceId ? names.enemies.get(sourceId) : undefined) ?? neutralActorName("enemies", slot),
       visualKey: null,
       contentKey,
+      visualVariant: null,
       currentHp: finiteNumber(initialEnemy?.[1]),
       maximumHp: finiteNumber(initialEnemy?.[2]) ?? finiteNumber(finalEnemy?.maxHp),
       currentMana: null,
@@ -345,6 +350,7 @@ function buildActors(
       name: encounter.enemy.name ?? (inferredId ? names.enemies.get(inferredId) : undefined) ?? neutralActorName("enemies", slot),
       visualKey: null,
       contentKey: null,
+      visualVariant: null,
       currentHp: null,
       maximumHp: finiteNumber(encounter.enemy.maxHp),
       currentMana: null,
@@ -379,6 +385,7 @@ function buildActors(
       name: names.enemies.get(sourceId) ?? neutralActorName("enemies", slot),
       visualKey: null,
       contentKey: null,
+      visualVariant: null,
       currentHp: null,
       maximumHp: finiteNumber(maximumHp),
       currentMana: null,
@@ -463,8 +470,24 @@ function buildSteps(
   const steps: EncounterSceneStep[] = [];
   let previousSignature: string | null = null;
   let previousActionId: string | null = null;
+  let visibleIndex = 0;
+  const pendingVisualVariants = new Map<string, string>();
 
-  for (const [index, event] of getEncounterPlaybackTranscript(encounter).entries()) {
+  for (const event of encounter.transcript) {
+    if (event.type === "enemy.intent") {
+      const sourceId = nonEmptyString(event.monsterId);
+      const actor = sourceId ? enemyActorsBySource.get(sourceId) : null;
+      if (
+        actor?.contentKey === "rat-king:c"
+        && nonEmptyString(event.intent) === UNDERCITY_KING_MONSTROUS_INTENT
+        && stateByActorId.get(actor.id)?.visualVariant !== "monstrous"
+      ) {
+        pendingVisualVariants.set(actor.id, "monstrous");
+      }
+      continue;
+    }
+    const index = visibleIndex;
+    visibleIndex += 1;
     const sequence = eventSequence(event, index);
     const id = `${encounter.encounterId}:event:${sequence}:${index}`;
     const signature = actionSignature(event);
@@ -476,6 +499,12 @@ function buildSteps(
     const sourceActorId = sourceActorForEvent(event, heroActorsBySource, enemyActorsBySource);
     const impacts: EncounterSceneImpact[] = [];
     const changedActors = new Set<string>();
+    const visualVariantChanges = [...pendingVisualVariants].map(([actorId, variant]) => ({ actorId, variant }));
+    pendingVisualVariants.clear();
+    for (const change of visualVariantChanges) {
+      const actor = stateByActorId.get(change.actorId);
+      if (actor) actor.visualVariant = change.variant;
+    }
 
     const appendImpact = (input: {
       actor: MutableActor | null;
@@ -625,6 +654,7 @@ function buildSteps(
           .map((impact) => impact.targetActorId),
       ])],
       impacts,
+      visualVariantChanges,
       rewards,
       projection: impacts.length || rewards.length
         ? "structured"
@@ -676,6 +706,10 @@ export function applyEncounterSceneStep(
 ): EncounterSceneState {
   if (!step.id.startsWith(`${state.encounterId}:event:`)) return state;
   const actorsById = new Map(state.actors.map((actor) => [actor.id, actor]));
+  for (const change of step.visualVariantChanges) {
+    const actor = actorsById.get(change.actorId);
+    if (actor) actorsById.set(actor.id, { ...actor, visualVariant: change.variant });
+  }
   for (const impact of step.impacts) {
     const actor = actorsById.get(impact.targetActorId);
     if (!actor) continue;

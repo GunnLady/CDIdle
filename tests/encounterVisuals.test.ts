@@ -63,6 +63,18 @@ describe("encounter visual catalog", () => {
           scale: visual.scale,
         });
       }
+      for (const visual of pack.variants) {
+        expect(resolveEncounterVisualDescriptor(
+          getUndercityEnemyVisualKey(visual.blueprintId, visual.memberKey, visual.variantKey),
+        )).toMatchObject({
+          kind: "enemy",
+          fallback: false,
+          version: 1,
+          provenance: visual.provenance,
+          anchor: visual.anchor,
+          scale: visual.scale,
+        });
+      }
     }
   });
 
@@ -71,7 +83,7 @@ describe("encounter visual catalog", () => {
     expect(getEncounterVisualAssetCacheStats()).toEqual({ size: 0, limit: ENCOUNTER_VISUAL_CACHE_LIMIT });
     const manifest = getStaticEncounterVisualManifest();
     const undercityEntryCount = UNDERCITY_ZONE_VISUAL_PACKS.reduce(
-      (total, pack) => total + 1 + pack.enemies.length,
+      (total, pack) => total + 1 + pack.enemies.length + pack.variants.length,
       0,
     );
     expect(manifest).toHaveLength(undercityEntryCount + 5);

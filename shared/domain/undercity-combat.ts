@@ -16,6 +16,8 @@ export type UndercityCombatGroup = {
   baseStats: Record<string, { atk: number; def: number; magicDef: number }>;
 };
 
+export const UNDERCITY_KING_MONSTROUS_INTENT = "Assaut monstrueux";
+
 export function createUndercityCombatGroup(monster: Monster, blueprint: UndercityEncounterBlueprint): UndercityCombatGroup {
   const members = createUndercityEnemyGroup(monster, blueprint);
   return {
@@ -60,7 +62,7 @@ export function prepareUndercityEnemyRound(group: UndercityCombatGroup, round: n
     if (member.role === "king") {
       attackFactor = guardAlive ? 0.75 : 1.10;
       defenseFactor = guardAlive ? 1.15 : 0.85;
-      member.intent = guardAlive ? "Commandement protégé" : "Assaut monstrueux";
+      member.intent = guardAlive ? "Commandement protégé" : UNDERCITY_KING_MONSTROUS_INTENT;
     } else if (group.behavior === "cover") {
       defenseFactor = protectorAlive || (group.members.length === 1 && round <= 2) ? 1.15 : 0.85;
       member.intent = defenseFactor > 1 ? "Sous protection" : "Exposé";

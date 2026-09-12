@@ -148,6 +148,59 @@ describe("encounter scene projection", () => {
     expect(modernFight).toEqual(encounterBeforeProjection);
   });
 
+  it("switches the Rat King visual on the first visible action after his monstrous intent", () => {
+    const encounter = {
+      ...modernFight,
+      encounterId: "rat-king-phase-two",
+      enemy: { id: "rat-king", name: "Roi des Rats", hp: 80, maxHp: 120, isBoss: true },
+      enemies: [
+        { id: "king-guard-a", name: "Senestre", hp: 0, maxHp: 20, role: "guard" },
+        { id: "king-guard-b", name: "Dextre", hp: 0, maxHp: 20, role: "guard" },
+        { id: "king", name: "Roi des Rats", hp: 80, maxHp: 80, role: "king", isBoss: true },
+      ],
+      initialActors: {
+        ...modernFight.initialActors,
+        b: "rat-king",
+        e: [["a", 20, 20], ["b", 20, 20], ["c", 80, 80]],
+      },
+      transcript: [
+        { sequence: 0, type: "encounter.started", message: "Le Roi commande." },
+        {
+          sequence: 1,
+          type: "enemy.intent",
+          round: 2,
+          monsterId: "king",
+          monsterName: "Roi des Rats",
+          intent: "Assaut monstrueux",
+        },
+        {
+          sequence: 2,
+          type: "enemy.hit",
+          round: 2,
+          monsterId: "king",
+          monsterName: "Roi des Rats",
+          targetHeroId: "hero-a",
+          damage: 4,
+          heroHpBefore: 30,
+          heroHp: 26,
+          heroMaxHp: 40,
+        },
+      ],
+    } satisfies CanonicalDungeonEncounterRecord;
+    const timeline = createEncounterSceneTimeline(encounter);
+    const king = actorBySource(timeline.actors, "king");
+
+    expect(timeline.steps).toHaveLength(2);
+    expect(timeline.steps[0].visualVariantChanges).toEqual([]);
+    expect(timeline.steps[1].visualVariantChanges).toEqual([
+      { actorId: king.id, variant: "monstrous" },
+    ]);
+    expect(actorBySource(projectEncounterScene(timeline, { visibleCount: 1, complete: false }).actors, "king").visualVariant)
+      .toBeNull();
+    expect(actorBySource(projectEncounterScene(timeline, { visibleCount: 2, complete: false }).actors, "king").visualVariant)
+      .toBe("monstrous");
+  });
+
   it("projects ordered skill impacts and source mana without conflating announced and applied values", () => {
     const enriched = {
       ...modernFight,

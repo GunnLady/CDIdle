@@ -74,3 +74,14 @@ test("keeps four heroes and every available UnderCity boss readable at the 1024p
     await expectUndercityEncounter(page, pack.zoneId, zone.boss.id);
   }
 });
+
+test("loads the monstrous Rat King variant after the canonical phase-two intent", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 1000 });
+  await page.goto("/tests/browser/fixtures/dungeon-harness.html?combat-scene=1&blueprint=rat-king&king-phase=2&step=2");
+
+  const enemies = page.locator("[data-testid='dungeon-combat-actor'][data-team='enemies']");
+  const kingVisual = enemies.nth(2).getByTestId("dungeon-combat-visual");
+  await expect(kingVisual).toHaveAttribute("data-asset-status", "ready");
+  await expect(kingVisual.locator("img")).toHaveAttribute("src", /rat-king-monster-form-v3\.png/);
+  await expectActorsWithinStage(page);
+});

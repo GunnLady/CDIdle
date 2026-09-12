@@ -1,7 +1,7 @@
 ---
 id: CDI-112
 title: Produire les assets de la Cour du Roi des Rats
-status: Later
+status: Done
 area: art
 priority: P1
 size: M
@@ -10,7 +10,7 @@ source: Demande utilisateur du 10 septembre 2026 - redécoupage approuvé des sc
 depends_on: ["CDI-099"]
 blocks: ["CDI-116"]
 github_issue: null
-related_docs: ["docs/development/dungeon-2d-encounter-plan.md","docs/development/dungeon-2d-resizing-proposal.md","src/assets/heroSpriteSheets.ts","src/domain/heroPortrait.ts","src/components/HeroPortrait.tsx","shared/domain/undercity.ts","assets/design/hero-sprites/human-tier1-class-spritesheets-v1.prompt.md"]
+related_docs: ["docs/development/dungeon-2d-encounter-plan.md","docs/development/dungeon-2d-resizing-proposal.md","src/assets/undercityCourtVisualManifest.ts","src/assets/undercityVisualManifest.ts","shared/domain/undercity.ts","assets/design/dungeon-2d/undercity-court-kit-v1.prompt.md"]
 ---
 
 # CDI-112 — Produire les assets de la Cour du Roi des Rats
@@ -36,6 +36,9 @@ Périmètre approuvé dans dungeon-2d-resizing-proposal.md ; taille relative inc
 - Créer l'ambiance de zone et les ressources manquantes en réutilisant le catalogue établi par CDI-099.
 - Préparer provenance, versions, cadrage, ancrages, échelles, transparence, poids et fallback ; vérifier la couverture contre UNDERCITY_ZONES.
 - Valider la cohérence artistique et le chargement à la demande de cette zone, indépendamment des autres packs.
+- Livrer les deux formes visuelles du Roi et déclencher la forme monstrueuse sur
+  le signal métier canonique émis après la mort de ses deux gardes, sans changer
+  ses PV ni les règles de combat.
 
 ## Hors perimetre
 
@@ -63,12 +66,15 @@ Les dépendances directes et leurs liens blocks font foi ; les acquis déjà liv
 
 ## Criteres d'acceptation
 
-- [ ] Le vérificateur confirme les six blueprints de court et leurs 15 emplacements de membres sans entrée ni fichier manquant.
-- [ ] Décor, acteurs, provenance/versions, ancrages et échelles sont livrés dans le catalogue de présentation.
-- [ ] Les rôles, l'élite et le boss restent lisibles ; aucune ressource de repli provisoire ne remplace silencieusement un membre attendu. Roi et deux gardes sont distincts.
-- [ ] Fichiers/dimensions/transparence, téléchargement à froid/cache et cas lent/absent sont contrôlés dans les budgets.
-- [ ] L'utilisateur valide le pack sur fond sombre à 1024/1280/1440 px et au zoom 200 %, dont le cas quatre héros/boss escorté si applicable.
-- [ ] Le pack est chargeable indépendamment des quatre autres zones ; aucune dépendance séquentielle artistique inutile n'est introduite.
+- [x] Le vérificateur confirme les six blueprints de court et leurs 15 emplacements de membres sans entrée ni fichier manquant.
+- [x] Décor, acteurs, provenance/versions, ancrages et échelles sont livrés dans le catalogue de présentation.
+- [x] Les rôles, l'élite et le boss restent lisibles ; aucune ressource de repli provisoire ne remplace silencieusement un membre attendu. Roi et deux gardes sont distincts.
+- [x] Fichiers/dimensions/transparence, téléchargement à froid/cache et cas lent/absent sont contrôlés dans les budgets.
+- [x] L'utilisateur valide le pack sur fond sombre à 1024/1280/1440 px et au zoom 200 %, dont le cas quatre héros/boss escorté si applicable.
+- [x] Le Roi conserve sa forme armée en phase 1 puis adopte sa forme monstrueuse,
+  désarmée et plus massive au premier événement visible suivant son intention
+  canonique `Assaut monstrueux`.
+- [x] Le pack est chargeable indépendamment des quatre autres zones ; aucune dépendance séquentielle artistique inutile n'est introduite.
 
 ## Tests
 
@@ -82,9 +88,29 @@ Les dépendances directes et leurs liens blocks font foi ; les acquis déjà liv
 
 Ces validations sont à exécuter lors de l'implémentation du ticket ; le redécoupage documentaire ne les déclare pas passées.
 
+Résultats techniques du 12 septembre 2026 :
+
+- `check:dungeon-visuals` : cinq packs valides ; Cour = six blueprints,
+  15 membres canoniques, 16 fichiers uniques décor et variante de phase 2
+  inclus, 2 239 334 octets au total ; scène la plus lourde = phase 2 du
+  `rat-king`, 702 554 octets sur 2 MiB.
+- Vitest ciblé : 5 fichiers, 67 tests passés (`encounterSceneProjection`,
+  `dungeonCombatScene`, `encounterVisuals`, domaine UnderCity et budget egress).
+- Playwright packs UnderCity : 5 tests passés à 1024, 1280, 1440 px, dans
+  l'équivalent 1024 px à zoom 200 %, et sur la variante explicite du Roi en
+  phase 2 ; assets prêts et acteurs dans la scène.
+- `typecheck`, `lint --quiet`, `build`, `check:bundle` et `board:validate`
+  réussis ; bundle JS = 255 690 octets gzip, plus gros chunk = 121 290 octets.
+- `git diff --check` réussi ; seuls les avertissements CRLF historiques du
+  poste Windows sont remontés.
+
 ## Validation manuelle
 
-L'utilisateur valide Cour du Roi des Rats : cohérence CDIdle, silhouettes, détourage, taille relative et lisibilité des groupes/élite/boss. Les vérifications de poids ne remplacent pas cet avis.
+L'utilisateur a validé écran par écran la Cour du Roi des Rats : cohérence
+CDIdle, silhouettes, détourage, diversité, taille relative et lisibilité des
+groupes, de l'élite et du boss. Il a également validé les deux formes du Roi,
+dont sa mutation de phase 2 désarmée au cadrage final 384 × 345 et à l'échelle
+runtime `2.6`. Les vérifications de poids ne remplacent pas cet avis.
 
 ## Preservation
 
@@ -100,6 +126,10 @@ L'utilisateur valide Cour du Roi des Rats : cohérence CDIdle, silhouettes, dét
 
 ## Handoff
 
-Fournir manifeste de court, sources/prompts autorisés, réemplois, métriques, contrôle des 15 emplacements et avis utilisateur. V01/V13/V15/V18 et V05. CDI-116 mesure la couverture complète des cinq packs.
+Manifeste de Cour, sources/prompts autorisés, réemplois, métriques, contrôle des
+15 emplacements et avis utilisateur sont livrés. La variante visuelle
+`undercity:rat-king:c:monstrous` est pilotée par l'intention canonique du Roi et
+testée dans la projection, la présentation, le catalogue et le harness PC.
+V01/V13/V15/V18 et V05. CDI-116 mesure la couverture complète des cinq packs.
 
 Indiquer fichiers, commandes réellement exécutées, résultats et limites. Ne pas clore avec un écart réel non corrigé ; ne pas attribuer au présent ticket la livraison de ses successeurs.

@@ -102,6 +102,15 @@ const undercityVisuals: StaticVisual[] = UNDERCITY_ZONE_VISUAL_PACKS.flatMap((pa
     visual.fallbackGlyph,
     undercityAssetUrl(pack.directory, visual.file),
   ]),
+  ...pack.variants.map((visual): StaticVisual => [
+    getUndercityEnemyVisualKey(visual.blueprintId, visual.memberKey, visual.variantKey),
+    "enemy",
+    visual.provenance,
+    visual.anchor,
+    visual.scale,
+    visual.fallbackGlyph,
+    undercityAssetUrl(pack.directory, visual.file),
+  ]),
 ]);
 
 const staticCatalog: Readonly<Record<string, EncounterVisualDescriptor>> = Object.fromEntries(([

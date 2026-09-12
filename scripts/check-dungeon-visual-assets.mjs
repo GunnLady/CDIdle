@@ -150,7 +150,7 @@ const measuredPacks = UNDERCITY_ZONE_VISUAL_PACKS.map((pack) => {
   );
 
   const enemyAssetsByFile = new Map();
-  for (const visual of pack.enemies) {
+  for (const visual of [...pack.enemies, ...pack.variants]) {
     if (!enemyAssetsByFile.has(visual.file)) enemyAssetsByFile.set(visual.file, visual);
   }
   const assetManifest = [
@@ -192,7 +192,8 @@ const measuredPacks = UNDERCITY_ZONE_VISUAL_PACKS.map((pack) => {
   const assetsByFile = new Map(assets.map((entry) => [entry.file, entry]));
   const backgroundBytes = assetsByFile.get(pack.background.file)?.bytes ?? 0;
   const sceneGroups = blueprints.map((blueprint) => {
-    const files = [...new Set(pack.enemies
+    const baseVisuals = pack.enemies.filter((visual) => visual.blueprintId === blueprint.id);
+    const files = [...new Set(baseVisuals
       .filter((visual) => visual.blueprintId === blueprint.id)
       .map((visual) => visual.file))];
     const bytes = backgroundBytes + files.reduce(
@@ -200,7 +201,26 @@ const measuredPacks = UNDERCITY_ZONE_VISUAL_PACKS.map((pack) => {
       0,
     );
     assert(bytes <= sceneBudgetBytes, `${blueprint.id} scene exceeds ${sceneBudgetBytes} bytes`);
-    return { blueprintId: blueprint.id, members: blueprint.members.length, files, bytes };
+    const variants = pack.variants
+      .filter((variant) => variant.blueprintId === blueprint.id)
+      .map((variant) => {
+        const variantFiles = [...new Set([
+          ...baseVisuals
+            .filter((visual) => visual.memberKey !== variant.memberKey)
+            .map((visual) => visual.file),
+          variant.file,
+        ])];
+        const variantBytes = backgroundBytes + variantFiles.reduce(
+          (total, file) => total + (assetsByFile.get(file)?.bytes ?? 0),
+          0,
+        );
+        assert(
+          variantBytes <= sceneBudgetBytes,
+          `${blueprint.id}:${variant.variantKey} scene exceeds ${sceneBudgetBytes} bytes`,
+        );
+        return { variantKey: variant.variantKey, files: variantFiles, bytes: variantBytes };
+      });
+    return { blueprintId: blueprint.id, members: blueprint.members.length, files, bytes, variants };
   });
   return {
     zoneId: pack.zoneId,

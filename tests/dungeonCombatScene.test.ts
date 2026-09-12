@@ -26,6 +26,7 @@ function actor(
     name: id,
     visualKey: team === "heroes" ? "Guerrier_Female_1" : null,
     contentKey: team === "enemies" ? `rat-pack:${String.fromCharCode(97 + slot)}` : null,
+    visualVariant: null,
     currentHp: 20,
     maximumHp: 20,
     currentMana: team === "heroes" ? 5 : null,
@@ -67,6 +68,7 @@ function step(overrides: Partial<EncounterSceneStep> = {}): EncounterSceneStep {
     sourceActorId: "hero-0",
     targetActorIds: ["enemy-0"],
     impacts: [impact("impact-1", "enemy-0")],
+    visualVariantChanges: [],
     rewards: [],
     projection: "structured",
     result: null,
@@ -143,6 +145,21 @@ describe("dungeon combat scene presentation", () => {
         expect(view.actors[1].visualKey).toBe(`undercity:${blueprint.id}:${memberKey}`);
       }
     }
+  });
+
+  it("selects the phase-two visual without changing the Rat King content identity", () => {
+    const view = createDungeonCombatSceneView(scene({
+      actors: [
+        actor("hero-0", "heroes", 0),
+        actor("rat-king", "enemies", 0, {
+          contentKey: "rat-king:c",
+          visualVariant: "monstrous",
+        }),
+      ],
+    }));
+
+    expect(view.environment).toBe("court");
+    expect(view.actors[1].visualKey).toBe("undercity:rat-king:c:monstrous");
   });
 
   it("derives the environment from enemies rather than colliding hero content keys", () => {
@@ -376,6 +393,49 @@ describe("dungeon combat scene presentation", () => {
 
     expect(view.actors[1]?.standard).toMatchObject({ xPercent: 69, yPercent: 74 });
     expect(view.actors[2]?.standard).toMatchObject({ xPercent: 78, yPercent: 63 });
+    expect(view.actors[3]?.standard).toMatchObject({ xPercent: 87, yPercent: 83 });
+  });
+
+  it("moves the court rat one percent left and down on desktop", () => {
+    const view = createDungeonCombatSceneView(scene({
+      actors: [
+        actor("hero-0", "heroes", 0),
+        actor("enemy-0", "enemies", 0, { contentKey: "court-vermin:a" }),
+        actor("enemy-1", "enemies", 1, { contentKey: "court-vermin:b" }),
+      ],
+    }));
+
+    expect(view.actors[1]?.standard).toMatchObject({ xPercent: 68, yPercent: 75 });
+    expect(view.actors[2]?.standard).toMatchObject({ xPercent: 79, yPercent: 64 });
+  });
+
+  it("stages the chamberlain escort on desktop", () => {
+    const view = createDungeonCombatSceneView(scene({
+      actors: [
+        actor("hero-0", "heroes", 0),
+        actor("enemy-0", "enemies", 0, { contentKey: "chamberlain-escort:a" }),
+        actor("enemy-1", "enemies", 1, { contentKey: "chamberlain-escort:b" }),
+        actor("enemy-2", "enemies", 2, { contentKey: "chamberlain-escort:c" }),
+      ],
+    }));
+
+    expect(view.actors[1]?.standard).toMatchObject({ xPercent: 67, yPercent: 74 });
+    expect(view.actors[2]?.standard).toMatchObject({ xPercent: 78, yPercent: 63 });
+    expect(view.actors[3]?.standard).toMatchObject({ xPercent: 87, yPercent: 83 });
+  });
+
+  it("stages the Rat King's herald group on desktop", () => {
+    const view = createDungeonCombatSceneView(scene({
+      actors: [
+        actor("hero-0", "heroes", 0),
+        actor("enemy-0", "enemies", 0, { contentKey: "king-herald:a" }),
+        actor("enemy-1", "enemies", 1, { contentKey: "king-herald:b" }),
+        actor("enemy-2", "enemies", 2, { contentKey: "king-herald:c" }),
+      ],
+    }));
+
+    expect(view.actors[1]?.standard).toMatchObject({ xPercent: 67, yPercent: 74 });
+    expect(view.actors[2]?.standard).toMatchObject({ xPercent: 78, yPercent: 64 });
     expect(view.actors[3]?.standard).toMatchObject({ xPercent: 87, yPercent: 83 });
   });
 

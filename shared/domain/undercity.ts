@@ -72,7 +72,7 @@ export const UNDERCITY_ZONES = [
     id: "court", name: "Cour du Roi des Rats", floorMin: 41, floorMax: 50,
     encounters: [
       escort("court-guard", "Garde des sans-couronne", [["a", "Pavois vivant de la Cour"], ["b", "Arbalétrier royal"], ["c", "Médecin des oubliettes"]]),
-      pack("court-vermin", "Vermine de la Cour", [["a", "Rat couronné"], ["b", "Dévoreur des oubliettes"]]),
+      pack("court-vermin", "Vermine de la Cour", [["a", "Rat de la Cour"], ["b", "Dévoreur des oubliettes"]]),
       escort("chamberlain-escort", "Escorte du chambellan", [["a", "Lame du chambellan"], ["b", "Chambellan des profondeurs"], ["c", "Alchimiste des profondeurs"]]),
       solo("court-champion", "Champion de la Cour"),
     ],

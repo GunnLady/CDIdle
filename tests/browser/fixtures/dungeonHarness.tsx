@@ -30,6 +30,7 @@ const visibleCount = Number.isInteger(requestedStep) ? Math.max(0, Math.min(6, r
 const playbackComplete = harnessParams.get("complete") === "1";
 const combatSceneOnly = harnessParams.get("combat-scene") === "1";
 const requestedBlueprintId = harnessParams.get("blueprint");
+const requestedKingPhaseTwo = harnessParams.get("king-phase") === "2";
 const requestedNonCombatScene = harnessParams.get("non-combat-scene");
 const nonCombatScene = requestedNonCombatScene === "treasure" || requestedNonCombatScene === "rest"
   ? requestedNonCombatScene
@@ -60,12 +61,13 @@ const requestedBlueprint = UNDERCITY_ZONES.flatMap((zone) => (
 function createUndercityEncounterRecord(
   blueprint: UndercityEncounterBlueprint,
   bossBlueprintId: string,
+  kingPhaseTwo = false,
 ): CanonicalDungeonEncounterRecord {
   const memberHp = 24;
   const enemies = blueprint.members.map((member) => ({
     id: `${blueprint.id}-${member.key}`,
     name: member.name,
-    hp: memberHp,
+    hp: kingPhaseTwo && member.role === "guard" ? 0 : memberHp,
     maxHp: memberHp,
     isBoss: blueprint.id === bossBlueprintId,
     role: member.role,
@@ -89,9 +91,37 @@ function createUndercityEncounterRecord(
     initialActors: {
       ...initialParty,
       b: blueprint.id,
-      e: blueprint.members.map((member): CanonicalDungeonInitialEnemyActor => [member.key, memberHp, memberHp]),
+      e: blueprint.members.map((member): CanonicalDungeonInitialEnemyActor => [
+        member.key,
+        kingPhaseTwo && member.role === "guard" ? 0 : memberHp,
+        memberHp,
+      ]),
     },
-    transcript: [{ sequence: 0, type: "encounter.started", message: `${blueprint.name} apparaît.` }],
+    transcript: kingPhaseTwo ? [
+      { sequence: 0, type: "encounter.started", message: `${blueprint.name} apparaît.` },
+      {
+        sequence: 1,
+        type: "enemy.intent",
+        round: 2,
+        monsterId: `${blueprint.id}-c`,
+        monsterName: "Roi des Rats",
+        intent: "Assaut monstrueux",
+      },
+      {
+        sequence: 2,
+        type: "enemy.hit",
+        category: "combat-enemy",
+        message: "La corruption du Roi éclate.",
+        round: 2,
+        monsterId: `${blueprint.id}-c`,
+        monsterName: "Roi des Rats",
+        targetHeroId: "ariane",
+        damage: 1,
+        heroHpBefore: 40,
+        heroHp: 39,
+        heroMaxHp: 100,
+      },
+    ] : [{ sequence: 0, type: "encounter.started", message: `${blueprint.name} apparaît.` }],
     rewards: { gold: 0, loot: [] },
   };
 }
@@ -202,7 +232,11 @@ function Harness() {
 
   if (combatSceneOnly) {
     const selectedRecord = requestedBlueprint
-      ? createUndercityEncounterRecord(requestedBlueprint.blueprint, requestedBlueprint.zone.boss.id)
+      ? createUndercityEncounterRecord(
+          requestedBlueprint.blueprint,
+          requestedBlueprint.zone.boss.id,
+          requestedKingPhaseTwo && requestedBlueprint.blueprint.id === "rat-king",
+        )
       : encounterRecord;
     const scene = createEncounterSceneProjection(
       selectedRecord,

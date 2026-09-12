@@ -127,7 +127,9 @@ function heroRole(actor: EncounterSceneActor): string {
 
 function actorVisualKey(actor: EncounterSceneActor): string | null {
   if (actor.team === "heroes") return actor.visualKey;
-  return actor.contentKey ? `undercity:${actor.contentKey}` : null;
+  return actor.contentKey
+    ? `undercity:${actor.contentKey}${actor.visualVariant ? `:${actor.visualVariant}` : ""}`
+    : null;
 }
 
 const actorPositionOffsets: Readonly<Record<string, { xPercent: number; yPercent: number }>> = {
@@ -160,6 +162,15 @@ const actorStandardPositionOffsets: Readonly<Record<string, { xPercent: number; 
   "barricade-warden:b": { xPercent: -1, yPercent: -1 },
   "outcast-standard-bearer:a": { xPercent: -2, yPercent: 0 },
   "outcast-standard-bearer:b": { xPercent: 0, yPercent: -1 },
+  "court-guard:a": { xPercent: -1, yPercent: 0 },
+  "court-guard:b": { xPercent: -1, yPercent: -1 },
+  "court-vermin:a": { xPercent: -1, yPercent: 1 },
+  "chamberlain-escort:a": { xPercent: -2, yPercent: 0 },
+  "chamberlain-escort:b": { xPercent: -1, yPercent: -1 },
+  "king-herald:a": { xPercent: -2, yPercent: 0 },
+  "king-herald:b": { xPercent: -1, yPercent: 0 },
+  "rat-king:a": { xPercent: -5, yPercent: 0 },
+  "rat-king:b": { xPercent: -6, yPercent: -1 },
 };
 
 const actorMetaOffsetsYPercent: Readonly<Record<string, number>> = {
