@@ -22,7 +22,7 @@ export default defineConfig(({mode}) => {
       rollupOptions: {
         output: {
           // Limit wrapper/compression overhead without collapsing substantive route chunks.
-          experimentalMinChunkSize: 8_000,
+          experimentalMinChunkSize: 32_000,
           manualChunks(id) {
             if (id.includes('node_modules')) return 'vendor';
           },

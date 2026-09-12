@@ -129,7 +129,7 @@ Indiquer fichiers, commandes réellement exécutées, résultats et limites. Ne 
   le catalogue de démonstration non utilisé hors catalogue UI ; aucune image
   du kit n'est intégrée au JS principal.
 - Le kit v1 livre le décor des Égouts et les trois rats distincts dans
-  `src/assets/images/dungeon/undercity/sewers/`. Les prompts, références et
+  `public/assets/images/dungeon/undercity/sewers/`. Les prompts, références et
   transformations sont consignés dans
   `assets/design/dungeon-2d/undercity-sewers-kit-v1.prompt.md`.
 - `npm.cmd run check:dungeon-visuals` : 20 planches, 400 identités, quatre

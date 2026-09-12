@@ -6,7 +6,7 @@
 - Références de direction inspectées : kits Égouts et Galeries UnderCity v1,
   héros et ennemis CDIdle existants. Aucun asset externe n'est incorporé.
 - Livrables optimisés :
-  `src/assets/images/dungeon/undercity/cisterns/`.
+  `public/assets/images/dungeon/undercity/cisterns/`.
 - Usage autorisé : scènes Donjon 2D CDIdle sur PC.
 - Version : v1. Les prompts, identifiants de sources retenues et sorties
   runtime versionnées font foi.

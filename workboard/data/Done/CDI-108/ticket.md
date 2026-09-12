@@ -106,7 +106,7 @@ Indiquer fichiers, commandes réellement exécutées, résultats et limites. Ne 
 
 ### Clôture du 12 septembre 2026
 
-- Livraison : `src/assets/undercitySewerVisualManifest.ts`, `src/assets/images/dungeon/undercity/sewers/` et `assets/design/dungeon-2d/undercity-sewers-kit-v1.prompt.md` couvrent les six blueprints et les 11 membres canoniques.
+- Livraison : `src/assets/undercitySewerVisualManifest.ts`, `public/assets/images/dungeon/undercity/sewers/` et `assets/design/dungeon-2d/undercity-sewers-kit-v1.prompt.md` couvrent les six blueprints et les 11 membres canoniques.
 - Validation visuelle utilisateur : les six écrans Égouts, leurs positions, proportions, détourage et lisibilité ont été validés écran par écran sur PC.
 - Validation responsive automatisée : `dungeonUndercityPacks.responsive.browser.spec.ts` couvre 1024, 1280 et 1440 px ainsi que l'équivalent 1024 px à zoom 200 %, quatre héros et boss compris ; 4/4 tests passent.
 - Validation technique : vérificateur des assets, tests du catalogue/scène/domaine, build, budget bundle, typecheck, lint et validation du workboard passent. Les ressources restent chargées tardivement par zone avec cache borné et fallback explicite.

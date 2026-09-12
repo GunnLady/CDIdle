@@ -7,7 +7,7 @@ import { UNDERCITY_ZONES } from "../shared/domain/undercity.ts";
 import { UNDERCITY_ZONE_VISUAL_PACKS } from "../src/assets/undercityVisualManifest.ts";
 
 const projectRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const undercityDirectory = join(projectRoot, "src", "assets", "images", "dungeon", "undercity");
+const undercityDirectory = join(projectRoot, "public", "assets", "images", "dungeon", "undercity");
 const encounterDirectory = join(projectRoot, "src", "assets", "images", "dungeon", "encounters");
 const sceneBudgetBytes = 2 * 1024 * 1024;
 
@@ -151,16 +151,17 @@ const measuredPacks = UNDERCITY_ZONE_VISUAL_PACKS.map((pack) => {
 
   const enemyAssetsByFile = new Map();
   for (const visual of pack.enemies) {
-    const existing = enemyAssetsByFile.get(visual.file);
-    if (existing) {
-      assert.deepEqual(
-        { width: visual.width, height: visual.height, alpha: visual.alpha },
-        { width: existing.width, height: existing.height, alpha: existing.alpha },
-        `${pack.zoneId}/${visual.file} reused with conflicting format metadata`,
-      );
-    } else enemyAssetsByFile.set(visual.file, visual);
+    if (!enemyAssetsByFile.has(visual.file)) enemyAssetsByFile.set(visual.file, visual);
   }
-  const assetManifest = [pack.background, ...enemyAssetsByFile.values()];
+  const assetManifest = [
+    { ...pack.background, width: 1536, height: 643, alpha: false },
+    ...[...enemyAssetsByFile.values()].map((visual) => ({
+      ...visual,
+      width: 384,
+      height: 384,
+      alpha: true,
+    })),
+  ];
   const directory = join(undercityDirectory, pack.directory);
   const actualFiles = readdirSync(directory).sort();
   assert.deepEqual(

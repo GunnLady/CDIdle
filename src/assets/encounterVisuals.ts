@@ -22,15 +22,8 @@ import treasureVaultBackgroundUrl from "./images/dungeon/encounters/treasure-vau
 export const ENCOUNTER_VISUAL_CATALOG_VERSION = 1;
 export const ENCOUNTER_VISUAL_CACHE_LIMIT = 16;
 
-const undercityAssetUrls = import.meta.glob<string>(
-  "./images/dungeon/undercity/**/*.{jpg,png}",
-  { eager: true, import: "default", query: "?url" },
-);
-
 function undercityAssetUrl(directory: string, file: string): string {
-  const url = undercityAssetUrls[`./images/dungeon/undercity/${directory}/${file}`];
-  if (!url) throw new Error(`Missing UnderCity visual asset: ${directory}/${file}`);
-  return url;
+  return `/assets/images/dungeon/undercity/${directory}/${file}`;
 }
 
 export const ENCOUNTER_VISUAL_KEYS = {

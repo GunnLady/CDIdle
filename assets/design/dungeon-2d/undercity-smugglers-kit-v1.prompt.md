@@ -6,7 +6,7 @@
 - Références de direction inspectées : kit Égouts UnderCity v1, héros et
   ennemis CDIdle existants. Aucun asset externe n'est incorporé.
 - Livrables optimisés :
-  `src/assets/images/dungeon/undercity/smugglers/`.
+  `public/assets/images/dungeon/undercity/smugglers/`.
 - Usage autorisé : scènes Donjon 2D CDIdle sur PC.
 - Version : v1. Les prompts, identifiants de sources retenues et sorties
   runtime versionnées font foi.
