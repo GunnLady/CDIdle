@@ -63,6 +63,28 @@ et l'objectif exacts, puis attend le résultat.
    critères fonctionnels, oublis, régressions, compatibilité front, code mort
    et refactors injustifiés.
 
+## Autorisation active — chantier Donjon 2D
+
+Pour le goal utilisateur « dérouler le reste du plan avec une vision globale et
+relire avant de finir chaque ticket », l'utilisateur délègue explicitement à
+Codex, pendant toute la durée de ce goal :
+
+1. les validations structurelles et techniques, tests locaux, builds et
+   contrôles navigateur autorisés ;
+2. les mutations Git non destructrices nécessaires, notamment `add`, `commit`
+   et `push`, ainsi que le suivi CI après publication, sans redemander de
+   confirmation à chaque ticket ;
+3. l'enchaînement autonome des tickets du plan après audit et validation de
+   leurs critères.
+
+L'utilisateur reste sollicité uniquement pour une décision fonctionnelle ou
+technique réellement nécessaire et pour les validations visuelles. Aucun
+déploiement frontend, backend, Cloudflare ou Supabase n'est autorisé sans un
+contre-ordre explicite immédiat. Un commit ou un push ne constitue jamais ce
+contre-ordre. Cette autorisation limitée au chantier Donjon 2D prime sur les
+points 2 et 3 de « Git et publication » ci-dessous et cesse à la clôture ou à
+l'annulation du goal.
+
 ## Architecture et refactors
 
 1. Maintenir les règles métier dans le domaine partagé.
