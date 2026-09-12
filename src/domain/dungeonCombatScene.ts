@@ -155,6 +155,11 @@ const actorStandardPositionOffsets: Readonly<Record<string, { xPercent: number; 
   "valve-sentinel:a": { xPercent: 0, yPercent: 3 },
   "valve-sentinel:b": { xPercent: 2, yPercent: 5 },
   "dead-water-warden:a": { xPercent: 0, yPercent: 2 },
+  "bastion-defenders:b": { xPercent: 0, yPercent: -3 },
+  "bastion-defenders:c": { xPercent: 1, yPercent: 0 },
+  "barricade-warden:b": { xPercent: -1, yPercent: -1 },
+  "outcast-standard-bearer:a": { xPercent: -2, yPercent: 0 },
+  "outcast-standard-bearer:b": { xPercent: 0, yPercent: -1 },
 };
 
 const actorMetaOffsetsYPercent: Readonly<Record<string, number>> = {

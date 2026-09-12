@@ -349,6 +349,51 @@ describe("dungeon combat scene presentation", () => {
     expect(view.actors[3]?.zoomed.xPercent).toBe(78);
   });
 
+  it("raises the rampart eye and moves the outcast surgeon one percent right", () => {
+    const view = createDungeonCombatSceneView(scene({
+      actors: [
+        actor("hero-0", "heroes", 0),
+        actor("enemy-0", "enemies", 0, { contentKey: "bastion-defenders:a" }),
+        actor("enemy-1", "enemies", 1, { contentKey: "bastion-defenders:b" }),
+        actor("enemy-2", "enemies", 2, { contentKey: "bastion-defenders:c" }),
+      ],
+    }));
+
+    expect(view.actors[1]?.standard).toMatchObject({ xPercent: 69, yPercent: 74 });
+    expect(view.actors[2]?.standard).toMatchObject({ xPercent: 79, yPercent: 61 });
+    expect(view.actors[3]?.standard).toMatchObject({ xPercent: 88, yPercent: 83 });
+  });
+
+  it("raises and moves the barricade warden one percent left on desktop", () => {
+    const view = createDungeonCombatSceneView(scene({
+      actors: [
+        actor("hero-0", "heroes", 0),
+        actor("enemy-0", "enemies", 0, { contentKey: "barricade-warden:a" }),
+        actor("enemy-1", "enemies", 1, { contentKey: "barricade-warden:b" }),
+        actor("enemy-2", "enemies", 2, { contentKey: "barricade-warden:c" }),
+      ],
+    }));
+
+    expect(view.actors[1]?.standard).toMatchObject({ xPercent: 69, yPercent: 74 });
+    expect(view.actors[2]?.standard).toMatchObject({ xPercent: 78, yPercent: 63 });
+    expect(view.actors[3]?.standard).toMatchObject({ xPercent: 87, yPercent: 83 });
+  });
+
+  it("stages the outcast standard-bearer group on desktop", () => {
+    const view = createDungeonCombatSceneView(scene({
+      actors: [
+        actor("hero-0", "heroes", 0),
+        actor("enemy-0", "enemies", 0, { contentKey: "outcast-standard-bearer:a" }),
+        actor("enemy-1", "enemies", 1, { contentKey: "outcast-standard-bearer:b" }),
+        actor("enemy-2", "enemies", 2, { contentKey: "outcast-standard-bearer:c" }),
+      ],
+    }));
+
+    expect(view.actors[1]?.standard).toMatchObject({ xPercent: 67, yPercent: 74 });
+    expect(view.actors[2]?.standard).toMatchObject({ xPercent: 79, yPercent: 63 });
+    expect(view.actors[3]?.standard).toMatchObject({ xPercent: 87, yPercent: 83 });
+  });
+
   it("moves the vermin mother ten percent to the right", () => {
     const view = createDungeonCombatSceneView(scene({
       actors: [

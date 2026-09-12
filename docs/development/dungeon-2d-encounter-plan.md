@@ -486,7 +486,7 @@ pas leur contenu actuel.
 | [CDI-108](../../workboard/data/Done/CDI-108/ticket.md) | Compléter les assets des Égouts infestés | Done | M / medium | CDI-099 |
 | [CDI-109](../../workboard/data/Done/CDI-109/ticket.md) | Produire les assets des Galeries des contrebandiers | Done | M / medium | CDI-099 |
 | [CDI-110](../../workboard/data/Done/CDI-110/ticket.md) | Produire les assets des Citernes oubliées | Done | M / medium | CDI-099 |
-| [CDI-111](../../workboard/data/Doing/CDI-111/ticket.md) | Produire les assets du Bastion des Exclus | Doing | M / medium | CDI-099 |
+| [CDI-111](../../workboard/data/Done/CDI-111/ticket.md) | Produire les assets du Bastion des Exclus | Done | M / medium | CDI-099 |
 | [CDI-112](../../workboard/data/Later/CDI-112/ticket.md) | Produire les assets de la Cour du Roi des Rats | Later | M / medium | CDI-099 |
 | [CDI-113](../../workboard/data/Later/CDI-113/ticket.md) | Animer les compétences, projectiles et soins du combat | Later | M / medium | CDI-103, CDI-106 |
 | [CDI-114](../../workboard/data/Later/CDI-114/ticket.md) | Tracer et représenter les statuts, intentions et protections | Later | L / high | CDI-113 |
@@ -502,9 +502,9 @@ Des poses dédiées décidées dans CDI-097 nécessiteraient de réestimer l'art
 
 Priorité : P1 pour les vingt tickets du chantier ; ce rang ne signifie pas
 incident de production généralisé. CDI-097, CDI-098, CDI-099, CDI-100, CDI-101,
-CDI-102, CDI-103, CDI-105, CDI-106, CDI-107, CDI-108, CDI-109 et CDI-110 sont
-Done. CDI-111 est Doing ; les autres restent Later jusqu'à leur prise en charge
-et au respect de leurs prérequis.
+CDI-102, CDI-103, CDI-105, CDI-106, CDI-107, CDI-108, CDI-109, CDI-110 et
+CDI-111 sont Done ; les autres restent Later jusqu'à leur prise en charge et au
+respect de leurs prérequis.
 Les acquis CDI-076, CDI-078, CDI-080, CDI-083, CDI-094 et CDI-095 restent des
 références livrées sans modification de leurs tickets. L'ancien modèle de
 bestiaire CDI-086 ne gouverne pas le contenu UnderCity actuel.

@@ -1,7 +1,7 @@
 ---
 id: CDI-111
 title: Produire les assets du Bastion des Exclus
-status: Doing
+status: Done
 area: art
 priority: P1
 size: M
@@ -10,7 +10,7 @@ source: Demande utilisateur du 10 septembre 2026 - redécoupage approuvé des sc
 depends_on: ["CDI-099"]
 blocks: ["CDI-116"]
 github_issue: null
-related_docs: ["docs/development/dungeon-2d-encounter-plan.md","docs/development/dungeon-2d-resizing-proposal.md","src/assets/heroSpriteSheets.ts","src/domain/heroPortrait.ts","src/components/HeroPortrait.tsx","shared/domain/undercity.ts","assets/design/hero-sprites/human-tier1-class-spritesheets-v1.prompt.md"]
+related_docs: ["docs/development/dungeon-2d-encounter-plan.md","docs/development/dungeon-2d-resizing-proposal.md","assets/design/dungeon-2d/undercity-bastion-kit-v1.prompt.md","src/assets/undercityBastionVisualManifest.ts","src/assets/undercityVisualManifest.ts","shared/domain/undercity.ts"]
 ---
 
 # CDI-111 — Produire les assets du Bastion des Exclus
@@ -63,12 +63,12 @@ Les dépendances directes et leurs liens blocks font foi ; les acquis déjà liv
 
 ## Criteres d'acceptation
 
-- [ ] Le vérificateur confirme les six blueprints de bastion et leurs 13 emplacements de membres sans entrée ni fichier manquant.
-- [ ] Décor, acteurs, provenance/versions, ancrages et échelles sont livrés dans le catalogue de présentation.
-- [ ] Les rôles, l'élite et le boss restent lisibles ; aucune ressource de repli provisoire ne remplace silencieusement un membre attendu.
-- [ ] Fichiers/dimensions/transparence, téléchargement à froid/cache et cas lent/absent sont contrôlés dans les budgets.
-- [ ] L'utilisateur valide le pack sur fond sombre à 1024/1280/1440 px et au zoom 200 %, dont le cas quatre héros/boss escorté si applicable.
-- [ ] Le pack est chargeable indépendamment des quatre autres zones ; aucune dépendance séquentielle artistique inutile n'est introduite.
+- [x] Le vérificateur confirme les six blueprints de bastion et leurs 13 emplacements de membres sans entrée ni fichier manquant.
+- [x] Décor, acteurs, provenance/versions, ancrages et échelles sont livrés dans le catalogue de présentation.
+- [x] Les rôles, l'élite et le boss restent lisibles ; aucune ressource de repli provisoire ne remplace silencieusement un membre attendu.
+- [x] Fichiers/dimensions/transparence, téléchargement à froid/cache et cas lent/absent sont contrôlés dans les budgets.
+- [x] L'utilisateur valide le pack sur fond sombre à 1024/1280/1440 px et au zoom 200 %, dont le cas quatre héros/boss escorté si applicable.
+- [x] Le pack est chargeable indépendamment des quatre autres zones ; aucune dépendance séquentielle artistique inutile n'est introduite.
 
 ## Tests
 
@@ -103,3 +103,13 @@ L'utilisateur valide Bastion des Exclus : cohérence CDIdle, silhouettes, détou
 Fournir manifeste de bastion, sources/prompts autorisés, réemplois, métriques, contrôle des 13 emplacements et avis utilisateur. V01/V13/V15/V18. CDI-116 mesure la couverture complète des cinq packs.
 
 Indiquer fichiers, commandes réellement exécutées, résultats et limites. Ne pas clore avec un écart réel non corrigé ; ne pas attribuer au présent ticket la livraison de ses successeurs.
+
+## Validation finale
+
+- Pack Bastion : six blueprints, 13 membres, 11 assets uniques, `1 389 716` octets ; groupe le plus lourd `582 111` octets, sous le budget de `2 MiB`.
+- Validation utilisateur : les six compositions d'ennemis, leurs proportions, poses, positions et détourages sont approuvés. Le background final, ses éléments autonomes et son ouverture centrale sans herse sont également approuvés.
+- `npm.cmd run check:dungeon-visuals` : succès.
+- `npm.cmd test -- --run tests/dungeonCombatScene.test.ts` : 31 tests passés.
+- `npm.cmd test -- --run tests/encounterVisuals.test.ts tests/undercityProductDomain.test.ts tests/egressBudget.test.ts` : 29 tests passés.
+- Playwright PC : 4/4 sur la scène responsive et 4/4 sur tous les packs UnderCity à 1024/1280/1440 px et équivalent zoom 200 %.
+- `npm.cmd run typecheck`, `npm.cmd run lint -- --quiet`, `npm.cmd run build`, `npm.cmd run check:bundle` et `npm.cmd run board:validate` : succès.
