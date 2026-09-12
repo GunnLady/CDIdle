@@ -1,5 +1,6 @@
 import { useState, type CSSProperties } from "react";
 import { ENCOUNTER_VISUAL_KEYS } from "../../assets/encounterVisuals";
+import { getUndercityBackgroundVisualKey } from "../../assets/undercityVisualManifest";
 import type {
   DungeonCombatSceneActorView,
   DungeonCombatSceneEffectView,
@@ -10,12 +11,12 @@ import styles from "./DungeonCombatScene.module.css";
 
 type SceneStyle = CSSProperties & Record<`--${string}`, string | number>;
 
-const BACKGROUND_KEYS: Record<DungeonCombatSceneView["environment"], string> = {
-  fallback: ENCOUNTER_VISUAL_KEYS.fallback.background,
-  "rest-chamber": ENCOUNTER_VISUAL_KEYS.encounters.rest.background,
-  sewers: ENCOUNTER_VISUAL_KEYS.sewers.background,
-  "treasure-vault": ENCOUNTER_VISUAL_KEYS.encounters.treasure.background,
-};
+function getBackgroundKey(environment: DungeonCombatSceneView["environment"]): string {
+  if (environment === "fallback") return ENCOUNTER_VISUAL_KEYS.fallback.background;
+  if (environment === "rest-chamber") return ENCOUNTER_VISUAL_KEYS.encounters.rest.background;
+  if (environment === "treasure-vault") return ENCOUNTER_VISUAL_KEYS.encounters.treasure.background;
+  return getUndercityBackgroundVisualKey(environment);
+}
 
 function actorHealthLabel(actor: DungeonCombatSceneActorView): string {
   if (actor.currentHp === null || actor.maximumHp === null) {
@@ -99,6 +100,7 @@ function CombatActor(props: {
     "--actor-zoom-scale": actor.zoomed.scale,
     "--actor-idle-duration": `${actor.idleDurationMs}ms`,
     "--actor-idle-delay": `${actor.idleDelayMs}ms`,
+    "--actor-meta-offset-y": actor.metaOffsetYPercent,
   } as SceneStyle;
   const health = actorHealthLabel(actor);
   const stateLabel = actor.state === "ko" ? "KO" : actor.state === "wounded" ? "Blessé" : "Prêt";
@@ -183,7 +185,7 @@ export default function DungeonCombatScene({
   view: DungeonCombatSceneView;
   animationsEnabled?: boolean;
 }) {
-  const backgroundKey = BACKGROUND_KEYS[view.environment];
+  const backgroundKey = getBackgroundKey(view.environment);
   const background = useEncounterVisualAsset(backgroundKey);
   const resultLabel = view.result === "victory" ? "Victoire" : view.result === "defeat" ? "Défaite" : null;
   const kind = view.nonCombat;

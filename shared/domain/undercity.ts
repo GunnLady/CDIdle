@@ -14,22 +14,22 @@ const UNDERCITY_LEADER_MEMBER_INDEX: Readonly<Record<string, number>> = {
 export type UndercityEnemyRole = "ordinary" | "protector" | "ranged" | "support" | "guard" | "king";
 export type UndercityBehavior = "swarm" | "cover" | "surge" | "king";
 export type UndercityEncounterBlueprint = { id: string; name: string; behavior: UndercityBehavior; members: readonly { key: string; name: string; role: UndercityEnemyRole }[] };
-export type UndercityZone = { id: string; name: string; floorMin: number; floorMax: number; encounters: readonly UndercityEncounterBlueprint[]; elite: UndercityEncounterBlueprint; boss: UndercityEncounterBlueprint; themeModifiers: readonly (CanonicalItemModifier & { requiresDamageType?: "physical" | "magic" })[] };
+type UndercityZoneDefinition = { id: string; name: string; floorMin: number; floorMax: number; encounters: readonly UndercityEncounterBlueprint[]; elite: UndercityEncounterBlueprint; boss: UndercityEncounterBlueprint; themeModifiers: readonly (CanonicalItemModifier & { requiresDamageType?: "physical" | "magic" })[] };
 
 type UndercityMemberSeed = readonly [key: string, name: string];
 const solo = (id: string, name: string, behavior: UndercityBehavior = "surge"): UndercityEncounterBlueprint => ({ id, name, behavior, members: [{ key: "a", name, role: "ordinary" }] });
 const pack = (id: string, name: string, members: readonly UndercityMemberSeed[], behavior: UndercityBehavior = "swarm"): UndercityEncounterBlueprint => ({ id, name, behavior, members: members.map(([key, memberName]) => ({ key, name: memberName, role: "ordinary" as const })) });
 const escort = (id: string, name: string, members: readonly UndercityMemberSeed[]): UndercityEncounterBlueprint => ({ id, name, behavior: "cover", members: members.map(([key, memberName], index) => ({ key, name: memberName, role: (["protector", "ranged", "support"] as const)[index] ?? "ordinary" })) });
 
-export const UNDERCITY_ZONES: readonly UndercityZone[] = [
+export const UNDERCITY_ZONES = [
   {
     id: "sewers", name: "Égouts infestés", floorMin: 1, floorMax: 10,
     encounters: [
       pack("rat-pack", "Meute de rats", [["a", "Rat des canaux"], ["b", "Rat galeux"], ["c", "Rat pestiféré"]]),
-      pack("beetle-swarm", "Nuée de scarabées", [["a", "Scarabée charognard"], ["b", "Scarabée à carapace noire"], ["c", "Scarabée des conduits"]]),
+      pack("beetle-swarm", "Nuée de cafards", [["a", "Cafard charognard"], ["b", "Cafard noir des égouts"], ["c", "Cafard des conduits"]]),
       solo("pipe-slime", "Slime des égouts"), solo("colossal-rat", "Rat colossal", "swarm"),
     ],
-    elite: pack("sewer-warden", "Gardien des conduits", [["a", "Mordeur des écluses"], ["b", "Ronge-fer des grilles"]]),
+    elite: pack("sewer-warden", "Gardien des conduits", [["a", "Mordeur des écluses"], ["b", "Ronge-fer"]]),
     boss: solo("vermin-mother", "La Mère des nuisibles"),
     themeModifiers: [{ stat: "maxHp", type: "percent", value: 5 }, { stat: "physicalDefense", type: "percent", value: 8 }, { stat: "poisonResistance", type: "flat", value: 8 }, { stat: "dodgeChance", type: "flat", value: 2 }],
   },
@@ -50,7 +50,7 @@ export const UNDERCITY_ZONES: readonly UndercityZone[] = [
     encounters: [
       pack("water-parasites", "Couvée des eaux croupies", [["a", "Lamproie de vase"], ["b", "Crabe des vannes"], ["c", "Anguille des fosses noires"]]),
       solo("reservoir-slime", "Slime des eaux mortes"), solo("refuge-warden", "Veilleur noyé"),
-      pack("cistern-leeches", "Sangsues des citernes", [["a", "Sangsue blême"], ["b", "Sangsue des grilles"]]),
+      pack("cistern-leeches", "Sangsues des citernes", [["a", "Sangsue blême"], ["b", "Sangsue cuirassée"]]),
     ],
     elite: pack("valve-sentinel", "Sentinelle hydrique", [["a", "Sentinelle hydrique"], ["b", "Crabe des vannes"]]),
     boss: solo("dead-water-warden", "Le Gardien des eaux mortes"),
@@ -80,7 +80,10 @@ export const UNDERCITY_ZONES: readonly UndercityZone[] = [
     boss: { id: "rat-king", name: "Le Roi des Rats", behavior: "king", members: [{ key: "a", name: "Lame senestre du Roi", role: "guard" }, { key: "b", name: "Lame dextre du Roi", role: "guard" }, { key: "c", name: "Le Roi des Rats", role: "king" }] },
     themeModifiers: [{ stat: "criticalChance", type: "flat", value: 2 }, { stat: "speed", type: "percent", value: 5 }, { stat: "physicalDamage", type: "percent", value: 8, requiresDamageType: "physical" }, { stat: "magicDamage", type: "percent", value: 8, requiresDamageType: "magic" }, { stat: "maxMana", type: "percent", value: 5 }],
   },
-] as const;
+] as const satisfies readonly UndercityZoneDefinition[];
+
+export type UndercityZoneId = typeof UNDERCITY_ZONES[number]["id"];
+export type UndercityZone = Omit<UndercityZoneDefinition, "id"> & { id: UndercityZoneId };
 
 export function getUndercityZone(floor: number): UndercityZone {
   if (!Number.isInteger(floor) || floor < 1 || floor > UNDERCITY_MAX_FLOOR) throw new Error("INVALID_UNDERCITY_FLOOR");

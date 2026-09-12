@@ -167,7 +167,9 @@
   box-shadow: 0 0.15rem 0.35rem rgb(0 0 0 / 45%);
   color: #e7d7bc;
   line-height: 1.05;
-  transform: scale(calc(1 / var(--actor-scale)));
+  transform:
+    translateY(calc(var(--actor-meta-offset-y) * 0.22rem))
+    scale(calc(1 / var(--actor-scale)));
   transform-origin: center top;
 }
 

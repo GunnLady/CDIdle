@@ -6,8 +6,9 @@ import {
 } from "../assets/encounterVisuals";
 
 export function useEncounterVisualAsset(key: string): LoadedEncounterVisual & { loading: boolean } {
+  const descriptor = resolveEncounterVisualDescriptor(key);
   const [resolved, setResolved] = useState<LoadedEncounterVisual>(() => ({
-    descriptor: resolveEncounterVisualDescriptor(key),
+    descriptor,
     url: null,
     status: "fallback",
   }));
@@ -29,11 +30,11 @@ export function useEncounterVisualAsset(key: string): LoadedEncounterVisual & { 
 
   if (resolved.descriptor.key !== key) {
     return {
-      descriptor: resolveEncounterVisualDescriptor(key),
+      descriptor,
       url: null,
       status: "fallback",
       loading: true,
     };
   }
-  return { ...resolved, loading };
+  return { ...resolved, descriptor, loading };
 }

@@ -10,7 +10,7 @@ Le Roi des Rats est un souverain intelligent devenu monstrueux, protecteur des e
 
 | Étages | Zone | Rencontres ordinaires | Boss |
 | --- | --- | --- | --- |
-| 1–10 | Égouts infestés | Meute de rats (3), Nuée de scarabées (3), Slime des égouts (1), Rat colossal (1) | La Mère des nuisibles (1) |
+| 1–10 | Égouts infestés | Meute de rats (3), Nuée de cafards (3), Slime des égouts (1), Rat colossal (1) | La Mère des nuisibles (1) |
 | 11–20 | Galeries des contrebandiers | Escorte des passeurs (3), Récupérateurs gobelins (2), Dresseur et molosse (2), Coupe-jarret du tribut (1) | Le Collecteur du tribut et son escorte (3) |
 | 21–30 | Citernes oubliées | Couvée des eaux croupies (3), Slime des eaux mortes (1), Veilleur noyé (1), Sangsues des citernes (2) | Le Gardien des eaux mortes (1) |
 | 31–40 | Bastion des Exclus | Veilleur sans-bannière (1), Patrouille des exilés (2), Défenseurs du bastion (3), Brise-siège des barricades (1) | Le Porte-étendard des Exclus et son escorte (3) |

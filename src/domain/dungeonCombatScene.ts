@@ -1,3 +1,4 @@
+import { UNDERCITY_ZONES, type UndercityZoneId } from "../../shared/domain/undercity";
 import {
   DUNGEON_SCENE_ENEMY_LIMIT,
   DUNGEON_SCENE_HERO_LIMIT,
@@ -45,6 +46,7 @@ export interface DungeonCombatSceneActorView {
   reaction: DungeonCombatActorReaction;
   idleDurationMs: number;
   idleDelayMs: number;
+  metaOffsetYPercent: number;
   standard: DungeonSceneSlot;
   zoomed: DungeonSceneSlot;
 }
@@ -61,7 +63,7 @@ export interface DungeonCombatSceneView {
   actionKey: string;
   actionMode: DungeonCombatActionMode;
   actionSummary: string;
-  environment: "sewers" | "treasure-vault" | "rest-chamber" | "fallback";
+  environment: UndercityZoneId | "treasure-vault" | "rest-chamber" | "fallback";
   actors: DungeonCombatSceneActorView[];
   effects: DungeonCombatSceneEffectView[];
   result: EncounterSceneResult | null;
@@ -83,6 +85,21 @@ const MELEE_EVENT_TYPES = [
 ];
 
 const ENTRY_EVENT_TYPES = ["combat.start", "encounter.started"];
+
+const undercityZoneByBlueprintId = new Map<string, UndercityZoneId>();
+for (const zone of UNDERCITY_ZONES) {
+  for (const blueprint of [...zone.encounters, zone.elite, zone.boss]) {
+    if (undercityZoneByBlueprintId.has(blueprint.id)) {
+      throw new Error(`Duplicate UnderCity blueprint id: ${blueprint.id}`);
+    }
+    undercityZoneByBlueprintId.set(blueprint.id, zone.id);
+  }
+}
+
+function getUndercityEnvironment(contentKey: string | null): UndercityZoneId | null {
+  if (!contentKey) return null;
+  return undercityZoneByBlueprintId.get(contentKey.split(":", 1)[0]) ?? null;
+}
 
 const idleRhythms = {
   heroes: [
@@ -111,6 +128,90 @@ function heroRole(actor: EncounterSceneActor): string {
 function actorVisualKey(actor: EncounterSceneActor): string | null {
   if (actor.team === "heroes") return actor.visualKey;
   return actor.contentKey ? `undercity:${actor.contentKey}` : null;
+}
+
+const actorPositionOffsets: Readonly<Record<string, { xPercent: number; yPercent: number }>> = {
+  "pipe-slime:a": { xPercent: 5, yPercent: 0 },
+  "colossal-rat:a": { xPercent: 5, yPercent: 0 },
+  "sewer-warden:a": { xPercent: -2, yPercent: 0 },
+  "vermin-mother:a": { xPercent: 10, yPercent: 0 },
+};
+
+const actorStandardPositionOffsets: Readonly<Record<string, { xPercent: number; yPercent: number }>> = {
+  "hound-handler:a": { xPercent: -4, yPercent: 0 },
+  "smuggler-captain:a": { xPercent: -2, yPercent: 1 },
+  "smuggler-captain:b": { xPercent: -1, yPercent: 0 },
+  "smuggler-captain:c": { xPercent: 0, yPercent: -1 },
+  "tribute-collector:a": { xPercent: -2, yPercent: 1 },
+  "tribute-collector:b": { xPercent: -1, yPercent: 0 },
+  "tribute-collector:c": { xPercent: 0, yPercent: -1 },
+  "water-parasites:a": { xPercent: -1, yPercent: 2 },
+  "water-parasites:b": { xPercent: 1, yPercent: 5 },
+  "water-parasites:c": { xPercent: 5, yPercent: 1 },
+  "reservoir-slime:a": { xPercent: 0, yPercent: 4 },
+  "refuge-warden:a": { xPercent: 0, yPercent: 4 },
+  "cistern-leeches:a": { xPercent: -1, yPercent: 4 },
+  "cistern-leeches:b": { xPercent: 0, yPercent: 10 },
+  "valve-sentinel:a": { xPercent: 0, yPercent: 3 },
+  "valve-sentinel:b": { xPercent: 2, yPercent: 5 },
+  "dead-water-warden:a": { xPercent: 0, yPercent: 2 },
+};
+
+const actorMetaOffsetsYPercent: Readonly<Record<string, number>> = {
+  "sewer-warden:b": 2,
+};
+
+const environmentStandardSlotOffsets: Readonly<Record<string, { xPercent: number; yPercent: number }>> = {
+  "smugglers:heroes:0": { xPercent: 0, yPercent: 2 },
+  "smugglers:heroes:1": { xPercent: 0, yPercent: 8 },
+  "smugglers:heroes:2": { xPercent: 0, yPercent: 2 },
+  "cisterns:heroes:0": { xPercent: 1, yPercent: 5 },
+  "cisterns:heroes:1": { xPercent: 1, yPercent: 12 },
+  "cisterns:heroes:2": { xPercent: 1, yPercent: 10 },
+  "cisterns:heroes:3": { xPercent: 1, yPercent: 2 },
+};
+
+function applyActorPositionOffset(
+  slot: DungeonSceneSlot,
+  contentKey: string | null,
+): DungeonSceneSlot {
+  const offset = contentKey ? actorPositionOffsets[contentKey] : undefined;
+  if (!offset) return slot;
+  return {
+    ...slot,
+    xPercent: slot.xPercent + offset.xPercent,
+    yPercent: slot.yPercent + offset.yPercent,
+  };
+}
+
+function applyActorStandardPositionOffset(
+  slot: DungeonSceneSlot,
+  contentKey: string | null,
+): DungeonSceneSlot {
+  const offset = contentKey ? actorStandardPositionOffsets[contentKey] : undefined;
+  if (!offset) return slot;
+  return {
+    ...slot,
+    xPercent: slot.xPercent + offset.xPercent,
+    yPercent: slot.yPercent + offset.yPercent,
+  };
+}
+
+function applyEnvironmentStandardSlotOffset(
+  slot: DungeonSceneSlot,
+  environment: UndercityZoneId | null,
+  team: EncounterSceneTeam,
+  index: number,
+): DungeonSceneSlot {
+  const offset = environment
+    ? environmentStandardSlotOffsets[`${environment}:${team}:${index}`]
+    : undefined;
+  if (!offset) return slot;
+  return {
+    ...slot,
+    xPercent: slot.xPercent + offset.xPercent,
+    yPercent: slot.yPercent + offset.yPercent,
+  };
 }
 
 function actorState(actor: EncounterSceneActor): DungeonCombatSceneActorView["state"] {
@@ -228,11 +329,23 @@ export function createDungeonCombatSceneView(
   }).slice(0, DUNGEON_COMBAT_EFFECT_LIMIT);
   const impactsByActorId = new Map(visibleImpacts.map((impact) => [impact.targetActorId, impact]));
   const rolesById = new Map(enemyRoles.map((enemy) => [enemy.id, enemy.role ?? "Ennemi"]));
+  const environment = selections.reduce<UndercityZoneId | null>(
+    (found, { actor }) => found ?? (actor.team === "enemies" ? getUndercityEnvironment(actor.contentKey) : null),
+    null,
+  );
   const actors = selections.flatMap(({ actor, index }): DungeonCombatSceneActorView[] => {
-    const standard = getDungeonSceneSlot(actor.team, index, "standard");
-    const zoomed = getDungeonSceneSlot(actor.team, index, "zoomed");
+    const standardSlot = getDungeonSceneSlot(actor.team, index, "standard");
+    const zoomedSlot = getDungeonSceneSlot(actor.team, index, "zoomed");
     const idleRhythm = idleRhythms[actor.team][index];
-    if (!standard || !zoomed || !idleRhythm) return [];
+    if (!standardSlot || !zoomedSlot || !idleRhythm) return [];
+    const standard = applyActorStandardPositionOffset(
+      applyActorPositionOffset(
+        applyEnvironmentStandardSlotOffset(standardSlot, environment, actor.team, index),
+        actor.contentKey,
+      ),
+      actor.contentKey,
+    );
+    const zoomed = applyActorPositionOffset(zoomedSlot, actor.contentKey);
     const active = actor.id === activeActor?.id;
     return [{
       id: actor.id,
@@ -252,6 +365,7 @@ export function createDungeonCombatSceneView(
       reaction: impactReaction(actor, impactsByActorId.get(actor.id)),
       idleDurationMs: idleRhythm[0],
       idleDelayMs: idleRhythm[1],
+      metaOffsetYPercent: actor.contentKey ? actorMetaOffsetsYPercent[actor.contentKey] ?? 0 : 0,
       standard,
       zoomed,
     }];
@@ -267,9 +381,7 @@ export function createDungeonCombatSceneView(
     actionKey: step?.id ?? `${scene.encounterId}:${mode}`,
     actionMode: mode,
     actionSummary,
-    environment: selections.some(({ actor }) => actor.contentKey?.startsWith("rat-pack:"))
-      ? "sewers"
-      : "fallback",
+    environment: environment ?? "fallback",
     actors,
     effects,
     result: scene.result,

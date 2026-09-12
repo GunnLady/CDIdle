@@ -14,6 +14,10 @@ import {
 } from "../src/assets/encounterVisuals";
 import { createBoundedAsyncAssetCache } from "../src/assets/visualAssetCache";
 import { clearVisualAssetSession, registerVisualAssetSessionCleaner } from "../src/assets/visualAssetSession";
+import {
+  getUndercityEnemyVisualKey,
+  UNDERCITY_ZONE_VISUAL_PACKS,
+} from "../src/assets/undercityVisualManifest";
 
 describe("encounter visual catalog", () => {
   it("resolves all 400 canonical hero identities without changing their variant", () => {
@@ -28,29 +32,50 @@ describe("encounter visual catalog", () => {
     expect(resolveEncounterVisualDescriptor("Mage_Female_7").key).toBe("Mage_Female_7");
   });
 
-  it("aligns rat-pack assets with immutable blueprint member keys", () => {
-    const ratPack = UNDERCITY_ZONES.flatMap((zone) => zone.encounters).find((encounter) => encounter.id === "rat-pack");
-    expect(ratPack?.members.map((member) => [member.key, member.name])).toEqual([
-      ["a", "Rat des canaux"],
-      ["b", "Rat galeux"],
-      ["c", "Rat pestiféré"],
-    ]);
+  it("aligns available UnderCity packs with immutable blueprint member keys", () => {
+    for (const pack of UNDERCITY_ZONE_VISUAL_PACKS) {
+      const zone = UNDERCITY_ZONES.find((candidate) => candidate.id === pack.zoneId);
+      expect(zone).toBeDefined();
+      if (!zone) throw new Error(`Canonical ${pack.zoneId} zone missing`);
+      const blueprints = [...zone.encounters, zone.elite, zone.boss];
+      const canonicalKeys = blueprints.flatMap((blueprint) => (
+        blueprint.members.map((member) => getUndercityEnemyVisualKey(blueprint.id, member.key))
+      ));
+      const manifestKeys = pack.enemies.map((visual) => (
+        getUndercityEnemyVisualKey(visual.blueprintId, visual.memberKey)
+      ));
+      expect(manifestKeys).toEqual(canonicalKeys);
+      expect(new Set(manifestKeys).size).toBe(canonicalKeys.length);
+    }
     expect(Object.entries(ENCOUNTER_VISUAL_KEYS.sewers.ratPack)).toEqual([
       ["a", "undercity:rat-pack:a"],
       ["b", "undercity:rat-pack:b"],
       ["c", "undercity:rat-pack:c"],
     ]);
-    for (const key of Object.values(ENCOUNTER_VISUAL_KEYS.sewers.ratPack)) {
-      expect(resolveEncounterVisualDescriptor(key)).toMatchObject({ kind: "enemy", fallback: false, version: 1 });
+    for (const pack of UNDERCITY_ZONE_VISUAL_PACKS) {
+      for (const visual of pack.enemies) {
+        expect(resolveEncounterVisualDescriptor(getUndercityEnemyVisualKey(visual.blueprintId, visual.memberKey))).toMatchObject({
+          kind: "enemy",
+          fallback: false,
+          version: 1,
+          provenance: visual.provenance,
+          anchor: visual.anchor,
+          scale: visual.scale,
+        });
+      }
     }
   });
 
-  it("keeps the pilot manifest lazy and uses useful neutral fallbacks", async () => {
+  it("keeps the registered manifest lazy and uses useful neutral fallbacks", async () => {
     clearEncounterVisualAssetSession();
     expect(getEncounterVisualAssetCacheStats()).toEqual({ size: 0, limit: ENCOUNTER_VISUAL_CACHE_LIMIT });
     const manifest = getStaticEncounterVisualManifest();
-    expect(manifest).toHaveLength(9);
-    expect(manifest.filter((entry) => entry.load)).toHaveLength(8);
+    const undercityEntryCount = UNDERCITY_ZONE_VISUAL_PACKS.reduce(
+      (total, pack) => total + 1 + pack.enemies.length,
+      0,
+    );
+    expect(manifest).toHaveLength(undercityEntryCount + 5);
+    expect(manifest.filter((entry) => entry.load)).toHaveLength(undercityEntryCount + 4);
 
     const [first, duplicate] = await Promise.all([
       loadEncounterVisualAsset(ENCOUNTER_VISUAL_KEYS.sewers.ratPack.a),

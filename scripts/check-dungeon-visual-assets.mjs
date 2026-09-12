@@ -3,18 +3,13 @@ import { readFileSync, readdirSync, statSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { inflateSync } from "node:zlib";
+import { UNDERCITY_ZONES } from "../shared/domain/undercity.ts";
+import { UNDERCITY_ZONE_VISUAL_PACKS } from "../src/assets/undercityVisualManifest.ts";
 
 const projectRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const kitDirectory = join(projectRoot, "src", "assets", "images", "dungeon", "undercity", "sewers");
+const undercityDirectory = join(projectRoot, "src", "assets", "images", "dungeon", "undercity");
 const encounterDirectory = join(projectRoot, "src", "assets", "images", "dungeon", "encounters");
-const kitBudgetBytes = 2 * 1024 * 1024;
-
-const kitManifest = [
-  { file: "undercity-sewers-stage-v1.jpg", width: 1536, height: 643, alpha: false },
-  { file: "rat-pack-canal-rat-v1.png", width: 384, height: 384, alpha: true },
-  { file: "rat-pack-mangy-rat-v1.png", width: 384, height: 384, alpha: true },
-  { file: "rat-pack-plague-rat-v1.png", width: 384, height: 384, alpha: true },
-];
+const sceneBudgetBytes = 2 * 1024 * 1024;
 
 const encounterManifest = [
   { file: "treasure-chest-open-v3.png", width: 640, height: 585, alpha: true },
@@ -61,6 +56,8 @@ function readPngInfo(buffer) {
   assert.equal(filtered.length, height * (rowLength + 1), "PNG scanline size mismatch");
   let previous = Buffer.alloc(rowLength);
   let hasTransparentPixel = false;
+  let transparentPixelCount = 0;
+  const cornerAlphas = [];
   for (let y = 0; y < height; y += 1) {
     const filter = filtered[y * (rowLength + 1)];
     const source = filtered.subarray(y * (rowLength + 1) + 1, (y + 1) * (rowLength + 1));
@@ -85,17 +82,19 @@ function readPngInfo(buffer) {
       row[x] = (source[x] + predictor) & 0xff;
     }
     for (let alphaIndex = 3; alphaIndex < rowLength; alphaIndex += bytesPerPixel) {
-      if (row[alphaIndex] < 255) {
-        hasTransparentPixel = true;
-        break;
-      }
+      const alpha = row[alphaIndex];
+      if (alpha < 255) hasTransparentPixel = true;
+      if (alpha === 0) transparentPixelCount += 1;
     }
+    if (y === 0 || y === height - 1) cornerAlphas.push(row[3], row[rowLength - 1]);
     previous = row;
   }
   return {
     width,
     height,
     alpha: hasTransparentPixel,
+    transparentPixelCount,
+    cornerAlphas,
   };
 }
 
@@ -129,28 +128,104 @@ function readImageInfo(path) {
   return path.endsWith(".png") ? readPngInfo(buffer) : readJpegInfo(buffer);
 }
 
-const actualKitFiles = readdirSync(kitDirectory).sort();
-assert.deepEqual(actualKitFiles, kitManifest.map((entry) => entry.file).sort(), "Sewer kit manifest differs from files");
+const measuredPacks = UNDERCITY_ZONE_VISUAL_PACKS.map((pack) => {
+  const zone = UNDERCITY_ZONES.find((candidate) => candidate.id === pack.zoneId);
+  assert(zone, `Canonical ${pack.zoneId} zone missing`);
+  const blueprints = [...zone.encounters, zone.elite, zone.boss];
+  const expectedMembers = blueprints
+    .flatMap((blueprint) => blueprint.members.map((member) => `${blueprint.id}:${member.key}`))
+    .sort();
+  const catalogMembers = pack.enemies
+    .map((visual) => `${visual.blueprintId}:${visual.memberKey}`)
+    .sort();
+  assert.deepEqual(
+    catalogMembers,
+    expectedMembers,
+    `${pack.zoneId} visual catalog must cover every canonical blueprint member exactly once`,
+  );
+  assert.equal(
+    new Set(catalogMembers).size,
+    catalogMembers.length,
+    `${pack.zoneId} visual catalog contains duplicate blueprint members`,
+  );
 
-const measuredKit = kitManifest.map((entry) => {
-  const path = join(kitDirectory, entry.file);
-  const dimensions = readImageInfo(path);
-  assert.deepEqual(dimensions, { width: entry.width, height: entry.height, alpha: entry.alpha }, `${entry.file} format mismatch`);
-  return { ...entry, bytes: statSync(path).size };
+  const enemyAssetsByFile = new Map();
+  for (const visual of pack.enemies) {
+    const existing = enemyAssetsByFile.get(visual.file);
+    if (existing) {
+      assert.deepEqual(
+        { width: visual.width, height: visual.height, alpha: visual.alpha },
+        { width: existing.width, height: existing.height, alpha: existing.alpha },
+        `${pack.zoneId}/${visual.file} reused with conflicting format metadata`,
+      );
+    } else enemyAssetsByFile.set(visual.file, visual);
+  }
+  const assetManifest = [pack.background, ...enemyAssetsByFile.values()];
+  const directory = join(undercityDirectory, pack.directory);
+  const actualFiles = readdirSync(directory).sort();
+  assert.deepEqual(
+    actualFiles,
+    assetManifest.map((entry) => entry.file).sort(),
+    `${pack.zoneId} kit manifest differs from files`,
+  );
+  const assets = assetManifest.map((entry) => {
+    const path = join(directory, entry.file);
+    const dimensions = readImageInfo(path);
+    assert.deepEqual(
+      { width: dimensions.width, height: dimensions.height, alpha: dimensions.alpha },
+      { width: entry.width, height: entry.height, alpha: entry.alpha },
+      `${pack.zoneId}/${entry.file} format mismatch`,
+    );
+    if (entry.alpha) {
+      assert(
+        dimensions.transparentPixelCount >= dimensions.width * dimensions.height * 0.1,
+        `${pack.zoneId}/${entry.file} must contain a substantial transparent background`,
+      );
+      assert(
+        Math.max(...dimensions.cornerAlphas) <= 2,
+        `${pack.zoneId}/${entry.file} must not contain an opaque or semi-opaque baked background`,
+      );
+    }
+    return { ...entry, bytes: statSync(path).size };
+  });
+  const assetsByFile = new Map(assets.map((entry) => [entry.file, entry]));
+  const backgroundBytes = assetsByFile.get(pack.background.file)?.bytes ?? 0;
+  const sceneGroups = blueprints.map((blueprint) => {
+    const files = [...new Set(pack.enemies
+      .filter((visual) => visual.blueprintId === blueprint.id)
+      .map((visual) => visual.file))];
+    const bytes = backgroundBytes + files.reduce(
+      (total, file) => total + (assetsByFile.get(file)?.bytes ?? 0),
+      0,
+    );
+    assert(bytes <= sceneBudgetBytes, `${blueprint.id} scene exceeds ${sceneBudgetBytes} bytes`);
+    return { blueprintId: blueprint.id, members: blueprint.members.length, files, bytes };
+  });
+  return {
+    zoneId: pack.zoneId,
+    blueprints: blueprints.length,
+    members: expectedMembers.length,
+    uniqueAssets: assets.length,
+    kitBytes: assets.reduce((total, entry) => total + entry.bytes, 0),
+    assets,
+    sceneGroups,
+  };
 });
-const kitBytes = measuredKit.reduce((total, entry) => total + entry.bytes, 0);
-assert(kitBytes <= kitBudgetBytes, `Sewer kit exceeds ${kitBudgetBytes} bytes`);
 
 const actualEncounterFiles = readdirSync(encounterDirectory).sort();
 assert.deepEqual(actualEncounterFiles, encounterManifest.map((entry) => entry.file).sort(), "Encounter asset manifest differs from files");
 const measuredEncounters = encounterManifest.map((entry) => {
   const path = join(encounterDirectory, entry.file);
   const dimensions = readImageInfo(path);
-  assert.deepEqual(dimensions, { width: entry.width, height: entry.height, alpha: entry.alpha }, `${entry.file} format mismatch`);
+  assert.deepEqual(
+    { width: dimensions.width, height: dimensions.height, alpha: dimensions.alpha },
+    { width: entry.width, height: entry.height, alpha: entry.alpha },
+    `${entry.file} format mismatch`,
+  );
   return { ...entry, bytes: statSync(path).size };
 });
 const encounterBytes = measuredEncounters.reduce((total, entry) => total + entry.bytes, 0);
-assert(encounterBytes <= kitBudgetBytes, `Encounter assets exceed ${kitBudgetBytes} bytes`);
+assert(encounterBytes <= sceneBudgetBytes, `Encounter assets exceed ${sceneBudgetBytes} bytes`);
 
 const heroImageDirectory = join(projectRoot, "src", "assets", "images");
 for (const relativePath of heroSheets) {
@@ -165,9 +240,8 @@ for (const relativePath of heroSheets) {
 console.log(JSON.stringify({
   heroSheets: heroSheets.length,
   heroIdentities: heroSheets.length * 20,
-  kitBudgetBytes,
-  kitBytes,
-  assets: measuredKit,
+  sceneBudgetBytes,
+  undercityPacks: measuredPacks,
   encounterBytes,
   encounterAssets: measuredEncounters,
 }, null, 2));

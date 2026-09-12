@@ -2,8 +2,13 @@ import { useState } from "react";
 import { createRoot } from "react-dom/client";
 import type {
   CanonicalDungeonEncounterRecord,
+  CanonicalDungeonInitialEnemyActor,
   CanonicalDungeonInitialActors,
 } from "../../../shared/contracts/authoritative";
+import {
+  UNDERCITY_ZONES,
+  type UndercityEncounterBlueprint,
+} from "../../../shared/domain/undercity";
 import DungeonPage from "../../../src/components/dungeon/DungeonPage";
 import DungeonCombatScene from "../../../src/components/dungeon/DungeonCombatScene";
 import { createDungeonCombatSceneView } from "../../../src/domain/dungeonCombatScene";
@@ -24,6 +29,7 @@ const requestedStep = Number(harnessParams.get("step") ?? 2);
 const visibleCount = Number.isInteger(requestedStep) ? Math.max(0, Math.min(6, requestedStep)) : 2;
 const playbackComplete = harnessParams.get("complete") === "1";
 const combatSceneOnly = harnessParams.get("combat-scene") === "1";
+const requestedBlueprintId = harnessParams.get("blueprint");
 const requestedNonCombatScene = harnessParams.get("non-combat-scene");
 const nonCombatScene = requestedNonCombatScene === "treasure" || requestedNonCombatScene === "rest"
   ? requestedNonCombatScene
@@ -46,6 +52,49 @@ const historicalHeroNames = new Map([
   ["archer-history", "Céleste"],
   ["acolyte-history", "Abel"],
 ]);
+
+const requestedBlueprint = UNDERCITY_ZONES.flatMap((zone) => (
+  [...zone.encounters, zone.elite, zone.boss].map((blueprint) => ({ zone, blueprint }))
+)).find(({ blueprint }) => blueprint.id === requestedBlueprintId) ?? null;
+
+function createUndercityEncounterRecord(
+  blueprint: UndercityEncounterBlueprint,
+  bossBlueprintId: string,
+): CanonicalDungeonEncounterRecord {
+  const memberHp = 24;
+  const enemies = blueprint.members.map((member) => ({
+    id: `${blueprint.id}-${member.key}`,
+    name: member.name,
+    hp: memberHp,
+    maxHp: memberHp,
+    isBoss: blueprint.id === bossBlueprintId,
+    role: member.role,
+  }));
+  return {
+    encounterId: `undercity-${blueprint.id}-harness`,
+    dungeonId: "undercity",
+    kind: "fight",
+    floor: 3,
+    room: 3,
+    outcome: "victory",
+    roundCount: 1,
+    enemy: {
+      id: blueprint.id,
+      name: blueprint.name,
+      hp: enemies.length * memberHp,
+      maxHp: enemies.length * memberHp,
+      isBoss: blueprint.id === bossBlueprintId,
+    },
+    enemies,
+    initialActors: {
+      ...initialParty,
+      b: blueprint.id,
+      e: blueprint.members.map((member): CanonicalDungeonInitialEnemyActor => [member.key, memberHp, memberHp]),
+    },
+    transcript: [{ sequence: 0, type: "encounter.started", message: `${blueprint.name} apparaît.` }],
+    rewards: { gold: 0, loot: [] },
+  };
+}
 
 const encounterRecord = {
   encounterId: "encounter-harness",
@@ -152,8 +201,11 @@ function Harness() {
   };
 
   if (combatSceneOnly) {
+    const selectedRecord = requestedBlueprint
+      ? createUndercityEncounterRecord(requestedBlueprint.blueprint, requestedBlueprint.zone.boss.id)
+      : encounterRecord;
     const scene = createEncounterSceneProjection(
-      encounterRecord,
+      selectedRecord,
       new Map([
         ["ariane", "Ariane"],
         ["mage-history", "Milo"],
@@ -162,11 +214,10 @@ function Harness() {
       ]),
       { visibleCount, complete: playbackComplete },
     );
-    const view = createDungeonCombatSceneView(scene, [
-      { id: "rat-a", role: "Combattant" },
-      { id: "rat-b", role: "Protecteur" },
-      { id: "rat-c", role: "Soutien" },
-    ]);
+    const view = createDungeonCombatSceneView(
+      scene,
+      selectedRecord.enemies?.map((enemy) => ({ id: enemy.id, role: enemy.role })) ?? [],
+    );
     return <main className="mx-auto w-full max-w-[1200px] p-6">
       <DungeonCombatScene view={view} />
       <button type="button" className="mt-4 min-h-12 w-full rounded border border-amber-700 bg-amber-950 px-4 text-amber-100">Explorer la salle</button>

@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { UNDERCITY_ZONES } from "../shared/domain/undercity";
 import {
   DUNGEON_COMBAT_EFFECT_LIMIT,
   createDungeonCombatSceneView,
@@ -116,8 +117,8 @@ describe("dungeon combat scene presentation", () => {
     expect(view.actors.some((entry) => entry.id === "hero-hidden" || entry.id === "enemy-hidden")).toBe(false);
     expect(view.actors.map((entry) => entry.standard)).toMatchObject([
       { xPercent: 35, yPercent: 70 },
-      { xPercent: 25, yPercent: 52 },
-      { xPercent: 10, yPercent: 58 },
+      { xPercent: 26, yPercent: 52 },
+      { xPercent: 9, yPercent: 60 },
       { xPercent: 18, yPercent: 82 },
       { xPercent: 69, yPercent: 74 },
       { xPercent: 79, yPercent: 64 },
@@ -125,6 +126,255 @@ describe("dungeon combat scene presentation", () => {
     ]);
     expect(view.actors[1].standard.scale).toBeLessThan(view.actors[3].standard.scale);
     expect(view.actors[4]).toMatchObject({ visualKey: "undercity:rat-pack:a", role: "Combattant" });
+    expect(view.environment).toBe("sewers");
+  });
+
+  it("selects the canonical environment for every UnderCity blueprint", () => {
+    for (const zone of UNDERCITY_ZONES) {
+      for (const blueprint of [...zone.encounters, zone.elite, zone.boss]) {
+        const memberKey = blueprint.members[0].key;
+        const view = createDungeonCombatSceneView(scene({
+          actors: [
+            actor("hero-0", "heroes", 0),
+            actor("enemy-0", "enemies", 0, { contentKey: `${blueprint.id}:${memberKey}` }),
+          ],
+        }));
+        expect(view.environment).toBe(zone.id);
+        expect(view.actors[1].visualKey).toBe(`undercity:${blueprint.id}:${memberKey}`);
+      }
+    }
+  });
+
+  it("derives the environment from enemies rather than colliding hero content keys", () => {
+    const view = createDungeonCombatSceneView(scene({
+      actors: [
+        actor("hero-0", "heroes", 0, { contentKey: "rat-pack:a" }),
+        actor("enemy-0", "enemies", 0, { contentKey: "water-parasites:a" }),
+      ],
+    }));
+    expect(view.environment).toBe("cisterns");
+  });
+
+  it("moves the second hero onto the smugglers gallery floor on desktop only", () => {
+    const view = createDungeonCombatSceneView(scene({
+      actors: [
+        actor("hero-0", "heroes", 0),
+        actor("hero-1", "heroes", 1),
+        actor("hero-2", "heroes", 2),
+        actor("enemy-0", "enemies", 0, { contentKey: "goblin-scavengers:a" }),
+      ],
+    }));
+
+    expect(view.environment).toBe("smugglers");
+    expect(view.actors[0]?.standard.yPercent).toBe(72);
+    expect(view.actors[0]?.zoomed.yPercent).toBe(76);
+    expect(view.actors[1]?.standard.yPercent).toBe(60);
+    expect(view.actors[1]?.zoomed.yPercent).toBe(83);
+    expect(view.actors[2]?.standard.yPercent).toBe(62);
+    expect(view.actors[2]?.zoomed.yPercent).toBe(76);
+  });
+
+  it("spreads the water-parasite encounter across the cistern quay on desktop", () => {
+    const view = createDungeonCombatSceneView(scene({
+      actors: [
+        actor("hero-0", "heroes", 0),
+        actor("hero-1", "heroes", 1),
+        actor("hero-2", "heroes", 2),
+        actor("hero-3", "heroes", 3),
+        actor("enemy-0", "enemies", 0, { contentKey: "water-parasites:a" }),
+        actor("enemy-1", "enemies", 1, { contentKey: "water-parasites:b" }),
+        actor("enemy-2", "enemies", 2, { contentKey: "water-parasites:c" }),
+      ],
+    }));
+
+    expect(view.environment).toBe("cisterns");
+    expect(view.actors.map((actorView) => actorView.standard)).toEqual([
+      expect.objectContaining({ xPercent: 36, yPercent: 75 }),
+      expect.objectContaining({ xPercent: 27, yPercent: 64 }),
+      expect.objectContaining({ xPercent: 10, yPercent: 70 }),
+      expect.objectContaining({ xPercent: 19, yPercent: 84 }),
+      expect.objectContaining({ xPercent: 68, yPercent: 76 }),
+      expect.objectContaining({ xPercent: 80, yPercent: 69 }),
+      expect.objectContaining({ xPercent: 92, yPercent: 84 }),
+    ]);
+    expect(view.actors[1]?.zoomed).toEqual(expect.objectContaining({ xPercent: 38, yPercent: 83 }));
+    expect(view.actors[5]?.zoomed).toEqual(expect.objectContaining({ xPercent: 47, yPercent: 52 }));
+  });
+
+  it("lowers the reservoir slime four percent on the cistern quay", () => {
+    const view = createDungeonCombatSceneView(scene({
+      actors: [
+        actor("hero-0", "heroes", 0),
+        actor("enemy-0", "enemies", 0, { contentKey: "reservoir-slime:a" }),
+      ],
+    }));
+
+    expect(view.environment).toBe("cisterns");
+    expect(view.actors[1]?.standard).toEqual(expect.objectContaining({ xPercent: 69, yPercent: 78 }));
+    expect(view.actors[1]?.zoomed).toEqual(expect.objectContaining({ xPercent: 22, yPercent: 55 }));
+  });
+
+  it("aligns the drowned refuge warden with the reservoir slime on desktop", () => {
+    const view = createDungeonCombatSceneView(scene({
+      actors: [
+        actor("hero-0", "heroes", 0),
+        actor("enemy-0", "enemies", 0, { contentKey: "refuge-warden:a" }),
+      ],
+    }));
+
+    expect(view.environment).toBe("cisterns");
+    expect(view.actors[1]?.standard).toEqual(expect.objectContaining({ xPercent: 69, yPercent: 78 }));
+    expect(view.actors[1]?.zoomed).toEqual(expect.objectContaining({ xPercent: 22, yPercent: 55 }));
+  });
+
+  it("stages the cistern leeches as a grounded desktop pair", () => {
+    const view = createDungeonCombatSceneView(scene({
+      actors: [
+        actor("hero-0", "heroes", 0),
+        actor("enemy-0", "enemies", 0, { contentKey: "cistern-leeches:a" }),
+        actor("enemy-1", "enemies", 1, { contentKey: "cistern-leeches:b" }),
+      ],
+    }));
+
+    expect(view.environment).toBe("cisterns");
+    expect(view.actors[1]?.standard).toEqual(expect.objectContaining({ xPercent: 68, yPercent: 78 }));
+    expect(view.actors[2]?.standard).toEqual(expect.objectContaining({ xPercent: 79, yPercent: 74 }));
+    expect(view.actors[1]?.zoomed).toEqual(expect.objectContaining({ xPercent: 22, yPercent: 55 }));
+    expect(view.actors[2]?.zoomed).toEqual(expect.objectContaining({ xPercent: 47, yPercent: 52 }));
+  });
+
+  it("grounds the valve sentinel and its crab on the cistern quay", () => {
+    const view = createDungeonCombatSceneView(scene({
+      actors: [
+        actor("hero-0", "heroes", 0),
+        actor("enemy-0", "enemies", 0, { contentKey: "valve-sentinel:a" }),
+        actor("enemy-1", "enemies", 1, { contentKey: "valve-sentinel:b" }),
+      ],
+    }));
+
+    expect(view.environment).toBe("cisterns");
+    expect(view.actors[1]?.standard).toEqual(expect.objectContaining({ xPercent: 69, yPercent: 77 }));
+    expect(view.actors[2]?.standard).toEqual(expect.objectContaining({ xPercent: 81, yPercent: 69 }));
+    expect(view.actors[1]?.zoomed).toEqual(expect.objectContaining({ xPercent: 22, yPercent: 55 }));
+    expect(view.actors[2]?.zoomed).toEqual(expect.objectContaining({ xPercent: 47, yPercent: 52 }));
+  });
+
+  it("lowers the dead-water warden two percent on the cistern quay", () => {
+    const view = createDungeonCombatSceneView(scene({
+      actors: [
+        actor("hero-0", "heroes", 0),
+        actor("enemy-0", "enemies", 0, { contentKey: "dead-water-warden:a" }),
+      ],
+    }));
+
+    expect(view.environment).toBe("cisterns");
+    expect(view.actors[1]?.standard).toEqual(expect.objectContaining({ xPercent: 69, yPercent: 76 }));
+    expect(view.actors[1]?.zoomed).toEqual(expect.objectContaining({ xPercent: 22, yPercent: 55 }));
+  });
+
+  it("moves only the colossal rat five percent to the right", () => {
+    const view = createDungeonCombatSceneView(scene({
+      actors: [
+        actor("hero-0", "heroes", 0),
+        actor("enemy-0", "enemies", 0, { contentKey: "colossal-rat:a" }),
+      ],
+    }));
+
+    expect(view.actors[0]?.standard.xPercent).toBe(35);
+    expect(view.actors[1]?.standard.xPercent).toBe(74);
+    expect(view.actors[1]?.zoomed.xPercent).toBe(27);
+  });
+
+  it("aligns the solo pipe slime with the colossal rat position", () => {
+    const view = createDungeonCombatSceneView(scene({
+      actors: [
+        actor("hero-0", "heroes", 0),
+        actor("enemy-0", "enemies", 0, { contentKey: "pipe-slime:a" }),
+      ],
+    }));
+
+    expect(view.actors[0]?.standard.xPercent).toBe(35);
+    expect(view.actors[1]?.standard.xPercent).toBe(74);
+    expect(view.actors[1]?.zoomed.xPercent).toBe(27);
+  });
+
+  it("moves only the hound four percent left on desktop", () => {
+    const view = createDungeonCombatSceneView(scene({
+      actors: [
+        actor("hero-0", "heroes", 0),
+        actor("enemy-0", "enemies", 0, { contentKey: "hound-handler:a" }),
+        actor("enemy-1", "enemies", 1, { contentKey: "hound-handler:b" }),
+      ],
+    }));
+
+    expect(view.actors[1]?.standard.xPercent).toBe(65);
+    expect(view.actors[1]?.zoomed.xPercent).toBe(22);
+    expect(view.actors[2]?.standard.xPercent).toBe(79);
+  });
+
+  it("positions the captain front line on desktop", () => {
+    const view = createDungeonCombatSceneView(scene({
+      actors: [
+        actor("hero-0", "heroes", 0),
+        actor("enemy-0", "enemies", 0, { contentKey: "smuggler-captain:a" }),
+        actor("enemy-1", "enemies", 1, { contentKey: "smuggler-captain:b" }),
+        actor("enemy-2", "enemies", 2, { contentKey: "smuggler-captain:c" }),
+      ],
+    }));
+
+    expect(view.actors[1]?.standard.xPercent).toBe(67);
+    expect(view.actors[1]?.standard.yPercent).toBe(75);
+    expect(view.actors[2]?.standard.xPercent).toBe(78);
+    expect(view.actors[3]?.standard.xPercent).toBe(87);
+    expect(view.actors[3]?.standard.yPercent).toBe(82);
+    expect(view.actors[1]?.zoomed.xPercent).toBe(22);
+    expect(view.actors[2]?.zoomed.xPercent).toBe(47);
+  });
+
+  it("reuses the captain front-line positions for the tribute collector on desktop", () => {
+    const view = createDungeonCombatSceneView(scene({
+      actors: [
+        actor("hero-0", "heroes", 0),
+        actor("enemy-0", "enemies", 0, { contentKey: "tribute-collector:a" }),
+        actor("enemy-1", "enemies", 1, { contentKey: "tribute-collector:b" }),
+        actor("enemy-2", "enemies", 2, { contentKey: "tribute-collector:c" }),
+      ],
+    }));
+
+    expect(view.actors[1]?.standard).toMatchObject({ xPercent: 67, yPercent: 75 });
+    expect(view.actors[2]?.standard).toMatchObject({ xPercent: 78, yPercent: 64 });
+    expect(view.actors[3]?.standard).toMatchObject({ xPercent: 87, yPercent: 82 });
+    expect(view.actors[1]?.zoomed.xPercent).toBe(22);
+    expect(view.actors[2]?.zoomed.xPercent).toBe(47);
+    expect(view.actors[3]?.zoomed.xPercent).toBe(78);
+  });
+
+  it("moves the vermin mother ten percent to the right", () => {
+    const view = createDungeonCombatSceneView(scene({
+      actors: [
+        actor("hero-0", "heroes", 0),
+        actor("enemy-0", "enemies", 0, { contentKey: "vermin-mother:a" }),
+      ],
+    }));
+
+    expect(view.actors[0]?.standard.xPercent).toBe(35);
+    expect(view.actors[1]?.standard.xPercent).toBe(79);
+    expect(view.actors[1]?.zoomed.xPercent).toBe(32);
+  });
+
+  it("moves only the lock-biter two percent to the left", () => {
+    const view = createDungeonCombatSceneView(scene({
+      actors: [
+        actor("enemy-0", "enemies", 0, { contentKey: "sewer-warden:a" }),
+        actor("enemy-1", "enemies", 1, { contentKey: "sewer-warden:b" }),
+      ],
+    }));
+
+    expect(view.actors[0]?.standard.xPercent).toBe(67);
+    expect(view.actors[0]?.zoomed.xPercent).toBe(20);
+    expect(view.actors[1]?.standard.xPercent).toBe(79);
+    expect(view.actors[0]?.metaOffsetYPercent).toBe(0);
+    expect(view.actors[1]?.metaOffsetYPercent).toBe(2);
   });
 
   it("projects a critical lethal melee action on the exact source and target", () => {

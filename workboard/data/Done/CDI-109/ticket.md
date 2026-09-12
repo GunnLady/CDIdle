@@ -1,7 +1,7 @@
 ---
-id: CDI-108
-title: Compléter les assets des Égouts infestés
-status: Later
+id: CDI-109
+title: Produire les assets des Galeries des contrebandiers
+status: Done
 area: art
 priority: P1
 size: M
@@ -13,27 +13,27 @@ github_issue: null
 related_docs: ["docs/development/dungeon-2d-encounter-plan.md","docs/development/dungeon-2d-resizing-proposal.md","src/assets/heroSpriteSheets.ts","src/domain/heroPortrait.ts","src/components/HeroPortrait.tsx","shared/domain/undercity.ts","assets/design/hero-sprites/human-tier1-class-spritesheets-v1.prompt.md"]
 ---
 
-# CDI-108 — Compléter les assets des Égouts infestés
+# CDI-109 — Produire les assets des Galeries des contrebandiers
 
 ## Objectif
 
-Livrer le pack artistique complet de la zone Égouts infestés, avec catalogue vérifiable et ressources optimisées.
+Livrer le pack artistique complet de la zone Galeries des contrebandiers, avec catalogue vérifiable et ressources optimisées.
 
 ## Resultat utilisateur
 
-Le joueur reconnaît l'ambiance de Égouts infestés, ses groupes ennemis, son élite et son boss.
+Le joueur reconnaît l'ambiance de Galeries des contrebandiers, ses groupes ennemis, son élite et son boss.
 
 ## Contexte
 
-M couvre une seule zone : six blueprints et 11 emplacements de membres actuellement déclarés, avec réemplois possibles ; il ne signifie pas 11 illustrations originales obligatoires. Le catalogue et les silhouettes de héros existent dans CDI-099.
+M couvre une seule zone : six blueprints et 14 emplacements de membres actuellement déclarés, avec réemplois possibles ; il ne signifie pas 14 illustrations originales obligatoires. Le catalogue et les silhouettes de héros existent dans CDI-099.
 
 Périmètre approuvé dans dungeon-2d-resizing-proposal.md ; taille relative incluant tests, documentation et revue, hors attente utilisateur.
 
 ## Perimetre autorise
 
-- Couvrir uniquement la zone canonique `sewers` : `rat-pack`, `beetle-swarm`, `pipe-slime`, `colossal-rat`, `sewer-warden`, `vermin-mother`.
+- Couvrir uniquement la zone canonique `smugglers` : `smuggler-escort`, `goblin-scavengers`, `hound-handler`, `tribute-cutthroat`, `smuggler-captain`, `tribute-collector`.
 - Livrer tous les membres de ses quatre rencontres régulières, de son élite et de son boss, ainsi que son décor.
-- Réutiliser les trois rats de rat-pack et le décor des Égouts livrés dans CDI-099 ; ne produire que les compléments manquants.
+- Créer l'ambiance de zone et les ressources manquantes en réutilisant le catalogue établi par CDI-099.
 - Préparer provenance, versions, cadrage, ancrages, échelles, transparence, poids et fallback ; vérifier la couverture contre UNDERCITY_ZONES.
 - Valider la cohérence artistique et le chargement à la demande de cette zone, indépendamment des autres packs.
 
@@ -63,16 +63,16 @@ Les dépendances directes et leurs liens blocks font foi ; les acquis déjà liv
 
 ## Criteres d'acceptation
 
-- [ ] Le vérificateur confirme les six blueprints de sewers et leurs 11 emplacements de membres sans entrée ni fichier manquant.
-- [ ] Décor, acteurs, provenance/versions, ancrages et échelles sont livrés dans le catalogue de présentation.
-- [ ] Les rôles, l'élite et le boss restent lisibles ; aucune ressource de repli provisoire ne remplace silencieusement un membre attendu.
-- [ ] Fichiers/dimensions/transparence, téléchargement à froid/cache et cas lent/absent sont contrôlés dans les budgets.
-- [ ] L'utilisateur valide le pack sur fond sombre à 1024/1280/1440 px et au zoom 200 %, dont le cas quatre héros/boss escorté si applicable.
-- [ ] Le kit pilote est réutilisé sans produire une seconde version concurrente du décor et de rat-pack.
+- [x] Le vérificateur confirme les six blueprints de smugglers et leurs 14 emplacements de membres sans entrée ni fichier manquant.
+- [x] Décor, acteurs, provenance/versions, ancrages et échelles sont livrés dans le catalogue de présentation.
+- [x] Les rôles, l'élite et le boss restent lisibles ; aucune ressource de repli provisoire ne remplace silencieusement un membre attendu.
+- [x] Fichiers/dimensions/transparence, téléchargement à froid/cache et cas lent/absent sont contrôlés dans les budgets.
+- [x] L'utilisateur valide le pack sur fond sombre à 1024/1280/1440 px et au zoom 200 %, dont le cas quatre héros/boss escorté si applicable.
+- [x] Le pack est chargeable indépendamment des quatre autres zones ; aucune dépendance séquentielle artistique inutile n'est introduite.
 
 ## Tests
 
-- Contrôler la couverture contre UNDERCITY_ZONES pour sewers ; tous les membres, pas seulement un visuel par blueprint.
+- Contrôler la couverture contre UNDERCITY_ZONES pour smugglers ; tous les membres, pas seulement un visuel par blueprint.
 - Vérifier manifeste, fichiers, poids, transparence, ancrages, fallback et chargement tardif ; utiliser le harness de scène selon l'autorisation navigateur.
 - npm.cmd run build
 - npm.cmd run check:bundle
@@ -84,7 +84,7 @@ Ces validations sont à exécuter lors de l'implémentation du ticket ; le redé
 
 ## Validation manuelle
 
-L'utilisateur valide Égouts infestés : cohérence CDIdle, silhouettes, détourage, taille relative et lisibilité des groupes/élite/boss. Les vérifications de poids ne remplacent pas cet avis.
+L'utilisateur valide Galeries des contrebandiers : cohérence CDIdle, silhouettes, détourage, taille relative et lisibilité des groupes/élite/boss. Les vérifications de poids ne remplacent pas cet avis.
 
 ## Preservation
 
@@ -100,6 +100,14 @@ L'utilisateur valide Égouts infestés : cohérence CDIdle, silhouettes, détour
 
 ## Handoff
 
-Fournir manifeste de sewers, sources/prompts autorisés, réemplois, métriques, contrôle des 11 emplacements et avis utilisateur. V01/V13/V15/V18. CDI-116 mesure la couverture complète des cinq packs.
+Fournir manifeste de smugglers, sources/prompts autorisés, réemplois, métriques, contrôle des 14 emplacements et avis utilisateur. V01/V13/V15/V18. CDI-116 mesure la couverture complète des cinq packs.
 
 Indiquer fichiers, commandes réellement exécutées, résultats et limites. Ne pas clore avec un écart réel non corrigé ; ne pas attribuer au présent ticket la livraison de ses successeurs.
+
+### Clôture du 12 septembre 2026
+
+- Livraison : `src/assets/undercitySmugglersVisualManifest.ts`, `src/assets/images/dungeon/undercity/smugglers/` et `assets/design/dungeon-2d/undercity-smugglers-kit-v1.prompt.md` couvrent les six blueprints et les 14 membres canoniques.
+- Validation visuelle utilisateur : les six écrans Contrebandiers, leurs positions, proportions, détourage et lisibilité ont été validés écran par écran sur PC.
+- Validation responsive automatisée : `dungeonUndercityPacks.responsive.browser.spec.ts` couvre 1024, 1280 et 1440 px ainsi que l'équivalent 1024 px à zoom 200 %, quatre héros et boss compris ; 4/4 tests passent.
+- Validation technique : vérificateur des assets, tests du catalogue/scène/domaine, build, budget bundle, typecheck, lint et validation du workboard passent. Le manifeste est indépendant et les ressources restent chargées tardivement avec cache borné et fallback explicite.
+- Limite : l'avis visuel vient de la session PC utilisateur ; les largeurs et le zoom exacts sont contrôlés structurellement par Playwright, sans prétendre à une inspection visuelle humaine distincte de chaque largeur.
