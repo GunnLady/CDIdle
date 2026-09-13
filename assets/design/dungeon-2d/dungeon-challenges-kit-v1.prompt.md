@@ -37,4 +37,3 @@ chibi, ni ultra-HD. Le chroma ne doit apparaître dans aucun élément du sujet.
 
 Chaque scène réutilise `rest-chamber-background-v1.jpg`. Avec son accessoire,
 la plus lourde est `obstacle` à 902 858 octets, sous le plafond de 2 MiB.
-
