@@ -1,8 +1,26 @@
 # Donjon — scène 2D des combats et rencontres
 
-Date de recherche : 10 septembre 2026.
-Statut : recherche et plan préparés ; redécoupage approuvé, appliqué et vérifié en vingt tickets.
-Périmètre de cette session : recherche, plan et préparation des tickets uniquement.
+Date de recherche initiale : 10 septembre 2026. Révision : 13 septembre 2026.
+Statut : socles et premiers packs livrés ; suite du plan révisée après retour
+utilisateur sur les animations. Le découpage amélioré est appliqué au Workboard :
+31 nouveaux tickets CDI-117–147, cinq recadrés et dépendances actualisées.
+Périmètre de cette révision : recherche et plan, sans modification applicative.
+
+**Référence directrice pour la suite : [production des sprites et animations
+d’action](dungeon-2d-action-production-plan.md).** Elle précise les 36 compétences,
+les attaques de base, les réactions et les huit familles hors combat, leurs
+rendus attendus, ressources utiles et lots d’exécution. Elle remplace les
+hypothèses trop larges de CDI-113/114/115 ci-dessous sans effacer les acquis.
+
+Décisions confirmées : normaliser la DA des héros et harmoniser les monstres
+qui le nécessitent ; conserver les sprites et les mouvements simples autant
+que possible, ajouter une ou deux poses ciblées seulement pour un gain lisible.
+Pas de cycles complexes ni de production systématique pour les 400 identités.
+Les armes appartiennent aux sprites, peuvent varier dans une même classe et
+ne suivent pas l’équipement réel. Priorité : résultat parlant, coût minimal.
+Les bases des dix classes doivent être refaites en préservant les identités
+existantes ; le Novice est produit en premier puis rejoint les cinq références
+humanoïdes déjà validées pour guider les neuf autres classes.
 
 ## 1. Résultat attendu
 
@@ -144,11 +162,11 @@ une salle de repos si la trace l'indique. L'échec d'une épreuve ne doit pas
 | KO / réanimation | Affaissement et immobilité / retour progressif ; statut issu de la rencontre |
 | Victoire, défaite et butin | Transition lisible et résultat récapitulatif ; collecte visuelle sans interaction obligatoire |
 
-V1 proposée : animer les silhouettes détourées par translation, inclinaison,
-petite déformation et effets 2D. Aucun cycle complet de marche par variante
-n'est nécessaire à ce modèle, mais le prototype doit démontrer un combat vivant.
-Une pose statique qui glisse sans anticipation ni impact ne suffit pas.
-Si ce rendu est jugé insuffisant, réviser le lot artistique avant sa généralisation.
+Direction révisée : silhouettes détourées, mouvements courts et effets sobres,
+avec poses ciblées seulement si le geste ne se lit pas autrement. Aucun cycle
+complet de marche par variante n’est demandé. Le [catalogue des actions](dungeon-2d-action-production-plan.md)
+distingue geste, signature et résultat ; ni une classe, ni le type de dégâts
+seul ne suffit à choisir toutes les animations.
 
 ### Prototype PC CDI-097 implémenté — validation visuelle obtenue
 
@@ -188,7 +206,9 @@ réussis en 5,8 s.
 
 Le 10 septembre 2026, l'utilisateur a validé la composition, les silhouettes
 transformées et la cadence après un ajustement du cycle de 2 800 à 2 300 ms.
-Cette validation permet de poursuivre CDI-099 sans imposer de poses dédiées.
+Cette validation avait permis de poursuivre CDI-099 sans imposer de poses dédiées.
+Le 13 septembre, l’utilisateur a confirmé des poses ciblées lorsque nécessaires,
+en conservant une approche simple et économe ; pas une animation dessinée complète.
 Le prototype reste une scène de présentation et ne prouve ni les futurs assets
 ni la fluidité finale en production.
 
@@ -400,9 +420,12 @@ sont livrés avec les actions correspondantes dans CDI-101/CDI-113/CDI-114.
 
 Le catalogue actuel contient 63 emplacements de membres dans trente
 blueprints ; ce n'est pas une exigence de 63 illustrations originales.
-Cela n'exige pas non plus 400 animations dessinées : les transformations
-peuvent partager des profils. Les ennemis peuvent partager une famille visuelle
-avec des variantes lisibles ; les élites et boss restent identifiables.
+Cela n’exige pas non plus 400 animations dessinées : les transformations
+partagent des profils et seules les poses utiles sont produites. La nouvelle
+passe de normalisation héros et d’harmonisation ennemie est définie dans les
+lots A0/A1/A2 du [plan de production](dungeon-2d-action-production-plan.md).
+Les variantes, élites et boss restent identifiables ; aucun sprite validé
+n’est régénéré sans défaut ou besoin de geste identifié.
 
 Chaque ressource possède une origine, une clé stable, un cadrage, un ancrage
 au sol, une échelle et un fallback documentés. Optimiser les extraits et
@@ -417,7 +440,9 @@ complet dans CDI-116 puis à consolider lors de CDI-104 :
   gros fichier ≤ 300 KiB (`check:bundle` contrôle la somme, pas uniquement l'entrée).
 - Budget artistique initial proposé : ≤ 2 MiB de téléchargements supplémentaires
   à froid pour une scène de zone et son groupe affiché ; mesurer séparément le
-  trafic déjà nécessaire aux portraits. À confirmer avec les assets réels.
+  trafic déjà nécessaire aux portraits. Les nouvelles poses héros comptent dans
+  ce supplément : elles ne sont pas exclues comme portraits préexistants.
+  À confirmer avec les assets réels, sans relever le budget silencieusement.
 - Mesure CDI-102 : les accessoires transparents ImageGen CDIdle v1 pèsent
   586 490 octets pour le coffre ouvert (640 × 585) et 342 451 octets pour le
   camp de repos (768 × 512). Leurs décors dédiés ImageGen pèsent 255 476 octets
@@ -456,7 +481,16 @@ ou le résumé fidèle, sans page vide ni blocage de l'exploration. Un historiqu
 déjà terminé se présente comme terminé après rechargement ; pas de replay
 automatique des quinze dernières rencontres.
 
-## 7. Découpage Workboard approuvé
+## 7. Découpage Workboard existant et révision de la suite
+
+Le tableau ci-dessous décrit les tickets existants. Leur ancien périmètre ne
+suffit plus pour la suite artistique et les gestes d’action demandés le
+13 septembre. Le [nouveau découpage d’exécution](dungeon-2d-action-production-plan.md)
+est appliqué : recadrage 104/113/114/115/116, familles de gestes CDI-118–128,
+épreuves CDI-129–134 et convergence CDI-135 avant 116/104. CDI-117 organise
+le tri artistique et la création des seules retouches utiles A1/A2 avec leurs
+prérequis de recette. Aucun ticket n’est clôturé et aucune validation visuelle
+n’est déduite de cette révision documentaire.
 
 Le redécoupage en **vingt tickets — 1 S, 14 M et 5 L** a été confirmé par
 l'utilisateur le 10 septembre 2026 : « Oui, applique ce découpage ».
@@ -470,7 +504,7 @@ avec les vingt tickets. L'[archive de création initiale](dungeon-2d-workboard-p
 reste inchangée : elle décrit historiquement les huit tickets avant redécoupage,
 pas leur contenu actuel.
 
-| Ticket | Livrable | Statut au redécoupage | Taille / risque | Dépendances |
+| Ticket | Livrable | Statut actuel | Taille / risque | Dépendances |
 | --- | --- | --- | --- | --- |
 | [CDI-097](../../workboard/data/Done/CDI-097/ticket.md) | Valider la composition PC de la scène Donjon 2D | Done | M / medium | Aucune |
 | [CDI-098](../../workboard/data/Done/CDI-098/ticket.md) | Capturer les acteurs initiaux dans un contrat de rencontre compatible | Done | L / high | CDI-097 |
@@ -488,62 +522,104 @@ pas leur contenu actuel.
 | [CDI-110](../../workboard/data/Done/CDI-110/ticket.md) | Produire les assets des Citernes oubliées | Done | M / medium | CDI-099 |
 | [CDI-111](../../workboard/data/Done/CDI-111/ticket.md) | Produire les assets du Bastion des Exclus | Done | M / medium | CDI-099 |
 | [CDI-112](../../workboard/data/Done/CDI-112/ticket.md) | Produire les assets de la Cour du Roi des Rats | Done | M / medium | CDI-099 |
-| [CDI-113](../../workboard/data/Later/CDI-113/ticket.md) | Animer les compétences, projectiles et soins du combat | Later | M / medium | CDI-103, CDI-106 |
-| [CDI-114](../../workboard/data/Later/CDI-114/ticket.md) | Tracer et représenter les statuts, intentions et protections | Later | L / high | CDI-113 |
-| [CDI-115](../../workboard/data/Later/CDI-115/ticket.md) | Mettre en scène les six épreuves du Donjon | Later | L / medium | CDI-102 |
-| [CDI-116](../../workboard/data/Later/CDI-116/ticket.md) | Mesurer et stabiliser les performances des scènes complètes | Later | M / high | CDI-108, CDI-109, CDI-110, CDI-111, CDI-112, CDI-114, CDI-115 |
+| [CDI-113](../../workboard/data/Paused/CDI-113/ticket.md) | Fiabiliser la chronologie et le pilote de contact | Paused | M / high | CDI-103, CDI-106, CDI-117, CDI-136 |
+| [CDI-114](../../workboard/data/Later/CDI-114/ticket.md) | Tracer et représenter le cycle des buffs et debuffs | Later | M / high | CDI-113 |
+| [CDI-115](../../workboard/data/Doing/CDI-115/ticket.md) | Mettre en scène le piège et le socle des épreuves | Doing | M / medium | CDI-102 |
+| [CDI-116](../../workboard/data/Later/CDI-116/ticket.md) | Mesurer et stabiliser les performances des scènes complètes | Later | M / high | CDI-108, CDI-109, CDI-110, CDI-111, CDI-112, CDI-114, CDI-115, CDI-129, CDI-130, CDI-131, CDI-132, CDI-133, CDI-134, CDI-135 |
+
+
+Nouveaux tickets du plan amélioré :
+
+| Ticket | Lot / livrable | Statut | Taille / risque | Dépendances |
+| --- | --- | --- | --- | --- |
+| [CDI-117](../../workboard/data/Done/CDI-117/ticket.md) | A0 — Caler la DA et sélectionner les retouches utiles | Done | M / medium | CDI-099, CDI-108, CDI-109, CDI-110, CDI-111, CDI-112 |
+| [CDI-118](../../workboard/data/Later/CDI-118/ticket.md) | C1 — Différencier les frappes de contact simples et jumelles | Later | M / medium | CDI-113, CDI-136, CDI-137, CDI-138, CDI-146, CDI-147 |
+| [CDI-119](../../workboard/data/Later/CDI-119/ticket.md) | C2 — Animer le balayage et les combos de pugilat | Later | M / high | CDI-118, CDI-137, CDI-145 |
+| [CDI-120](../../workboard/data/Later/CDI-120/ticket.md) | C3 — Donner aux créatures des attaques adaptées à leur corps | Later | M / medium | CDI-113 |
+| [CDI-121](../../workboard/data/Later/CDI-121/ticket.md) | D1 — Animer les tirs à l’arc et à l’arbalète | Later | M / medium | CDI-113, CDI-114, CDI-139, CDI-146, CDI-147 |
+| [CDI-122](../../workboard/data/Later/CDI-122/ticket.md) | M1 — Distinguer les projectiles de feu, glace et foudre | Later | M / medium | CDI-113, CDI-140 |
+| [CDI-123](../../workboard/data/Later/CDI-123/ticket.md) | M2 — Décliner les jets élémentaires et les appareils | Later | L / medium | CDI-114, CDI-122, CDI-140, CDI-144, CDI-146 |
+| [CDI-124](../../workboard/data/Later/CDI-124/ticket.md) | S1 — Mettre en scène les soins et les effets sacrés ou naturels | Later | L / medium | CDI-113, CDI-114, CDI-141, CDI-143, CDI-146 |
+| [CDI-125](../../workboard/data/Later/CDI-125/ticket.md) | S2 — Animer chants, cris, poudre et renforcements | Later | M / medium | CDI-113, CDI-114, CDI-136, CDI-137, CDI-138, CDI-142, CDI-145, CDI-146 |
+| [CDI-126](../../workboard/data/Later/CDI-126/ticket.md) | E1 — Tracer et montrer les intentions et protections ennemies | Later | M / high | CDI-106, CDI-113, CDI-147 |
+| [CDI-127](../../workboard/data/Later/CDI-127/ticket.md) | E2 — Coordonner les gardes et les deux formes du Roi | Later | M / high | CDI-112, CDI-126 |
+| [CDI-128](../../workboard/data/Later/CDI-128/ticket.md) | R1 — Stabiliser réactions, KO et relèvement | Later | M / medium | CDI-102, CDI-113 |
+| [CDI-129](../../workboard/data/Later/CDI-129/ticket.md) | N1 — Mettre en scène l’énigme et son contrecoup | Later | M / medium | CDI-115, CDI-117 |
+| [CDI-130](../../workboard/data/Later/CDI-130/ticket.md) | N2 — Mettre en scène l’alerte d’embuscade | Later | M / medium | CDI-115, CDI-117 |
+| [CDI-131](../../workboard/data/Later/CDI-131/ticket.md) | N3 — Mettre en scène l’activation du rituel | Later | M / medium | CDI-115, CDI-117 |
+| [CDI-132](../../workboard/data/Later/CDI-132/ticket.md) | N4 — Mettre en scène l’effort face à un obstacle | Later | M / medium | CDI-115, CDI-117 |
+| [CDI-133](../../workboard/data/Later/CDI-133/ticket.md) | N5 — Mettre en scène l’échange de négociation | Later | M / medium | CDI-115, CDI-117 |
+| [CDI-134](../../workboard/data/Later/CDI-134/ticket.md) | N6 — Préserver trésor et repos avec les héros retouchés | Later | M / medium | CDI-102, CDI-117, CDI-128, CDI-136–145 |
+| [CDI-135](../../workboard/data/Later/CDI-135/ticket.md) | Q1 — Vérifier le combat continu et la couverture des actions | Later | M / high | CDI-114, CDI-117–147 |
+| [CDI-136](../../workboard/data/Later/CDI-136/ticket.md) | A1 — Refaire les bases visuelles des Novices | Later | L / medium | CDI-117 |
+| [CDI-137](../../workboard/data/Later/CDI-137/ticket.md) | A1 — Refaire les bases visuelles des Guerriers | Later | L / medium | CDI-117, CDI-136 |
+| [CDI-138](../../workboard/data/Later/CDI-138/ticket.md) | A1 — Refaire les bases visuelles des Voleurs | Later | L / medium | CDI-117, CDI-136 |
+| [CDI-139](../../workboard/data/Later/CDI-139/ticket.md) | A1 — Refaire les bases visuelles des Archers | Later | L / medium | CDI-117, CDI-136 |
+| [CDI-140](../../workboard/data/Later/CDI-140/ticket.md) | A1 — Refaire les bases visuelles des Mages | Later | L / medium | CDI-117, CDI-136 |
+| [CDI-141](../../workboard/data/Later/CDI-141/ticket.md) | A1 — Refaire les bases visuelles des Acolytes | Later | L / medium | CDI-117, CDI-136 |
+| [CDI-142](../../workboard/data/Later/CDI-142/ticket.md) | A1 — Refaire les bases visuelles des Aèdes | Later | L / medium | CDI-117, CDI-136 |
+| [CDI-143](../../workboard/data/Later/CDI-143/ticket.md) | A1 — Refaire les bases visuelles des Druides | Later | L / medium | CDI-117, CDI-136 |
+| [CDI-144](../../workboard/data/Later/CDI-144/ticket.md) | A1 — Refaire les bases visuelles des Artificiers | Later | L / medium | CDI-117, CDI-136 |
+| [CDI-145](../../workboard/data/Later/CDI-145/ticket.md) | A1 — Refaire les bases visuelles des Pugilistes | Later | L / medium | CDI-117, CDI-136 |
+| [CDI-146](../../workboard/data/Later/CDI-146/ticket.md) | A2 — Refaire les onze humanoïdes des Galeries | Later | L / medium | CDI-117 |
+| [CDI-147](../../workboard/data/Later/CDI-147/ticket.md) | A2 — Refaire la sentinelle et la patrouille du Bastion | Later | M / medium | CDI-117 |
 
 Les tailles sont relatives et incluent tests, documentation et revue, hors
-attente utilisateur. Les L sont justifiés : contrat persistant traversant ses
-frontières (098), catalogue et kit pilote réutilisables (099), dispatch/automate/
-annulation à valider ensemble (103), statuts du producteur au rendu (114), et
-six variantes du même contrat de défi après extraction de trésor/repos (115).
-Des poses dédiées décidées dans CDI-097 nécessiteraient de réestimer l'art.
+attente utilisateur. Le chantier compte désormais 51 tickets : 1 S, 32 M et
+18 L. Les lots L réutilisent des recettes communes mais couvrent
+plusieurs signatures ; leur limite et le critère de subdivision sont explicites.
+Les retouches A1/A2 ne sont pas estimées comme un lot global de 400 sprites.
+Les poses ciblées confirmées le 13 septembre nécessitent désormais de mesurer
+le pilote et de borner les seuls lots artistiques utiles, sans estimation
+globale arbitraire pour les 400 identités.
 
-Priorité : P1 pour les vingt tickets du chantier ; ce rang ne signifie pas
+Priorité : P1 pour les 51 tickets actuels du chantier ; ce rang ne signifie pas
 incident de production généralisé. CDI-097, CDI-098, CDI-099, CDI-100, CDI-101,
 CDI-102, CDI-103, CDI-105, CDI-106, CDI-107, CDI-108, CDI-109, CDI-110,
-CDI-111 et CDI-112 sont Done ; les autres restent Later jusqu'à leur
-prise en charge et au respect de leurs prérequis.
+CDI-111, CDI-112 et CDI-117 sont Done. CDI-113 est Paused en attente de
+136, CDI-115 Doing sur le piège ; les autres restent Later. Les tickets Done
+ne changent que de liens blocks si nécessaire, pas de périmètre ni de verdict.
 Les acquis CDI-076, CDI-078, CDI-080, CDI-083, CDI-094 et CDI-095 restent des
 références livrées sans modification de leurs tickets. L'ancien modèle de
 bestiaire CDI-086 ne gouverne pas le contenu UnderCity actuel.
 
 Ordre : prototype 097 et correction indépendante 105 ; contrat 098 et kit 099 ;
 projection 100, lecteur 107, combat simple 101 puis **première intégration 103**.
-Ressources/cibles 106 peut avancer dès ses prérequis. Les packs 108–112 et les
-extensions intégrées 102/113/114/115 complètent ensuite le produit ; mesures
-116 puis recette 104. Chaque ticket produit ses propres tests et preuves.
+Ressources/cibles 106 peut avancer dès ses prérequis. Les packs 108–112 sont livrés. La suite commence par 117 puis 113, les
+familles 118–128 et les épreuves 115/129–134 ; 135 vérifie le combat complet,
+116 mesure le produit convergé, puis 104 consolide la recette. Chaque ticket
+produit ses propres tests et preuves.
 
 Le pilote peut utiliser des fallbacks neutres honnêtes pour l'art ou les actions
 non encore finalisés, et garder temporairement le rendu non-combat existant.
 Ces états transitoires sont fermés par les packs et extensions identifiés ; ils
-ne satisfont pas le résultat final. CDI-116 dépend de toutes les branches
-terminales et CDI-104 de 116, ce qui impose les vingt tickets avant clôture.
+ne satisfont pas le résultat final. CDI-116 dépend des branches terminales
+révisées et CDI-104 de 116. Les retouches A1/A2 doivent être raccordées comme
+prérequis de leurs consommateurs et de 135/134 avant clôture du tri concerné.
 Aucun déploiement partiel n'est autorisé par ce seul plan.
 
 ## 8. Matrice de validation à réaliser
 
 | ID | Scénario / preuve requise | Tickets responsables |
 | --- | --- | --- |
-| V01 | 1 à 4 héros, 1 à 3 ennemis, mêmes variantes et places après rechargement | 097, 098, 099, 100, 108–112 |
-| V02 | Coup normal, critique, esquive, multi-frappe et coup létal sur le bon acteur | 105, 100, 101, 106, 113 |
-| V03 | Compétence qui tue une cible avec un survivant suivant : id et PV exacts | 105, 100, 101, 113 |
-| V04 | Soin allié, soutien ennemi, buff/debuff multicible, mana et expiration | 106, 113, 114 |
-| V05 | Gardes/protection du Roi puis changement d'intention ; aucun faux effet inventé | 114, 112 |
-| V06 | Héros déjà KO, nouveau KO, wipe et repos avec réanimation du segment | 098, 100, 101, 102, 103 |
-| V07 | Huit types hors combat, branches succès/échec applicables, butin exact | 106, 102, 115 |
-| V08 | Jalons 5/10/50, continuer/retour, vocation, progression puis sélection de farm | 103 |
-| V09 | Lecture activée/désactivée, autre page CDIdle et écran rapide : mêmes départs et résultats | 107, 103 |
-| V10 | Onglet masqué, retour visible, navigation et démontage sans rattrapage animé en rafale | 107, 103 |
+| V01 | 1 à 4 héros, 1 à 3 ennemis, mêmes variantes et places après rechargement | 097, 098, 099, 100, 108–112, 117, 136–147, A2, 135 |
+| V02 | Coup normal, critique, esquive, multi-frappe et coup létal sur le bon acteur | 105, 100, 101, 106, 113, 118–123, 127, 128, 135 |
+| V03 | Compétence qui tue une cible avec un survivant suivant : id et PV exacts | 105, 100, 101, 113, 118–123, 135 |
+| V04 | Soin allié, soutien ennemi, buff/debuff multicible, mana et expiration | 106, 113, 114, 121, 123–125, 135 |
+| V05 | Gardes/protection du Roi puis changement d'intention ; aucun faux effet inventé | 112, 126, 127, 135 |
+| V06 | Héros déjà KO, nouveau KO, wipe et repos avec réanimation du segment | 098, 100, 101, 102, 103, 128, 134, 135 |
+| V07 | Huit types hors combat, branches succès/échec applicables, butin exact | 106, 102, 115, 129–134 |
+| V08 | Jalons 5/10/50, continuer/retour, vocation, progression puis sélection de farm | 103, 135 |
+| V09 | Lecture activée/désactivée, autre page CDIdle et écran rapide : mêmes départs et résultats | 107, 103, 113, 135 |
+| V10 | Onglet masqué, retour visible, navigation et démontage sans rattrapage animé en rafale | 107, 103, 113, 135 |
 | V11 | Replay, doublon, conflit, snapshot plus récent, autre onglet et changement de leader | 098, 107, 103, 104 |
 | V12 | Reset, déconnexion/changement de compte, erreur réseau et lecture seule | 107, 103, 104 |
-| V13 | Ancien record, héros absent du roster actuel, événement inconnu, asset lent/manquant | 098, 099, 100, 103, 108–112 |
-| V14 | Clavier, libellés, résumé, historique et mouvements réduits | 097, 101, 102, 103, 113, 114, 115, 104 |
-| V15 | 1024/1280/1440 px et zoom 200 %, quatre héros et boss avec gardes | 097, 101, 108–112, 104 |
+| V13 | Ancien record, héros absent du roster actuel, événement inconnu, asset lent/manquant | 098, 099, 100, 103, 108–112, 117, 136–147, A2, 135 |
+| V14 | Clavier, libellés, résumé, historique et mouvements réduits | 097, 101, 102, 103, 113, 114, 115, 104, 118–145 |
+| V15 | 1024/1280/1440 px et zoom 200 %, quatre héros et boss avec gardes | 097, 101, 108–112, 104, 117, 136–147, A2, 135 |
 | V16 | Campagne longue, cadence identique, ressources libérées, fluidité et octets mesurés | 107, 116 |
-| V17 | Trace nouvelle et ancienne sur pipeline Supabase local, persistance, replay et concurrence | 098, 106, 114, 104 |
-| V18 | Avis visuel utilisateur sur le prototype puis sur combat, boss, repos et épreuve intégrés | 097, 099, 101, 102, 108–115, 104 |
+| V17 | Trace nouvelle et ancienne sur pipeline Supabase local, persistance, replay et concurrence | 098, 106, 114, 104, 126 |
+| V18 | Avis visuel utilisateur sur le prototype puis sur combat, boss, repos et épreuve intégrés | 097, 099, 101, 102, 108–115, 104, 117–147, A2 |
 
 CDI-104 consolide les dix-huit preuves ; chaque propriétaire les produit dès
 son ticket. CDI-116 porte les mesures et l'endurance sur le produit complet.
@@ -619,3 +695,12 @@ Limites documentaires conservées : le handoff sprites du 9 septembre est
 antérieur à l'intégration des dix classes visuelles ; le plan segments/KO
 indique encore une validation visuelle finale ouverte. Le chantier 2D reprend
 les règles du code actuel et ne prétend pas clôturer ces validations anciennes.
+
+### Application du plan amélioré — 13 septembre 2026
+
+Après la demande « reprend les tickets modifie/créé en fonction du plan amélioré »,
+CDI-117–147 sont créés et CDI-104/113/114/115/116 recadrés. CDI-113 est Paused,
+CDI-117 Done après recadrage confirmé ; les anciens travaux et preuves sont conservés sans les donner
+comme validation du nouveau périmètre. `npm.cmd run board:validate` : 147 tickets,
+zéro erreur. Aucun ticket clôturé, aucun changement applicatif ni déploiement.
+Les 36 compétences actives sont explicitement réparties entre les tickets.

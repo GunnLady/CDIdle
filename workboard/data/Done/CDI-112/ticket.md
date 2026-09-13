@@ -8,7 +8,7 @@ size: M
 risk: medium
 source: Demande utilisateur du 10 septembre 2026 - redécoupage approuvé des scènes Donjon 2D
 depends_on: ["CDI-099"]
-blocks: ["CDI-116"]
+blocks: ["CDI-116","CDI-117","CDI-127"]
 github_issue: null
 related_docs: ["docs/development/dungeon-2d-encounter-plan.md","docs/development/dungeon-2d-resizing-proposal.md","src/assets/undercityCourtVisualManifest.ts","src/assets/undercityVisualManifest.ts","shared/domain/undercity.ts","assets/design/dungeon-2d/undercity-court-kit-v1.prompt.md"]
 ---

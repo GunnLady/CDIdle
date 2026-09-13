@@ -8,7 +8,7 @@ size: M
 risk: high
 source: Demande utilisateur du 10 septembre 2026 - redécoupage approuvé des scènes Donjon 2D
 depends_on: ["CDI-098","CDI-100"]
-blocks: ["CDI-102","CDI-113"]
+blocks: ["CDI-102","CDI-113","CDI-126"]
 github_issue: null
 related_docs: ["docs/development/dungeon-2d-encounter-plan.md","docs/development/dungeon-2d-resizing-proposal.md","shared/contracts/authoritative.ts","shared/domain/authoritative-dungeon.ts","shared/domain/undercity.ts","shared/domain/undercity-combat.ts","docs/development/canonical-state-migrations.md","docs/development/supabase-egress-budget.md","src/domain/encounterPlayback.ts","src/hooks/useEncounterPlayback.ts","src/domain/dungeonPresentation.ts","src/hooks/useAuthoritativeCommandDispatch.ts","tests/encounterPlayback.test.ts"]
 ---

@@ -6,11 +6,11 @@ area: quality
 priority: P1
 size: M
 risk: high
-source: Demande utilisateur du 10 septembre 2026 - scènes Donjon 2D inspirées de SLT
+source: Demande utilisateur du 13 septembre 2026 - recadrage selon le plan amélioré
 depends_on: ["CDI-116"]
 blocks: []
 github_issue: null
-related_docs: ["docs/development/dungeon-2d-encounter-plan.md","docs/development/dungeon-2d-resizing-proposal.md","docs/development/supabase-egress-budget.md","docs/development/ci-quality.md","scripts/check-bundle-budget.mjs","scripts/test-temporal-concurrency.mjs","tests/browser/canonicalPipeline.browser.spec.ts","tests/browser/dungeonPage.responsive.browser.spec.ts","AGENTS.md"]
+related_docs: ["docs/development/dungeon-2d-encounter-plan.md","docs/development/dungeon-2d-resizing-proposal.md","docs/development/supabase-egress-budget.md","docs/development/ci-quality.md","scripts/check-bundle-budget.mjs","scripts/test-temporal-concurrency.mjs","tests/browser/canonicalPipeline.browser.spec.ts","tests/browser/dungeonPage.responsive.browser.spec.ts","AGENTS.md","docs/development/dungeon-2d-action-production-plan.md"]
 ---
 
 # CDI-104 — Consolider la recette et préparer la livraison des rencontres 2D
@@ -21,13 +21,13 @@ Consolider la recette du remplacement complet et préparer une livraison sans é
 
 ## Resultat utilisateur
 
-Les neuf types de rencontre sont animés, fidèles, accessibles et robustes sur tout le contenu actuel.
+Les neuf types de rencontre sont lisibles, fidèles, accessibles et robustes sur tout le contenu actuel, avec gestes simples et seules poses utiles. Les 36 compétences et toutes les bases sont couvertes, sans exiger 400 animations dessinées.
 
 ## Contexte
 
 M consolide les preuves produites ticket par ticket et les mesures CDI-116. Il ne reporte pas ici l'implémentation ou les tests propres aux autres lots.
 
-Périmètre approuvé dans dungeon-2d-resizing-proposal.md ; taille relative incluant tests, documentation et revue, hors attente utilisateur.
+Périmètre révisé le 13 septembre selon dungeon-2d-action-production-plan.md ; l’ancien découpage reste historique. La convergence des familles CDI-118–128 et des retouches A1/A2 est prouvée par CDI-135 ; les huit non-combats par 102/115/129–134.
 
 ## Perimetre autorise
 
@@ -47,7 +47,7 @@ propriétaire et ne pas clôturer avec un écart réel non corrigé. Publication
 - Déduire FPS/egress d'une simulation, relever silencieusement les budgets ou présumer une validation visuelle ancienne acquise.
 - Commit, push, CI distante et déploiement hors séquence explicitement autorisée.
 - Pas de nouveau gameplay, moteur de combat, zone, ciblage ou récompense.
-- Pas de commit, push ou déploiement sans les confirmations distinctes du projet.
+- Autonomie technique/Git limitée au chantier selon AGENTS.md ; aucun déploiement sans contre-ordre explicite.
 
 ## Contrat d'implementation
 
@@ -67,6 +67,7 @@ Les dépendances directes et leurs liens blocks font foi ; les acquis déjà liv
 
 ## Criteres d'acceptation
 
+- [ ] Le graphe révisé est terminé : CDI-135 pour le combat, CDI-129–134 pour les autres scènes et tous les tickets artistiques ajoutés après CDI-117 ; aucune retouche réelle non tracée ou non validée.
 - [ ] V01–V18 sont tous reliés à des preuves suffisantes et actuelles ; aucun écart réel non corrigé ne reste ouvert sous couvert d'un test vert.
 - [ ] Neuf types intégrés, huit non-combats avec branches applicables, 400 identités, trente blueprints et cinq ambiances sont effectivement couverts.
 - [ ] Quatre héros/trois ennemis, compétences, Roi/gardes, repos/réanimation et épreuves sont validés visuellement par l'utilisateur à 1024/1280/1440 px et au zoom 200 %.
@@ -101,7 +102,7 @@ Réunir le verdict visuel final de l'utilisateur et les contrôles interactifs r
 - Conserver autorité serveur, RNG, résultats, XP, loot, révisions, idempotence et règles de segment.
 - Aucun changement de cadence de progression, aucune commande réseau depuis une animation.
 - Conserver les changements utilisateur et les autres écrans ; pas de refactor collatéral.
-- Commit, push et déploiement suivent les confirmations AGENTS.md ; contrôles visuels par l'utilisateur.
+- Autonomie technique/Git du chantier selon AGENTS.md ; contrôles visuels par l’utilisateur ; zéro déploiement sans contre-ordre explicite.
 
 ## Risques
 

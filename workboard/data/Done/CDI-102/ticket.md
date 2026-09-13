@@ -8,7 +8,7 @@ size: M
 risk: medium
 source: Demande utilisateur du 10 septembre 2026 - scènes Donjon 2D inspirées de SLT
 depends_on: ["CDI-103","CDI-106"]
-blocks: ["CDI-115"]
+blocks: ["CDI-115","CDI-128","CDI-134"]
 github_issue: null
 related_docs: ["docs/development/dungeon-2d-encounter-plan.md","docs/development/dungeon-2d-resizing-proposal.md","shared/domain/authoritative-dungeon.ts","shared/contracts/authoritative.ts","src/domain/dungeonPresentation.ts"]
 ---

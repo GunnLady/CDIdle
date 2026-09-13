@@ -8,7 +8,7 @@ size: M
 risk: medium
 source: Demande utilisateur du 10 septembre 2026 - redécoupage approuvé des scènes Donjon 2D
 depends_on: ["CDI-099"]
-blocks: ["CDI-116"]
+blocks: ["CDI-116","CDI-117"]
 github_issue: null
 related_docs: ["docs/development/dungeon-2d-encounter-plan.md","docs/development/dungeon-2d-resizing-proposal.md","src/assets/heroSpriteSheets.ts","src/domain/heroPortrait.ts","src/components/HeroPortrait.tsx","shared/domain/undercity.ts","assets/design/hero-sprites/human-tier1-class-spritesheets-v1.prompt.md"]
 ---

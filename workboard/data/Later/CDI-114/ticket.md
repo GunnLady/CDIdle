@@ -1,117 +1,92 @@
 ---
 id: CDI-114
-title: Tracer et représenter les statuts, intentions et protections
+title: Tracer et représenter le cycle des buffs et debuffs
 status: Later
 area: ui
 priority: P1
-size: L
+size: M
 risk: high
-source: Demande utilisateur du 10 septembre 2026 - redécoupage approuvé des scènes Donjon 2D
+source: Demande utilisateur du 13 septembre 2026 - recadrage selon le plan amélioré
 depends_on: ["CDI-113"]
-blocks: ["CDI-116"]
+blocks: ["CDI-116","CDI-121","CDI-123","CDI-124","CDI-125","CDI-135"]
 github_issue: null
-related_docs: ["docs/development/dungeon-2d-encounter-plan.md","docs/development/dungeon-2d-resizing-proposal.md","src/components/dungeon/CurrentEncounterPanel.tsx","shared/domain/undercity-combat.ts","src/ui/foundations/tokens.css","shared/contracts/authoritative.ts","shared/domain/authoritative-dungeon.ts","shared/domain/undercity.ts","docs/development/canonical-state-migrations.md","docs/development/supabase-egress-budget.md","src/domain/encounterPlayback.ts","src/hooks/useEncounterPlayback.ts","src/domain/dungeonPresentation.ts","src/hooks/useAuthoritativeCommandDispatch.ts","tests/encounterPlayback.test.ts","src/components/dungeon/DungeonPage.tsx","src/components/dungeon/DungeonHistoryPanel.tsx","src/hooks/useDungeonAutomation.ts","src/hooks/useCrossTabGameSynchronization.ts","docs/development/dungeon-segment-ko-milestone-plan.md"]
+related_docs: ["docs/development/dungeon-2d-encounter-plan.md","docs/development/dungeon-2d-resizing-proposal.md","src/components/dungeon/CurrentEncounterPanel.tsx","shared/domain/undercity-combat.ts","src/ui/foundations/tokens.css","shared/contracts/authoritative.ts","shared/domain/authoritative-dungeon.ts","shared/domain/undercity.ts","docs/development/canonical-state-migrations.md","docs/development/supabase-egress-budget.md","src/domain/encounterPlayback.ts","src/hooks/useEncounterPlayback.ts","src/domain/dungeonPresentation.ts","src/hooks/useAuthoritativeCommandDispatch.ts","tests/encounterPlayback.test.ts","src/components/dungeon/DungeonPage.tsx","src/components/dungeon/DungeonHistoryPanel.tsx","src/hooks/useDungeonAutomation.ts","src/hooks/useCrossTabGameSynchronization.ts","docs/development/dungeon-segment-ko-milestone-plan.md","docs/development/dungeon-2d-action-production-plan.md"]
 ---
 
-# CDI-114 — Tracer et représenter les statuts, intentions et protections
+# CDI-114 — Tracer et représenter le cycle des buffs et debuffs
 
 ## Objectif
 
-Prouver de bout en bout la trace, la projection et le rendu des statuts, intentions et protections.
+Prouver début, renouvellement et expiration des buffs/debuffs du producteur au rendu.
 
 ## Resultat utilisateur
 
-Les buffs, debuffs et gardes du Roi sont visibles au bon moment, sur les bonnes cibles et pour leur durée réelle.
+Le joueur voit les effets réellement actifs sur les bonnes cibles et leur disparition au bon moment.
 
 ## Contexte
 
-L regroupe un même contrat d'effet à travers producteur, projection et rendu. Une icône terminée sans preuve de début/fin ne suffit pas ; les ressources et la scène intégrée sont déjà fournies.
-
-Périmètre approuvé dans dungeon-2d-resizing-proposal.md ; taille relative incluant tests, documentation et revue, hors attente utilisateur.
+Recadrage : intentions et protections de groupe vers CDI-126 ; gardes et mutation du Roi vers CDI-127. Un même cycle d’état reste livré de bout en bout, pas trois tickets indépendants de schéma/projection/icône.
 
 ## Perimetre autorise
 
-Tracer dans le domaine les débuts, cibles multiples, changements et fins des
-buffs/debuffs/protections, intentions et phases du Roi ; projeter ces données
-puis les rendre dans la scène intégrée. Une matrice de couverture clôture les
-champs encore ouverts de 098. Tester mana/effets collectifs, expiration,
-gardes/protection du Roi, changement d'intention et événement inconnu.
-
-**Le L évite trois tickets artificiels de schéma, projection et icône qui
-pourraient être déclarés terminés sans prouver la même durée d'effet.**
-Préserver RNG/résultats et calendrier existants ; prouver compatibilité,
-octets et pipeline local des changements persistés. Le rendu fonctionne avec
-les fallbacks neutres tant que le pack 112 n'est pas prêt ; la recette finale
-exige le Roi et ses gardes définitifs. Aucun système de statuts métier nouveau.
+Buffs/debuffs individuels, self et collectifs des compétences existantes : cibles, début/changement/renouvellement/expiration, conséquences et mana reçus. Tracer au point métier connu, projeter à un instant et rendre un marqueur discret. Les gestes/signatures des compétences restent dans les tickets de familles.
 
 ## Hors perimetre
 
-- Créer de nouveaux effets métier, modifier équilibrage, RNG ou durée réelle des statuts.
-- Production artistique du Roi/gardes : CDI-112 ; rendu neutre possible en attendant ce pack, sans remplacer sa validation finale.
-- Parser les logs français ou laisser un effet visible faute de fin tracée.
-- Pas de nouveau gameplay, moteur de combat, zone, ciblage ou récompense.
-- Pas de commit, push ou déploiement sans les confirmations distinctes du projet.
+- Intentions, protection/exposition ennemie et Roi : CDI-126/127.
+- Nouvelle règle de durée, stacking, contrôle, dégâts périodiques ou équilibrage.
+- Produire toutes les poses de lancement dans ce lot.
 
 ## Contrat d'implementation
 
-- Capturer début, auteur/cibles multiples, changements et expiration au point métier connu ; inclure intentions, protection des gardes et phases du Roi.
-- Étendre la projection pure et le rendu intégré dans ce ticket ; clôturer les rubriques restantes de la matrice CDI-098.
-- Conserver transcript unique, ordre canonique, calendrier historique (intention autrefois filtrée sans pas ajouté), compatibilité additive et historique borné.
-- Les icônes/effets de présentation ont provenance, poids et fallback documentés ; ne pas signaler un état uniquement par couleur.
-- Vérifier parité des sorties métier/RNG, egress et pipeline local des changements persistés.
-- Respecter l'identité CDIdle, le périmètre et les budgets du plan ; aucune règle métier dans le rendu React.
-- Pas de refactor collatéral, de commande depuis une animation, ni de progression dépendant d'une fin CSS.
-- Ancien record ou donnée insuffisante : résumé fidèle et fallback neutre, jamais valeurs historiques inventées.
+- Domaine partagé pour les règles ; projection/chronologie et modèles hors React ; rendu limité à la présentation.
+- Utiliser identifiants structurés et clés visuelles historiques, pas les messages traduits, l’arme actuellement équipée ou le seul damageType/rôle ennemi.
+- Réutiliser lecteur, composants et effets existants ; aucune abstraction ou dépendance nouvelle sans bénéfice direct.
+- Une information par bulle, une ligne hors visage ; PV rouges, PM bleus, départs 600 ms et vie 1 000 ms comme référence validée ; chevauchement lisible et borné.
+- Garder le pas logique de 400 ms, 16 effets temporaires, nettoyage hors vue, ancienne trace honnête et mode sans animation complet.
+- Si une retouche/pose est indispensable, créer son ticket A1/A2 sur des clés nommées et le relier comme prérequis du consommateur, de CDI-135 et de CDI-134 si héros. Aucun ticket artistique ne dépend du consommateur qu’il bloque.
+- Alpha réel, boîte visible/pivot, arme entière, éclairage et cohérence de visage contrôlés sur les seules images modifiées ; pas de détourage runtime.
+- Contrat additif et borné ; parité RNG/résultats, historique quinze rencontres et mesure egress. Ne jamais déduire une expiration du timer d’un effet CSS.
+- Capturer au point où le domaine connaît la vraie durée et ses changements ; repli neutre pour les anciens événements insuffisants.
 
 ## Dependances
 
-- CDI-113 : Animer les compétences, projectiles et soins du combat.
-
-Les dépendances directes et leurs liens blocks font foi ; les acquis déjà livrés cités dans le plan restent à préserver.
+- CDI-113 : chronologie et rendu intégré fiables.
 
 ## Criteres d'acceptation
 
-- [ ] Buffs/debuffs simples et collectifs, changements, mana associé, expiration, intentions et protections sont couverts dans la matrice avec leurs vrais auteurs/cibles.
-- [ ] Producteur, projection à t et rendu indiquent exactement le même début, état et fin d'effet.
-- [ ] Gardes/protection du Roi et changement d'intention/phase sont représentés sans faux effet inventé.
-- [ ] Aucun ajout visuel ne change durée de lecture, RNG, dégâts, choix de cible, loot ou récompense.
-- [ ] Anciennes traces, événements inconnus et absence de métadonnées donnent un résumé fidèle ; les preuves locales couvrent compatibilité, persistance/replay et octets.
-- [ ] Le rendu intégré respecte reduced-motion, annonces HTML, plafond d'effets et libération des ressources ; l'utilisateur valide les états représentatifs.
-- [ ] Le pack CDI-112 reste obligatoire pour la recette finale du Roi/gardes ; son absence temporaire n'est pas déclarée couverture artistique complète.
+- [ ] Producteur, projection à t et scène concordent sur pose/renouvellement/expiration et vraies cibles, y compris collectives.
+- [ ] Les coûts PM et états n’ajoutent ni pas de lecture ni nouveau résultat métier.
+- [ ] Anciennes traces et événements inconnus restent compatibles ; persistance/replay et octets ajoutés sont vérifiés.
+- [ ] Marqueurs discrets, libellés HTML et mode sans animation restent complets ; validation utilisateur d’effets représentatifs.
+- [ ] Les rubriques de données restantes sont attribuées explicitement à 126/127 ; aucune promesse globale de statuts accomplie par ce seul sous-lot.
 
 ## Tests
 
-- Étendre authoritativeContracts, authoritativeDungeonGolden et les tests de projection/composants sur la même matrice d'effets.
-- Fixtures buff/debuff multicible, expiration, soutien, gardes du Roi et changement d'intention.
-- npm.cmd run check:determinism
-- npm.cmd run test:egress-budget
-- npm.cmd run test:integration (Supabase local pour les ajouts persistés).
-- npm.cmd run build
-- npm.cmd run check:bundle
-- npm.cmd run typecheck
-- npm.cmd run lint -- --quiet
-- npm.cmd run board:validate
+Fixtures début/renouvellement/expiration, self/single/all, cible KO, mana et ancienne trace ; tests partagés domaine/contrats/projection/composants. `npm.cmd run check:determinism`, `npm.cmd run test:egress-budget`, `npm.cmd run test:integration` si contrat persisté modifié.
 
-Ces validations sont à exécuter lors de l'implémentation du ticket ; le redécoupage documentaire ne les déclare pas passées.
+- Contrôles structurels ciblés et fixtures déterministes du périmètre.
+- Après validation visuelle de l’écran : `npm.cmd test -- --run <fichiers ciblés>`, `npm.cmd run typecheck`, `npm.cmd run lint -- --quiet` ; tests navigateur ciblés via `npm.cmd run test:layout-browser -- <spec>` si scène concernée.
+- `npm.cmd run build`, `npm.cmd run check:bundle` ; `npm.cmd run check:dungeon-visuals` si assets/catalogue modifiés ; `npm.cmd run board:validate`.
+- Les commandes avec paramètres entre chevrons sont à préciser dans le handoff d’implémentation, pas à exécuter telles quelles. Aucune réussite de test applicatif n’est déclarée par la création de ce ticket.
 
 ## Validation manuelle
 
-L'utilisateur vérifie buff/debuff et expiration puis Roi/gardes dans le combat intégré ; distinguer validation du comportement et validation artistique finale avec CDI-112.
+Valider un buff allié, un debuff ennemi, un effet collectif, son renouvellement et sa fin dans le vrai combat ; pas de nouveau geste obligatoire pour cette preuve.
 
 ## Preservation
 
-- Conserver autorité serveur, RNG, résultats, XP, loot, révisions, idempotence et règles de segment.
-- Aucun changement de cadence de progression, aucune commande réseau depuis une animation.
-- Conserver les changements utilisateur et les autres écrans ; pas de refactor collatéral.
-- Commit, push et déploiement suivent les confirmations AGENTS.md ; contrôles visuels par l'utilisateur.
+- PC uniquement ; compositions, identités, diversité et DA CDIdle conservées.
+- Arme propre au sprite, variable dans une classe mais indépendante de l’équipement réel.
+- Réutilisation d’abord ; une ou deux poses seulement si nécessaires. Pas de cycles complets ni de série automatique pour 400 identités.
+- Autorité serveur, RNG, résultats, XP/loot, révisions, idempotence et cadence conservés ; aucune commande depuis une animation.
+- Autonomie technique/Git du chantier selon AGENTS.md ; validation visuelle par l’utilisateur écran par écran. Zéro déploiement sans contre-ordre explicite.
 
 ## Risques
 
-- Un statut sans fin explicite reste affiché indéfiniment.
-- Afficher les intentions peut ajouter par erreur des pas de lecture et ralentir l'automatisation.
+- Effet perpétuel faute de fin historique ou faux cumul.
+- Métadonnées trop volumineuses, répétées sur quinze rencontres.
 
 ## Handoff
 
-Fournir matrice de données complète, fixtures partagées producteur/projection/rendu, preuves de cadence/compatibilité/egress et verdict utilisateur. V04/V05/V14/V17/V18. Aucun champ nécessaire aux scènes actuelles ne reste sans propriétaire.
-
-Indiquer fichiers, commandes réellement exécutées, résultats et limites. Ne pas clore avec un écart réel non corrigé ; ne pas attribuer au présent ticket la livraison de ses successeurs.
+Matrice et preuves V04/V14/V17/V18 sur le cycle des buffs/debuffs ; liens explicites vers les gestes CDI-121/123/124/125 et les états ennemis CDI-126/127. Conserver les tests d’intégration au même niveau que la trace.
