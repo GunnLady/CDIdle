@@ -1,6 +1,6 @@
 import type { ActiveTab } from "../../domain/activeTabPreference";
 import { getDungeonClassPlaque } from "../../domain/dungeonClassPlaquePresentation";
-import type { DungeonProgressBannerHeroView, DungeonProgressBannerView } from "../../domain/dungeonPresentation";
+import type { DungeonProgressBannerHeroView, DungeonProgressBannerView } from "../../domain/dungeonProgressBannerPresentation";
 import emptyClassMedallion from "../../assets/images/ui/secondary-navigation-rail/dungeon-party-class-medallion-v1.png";
 import classMedallionRing from "../../assets/images/ui/secondary-navigation-rail/dungeon-party-class-medallion-ring-v3.png";
 import vitalBarFrame from "../../assets/images/ui/secondary-navigation-rail/dungeon-party-vital-bar-frame-v1.png";

@@ -4,7 +4,7 @@ export const DUNGEON_SCENE_HERO_LIMIT = 4;
 export const DUNGEON_SCENE_ENEMY_LIMIT = 3;
 
 export type DungeonSceneLayout = "standard" | "zoomed";
-export type DungeonNonCombatSceneKind = "treasure" | "rest";
+export type DungeonNonCombatSceneKind = "treasure" | "rest" | "challenge";
 
 export interface DungeonSceneSlot {
   xPercent: number;
@@ -61,6 +61,12 @@ const nonCombatSceneSlots = {
       { xPercent: 67, yPercent: 64, layer: 1 },
       { xPercent: 60, yPercent: 79, layer: 4 },
     ],
+    challenge: [
+      { xPercent: 34, yPercent: 81, layer: 5 },
+      { xPercent: 20, yPercent: 65, layer: 2 },
+      { xPercent: 76, yPercent: 65, layer: 1 },
+      { xPercent: 65, yPercent: 81, layer: 4 },
+    ],
   },
   zoomed: {
     treasure: [
@@ -74,6 +80,12 @@ const nonCombatSceneSlots = {
       { xPercent: 25, yPercent: 63, layer: 2 },
       { xPercent: 74, yPercent: 66, layer: 1 },
       { xPercent: 60, yPercent: 80, layer: 4 },
+    ],
+    challenge: [
+      { xPercent: 34, yPercent: 81, layer: 5 },
+      { xPercent: 12, yPercent: 66, layer: 2 },
+      { xPercent: 88, yPercent: 66, layer: 1 },
+      { xPercent: 66, yPercent: 81, layer: 4 },
     ],
   },
 } as const;

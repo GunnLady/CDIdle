@@ -268,8 +268,9 @@ describe("DungeonPanel authoritative structure", () => {
     ] };
     render(<DungeonPanel {...props} encounterHistory={[challengeEncounter]} encounterPlayback={{ encounterId: challengeEncounter.encounterId, visibleCount: 2, complete: true }} isExploring={false} />);
     const current = within(screen.getByTestId("dungeon-current-encounter"));
-    expect(current.getByText("Probable est le héros le plus qualifié (AGI 44 + DEX 43 = 87, 80 % de réussite).")).toBeInTheDocument();
-    expect(current.getByText("Probable tente l'épreuve avec un jet de LUK compris entre 1 et 10.")).toBeInTheDocument();
+    const transcript = within(current.getByTestId("dungeon-encounter-transcript"));
+    expect(transcript.getByText("Probable est le héros le plus qualifié (AGI 44 + DEX 43 = 87, 80 % de réussite).")).toBeInTheDocument();
+    expect(transcript.getByText("Probable tente l'épreuve avec un jet de LUK compris entre 1 et 10.")).toBeInTheDocument();
   });
 
   it("keeps local consultation available in read-only mode while blocking commands", () => {

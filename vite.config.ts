@@ -19,6 +19,7 @@ export default defineConfig(({mode}) => {
       // Keep production output aligned with the project's existing TypeScript
       // target and the current PC browser scope.
       target: "es2022",
+      minify: "terser",
       rollupOptions: {
         output: {
           // Limit wrapper/compression overhead without collapsing substantive route chunks.

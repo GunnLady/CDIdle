@@ -211,6 +211,9 @@ describe("encounter scene projection", () => {
         round: 1,
         heroId: "hero-a",
         heroName: "Ariane",
+        skillId: "rapid_combo",
+        damageType: "physical",
+        hitCount: 2,
         monsterId: "enemy-a",
         monsterName: "Rat des canaux",
         enemyHp: 0,
@@ -229,10 +232,11 @@ describe("encounter scene projection", () => {
     const projected = projectEncounterScene(timeline, { visibleCount: 1, complete: false });
 
     expect(timeline.steps[0].impacts).toMatchObject([
-      { kind: "damage", announcedValue: 10, appliedValue: 10, hp: { before: 16, after: 6, maximum: 16 } },
-      { kind: "defeat", announcedValue: 20, appliedValue: 6, hp: { before: 6, after: 0, maximum: 16 } },
+      { kind: "damage", hit: 1, hitCount: 2, critical: false, announcedValue: 10, appliedValue: 10, hp: { before: 16, after: 6, maximum: 16 } },
+      { kind: "defeat", hit: 2, hitCount: 2, critical: true, announcedValue: 20, appliedValue: 6, hp: { before: 6, after: 0, maximum: 16 } },
       { kind: "resource", announcedValue: 6, appliedValue: 6, mana: { before: 10, after: 4, maximum: 20 } },
     ]);
+    expect(timeline.steps[0]).toMatchObject({ skillId: "rapid_combo", damageType: "physical" });
     expect(timeline.steps[0].targetActorIds).toEqual([
       actorBySource(timeline.actors, "enemy-a").id,
       actorBySource(timeline.actors, "enemy-b").id,

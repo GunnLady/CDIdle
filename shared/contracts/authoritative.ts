@@ -25,6 +25,11 @@ export interface CanonicalDungeonTranscriptEvent {
   heroName?: string;
   monsterId?: string;
   monsterName?: string;
+  skillId?: string;
+  damageType?: string;
+  hit?: number;
+  hitCount?: number;
+  critical?: boolean;
   damage?: number;
   announcedDamage?: number;
   healing?: number;

@@ -44,6 +44,9 @@ export interface EncounterSceneImpact {
   kind: EncounterSceneImpactKind;
   sourceActorId: string | null;
   targetActorId: string;
+  hit: number | null;
+  hitCount: number | null;
+  critical: boolean | null;
   announcedValue: number | null;
   appliedValue: number | null;
   hp: EncounterSceneResourceChange | null;
@@ -71,6 +74,8 @@ export interface EncounterSceneStep {
   category: CanonicalDungeonTranscriptEvent["category"] | null;
   summary: string;
   sourceActorId: string | null;
+  skillId: string | null;
+  damageType: string | null;
   targetActorIds: string[];
   impacts: EncounterSceneImpact[];
   visualVariantChanges: Array<{ actorId: string; variant: string }>;
@@ -131,6 +136,14 @@ function finiteNumber(value: unknown): number | null {
 
 function nonEmptyString(value: unknown): string | null {
   return typeof value === "string" && value.trim() ? value : null;
+}
+
+function positiveInteger(value: unknown): number | null {
+  return typeof value === "number" && Number.isInteger(value) && value > 0 ? value : null;
+}
+
+function booleanValue(value: unknown): boolean | null {
+  return typeof value === "boolean" ? value : null;
 }
 
 function neutralActorName(team: EncounterSceneTeam, slot: number): string {
@@ -515,6 +528,9 @@ function buildSteps(
       manaAfter?: unknown;
       maximumMana?: unknown;
       announcedValue?: number | null;
+      hit?: unknown;
+      hitCount?: unknown;
+      critical?: unknown;
       allowDuplicate?: boolean;
     }) => {
       if (!input.actor || (changedActors.has(input.actor.id) && !input.allowDuplicate)) return;
@@ -536,6 +552,9 @@ function buildSteps(
         kind,
         sourceActorId,
         targetActorId: input.actor.id,
+        hit: positiveInteger(input.hit),
+        hitCount: positiveInteger(input.hitCount),
+        critical: booleanValue(input.critical),
         announcedValue: input.announcedValue ?? null,
         appliedValue: hpDelta ?? manaDelta,
         hp: hpAfter === null ? null : { before: hpBefore, after: hpAfter, maximum: maximumHp },
@@ -578,6 +597,9 @@ function buildSteps(
         hpAfter: projectedHitHp,
         maximumHp: event.enemyMaxHp,
         announcedValue: announcedDamage,
+        hit: hit.hit,
+        hitCount: event.hitCount,
+        critical: hit.critical,
         allowDuplicate: true,
       });
       projectedHitCount += 1;
@@ -592,6 +614,9 @@ function buildSteps(
           ?? finiteNumber(event.announcedDamage)
           ?? finiteNumber(event.healing)
           ?? finiteNumber(event.damage),
+        hit: event.hit,
+        hitCount: event.hitCount,
+        critical: event.type === "hero.hit.critical" ? true : event.critical,
       });
     }
 
@@ -647,6 +672,8 @@ function buildSteps(
       category: event.category ?? null,
       summary: eventSummary(event),
       sourceActorId,
+      skillId: nonEmptyString(event.skillId),
+      damageType: nonEmptyString(event.damageType),
       targetActorIds: [...new Set([
         ...explicitTargetActorIds,
         ...impacts

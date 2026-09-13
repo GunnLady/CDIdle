@@ -46,6 +46,9 @@ function impact(
     kind: "damage",
     sourceActorId: "hero-0",
     targetActorId,
+    hit: null,
+    hitCount: null,
+    critical: null,
     announcedValue: 12,
     appliedValue: 10,
     hp: { before: 10, after: 0, maximum: 20 },
@@ -66,6 +69,8 @@ function step(overrides: Partial<EncounterSceneStep> = {}): EncounterSceneStep {
     category: "combat-hero",
     summary: "Le héros frappe.",
     sourceActorId: "hero-0",
+    skillId: null,
+    damageType: null,
     targetActorIds: ["enemy-0"],
     impacts: [impact("impact-1", "enemy-0")],
     visualVariantChanges: [],
@@ -520,6 +525,176 @@ describe("dungeon combat scene presentation", () => {
     expect(view.actors.find((entry) => entry.id === "enemy-1")).toMatchObject({ active: true, motion: "melee" });
     expect(view.actors.find((entry) => entry.id === "hero-1")).toMatchObject({ reaction: "dodge" });
     expect(view.effects[0]).toMatchObject({ kind: "dodge", label: "Esquive" });
+  });
+
+  it("selects ranged and magical profiles from stable structured action fields", () => {
+    const ranged = createDungeonCombatSceneView(scene({
+      activeStep: step({
+        type: "hero.skill.damage",
+        skillId: "precise_shot",
+        damageType: "physical",
+      }),
+    }));
+    const magic = createDungeonCombatSceneView(scene({
+      activeStep: step({
+        type: "hero.skill.damage",
+        skillId: "fire_bolt",
+        damageType: "fire",
+      }),
+    }));
+
+    expect(ranged.actionMode).toBe("projectile");
+    expect(ranged.actors.find((actor) => actor.id === "hero-0")?.motion).toBe("ranged");
+    expect(ranged.actionEffects).toEqual([
+      expect.objectContaining({
+        kind: "projectile",
+        sourceActorId: "hero-0",
+        targetActorId: "enemy-0",
+        offset: 0,
+      }),
+    ]);
+    expect(ranged.effects[0]).toMatchObject({ kind: "damage", delayMs: 430 });
+    expect(ranged.actors.find((actor) => actor.id === "enemy-0")?.healthDelayMs).toBe(430);
+    expect(magic.actionMode).toBe("magic");
+    expect(magic.actors.find((actor) => actor.id === "hero-0")?.motion).toBe("cast");
+    expect(magic.actionEffects[0]).toMatchObject({ kind: "magic", targetActorId: "enemy-0" });
+  });
+
+  it("renders allied and enemy healing on exact targets with an exact mana cost", () => {
+    const healed = impact("healed", "hero-1", {
+      kind: "healing",
+      sourceActorId: "hero-3",
+      announcedValue: 6,
+      appliedValue: 6,
+      hp: { before: 10, after: 16, maximum: 20 },
+      knockedOutAfter: false,
+    });
+    const mana = impact("mana", "hero-3", {
+      kind: "resource",
+      sourceActorId: "hero-3",
+      announcedValue: 4,
+      appliedValue: 4,
+      hp: null,
+      mana: { before: 5, after: 1, maximum: 10 },
+      knockedOutAfter: false,
+    });
+    const healing = createDungeonCombatSceneView(scene({
+      activeStep: step({
+        type: "hero.skill.heal",
+        sourceActorId: "hero-3",
+        skillId: "minor_heal",
+        impacts: [healed, mana],
+        targetActorIds: ["hero-1"],
+      }),
+    }));
+    const support = createDungeonCombatSceneView(scene({
+      activeStep: step({
+        type: "enemy.support",
+        sourceActorId: "enemy-2",
+        impacts: [impact("support", "enemy-1", {
+          kind: "healing",
+          sourceActorId: "enemy-2",
+          announcedValue: 3,
+          appliedValue: 3,
+          hp: { before: 8, after: 11, maximum: 20 },
+          knockedOutAfter: false,
+        })],
+        targetActorIds: ["enemy-1"],
+      }),
+    }));
+
+    expect(healing.actionMode).toBe("healing");
+    expect(healing.actionEffects[0]).toMatchObject({
+      kind: "healing",
+      sourceActorId: "hero-3",
+      targetActorId: "hero-1",
+    });
+    expect(healing.effects).toEqual([
+      expect.objectContaining({ targetActorId: "hero-1", kind: "recovery-health", label: "PV +6 \u00b7 16/20" }),
+      expect.objectContaining({ targetActorId: "hero-3", kind: "mana-spent", label: "PM \u22124 \u00b7 1/10" }),
+    ]);
+    expect(healing.actors.find((actor) => actor.id === "hero-1")?.reaction).toBe("none");
+    expect(healing.effects.map((effect) => effect.delayMs)).toEqual([430, 0]);
+    expect(healing.actors.find((actor) => actor.id === "hero-1")?.healthDelayMs).toBe(430);
+    expect(healing.actors.find((actor) => actor.id === "hero-3")?.manaDelayMs).toBe(0);
+    expect(support.actionMode).toBe("support");
+    expect(support.actors.find((actor) => actor.id === "enemy-2")?.motion).toBe("cast");
+    expect(support.actionEffects[0]).toMatchObject({ kind: "support", targetActorId: "enemy-1" });
+  });
+
+  it("preserves ordered multi-hit values, criticals and the lethal target", () => {
+    const hits = [
+      impact("hit-1", "enemy-0", {
+        hit: 1,
+        hitCount: 3,
+        critical: false,
+        announcedValue: 3,
+        appliedValue: 3,
+        hp: { before: 10, after: 7, maximum: 20 },
+        knockedOutAfter: false,
+      }),
+      impact("hit-2", "enemy-0", {
+        hit: 2,
+        hitCount: 3,
+        critical: true,
+        announcedValue: 4,
+        appliedValue: 4,
+        hp: { before: 7, after: 3, maximum: 20 },
+        knockedOutAfter: false,
+      }),
+      impact("hit-3", "enemy-0", {
+        kind: "defeat",
+        hit: 3,
+        hitCount: 3,
+        critical: false,
+        announcedValue: 5,
+        appliedValue: 3,
+        hp: { before: 3, after: 0, maximum: 20 },
+        knockedOutAfter: true,
+      }),
+    ];
+    const view = createDungeonCombatSceneView(scene({
+      activeStep: step({
+        type: "hero.skill.damage",
+        skillId: "rapid_combo",
+        damageType: "physical",
+        impacts: hits,
+        targetActorIds: ["enemy-0"],
+      }),
+    }));
+
+    expect(view.actionMode).toBe("melee");
+    expect(view.actionEffects).toEqual([]);
+    expect(view.effects).toEqual([
+      expect.objectContaining({ targetActorId: "enemy-0", kind: "damage", label: "\u22123", offset: 0 }),
+      expect.objectContaining({ targetActorId: "enemy-0", kind: "critical", label: "\u22124", offset: 1 }),
+      expect.objectContaining({ targetActorId: "enemy-0", kind: "defeat", label: "\u22123", offset: 2 }),
+    ]);
+    expect(view.actors.find((actor) => actor.id === "enemy-0")?.reaction).toBe("ko");
+    expect(view.effects.map((effect) => effect.delayMs)).toEqual([160, 160, 160]);
+    expect(view.actors.find((actor) => actor.id === "enemy-0")?.healthDelayMs).toBe(1_360);
+    expect(view.actors.find((actor) => actor.id === "enemy-1")?.reaction).toBe("none");
+  });
+
+  it("keeps the combined path and number stream within sixteen effects", () => {
+    const impacts = Array.from({ length: 12 }, (_, index) => impact(`magic-${index}`, "enemy-0", {
+      hit: index + 1,
+      hitCount: 12,
+      critical: false,
+      knockedOutAfter: false,
+    }));
+    const view = createDungeonCombatSceneView(scene({
+      activeStep: step({
+        type: "hero.skill.damage",
+        skillId: "fire_bolt",
+        damageType: "fire",
+        impacts,
+      }),
+    }));
+
+    expect(view.actionEffects.length + view.effects.length).toBe(DUNGEON_COMBAT_EFFECT_LIMIT);
+    expect(view.actionEffects).toHaveLength(8);
+    expect(view.effects).toHaveLength(8);
   });
 
   it("caps temporary effects and exposes the limitation", () => {

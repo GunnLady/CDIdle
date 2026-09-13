@@ -28,7 +28,7 @@ import type { CanonicalOperationContext } from "./lib/canonicalOperationQueue";
 import { OptimisticCommandBuffer } from "./lib/optimisticCommandBuffer";
 import { sendOptimisticCommandWithConflictRetry } from "./lib/optimisticCommandDispatch";
 import type { CanonicalDungeonEncounterRecord } from "../shared/contracts/authoritative";
-import { createDungeonProgressBannerView } from "./domain/dungeonPresentation";
+import { createDungeonProgressBannerView } from "./domain/dungeonProgressBannerPresentation";
 import { createDungeonPartyLockView } from "./domain/heroPresentation";
 import { createUndercityProgress } from "../shared/domain/undercity-progression";
 import { canonicalBootstrapOperationKey, requestCanonicalBootstrap } from "./lib/canonicalBootstrap";

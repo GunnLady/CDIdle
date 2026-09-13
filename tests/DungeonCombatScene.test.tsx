@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import DungeonCombatScene from "../src/components/dungeon/DungeonCombatScene";
 import {
@@ -68,6 +68,9 @@ function damageImpact(index = 0): EncounterSceneImpact {
     kind: "damage",
     sourceActorId: hero.id,
     targetActorId: enemy.id,
+    hit: null,
+    hitCount: null,
+    critical: null,
     announcedValue: 6,
     appliedValue: 6,
     hp: { before: 16, after: 10, maximum: 16 },
@@ -87,6 +90,8 @@ function action(overrides: Partial<EncounterSceneStep> = {}): EncounterSceneStep
     category: "combat-hero",
     summary: "Ariane frappe le rat des canaux.",
     sourceActorId: hero.id,
+    skillId: null,
+    damageType: null,
     targetActorIds: [enemy.id],
     impacts: [damageImpact()],
     visualVariantChanges: [],
@@ -204,6 +209,85 @@ describe("DungeonCombatScene", () => {
     expect(scene).toHaveAttribute("data-animations", "disabled");
     expect(within(scene).getAllByTestId("dungeon-combat-actor")).toHaveLength(2);
     expect(within(scene).getByTestId("dungeon-combat-effect")).toBeInTheDocument();
+  });
+
+  it("renders a structured projectile path from the exact source to the exact target", () => {
+    const view = createDungeonCombatSceneView(state({
+      activeStep: action({
+        type: "hero.skill.damage",
+        skillId: "precise_shot",
+        damageType: "physical",
+      }),
+    }));
+    render(<DungeonCombatScene view={view} animationsEnabled={false} />);
+
+    const path = screen.getByTestId("dungeon-combat-action-effect");
+    expect(path).toHaveAttribute("data-kind", "projectile");
+    expect(path).toHaveAttribute("data-source-actor-id", hero.id);
+    expect(path).toHaveAttribute("data-target-actor-id", enemy.id);
+    expect(path).toHaveAttribute("data-visual-key", "effect:projectile");
+    expect(screen.getByTestId("dungeon-combat-action-payload")).toBeInTheDocument();
+    expect(screen.getByLabelText("\u22126, Rat des canaux")).toBeInTheDocument();
+  });
+
+  it("updates visible health text and actor state at projectile impact", () => {
+    vi.useFakeTimers();
+    try {
+      const readyEnemy = { ...enemy, currentHp: 16 } satisfies EncounterSceneActor;
+      const entry = createDungeonCombatSceneView(state({
+        actors: [hero, readyEnemy],
+        activeStep: action({
+          id: "entry",
+          type: "encounter.started",
+          sourceActorId: null,
+          targetActorIds: [],
+          impacts: [],
+        }),
+      }));
+      const projectile = createDungeonCombatSceneView(state({
+        activeStep: action({
+          id: "projectile",
+          type: "hero.skill.damage",
+          skillId: "precise_shot",
+          damageType: "physical",
+        }),
+      }));
+      const { rerender } = render(<DungeonCombatScene view={entry} />);
+
+      rerender(<DungeonCombatScene view={projectile} />);
+      expect(screen.getByLabelText(/Rat des canaux, Ennemi, 16\/16 PV, Prêt/)).toBeInTheDocument();
+      act(() => vi.advanceTimersByTime(429));
+      expect(screen.getByLabelText(/Rat des canaux, Ennemi, 16\/16 PV, Prêt/)).toBeInTheDocument();
+      act(() => vi.advanceTimersByTime(1));
+      expect(screen.getByLabelText(/Rat des canaux, Ennemi, 10\/16 PV, Prêt/)).toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("keeps overlapping number batches visible, bounded and cleaned after their visual lifetime", () => {
+    vi.useFakeTimers();
+    try {
+      const first = createDungeonCombatSceneView(state({
+        activeStep: action({ id: "step-one", impacts: [damageImpact(1)] }),
+      }));
+      const second = createDungeonCombatSceneView(state({
+        activeStep: action({ id: "step-two", impacts: [damageImpact(2)] }),
+      }));
+      const { rerender } = render(<DungeonCombatScene view={first} />);
+      expect(screen.getAllByTestId("dungeon-combat-effect")).toHaveLength(1);
+
+      act(() => vi.advanceTimersByTime(500));
+      rerender(<DungeonCombatScene view={second} />);
+      expect(screen.getAllByTestId("dungeon-combat-effect")).toHaveLength(2);
+
+      act(() => vi.advanceTimersByTime(661));
+      expect(screen.getAllByTestId("dungeon-combat-effect")).toHaveLength(1);
+      act(() => vi.advanceTimersByTime(500));
+      expect(screen.queryByTestId("dungeon-combat-effect")).not.toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("renders the reusable non-combat composition with exact accessible details", () => {

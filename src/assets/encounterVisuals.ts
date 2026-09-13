@@ -18,6 +18,12 @@ import restCampUrl from "./images/dungeon/encounters/rest-camp-v2.png";
 import restChamberBackgroundUrl from "./images/dungeon/encounters/rest-chamber-background-v1.jpg";
 import treasureChestOpenUrl from "./images/dungeon/encounters/treasure-chest-open-v3.png";
 import treasureVaultBackgroundUrl from "./images/dungeon/encounters/treasure-vault-background-v2.jpg";
+import challengeAmbushUrl from "./images/dungeon/encounters/challenge-ambush-v1.png";
+import challengeEnigmaUrl from "./images/dungeon/encounters/challenge-enigma-v1.png";
+import challengeNegotiationUrl from "./images/dungeon/encounters/challenge-negotiation-v1.png";
+import challengeObstacleUrl from "./images/dungeon/encounters/challenge-obstacle-v1.png";
+import challengeRitualUrl from "./images/dungeon/encounters/challenge-ritual-v1.png";
+import challengeTrapUrl from "./images/dungeon/encounters/challenge-trap-v1.png";
 
 export const ENCOUNTER_VISUAL_CATALOG_VERSION = 1;
 export const ENCOUNTER_VISUAL_CACHE_LIMIT = 16;
@@ -40,8 +46,36 @@ export const ENCOUNTER_VISUAL_KEYS = {
   },
   effects: {
     physicalImpact: "effect:physical-impact",
+    projectile: "effect:projectile",
+    magic: "effect:magic",
+    healing: "effect:healing",
+    support: "effect:support",
   },
   encounters: {
+    trap: {
+      background: "undercity:challenge-chamber:background",
+      prop: "encounter:challenge:trap",
+    },
+    enigma: {
+      background: "undercity:challenge-chamber:background",
+      prop: "encounter:challenge:enigma",
+    },
+    ambush: {
+      background: "undercity:challenge-chamber:background",
+      prop: "encounter:challenge:ambush",
+    },
+    ritual: {
+      background: "undercity:challenge-chamber:background",
+      prop: "encounter:challenge:ritual",
+    },
+    obstacle: {
+      background: "undercity:challenge-chamber:background",
+      prop: "encounter:challenge:obstacle",
+    },
+    negotiation: {
+      background: "undercity:challenge-chamber:background",
+      prop: "encounter:challenge:negotiation",
+    },
     rest: {
       background: "undercity:rest-chamber:background",
       prop: "encounter:rest-camp",
@@ -116,6 +150,17 @@ const undercityVisuals: StaticVisual[] = UNDERCITY_ZONE_VISUAL_PACKS.flatMap((pa
 const staticCatalog: Readonly<Record<string, EncounterVisualDescriptor>> = Object.fromEntries(([
   ...undercityVisuals,
   [ENCOUNTER_VISUAL_KEYS.effects.physicalImpact, "effect", "CDI-097 CSS impact profile", { x: 0.5, y: 0.2 }, 1, "✦"],
+  [ENCOUNTER_VISUAL_KEYS.effects.projectile, "effect", "CDI-113 CSS/SVG projectile profile", { x: 0, y: 0.5 }, 1, "➶"],
+  [ENCOUNTER_VISUAL_KEYS.effects.magic, "effect", "CDI-113 CSS/SVG magic profile", { x: 0, y: 0.5 }, 1, "✦"],
+  [ENCOUNTER_VISUAL_KEYS.effects.healing, "effect", "CDI-113 CSS/SVG allied healing profile", { x: 0, y: 0.5 }, 1, "+"],
+  [ENCOUNTER_VISUAL_KEYS.effects.support, "effect", "CDI-113 CSS/SVG enemy support profile", { x: 0, y: 0.5 }, 1, "+"],
+  [ENCOUNTER_VISUAL_KEYS.encounters.trap.background, "background", "CDIdle ImageGen rest chamber v1 reused for CDI-115 challenges", { x: 0.5, y: 1 }, 1, "", restChamberBackgroundUrl],
+  [ENCOUNTER_VISUAL_KEYS.encounters.trap.prop, "prop", "CDIdle ImageGen challenge trap v1", { x: 0.5, y: 0.94 }, 1, "△", challengeTrapUrl],
+  [ENCOUNTER_VISUAL_KEYS.encounters.enigma.prop, "prop", "CDIdle ImageGen challenge enigma v1", { x: 0.5, y: 0.94 }, 1, "◇", challengeEnigmaUrl],
+  [ENCOUNTER_VISUAL_KEYS.encounters.ambush.prop, "prop", "CDIdle ImageGen challenge ambush v1", { x: 0.5, y: 0.94 }, 1, "!", challengeAmbushUrl],
+  [ENCOUNTER_VISUAL_KEYS.encounters.ritual.prop, "prop", "CDIdle ImageGen challenge ritual v1", { x: 0.5, y: 0.94 }, 1, "✦", challengeRitualUrl],
+  [ENCOUNTER_VISUAL_KEYS.encounters.obstacle.prop, "prop", "CDIdle ImageGen challenge obstacle v1", { x: 0.5, y: 0.94 }, 1, "▰", challengeObstacleUrl],
+  [ENCOUNTER_VISUAL_KEYS.encounters.negotiation.prop, "prop", "CDIdle ImageGen challenge negotiation v1", { x: 0.5, y: 0.94 }, 1, "§", challengeNegotiationUrl],
   [ENCOUNTER_VISUAL_KEYS.encounters.treasure.background, "background", "CDIdle ImageGen salle de trésor v1", { x: 0.5, y: 1 }, 1, "", treasureVaultBackgroundUrl],
   [ENCOUNTER_VISUAL_KEYS.encounters.treasure.prop, "prop", "CDIdle ImageGen coffre v3", { x: 0.5, y: 0.94 }, 1, "◇", treasureChestOpenUrl],
   [ENCOUNTER_VISUAL_KEYS.encounters.rest.background, "background", "CDIdle ImageGen salle de repos v1", { x: 0.5, y: 1 }, 1, "", restChamberBackgroundUrl],

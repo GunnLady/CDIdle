@@ -122,7 +122,12 @@ describe("dungeon presentation projections", () => {
       activeStep: { sequence: 0, summary: "Calcul canonique exact." },
       limitations: ["initial-actors-unavailable"],
     });
-    expect(view?.visualScene).toBeNull();
+    expect(view?.visualScene).toMatchObject({
+      actors: [],
+      environment: "challenge-chamber",
+      nonCombat: "trap",
+      nonCombatDetails: ["Calcul canonique exact."],
+    });
   });
 
   it("hides redundant enemy intents while keeping the resolved enemy action", () => {

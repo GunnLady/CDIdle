@@ -1,4 +1,5 @@
 import { UNDERCITY_ZONES, type UndercityZoneId } from "../../shared/domain/undercity";
+import type { DungeonChallengeKind } from "../../shared/domain/dungeon-challenges";
 import {
   DUNGEON_SCENE_ENEMY_LIMIT,
   DUNGEON_SCENE_HERO_LIMIT,
@@ -13,11 +14,21 @@ import type {
   EncounterSceneStep,
   EncounterSceneTeam,
 } from "./encounterSceneProjection";
+import {
+  getDungeonCombatActionProfile,
+  type DungeonCombatActionProfile,
+} from "./dungeonCombatActionProfile";
 
 export const DUNGEON_COMBAT_EFFECT_LIMIT = 16;
+export const DUNGEON_COMBAT_EFFECT_STAGGER_MS = 600;
+export const DUNGEON_COMBAT_EFFECT_DURATION_MS = 1_000;
+export const DUNGEON_COMBAT_ACTION_EFFECT_DURATION_MS = 720;
+export const DUNGEON_COMBAT_ACTION_TRAVEL_DURATION_MS = 430;
+export const DUNGEON_COMBAT_ACTION_IMPACT_DELAY_MS = 430;
+export const DUNGEON_COMBAT_MELEE_IMPACT_DELAY_MS = 160;
 
-export type DungeonCombatActionMode = "entry" | "idle" | "melee" | "neutral" | "result";
-export type DungeonCombatActorMotion = "enter" | "idle" | "melee" | "focus";
+export type DungeonCombatActionMode = "entry" | "idle" | DungeonCombatActionProfile | "result";
+export type DungeonCombatActorMotion = "enter" | "idle" | "melee" | "ranged" | "cast" | "focus";
 export type DungeonCombatActorReaction = "none" | "impact" | "dodge" | "ko";
 export type DungeonCombatEffectKind =
   | "damage"
@@ -26,7 +37,9 @@ export type DungeonCombatEffectKind =
   | "defeat"
   | "recovery-health"
   | "recovery-mana"
+  | "mana-spent"
   | "revival";
+export type DungeonCombatActionEffectKind = "projectile" | "magic" | "healing" | "support";
 
 export interface DungeonCombatSceneActorView {
   id: string;
@@ -40,6 +53,8 @@ export interface DungeonCombatSceneActorView {
   currentMana: number | null;
   maximumMana: number | null;
   manaPercent: number | null;
+  healthDelayMs: number;
+  manaDelayMs: number;
   state: "ready" | "wounded" | "ko";
   active: boolean;
   motion: DungeonCombatActorMotion;
@@ -57,17 +72,30 @@ export interface DungeonCombatSceneEffectView {
   kind: DungeonCombatEffectKind;
   label: string;
   offset: number;
+  delayMs: number;
+}
+
+export interface DungeonCombatSceneActionEffectView {
+  id: string;
+  kind: DungeonCombatActionEffectKind;
+  sourceActorId: string;
+  targetActorId: string;
+  source: { xPercent: number; yPercent: number };
+  target: { xPercent: number; yPercent: number };
+  offset: number;
 }
 
 export interface DungeonCombatSceneView {
   actionKey: string;
   actionMode: DungeonCombatActionMode;
   actionSummary: string;
-  environment: UndercityZoneId | "treasure-vault" | "rest-chamber" | "fallback";
+  environment: UndercityZoneId | "treasure-vault" | "rest-chamber" | "challenge-chamber" | "fallback";
   actors: DungeonCombatSceneActorView[];
   effects: DungeonCombatSceneEffectView[];
+  actionEffects: DungeonCombatSceneActionEffectView[];
   result: EncounterSceneResult | null;
-  nonCombat?: "treasure" | "rest";
+  nonCombat?: "treasure" | "rest" | DungeonChallengeKind;
+  nonCombatOutcome?: EncounterSceneResult | null;
   nonCombatDetails?: string[];
 }
 
@@ -76,28 +104,17 @@ export interface DungeonCombatEnemyRole {
   role?: string;
 }
 
-const MELEE_EVENT_TYPES = [
-  "hero.hit",
-  "hero.hit.critical",
-  "enemy.hit",
-  "enemy.dodged",
-  "hero.defeated",
-];
-
 const ENTRY_EVENT_TYPES = ["combat.start", "encounter.started"];
 
-const undercityZoneByBlueprintId = new Map<string, UndercityZoneId>();
-for (const zone of UNDERCITY_ZONES) {
-  for (const blueprint of [...zone.encounters, zone.elite, zone.boss]) {
-    if (undercityZoneByBlueprintId.has(blueprint.id)) {
-      throw new Error(`Duplicate UnderCity blueprint id: ${blueprint.id}`);
-    }
-    undercityZoneByBlueprintId.set(blueprint.id, zone.id);
-  }
-}
+let undercityZoneByBlueprintId: Map<string, UndercityZoneId> | null = null;
 
 function getUndercityEnvironment(contentKey: string | null): UndercityZoneId | null {
   if (!contentKey) return null;
+  if (!undercityZoneByBlueprintId) {
+    undercityZoneByBlueprintId = new Map(UNDERCITY_ZONES.flatMap((zone) => (
+      [...zone.encounters, zone.elite, zone.boss].map((blueprint) => [blueprint.id, zone.id])
+    )));
+  }
   return undercityZoneByBlueprintId.get(contentKey.split(":", 1)[0]) ?? null;
 }
 
@@ -245,31 +262,43 @@ function actionMode(scene: EncounterSceneState): DungeonCombatActionMode {
   if (scene.complete) return "result";
   const step = scene.activeStep;
   if (!step) return scene.visibleCount === 0 ? "entry" : "idle";
-  if (MELEE_EVENT_TYPES.includes(step.type)) return "melee";
   if (ENTRY_EVENT_TYPES.includes(step.type)) return "entry";
   if (step.result) return "result";
-  return "neutral";
+  return getDungeonCombatActionProfile(step);
 }
 
 function impactReaction(
   actor: EncounterSceneActor,
-  impact: EncounterSceneImpact | undefined,
+  impacts: readonly EncounterSceneImpact[],
 ): DungeonCombatActorReaction {
-  if (!impact) return "none";
-  if (impact.kind === "healing" || impact.kind === "recovery") return "none";
-  if (impact.kind === "dodge") return "dodge";
-  if (impact.knockedOutAfter === true || actor.knockedOut === true || impact.hp?.after === 0) return "ko";
-  return "impact";
+  if (impacts.some((impact) => (
+    impact.knockedOutAfter === true || actor.knockedOut === true || impact.hp?.after === 0
+  ))) return "ko";
+  if (impacts.some((impact) => impact.kind === "dodge")) return "dodge";
+  if (impacts.some((impact) => impact.kind === "damage" || impact.kind === "defeat")) return "impact";
+  return "none";
 }
 
 type EffectDetail = readonly [idSuffix: string, kind: DungeonCombatEffectKind, label: string];
 
 function effectDetails(step: EncounterSceneStep, impact: EncounterSceneImpact): EffectDetail[] {
+  if (impact.kind === "resource" && impact.mana) {
+    const delta = impact.mana.after - impact.mana.before;
+    if (delta === 0) return [];
+    const total = impact.mana.maximum === null ? impact.mana.after : `${impact.mana.after}/${impact.mana.maximum}`;
+    return [[
+      "mana",
+      delta < 0 ? "mana-spent" : "recovery-mana",
+      `PM ${delta < 0 ? "−" : "+"}${Math.abs(delta)} · ${total}`,
+    ]];
+  }
   const recovery = step.type === "party.restored" || impact.kind === "healing" || impact.kind === "recovery";
   if (!recovery) {
     const kind = impact.kind === "dodge"
       ? "dodge"
-      : step.type === "hero.hit.critical" ? "critical" : impact.kind === "defeat" ? "defeat" : "damage";
+      : impact.critical === true || step.type === "hero.hit.critical"
+        ? "critical"
+        : impact.kind === "defeat" ? "defeat" : "damage";
     const value = impact.appliedValue ?? impact.announcedValue;
     const label = kind === "dodge"
       ? "Esquive"
@@ -313,6 +342,60 @@ function selectVisibleActors(scene: EncounterSceneState): Array<{ actor: Encount
   });
 }
 
+function actorMotion(mode: DungeonCombatActionMode, active: boolean): DungeonCombatActorMotion {
+  if (mode === "entry") return "enter";
+  if (!active) return "idle";
+  if (mode === "melee") return "melee";
+  if (mode === "projectile") return "ranged";
+  if (mode === "magic" || mode === "healing" || mode === "support") return "cast";
+  return "focus";
+}
+
+function actionEffectKind(mode: DungeonCombatActionMode): DungeonCombatActionEffectKind | null {
+  return mode === "projectile" || mode === "magic" || mode === "healing" || mode === "support"
+    ? mode
+    : null;
+}
+
+function effectDelayMs(
+  mode: DungeonCombatActionMode,
+  kind: DungeonCombatEffectKind,
+): number {
+  if (kind === "mana-spent" || kind === "recovery-mana") return 0;
+  if (mode === "projectile" || mode === "magic" || mode === "healing" || mode === "support") {
+    return DUNGEON_COMBAT_ACTION_IMPACT_DELAY_MS;
+  }
+  if (mode === "melee" && (kind === "damage" || kind === "critical" || kind === "defeat")) {
+    return DUNGEON_COMBAT_MELEE_IMPACT_DELAY_MS;
+  }
+  return 0;
+}
+
+function actorResourceDelayMs(
+  impacts: readonly EncounterSceneImpact[],
+  mode: DungeonCombatActionMode,
+  resource: "health" | "mana",
+): number {
+  const changes = impacts.filter((impact) => {
+    const value = resource === "health" ? impact.hp : impact.mana;
+    return value !== null && value.after !== value.before;
+  });
+  if (changes.length === 0) return 0;
+  if (resource === "mana") return 0;
+  const baseDelay = mode === "projectile" || mode === "magic" || mode === "healing" || mode === "support"
+    ? DUNGEON_COMBAT_ACTION_IMPACT_DELAY_MS
+    : mode === "melee" ? DUNGEON_COMBAT_MELEE_IMPACT_DELAY_MS : 0;
+  return baseDelay + ((changes.length - 1) * DUNGEON_COMBAT_EFFECT_STAGGER_MS);
+}
+
+function actionEffectPoint(actor: DungeonCombatSceneActorView): { xPercent: number; yPercent: number } {
+  const lift = Math.max(8, Math.min(17, 10 * Math.sqrt(actor.standard.scale)));
+  return {
+    xPercent: actor.standard.xPercent,
+    yPercent: actor.standard.yPercent - lift,
+  };
+}
+
 export function createDungeonCombatSceneView(
   scene: EncounterSceneState,
   enemyRoles: readonly DungeonCombatEnemyRole[] = [],
@@ -324,26 +407,15 @@ export function createDungeonCombatSceneView(
   const activeActor = step?.sourceActorId
     ? selections.find(({ actor }) => actor.id === step.sourceActorId && actorState(actor) !== "ko")?.actor
     : undefined;
-  const visibleImpacts = !step || (mode !== "melee" && step.type !== "party.restored")
-    ? []
-    : step.impacts.filter((impact) => selectedIds.has(impact.targetActorId));
-  const targetOffsets = new Map<string, number>();
-  const effects = visibleImpacts.flatMap((impact): DungeonCombatSceneEffectView[] => {
-    const target = selections.find(({ actor }) => actor.id === impact.targetActorId)?.actor;
-    if (!target) return [];
-    return effectDetails(step, impact).map(([idSuffix, kind, label]) => {
-      const offset = targetOffsets.get(target.id) ?? 0;
-      targetOffsets.set(target.id, offset + 1);
-      return {
-        id: `${impact.id}:${idSuffix}`,
-        targetActorId: target.id,
-        kind,
-        label,
-        offset,
-      };
-    });
-  }).slice(0, DUNGEON_COMBAT_EFFECT_LIMIT);
-  const impactsByActorId = new Map(visibleImpacts.map((impact) => [impact.targetActorId, impact]));
+  const visibleImpacts = step
+    ? step.impacts.filter((impact) => selectedIds.has(impact.targetActorId))
+    : [];
+  const impactsByActorId = new Map<string, EncounterSceneImpact[]>();
+  for (const impact of visibleImpacts) {
+    const actorImpacts = impactsByActorId.get(impact.targetActorId) ?? [];
+    actorImpacts.push(impact);
+    impactsByActorId.set(impact.targetActorId, actorImpacts);
+  }
   const rolesById = new Map(enemyRoles.map((enemy) => [enemy.id, enemy.role ?? "Ennemi"]));
   const environment = selections.reduce<UndercityZoneId | null>(
     (found, { actor }) => found ?? (actor.team === "enemies" ? getUndercityEnvironment(actor.contentKey) : null),
@@ -375,10 +447,12 @@ export function createDungeonCombatSceneView(
       currentMana: actor.currentMana,
       maximumMana: actor.maximumMana,
       manaPercent: percentage(actor.currentMana, actor.maximumMana),
+      healthDelayMs: actorResourceDelayMs(impactsByActorId.get(actor.id) ?? [], mode, "health"),
+      manaDelayMs: actorResourceDelayMs(impactsByActorId.get(actor.id) ?? [], mode, "mana"),
       state: actorState(actor),
       active,
-      motion: mode === "entry" ? "enter" : active ? mode === "melee" ? "melee" : "focus" : "idle",
-      reaction: impactReaction(actor, impactsByActorId.get(actor.id)),
+      motion: actorMotion(mode, active),
+      reaction: impactReaction(actor, impactsByActorId.get(actor.id) ?? []),
       idleDurationMs: idleRhythm[0],
       idleDelayMs: idleRhythm[1],
       metaOffsetYPercent: actor.contentKey ? actorMetaOffsetsYPercent[actor.contentKey] ?? 0 : 0,
@@ -386,6 +460,54 @@ export function createDungeonCombatSceneView(
       zoomed,
     }];
   });
+  const actorsById = new Map(actors.map((actor) => [actor.id, actor]));
+  const targetOffsets = new Map<string, number>();
+  const effects: DungeonCombatSceneEffectView[] = [];
+  const actionEffects: DungeonCombatSceneActionEffectView[] = [];
+  const travelKind = actionEffectKind(mode);
+  let visualEffectCount = 0;
+  for (const impact of visibleImpacts) {
+    const target = actorsById.get(impact.targetActorId);
+    if (!target) continue;
+    let offset = targetOffsets.get(target.id) ?? 0;
+    const source = impact.sourceActorId ? actorsById.get(impact.sourceActorId) : undefined;
+    const carriesAction = impact.kind === "damage"
+      || impact.kind === "defeat"
+      || impact.kind === "healing"
+      || impact.kind === "recovery";
+    if (
+      visualEffectCount < DUNGEON_COMBAT_EFFECT_LIMIT
+      && travelKind
+      && source
+      && source.id !== target.id
+      && carriesAction
+    ) {
+      actionEffects.push({
+        id: `${impact.id}:action`,
+        kind: travelKind,
+        sourceActorId: source.id,
+        targetActorId: target.id,
+        source: actionEffectPoint(source),
+        target: actionEffectPoint(target),
+        offset,
+      });
+      visualEffectCount += 1;
+    }
+    for (const [idSuffix, kind, label] of effectDetails(step!, impact)) {
+      if (visualEffectCount >= DUNGEON_COMBAT_EFFECT_LIMIT) break;
+      effects.push({
+        id: `${impact.id}:${idSuffix}`,
+        targetActorId: target.id,
+        kind,
+        label,
+        offset,
+        delayMs: effectDelayMs(mode, kind),
+      });
+      visualEffectCount += 1;
+      offset += 1;
+      targetOffsets.set(target.id, offset);
+    }
+  }
   const actionSummary = scene.complete
     ? scene.result === "victory"
       ? "Victoire."
@@ -400,6 +522,7 @@ export function createDungeonCombatSceneView(
     environment: environment ?? "fallback",
     actors,
     effects,
+    actionEffects,
     result: scene.result,
   };
 }

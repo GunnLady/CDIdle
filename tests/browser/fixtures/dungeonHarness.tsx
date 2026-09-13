@@ -11,8 +11,14 @@ import {
 } from "../../../shared/domain/undercity";
 import DungeonPage from "../../../src/components/dungeon/DungeonPage";
 import DungeonCombatScene from "../../../src/components/dungeon/DungeonCombatScene";
+import CurrentEncounterPanel from "../../../src/components/dungeon/CurrentEncounterPanel";
 import { createDungeonCombatSceneView } from "../../../src/domain/dungeonCombatScene";
+import {
+  DUNGEON_CHALLENGE_KINDS,
+  isDungeonChallengeKind,
+} from "../../../src/domain/dungeonChallengeScene";
 import { createDungeonNonCombatSceneView } from "../../../src/domain/dungeonNonCombatScene";
+import { createEncounterView } from "../../../src/domain/dungeonPresentation";
 import {
   createEncounterSceneProjection,
   createEncounterSceneTimeline,
@@ -26,15 +32,37 @@ import "../../../src/index.css";
 const harnessParams = new URLSearchParams(window.location.search);
 const readOnly = harnessParams.get("readonly") === "1";
 const requestedStep = Number(harnessParams.get("step") ?? 2);
-const visibleCount = Number.isInteger(requestedStep) ? Math.max(0, Math.min(6, requestedStep)) : 2;
+const visibleCount = Number.isInteger(requestedStep) ? Math.max(0, Math.min(12, requestedStep)) : 2;
 const playbackComplete = harnessParams.get("complete") === "1";
 const combatSceneOnly = harnessParams.get("combat-scene") === "1";
+const integratedCombat = harnessParams.get("integrated") === "1";
+const advancedCombat = harnessParams.get("advanced-combat") === "1";
+const visualScenario = harnessParams.get("scenario") === "1";
+const animationsEnabled = harnessParams.get("animations") !== "0";
 const requestedBlueprintId = harnessParams.get("blueprint");
 const requestedKingPhaseTwo = harnessParams.get("king-phase") === "2";
 const requestedNonCombatScene = harnessParams.get("non-combat-scene");
+const requestedChallengeValue = harnessParams.get("challenge") ?? "";
+const requestedChallenge = isDungeonChallengeKind(requestedChallengeValue)
+  ? requestedChallengeValue
+  : null;
+const requestedChallengeOutcome = harnessParams.get("outcome") === "defeat" ? "defeat" : "victory";
 const nonCombatScene = requestedNonCombatScene === "treasure" || requestedNonCombatScene === "rest"
   ? requestedNonCombatScene
   : null;
+
+const advancedCombatScenarioLabels = [
+  "Mise en place",
+  "Tir précis · Céleste → Rat des canaux",
+  "Magie offensive · Milo → Rat galeux",
+  "Soin allié · Abel → Ariane",
+  "Soutien ennemi · Rat pestiféré → Rat galeux",
+  "Multi-frappe · Ariane → Rat des canaux",
+  "Attaque de zone · Rat des canaux",
+  "Attaque de zone · Rat galeux",
+  "Attaque de zone · Rat pestiféré",
+  "Résultat du combat",
+] as const;
 
 const initialParty = {
   v: 1 as const,
@@ -47,8 +75,20 @@ const initialParty = {
   e: [],
 } satisfies CanonicalDungeonInitialActors;
 
+const challengeInitialParty = {
+  v: 1 as const,
+  h: [
+    ["ariane", "Guerrier_Female_1", 70, 100, 5, 20, 0],
+    ["mage-history", "Mage_Male_2", 52, 80, 12, 20, 0],
+    ["archer-history", "Archer_Female_7", 55, 100, 19, 20, 0],
+    ["acolyte-history", "Acolyte_Male_1", 70, 90, 12, 18, 0],
+  ],
+  e: [],
+} satisfies CanonicalDungeonInitialActors;
+
 const historicalHeroNames = new Map([
   ["ariane", "Ariane"],
+  ["pugilist-history", "Ariane"],
   ["mage-history", "Milo"],
   ["archer-history", "Céleste"],
   ["acolyte-history", "Abel"],
@@ -161,6 +201,191 @@ const encounterRecord = {
   rewards: { gold: 8, loot: [] },
 } satisfies CanonicalDungeonEncounterRecord;
 
+const advancedCombatRecord = {
+  encounterId: "advanced-combat-harness",
+  dungeonId: "undercity",
+  kind: "fight",
+  floor: 3,
+  room: 4,
+  outcome: "defeat",
+  roundCount: 3,
+  enemy: { id: "rat-pack", name: "Meute des cryptes", hp: 106, maxHp: 150 },
+  enemies: [
+    { id: "rat-a", name: "Rat des canaux", hp: 23, maxHp: 50, role: "ordinary" },
+    { id: "rat-b", name: "Rat galeux", hp: 39, maxHp: 50, role: "protector" },
+    { id: "rat-c", name: "Rat pestifere", hp: 44, maxHp: 50, role: "support" },
+  ],
+  initialActors: {
+    v: 1,
+    h: [
+      ["pugilist-history", "Pugiliste_Female_1", 40, 60, 14, 14, 0],
+      ["mage-history", "Mage_Male_2", 52, 52, 12, 12, 0],
+      ["archer-history", "Archer_Female_7", 55, 55, 8, 8, 0],
+      ["acolyte-history", "Acolyte_Male_1", 58, 58, 10, 10, 0],
+    ],
+    b: "rat-pack",
+    e: [["a", 50, 50], ["b", 50, 50], ["c", 50, 50]],
+  },
+  transcript: [
+    { sequence: 0, type: "encounter.started", message: "La meute encercle l'escouade." },
+    {
+      sequence: 1,
+      type: "hero.skill.damage",
+      category: "combat-hero",
+      round: 1,
+      heroId: "archer-history",
+      heroName: "Céleste",
+      monsterId: "rat-a",
+      monsterName: "Rat des canaux",
+      skillId: "precise_shot",
+      skillName: "Tir precis",
+      damageType: "physical",
+      damage: 6,
+      enemyHp: 44,
+      enemyMaxHp: 50,
+      sourceMana: [8, 4, 8],
+      message: "Celeste decoche un tir precis.",
+    },
+    {
+      sequence: 2,
+      type: "hero.skill.damage",
+      category: "combat-hero",
+      round: 1,
+      heroId: "mage-history",
+      heroName: "Milo",
+      monsterId: "rat-b",
+      monsterName: "Rat galeux",
+      skillId: "fire_bolt",
+      skillName: "Trait de feu",
+      damageType: "fire",
+      damage: 10,
+      enemyHp: 40,
+      enemyMaxHp: 50,
+      sourceMana: [12, 6, 12],
+      message: "Milo projette un trait de feu.",
+    },
+    {
+      sequence: 3,
+      type: "hero.skill.heal",
+      category: "combat-hero",
+      round: 1,
+      heroId: "acolyte-history",
+      heroName: "Abel",
+      targetHeroId: "pugilist-history",
+      targetHeroName: "Ariane",
+      skillId: "minor_heal",
+      skillName: "Soin mineur",
+      healing: 8,
+      heroHpBefore: 40,
+      heroHp: 48,
+      heroMaxHp: 60,
+      sourceMana: [10, 6, 10],
+      message: "Abel soigne Ariane.",
+    },
+    {
+      sequence: 4,
+      type: "enemy.support",
+      category: "combat-enemy",
+      round: 1,
+      monsterId: "rat-c",
+      monsterName: "Rat pestifere",
+      targetMonsterId: "rat-b",
+      targetMonsterName: "Rat galeux",
+      healing: 5,
+      enemyHp: 45,
+      enemyMaxHp: 50,
+      message: "Le rat pestifere soutient son allie.",
+    },
+    {
+      sequence: 5,
+      type: "hero.skill.damage",
+      category: "combat-hero",
+      round: 2,
+      heroId: "pugilist-history",
+      heroName: "Ariane",
+      monsterId: "rat-a",
+      monsterName: "Rat des canaux",
+      skillId: "rapid_combo",
+      skillName: "Combo rapide",
+      damageType: "physical",
+      damage: 15,
+      hitCount: 3,
+      hitResults: [
+        { hit: 1, critical: false, damage: 4 },
+        { hit: 2, critical: true, damage: 6 },
+        { hit: 3, critical: false, damage: 5 },
+      ],
+      enemyHp: 29,
+      enemyMaxHp: 50,
+      sourceMana: [14, 8, 14],
+      message: "Ariane enchaine trois impacts.",
+    },
+    {
+      sequence: 6,
+      type: "hero.skill.damage",
+      category: "combat-hero",
+      round: 3,
+      heroId: "pugilist-history",
+      heroName: "Ariane",
+      monsterId: "rat-a",
+      monsterName: "Rat des canaux",
+      skillId: "cleaving_strike",
+      skillName: "Frappe circulaire",
+      damageType: "physical",
+      hit: 1,
+      hitCount: 1,
+      critical: false,
+      damage: 6,
+      enemyHp: 23,
+      enemyMaxHp: 50,
+      sourceMana: [8, 2, 14],
+      targets: ["e", 0, 1, 2],
+      message: "La frappe circulaire touche le premier ennemi.",
+    },
+    {
+      sequence: 7,
+      type: "hero.skill.damage",
+      category: "combat-hero",
+      round: 3,
+      heroId: "pugilist-history",
+      heroName: "Ariane",
+      monsterId: "rat-b",
+      monsterName: "Rat galeux",
+      skillId: "cleaving_strike",
+      skillName: "Frappe circulaire",
+      damageType: "physical",
+      hit: 1,
+      hitCount: 1,
+      critical: false,
+      damage: 6,
+      enemyHp: 39,
+      enemyMaxHp: 50,
+      message: "La frappe circulaire touche le second ennemi.",
+    },
+    {
+      sequence: 8,
+      type: "hero.skill.damage",
+      category: "combat-hero",
+      round: 3,
+      heroId: "pugilist-history",
+      heroName: "Ariane",
+      monsterId: "rat-c",
+      monsterName: "Rat pestifere",
+      skillId: "cleaving_strike",
+      skillName: "Frappe circulaire",
+      damageType: "physical",
+      hit: 1,
+      hitCount: 1,
+      critical: false,
+      damage: 6,
+      enemyHp: 44,
+      enemyMaxHp: 50,
+      message: "La frappe circulaire touche le troisieme ennemi.",
+    },
+  ],
+  rewards: { gold: 0, loot: [] },
+} satisfies CanonicalDungeonEncounterRecord;
+
 const treasureRecord = {
   encounterId: "treasure-harness",
   dungeonId: "undercity",
@@ -217,8 +442,103 @@ const restRecord = {
   rewards: { gold: 0, loot: [] },
 } satisfies CanonicalDungeonEncounterRecord;
 
+function createChallengeRecord(
+  kind: typeof DUNGEON_CHALLENGE_KINDS[number],
+  outcome: "victory" | "defeat",
+): CanonicalDungeonEncounterRecord {
+  const success = outcome === "victory";
+  const partyChanges = challengeInitialParty.h.map(([heroId, , currentHp, , currentMana]) => ({
+    heroId,
+    hpBefore: currentHp,
+    hpAfter: Math.max(1, currentHp - 3),
+    manaBefore: currentMana,
+    manaAfter: currentMana,
+  }));
+  const manaRecovery = challengeInitialParty.h.map(([heroId, , currentHp, , currentMana, maximumMana]) => ({
+    heroId,
+    hpBefore: currentHp,
+    hpAfter: currentHp,
+    manaBefore: currentMana,
+    manaAfter: Math.min(maximumMana, currentMana + 4),
+  }));
+  const resolvedChanges = kind === "enigma" || kind === "ritual" ? manaRecovery : [];
+  const failedChanges = kind === "trap" || kind === "ambush" || kind === "obstacle"
+    ? partyChanges
+    : kind === "enigma" || kind === "ritual"
+      ? [{
+          heroId: "archer-history",
+          hpBefore: 55,
+          hpAfter: 55,
+          manaBefore: 19,
+          manaAfter: 17,
+        }]
+      : [];
+  const gold = success && (kind === "enigma" || kind === "ambush" || kind === "negotiation") ? 12 : 0;
+  return {
+    encounterId: `challenge-${kind}-${outcome}-harness`,
+    dungeonId: "undercity",
+    kind,
+    floor: 8,
+    room: 4,
+    outcome,
+    roundCount: 0,
+    enemy: null,
+    initialActors: challengeInitialParty,
+    transcript: [
+      { sequence: 0, type: "encounter.started", message: `La salle impose l'épreuve ${kind}.` },
+      {
+        sequence: 1,
+        type: "challenge.hero_selected",
+        heroId: "archer-history",
+        heroName: "Céleste",
+        probabilityPercent: 72,
+        message: "Céleste est la mieux préparée.",
+      },
+      {
+        sequence: 2,
+        type: "challenge.attempted",
+        heroId: "archer-history",
+        heroName: "Céleste",
+        luckRoll: 4,
+        score: 18,
+        difficulty: 20,
+        message: "Céleste tente l'épreuve.",
+      },
+      {
+        sequence: 3,
+        type: success ? "challenge.succeeded" : "challenge.failed",
+        heroId: "archer-history",
+        heroName: "Céleste",
+        message: success ? "L'épreuve est réussie." : "L'épreuve échoue.",
+      },
+      success
+        ? {
+            sequence: 4,
+            type: `challenge.${kind}.resolved`,
+            heroId: "archer-history",
+            heroName: "Céleste",
+            goldGained: gold,
+            heroChanges: resolvedChanges,
+            message: "La voie est sécurisée.",
+          }
+        : {
+            sequence: 4,
+            type: `challenge.${kind}.consequence`,
+            goldLost: kind === "negotiation" ? 7 : 0,
+            heroChanges: failedChanges,
+            message: "L'épreuve impose sa conséquence sans arrêter l'expédition.",
+          },
+      ...(gold > 0 ? [{ sequence: 5, type: "reward.gold", gold, message: `+${gold} or.` }] : []),
+    ],
+    rewards: { gold, loot: [] },
+  };
+}
+
 function Harness() {
   const [mutationCount, setMutationCount] = useState(0);
+  const [scenarioStep, setScenarioStep] = useState(1);
+  const [scenarioReplay, setScenarioReplay] = useState(0);
+  const [harnessAnimationsEnabled, setHarnessAnimationsEnabled] = useState(animationsEnabled);
   const [heroes, setHeroes] = useState<Hero[]>([
     makeHero({ id: "ariane", name: "Ariane", isActive: true, currentMana: 7 }),
     makeHero({ id: "borin", name: "Borin", isActive: false, currentHp: 16 }),
@@ -231,17 +551,109 @@ function Harness() {
   };
 
   if (combatSceneOnly) {
-    const selectedRecord = requestedBlueprint
+    if (requestedChallenge) {
+      const record = createChallengeRecord(requestedChallenge, requestedChallengeOutcome);
+      const view = createEncounterView(record, historicalHeroNames, {
+        visibleCount,
+        complete: playbackComplete,
+      });
+      return <main className="mx-auto w-full max-w-[1200px] p-6">
+        <CurrentEncounterPanel
+          view={view}
+          canMutate
+          activeHeroCount={4}
+          isExploring={false}
+          animationsEnabled={animationsEnabled}
+          animationsRunning={animationsEnabled}
+          onExplore={() => undefined}
+          onToggleAnimations={() => undefined}
+        />
+      </main>;
+    }
+    const selectedRecord = advancedCombat
+      ? advancedCombatRecord
+      : requestedBlueprint
       ? createUndercityEncounterRecord(
           requestedBlueprint.blueprint,
           requestedBlueprint.zone.boss.id,
           requestedKingPhaseTwo && requestedBlueprint.blueprint.id === "rat-king",
         )
       : encounterRecord;
+    if (integratedCombat) {
+      const scenarioActive = advancedCombat && visualScenario;
+      const activeScenarioStep = scenarioActive ? scenarioStep : visibleCount;
+      const encounterView = createEncounterView(selectedRecord, historicalHeroNames, {
+        visibleCount: Math.min(activeScenarioStep, advancedCombatRecord.transcript.length),
+        complete: scenarioActive
+          ? activeScenarioStep > advancedCombatRecord.transcript.length
+          : playbackComplete,
+      });
+      const view = scenarioActive && encounterView.visualScene
+        ? {
+            ...encounterView,
+            visualScene: {
+              ...encounterView.visualScene,
+              actionKey: `${encounterView.visualScene.actionKey}:replay-${scenarioReplay}`,
+            },
+          }
+        : encounterView;
+      return <main
+        className="mx-auto w-full max-w-[1200px] p-6"
+      >
+        {scenarioActive && <nav
+          aria-label="Contrôles du scénario de combat avancé"
+          className="mb-3 flex min-h-12 items-center justify-between gap-3 rounded border border-amber-800 bg-[#110b06] px-3 py-2 text-amber-100"
+          data-testid="advanced-combat-scenario-controls"
+        >
+          <button
+            className="rounded border border-amber-700 px-3 py-2 disabled:opacity-40"
+            disabled={scenarioStep <= 1}
+            onClick={() => setScenarioStep((step) => Math.max(1, step - 1))}
+            type="button"
+          >
+            Précédente
+          </button>
+          <div className="text-center">
+            <output className="block font-serif text-sm font-bold" data-testid="advanced-combat-scenario-step">
+              Étape {scenarioStep}/{advancedCombatScenarioLabels.length}
+            </output>
+            <span className="text-xs text-amber-200">{advancedCombatScenarioLabels[scenarioStep - 1]}</span>
+          </div>
+          <div className="flex gap-2">
+            <button
+              className="rounded border border-amber-700 px-3 py-2"
+              onClick={() => setScenarioReplay((replay) => replay + 1)}
+              type="button"
+            >
+              Rejouer
+            </button>
+            <button
+              className="rounded border border-amber-700 px-3 py-2 disabled:opacity-40"
+              disabled={scenarioStep >= advancedCombatScenarioLabels.length}
+              onClick={() => setScenarioStep((step) => Math.min(advancedCombatScenarioLabels.length, step + 1))}
+              type="button"
+            >
+              Suivante
+            </button>
+          </div>
+        </nav>}
+        <CurrentEncounterPanel
+          view={view}
+          canMutate
+          activeHeroCount={4}
+          isExploring={false}
+          animationsEnabled={harnessAnimationsEnabled}
+          animationsRunning={harnessAnimationsEnabled}
+          onExplore={() => undefined}
+          onToggleAnimations={() => setHarnessAnimationsEnabled((enabled) => !enabled)}
+        />
+      </main>;
+    }
     const scene = createEncounterSceneProjection(
       selectedRecord,
       new Map([
         ["ariane", "Ariane"],
+        ["pugilist-history", "Ariane"],
         ["mage-history", "Milo"],
         ["archer-history", "Céleste"],
         ["acolyte-history", "Abel"],
@@ -253,7 +665,7 @@ function Harness() {
       selectedRecord.enemies?.map((enemy) => ({ id: enemy.id, role: enemy.role })) ?? [],
     );
     return <main className="mx-auto w-full max-w-[1200px] p-6">
-      <DungeonCombatScene view={view} />
+      <DungeonCombatScene view={view} animationsEnabled={animationsEnabled} />
       <button type="button" className="mt-4 min-h-12 w-full rounded border border-amber-700 bg-amber-950 px-4 text-amber-100">Explorer la salle</button>
     </main>;
   }

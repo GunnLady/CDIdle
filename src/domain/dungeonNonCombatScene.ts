@@ -1,4 +1,5 @@
 import type { CanonicalDungeonEncounterRecord } from "../../shared/contracts/authoritative";
+import { createDungeonChallengeSceneView } from "./dungeonChallengeScene";
 import { createDungeonCombatSceneView, type DungeonCombatSceneView } from "./dungeonCombatScene";
 import { getDungeonNonCombatSceneSlot } from "./dungeonSceneLayout";
 import type { EncounterSceneReward, EncounterSceneState, EncounterSceneTimeline } from "./encounterSceneProjection";
@@ -15,6 +16,8 @@ export function createDungeonNonCombatSceneView(
   timeline: EncounterSceneTimeline,
   scene: EncounterSceneState,
 ): DungeonCombatSceneView | null {
+  const challenge = createDungeonChallengeSceneView(record, timeline, scene);
+  if (challenge) return challenge;
   const kind = record.kind;
   if (kind !== "treasure" && kind !== "rest") return null;
   const activeStep = kind === "rest"

@@ -12,11 +12,28 @@ const encounterDirectory = join(projectRoot, "src", "assets", "images", "dungeon
 const sceneBudgetBytes = 2 * 1024 * 1024;
 
 const encounterManifest = [
+  { file: "challenge-trap-v1.png", width: 768, height: 512, alpha: true },
+  { file: "challenge-enigma-v1.png", width: 768, height: 512, alpha: true },
+  { file: "challenge-ambush-v1.png", width: 768, height: 512, alpha: true },
+  { file: "challenge-ritual-v1.png", width: 768, height: 512, alpha: true },
+  { file: "challenge-obstacle-v1.png", width: 768, height: 512, alpha: true },
+  { file: "challenge-negotiation-v1.png", width: 768, height: 512, alpha: true },
   { file: "treasure-chest-open-v3.png", width: 640, height: 585, alpha: true },
   { file: "rest-camp-v2.png", width: 768, height: 512, alpha: true },
   { file: "treasure-vault-background-v2.jpg", width: 1536, height: 658, alpha: false },
   { file: "rest-chamber-background-v1.jpg", width: 1536, height: 658, alpha: false },
 ];
+
+const encounterScenes = {
+  treasure: ["treasure-vault-background-v2.jpg", "treasure-chest-open-v3.png"],
+  rest: ["rest-chamber-background-v1.jpg", "rest-camp-v2.png"],
+  trap: ["rest-chamber-background-v1.jpg", "challenge-trap-v1.png"],
+  enigma: ["rest-chamber-background-v1.jpg", "challenge-enigma-v1.png"],
+  ambush: ["rest-chamber-background-v1.jpg", "challenge-ambush-v1.png"],
+  ritual: ["rest-chamber-background-v1.jpg", "challenge-ritual-v1.png"],
+  obstacle: ["rest-chamber-background-v1.jpg", "challenge-obstacle-v1.png"],
+  negotiation: ["rest-chamber-background-v1.jpg", "challenge-negotiation-v1.png"],
+};
 
 const tier1Sheets = [
   "acolyte", "aede", "archer", "artificer", "druid", "mage", "pugilist", "rogue", "warrior",
@@ -243,10 +260,26 @@ const measuredEncounters = encounterManifest.map((entry) => {
     { width: entry.width, height: entry.height, alpha: entry.alpha },
     `${entry.file} format mismatch`,
   );
+  if (entry.alpha) {
+    assert(
+      dimensions.transparentPixelCount >= dimensions.width * dimensions.height * 0.1,
+      `${entry.file} must contain a substantial transparent background`,
+    );
+    assert(
+      Math.max(...dimensions.cornerAlphas) <= 2,
+      `${entry.file} must not contain an opaque or semi-opaque baked background`,
+    );
+  }
   return { ...entry, bytes: statSync(path).size };
 });
 const encounterBytes = measuredEncounters.reduce((total, entry) => total + entry.bytes, 0);
-assert(encounterBytes <= sceneBudgetBytes, `Encounter assets exceed ${sceneBudgetBytes} bytes`);
+const encounterAssetsByFile = new Map(measuredEncounters.map((entry) => [entry.file, entry]));
+const measuredEncounterScenes = Object.entries(encounterScenes).map(([kind, files]) => {
+  const bytes = files.reduce((total, file) => total + (encounterAssetsByFile.get(file)?.bytes ?? 0), 0);
+  assert.equal(files.every((file) => encounterAssetsByFile.has(file)), true, `${kind} scene references a missing asset`);
+  assert(bytes <= sceneBudgetBytes, `${kind} encounter scene exceeds ${sceneBudgetBytes} bytes`);
+  return { kind, files, bytes };
+});
 
 const heroImageDirectory = join(projectRoot, "src", "assets", "images");
 for (const relativePath of heroSheets) {
@@ -265,4 +298,5 @@ console.log(JSON.stringify({
   undercityPacks: measuredPacks,
   encounterBytes,
   encounterAssets: measuredEncounters,
+  encounterScenes: measuredEncounterScenes,
 }, null, 2));

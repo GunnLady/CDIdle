@@ -85,6 +85,10 @@
   transform-origin: 50% 100%;
 }
 
+.actor[data-active="true"] .idleLayer {
+  animation: none;
+}
+
 .reactionLayer {
   transform-origin: 50% 82%;
 }
@@ -209,6 +213,7 @@
   border-radius: inherit;
   background: linear-gradient(90deg, #8d1d29, #dc3e43);
   transition: width 180ms ease-out;
+  transition-delay: var(--resource-delay, 0ms);
 }
 
 .vitalBar[data-resource="mana"] > span {
@@ -235,6 +240,21 @@
 
 .motionLayer[data-motion="melee"] {
   animation: melee-action 400ms cubic-bezier(0.35, 0, 0.3, 1) both;
+}
+
+.motionLayer[data-motion="ranged"] {
+  animation: ranged-action var(--combat-action-duration) cubic-bezier(0.35, 0, 0.3, 1) both;
+}
+
+.motionLayer[data-motion="cast"] {
+  animation: cast-action var(--combat-action-duration) ease-out both;
+}
+
+.scene:is(
+  [data-action-mode="projectile"],
+  [data-action-mode="magic"]
+) .reactionLayer:is([data-reaction="impact"], [data-reaction="ko"]) {
+  animation-delay: var(--combat-impact-delay);
 }
 
 .motionLayer[data-motion="focus"] {
@@ -274,7 +294,7 @@
   text-shadow: 0 0.08rem 0.12rem #240300;
   white-space: nowrap;
   transform: translateX(-50%);
-  animation: floating-effect 1000ms ease-out var(--effect-delay) both;
+  animation: floating-effect var(--effect-duration) ease-out var(--effect-delay) both;
 }
 
 .effect[data-kind="critical"] {
@@ -305,10 +325,126 @@
   color: #8bd3ff;
 }
 
+.effect[data-kind="mana-spent"] {
+  background: rgb(4 17 31 / 88%);
+  border-color: #397ead;
+  color: #70c5f7;
+}
+
 .effect[data-kind="revival"] {
   background: rgb(5 26 17 / 88%);
   border-color: #78e6a1;
   color: #9ff3bc;
+}
+
+.actionEffects {
+  position: absolute;
+  z-index: 35;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.actionEffectTrail {
+  fill: none;
+  stroke: #f6ca72;
+  stroke-linecap: round;
+  stroke-width: 3;
+  filter: drop-shadow(0 0 0.18rem rgb(255 196 76 / 82%));
+  opacity: 0;
+  animation: action-effect-trail var(--action-travel-duration) ease-out var(--effect-delay) both;
+}
+
+.actionEffectPayload {
+  filter: drop-shadow(0 0 0.22rem rgb(255 211 109 / 96%));
+  opacity: 0;
+  animation: action-effect-payload var(--action-travel-duration) linear var(--effect-delay) both;
+}
+
+.actionEffectPayloadGlyph {
+  fill: #fff0b0;
+  stroke: #f6ca72;
+  stroke-width: 0.18;
+}
+
+.actionEffectPayloadStatic {
+  display: none;
+}
+
+.actionEffectImpact {
+  fill: rgb(255 211 109 / 22%);
+  stroke: #ffd36d;
+  stroke-width: 2;
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: action-effect-impact calc(var(--action-effect-duration) - var(--combat-impact-delay)) ease-out var(--effect-impact-delay) both;
+}
+
+.actionEffects g[data-kind="projectile"] .actionEffectTrail {
+  display: none;
+}
+
+.actionEffects g[data-kind="magic"] .actionEffectTrail {
+  stroke: #b784ff;
+  stroke-width: 5;
+  filter: drop-shadow(0 0 0.3rem rgb(143 83 255 / 90%));
+}
+
+.actionEffects g[data-kind="magic"] .actionEffectPayload {
+  filter: drop-shadow(0 0 0.38rem rgb(143 83 255 / 100%));
+}
+
+.actionEffects g[data-kind="magic"] .actionEffectPayloadGlyph {
+  fill: #ead7ff;
+  stroke: #b784ff;
+}
+
+.actionEffects g[data-kind="magic"] .actionEffectImpact {
+  fill: rgb(143 83 255 / 30%);
+  stroke: #caa5ff;
+}
+
+.actionEffects g[data-kind="healing"] .actionEffectTrail {
+  stroke: #f1d884;
+  stroke-width: 4;
+  filter: drop-shadow(0 0 0.28rem rgb(113 226 155 / 90%));
+}
+
+.actionEffects g[data-kind="healing"] .actionEffectPayload {
+  filter: drop-shadow(0 0 0.34rem rgb(113 226 155 / 100%));
+}
+
+.actionEffects g[data-kind="healing"] .actionEffectPayloadGlyph {
+  fill: #fff2a8;
+  stroke: #71e29b;
+}
+
+.actionEffects g[data-kind="healing"] .actionEffectImpact {
+  fill: rgb(113 226 155 / 32%);
+  stroke: #9ff3bc;
+}
+
+.actionEffects g[data-kind="support"] .actionEffectTrail {
+  stroke: #9ad07d;
+  stroke-width: 4;
+  filter: drop-shadow(0 0 0.28rem rgb(208 73 73 / 78%));
+}
+
+.actionEffects g[data-kind="support"] .actionEffectPayload {
+  filter: drop-shadow(0 0 0.32rem rgb(208 73 73 / 92%));
+}
+
+.actionEffects g[data-kind="support"] .actionEffectPayloadGlyph {
+  fill: #d9f7aa;
+  stroke: #d04949;
+}
+
+.actionEffects g[data-kind="support"] .actionEffectImpact {
+  fill: rgb(208 73 73 / 24%);
+  stroke: #b6df8f;
 }
 
 .accessory {
@@ -349,6 +485,35 @@
 
 .scene[data-encounter-kind="rest"] .accessory::before {
   display: none;
+}
+
+.scene[data-encounter-kind="trap"] .accessory,
+.scene[data-encounter-kind="enigma"] .accessory,
+.scene[data-encounter-kind="ambush"] .accessory,
+.scene[data-encounter-kind="ritual"] .accessory,
+.scene[data-encounter-kind="obstacle"] .accessory,
+.scene[data-encounter-kind="negotiation"] .accessory {
+  left: 50%;
+  top: 86%;
+  width: clamp(9rem, 18cqi, 13.5rem);
+  filter: drop-shadow(0 0.65rem 0.35rem rgb(0 0 0 / 62%));
+}
+
+.scene[data-encounter-kind="trap"] .accessory { animation: challenge-trap-arrival 620ms ease-out both; }
+.scene[data-encounter-kind="enigma"] .accessory { width: clamp(8rem, 15cqi, 11rem); animation: challenge-enigma-arrival 720ms ease-out both; }
+.scene[data-encounter-kind="ambush"] .accessory { width: clamp(11rem, 22cqi, 16rem); animation: challenge-ambush-arrival 680ms ease-out both; }
+.scene[data-encounter-kind="ritual"] .accessory { width: clamp(9rem, 18cqi, 13rem); animation: challenge-ritual-arrival 760ms ease-out both; }
+.scene[data-encounter-kind="obstacle"] .accessory { width: clamp(11rem, 22cqi, 16rem); animation: challenge-obstacle-arrival 600ms ease-out both; }
+.scene[data-encounter-kind="negotiation"] .accessory { width: clamp(11rem, 21cqi, 15rem); animation: challenge-negotiation-arrival 700ms ease-out both; }
+
+.scene[data-encounter-kind="trap"] .accessory::before,
+.scene[data-encounter-kind="enigma"] .accessory::before,
+.scene[data-encounter-kind="ambush"] .accessory::before,
+.scene[data-encounter-kind="ritual"] .accessory::before,
+.scene[data-encounter-kind="obstacle"] .accessory::before,
+.scene[data-encounter-kind="negotiation"] .accessory::before {
+  bottom: calc(4.1% - 1.2rem);
+  height: 2.5rem;
 }
 
 .accessory img {
@@ -412,6 +577,15 @@
   font-size: 0.9rem;
   font-weight: 700;
   overflow-wrap: anywhere;
+  animation: encounter-summary-item-arrival 420ms ease-out var(--summary-delay, 0ms) both;
+}
+
+.scene[data-encounter-outcome="victory"] .nonCombatSummaryItem:first-child {
+  border-color: rgb(120 230 161 / 62%);
+}
+
+.scene[data-encounter-outcome="defeat"] .nonCombatSummaryItem:first-child {
+  border-color: rgb(255 125 114 / 62%);
 }
 
 .neutralNotice {
@@ -491,6 +665,18 @@
   100% { transform: translateX(0) rotate(0); }
 }
 
+@keyframes ranged-action {
+  0%, 100% { transform: translateX(0) rotate(0); }
+  28% { transform: translateX(calc(var(--team-direction) * -0.32rem)) rotate(calc(var(--team-direction) * -1deg)); }
+  52% { transform: translateX(calc(var(--team-direction) * 0.18rem)); }
+}
+
+@keyframes cast-action {
+  0%, 100% { transform: translateY(0) scale(1); }
+  35% { transform: translateY(-0.16rem) scale(1.035); }
+  58% { transform: translateY(-0.08rem) scale(1.018); }
+}
+
 @keyframes actor-focus {
   0% { transform: scale(1); }
   28% { transform: scale(1.06); }
@@ -544,9 +730,29 @@
 
 @keyframes floating-effect {
   from { opacity: 0; transform: translate(-50%, 0.15rem) scale(0.86); }
-  18% { opacity: 1; transform: translate(-50%, -0.1rem) scale(1.06); }
+  6% { opacity: 1; transform: translate(-50%, -0.1rem) scale(1.06); }
   62% { opacity: 1; transform: translate(-50%, -1.15rem) scale(1); }
   to { opacity: 0; transform: translate(-50%, -2.15rem) scale(0.98); }
+}
+
+@keyframes action-effect-trail {
+  0% { opacity: 0; }
+  12% { opacity: 0.5; }
+  72% { opacity: 0.42; }
+  100% { opacity: 0; }
+}
+
+@keyframes action-effect-payload {
+  0% { opacity: 0; }
+  8% { opacity: 1; }
+  82% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+@keyframes action-effect-impact {
+  0% { opacity: 0; transform: scale(0.45); }
+  38% { opacity: 1; transform: scale(1.3); }
+  100% { opacity: 0; transform: scale(1.85); }
 }
 
 @keyframes accessory-arrival {
@@ -559,19 +765,88 @@
   to { opacity: 1; transform: none; }
 }
 
+@keyframes encounter-summary-item-arrival {
+  from { opacity: 0; transform: translateY(-0.25rem) scale(0.96); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes challenge-trap-arrival {
+  0% { opacity: 0; transform: translateY(0.7rem) scaleY(0.72); }
+  58% { opacity: 1; transform: translateY(-0.15rem) scaleY(1.05); }
+  100% { opacity: 1; transform: none; }
+}
+
+@keyframes challenge-enigma-arrival {
+  0% { opacity: 0; transform: translateY(0.4rem) rotate(-6deg) scale(0.86); }
+  72% { opacity: 1; transform: rotate(1deg) scale(1.02); }
+  100% { opacity: 1; transform: none; }
+}
+
+@keyframes challenge-ambush-arrival {
+  0% { opacity: 0; transform: translateX(-0.8rem) rotate(-2deg); }
+  48% { opacity: 1; transform: translateX(0.2rem) rotate(1deg); }
+  72% { transform: translateX(-0.08rem) rotate(-0.4deg); }
+  100% { opacity: 1; transform: none; }
+}
+
+@keyframes challenge-ritual-arrival {
+  0% { opacity: 0; filter: brightness(0.45) saturate(0.5); transform: translateY(0.4rem) scale(0.86); }
+  70% { opacity: 1; filter: brightness(1.2) saturate(1.15); transform: scale(1.03); }
+  100% { opacity: 1; filter: drop-shadow(0 0.65rem 0.35rem rgb(0 0 0 / 62%)); transform: none; }
+}
+
+@keyframes challenge-obstacle-arrival {
+  0% { opacity: 0; transform: translateX(0.8rem) rotate(1.5deg); }
+  64% { opacity: 1; transform: translateX(-0.12rem) rotate(-0.5deg); }
+  100% { opacity: 1; transform: none; }
+}
+
+@keyframes challenge-negotiation-arrival {
+  0% { opacity: 0; transform: translateY(0.55rem) rotate(1deg) scale(0.94); }
+  72% { opacity: 1; transform: translateY(-0.08rem) rotate(-0.25deg); }
+  100% { opacity: 1; transform: none; }
+}
+
 .scene[data-animations="disabled"] .motionLayer,
 .scene[data-animations="disabled"] .idleLayer,
 .scene[data-animations="disabled"] .reactionLayer,
 .scene[data-animations="disabled"] .visualShell::before,
 .scene[data-animations="disabled"] .actor[data-active="true"] .sprite,
 .scene[data-animations="disabled"] .actor[data-active="true"] .visualShell > span,
-.scene[data-animations="disabled"] .effect {
+.scene[data-animations="disabled"] .effect,
+.scene[data-animations="disabled"] .actionEffectTrail,
+.scene[data-animations="disabled"] .actionEffectPayload,
+.scene[data-animations="disabled"] .actionEffectImpact {
   animation: none !important;
   transition: none !important;
 }
 
+.scene[data-animations="disabled"] .actionEffectTrail {
+  opacity: 0.72;
+  stroke-dasharray: none;
+  stroke-dashoffset: 0;
+}
+
+.scene[data-animations="disabled"] .actionEffectPayload {
+  opacity: 0.95;
+}
+
+.scene[data-animations="disabled"] .actionEffectPayloadAnimated {
+  display: none;
+}
+
+.scene[data-animations="disabled"] .actionEffectPayloadStatic {
+  display: block;
+}
+
+.scene[data-animations="disabled"] .actionEffectImpact {
+  opacity: 0.82;
+  transform: none;
+}
+
 .scene[data-animations="disabled"] .accessory,
-.scene[data-animations="disabled"] .nonCombatSummary {
+.scene[data-animations="disabled"] .nonCombatSummary,
+.scene[data-animations="disabled"] .nonCombatSummaryItem {
   animation: none !important;
 }
 
@@ -603,13 +878,40 @@
   .visualShell::before,
   .actor[data-active="true"] .sprite,
   .actor[data-active="true"] .visualShell > span,
-  .effect {
+  .effect,
+  .actionEffectTrail,
+  .actionEffectPayload,
+  .actionEffectImpact {
     animation: none !important;
     transition: none !important;
   }
 
+  .actionEffectTrail {
+    opacity: 0.72;
+    stroke-dasharray: none;
+    stroke-dashoffset: 0;
+  }
+
+  .actionEffectPayload {
+    opacity: 0.95;
+  }
+
+  .actionEffectPayloadAnimated {
+    display: none;
+  }
+
+  .actionEffectPayloadStatic {
+    display: block;
+  }
+
+  .actionEffectImpact {
+    opacity: 0.82;
+    transform: none;
+  }
+
   .accessory,
-  .nonCombatSummary {
+  .nonCombatSummary,
+  .nonCombatSummaryItem {
     animation: none !important;
   }
 

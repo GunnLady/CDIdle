@@ -86,8 +86,8 @@ describe("encounter visual catalog", () => {
       (total, pack) => total + 1 + pack.enemies.length + pack.variants.length,
       0,
     );
-    expect(manifest).toHaveLength(undercityEntryCount + 5);
-    expect(manifest.filter((entry) => entry.load)).toHaveLength(undercityEntryCount + 4);
+    expect(manifest).toHaveLength(undercityEntryCount + 16);
+    expect(manifest.filter((entry) => entry.load)).toHaveLength(undercityEntryCount + 11);
 
     const [first, duplicate] = await Promise.all([
       loadEncounterVisualAsset(ENCOUNTER_VISUAL_KEYS.sewers.ratPack.a),
@@ -104,7 +104,20 @@ describe("encounter visual catalog", () => {
     expect(getEncounterVisualAssetCacheStats().size).toBe(0);
   });
 
-  it("registers dedicated backgrounds and reusable props for treasure and rest", async () => {
+  it("registers the zero-download combat effect profiles with explicit provenance", () => {
+    for (const key of Object.values(ENCOUNTER_VISUAL_KEYS.effects)) {
+      expect(resolveEncounterVisualDescriptor(key)).toMatchObject({
+        key,
+        kind: "effect",
+        fallback: false,
+        version: 1,
+      });
+      expect(resolveEncounterVisualDescriptor(key).provenance).toMatch(/CSS/);
+      expect(resolveEncounterVisualDescriptor(key).load).toBeUndefined();
+    }
+  });
+
+  it("registers dedicated props and the shared challenge chamber without duplicate downloads", async () => {
     for (const [kind, keys] of Object.entries(ENCOUNTER_VISUAL_KEYS.encounters)) {
       expect(resolveEncounterVisualDescriptor(keys.prop)).toMatchObject({
         key: keys.prop,
@@ -123,7 +136,11 @@ describe("encounter visual catalog", () => {
         loadEncounterVisualAsset(keys.background),
       ]);
       expect(prop.status).toBe("ready");
-      expect(prop.url).toMatch(/treasure-chest-open-v3|rest-camp-v2/);
+      expect(prop.url).toContain(kind === "treasure"
+        ? "treasure-chest-open-v3"
+        : kind === "rest"
+          ? "rest-camp-v2"
+          : `challenge-${kind}-v1`);
       expect(background.status).toBe("ready");
       expect(background.url).toContain(kind === "treasure"
         ? "treasure-vault-background-v2"

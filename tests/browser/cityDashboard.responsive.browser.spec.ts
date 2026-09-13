@@ -51,7 +51,7 @@ for (const viewport of viewports) {
     }
 
     await page.getByTestId("building-forge").click();
-    await expect(selected).toContainText("Forge rustique");
+    await expect(selected).toContainText("La Forge");
     await expect(selected.getByRole("button", { name: "Forger" })).toBeDisabled();
     await expect(page.getByTestId("mutation-count")).toHaveText("0");
     const history = page.getByTestId("city-history-panel");
