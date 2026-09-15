@@ -298,9 +298,9 @@ describe("DungeonCombatScene", () => {
     view.nonCombat = "rest";
     view.nonCombatDetails = ["Repos terminé"];
     view.effects = [
-      { id: "revival", targetActorId: hero.id, kind: "revival", label: "Réanimé", offset: 0 },
-      { id: "health", targetActorId: hero.id, kind: "recovery-health", label: "PV +4 · 20/20", offset: 1 },
-      { id: "mana", targetActorId: hero.id, kind: "recovery-mana", label: "PM +2 · 5/10", offset: 2 },
+      { id: "revival", targetActorId: hero.id, kind: "revival", label: "Réanimé", offset: 0, delayMs: 0 },
+      { id: "health", targetActorId: hero.id, kind: "recovery-health", label: "PV +4 · 20/20", offset: 1, delayMs: 0 },
+      { id: "mana", targetActorId: hero.id, kind: "recovery-mana", label: "PM +2 · 5/10", offset: 2, delayMs: 0 },
     ];
 
     render(<DungeonCombatScene view={view} animationsEnabled={false} />);
