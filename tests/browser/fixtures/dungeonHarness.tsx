@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import type {
   CanonicalDungeonEncounterRecord,
   CanonicalDungeonInitialEnemyActor,
+  CanonicalDungeonInitialHeroActor,
   CanonicalDungeonInitialActors,
 } from "../../../shared/contracts/authoritative";
 import {
@@ -38,6 +39,7 @@ const combatSceneOnly = harnessParams.get("combat-scene") === "1";
 const integratedCombat = harnessParams.get("integrated") === "1";
 const advancedCombat = harnessParams.get("advanced-combat") === "1";
 const visualScenario = harnessParams.get("scenario") === "1";
+const noviceReview = harnessParams.get("novice-review") === "1";
 const animationsEnabled = harnessParams.get("animations") !== "0";
 const requestedBlueprintId = harnessParams.get("blueprint");
 const requestedKingPhaseTwo = harnessParams.get("king-phase") === "2";
@@ -50,6 +52,32 @@ const requestedChallengeOutcome = harnessParams.get("outcome") === "defeat" ? "d
 const nonCombatScene = requestedNonCombatScene === "treasure" || requestedNonCombatScene === "rest"
   ? requestedNonCombatScene
   : null;
+
+const noviceReviewVisualKeys = [
+  "Novice_Female_0",
+  "Novice_Male_0",
+  "Novice_Female_5",
+  "Novice_Male_5",
+] as const;
+
+function withNoviceReview(record: CanonicalDungeonEncounterRecord): CanonicalDungeonEncounterRecord {
+  if (!noviceReview || !record.initialActors) return record;
+  return {
+    ...record,
+    initialActors: {
+      ...record.initialActors,
+      h: record.initialActors.h.map((actor, index): CanonicalDungeonInitialHeroActor => [
+        actor[0],
+        noviceReviewVisualKeys[index % noviceReviewVisualKeys.length]!,
+        actor[2],
+        actor[3],
+        actor[4],
+        actor[5],
+        actor[6],
+      ]),
+    },
+  };
+}
 
 const advancedCombatScenarioLabels = [
   "Mise en place",
@@ -552,7 +580,7 @@ function Harness() {
 
   if (combatSceneOnly) {
     if (requestedChallenge) {
-      const record = createChallengeRecord(requestedChallenge, requestedChallengeOutcome);
+      const record = withNoviceReview(createChallengeRecord(requestedChallenge, requestedChallengeOutcome));
       const view = createEncounterView(record, historicalHeroNames, {
         visibleCount,
         complete: playbackComplete,
@@ -570,7 +598,7 @@ function Harness() {
         />
       </main>;
     }
-    const selectedRecord = advancedCombat
+    const selectedRecord = withNoviceReview(advancedCombat
       ? advancedCombatRecord
       : requestedBlueprint
       ? createUndercityEncounterRecord(
@@ -578,7 +606,7 @@ function Harness() {
           requestedBlueprint.zone.boss.id,
           requestedKingPhaseTwo && requestedBlueprint.blueprint.id === "rat-king",
         )
-      : encounterRecord;
+      : encounterRecord);
     if (integratedCombat) {
       const scenarioActive = advancedCombat && visualScenario;
       const activeScenarioStep = scenarioActive ? scenarioStep : visibleCount;
@@ -671,7 +699,7 @@ function Harness() {
   }
 
   if (nonCombatScene) {
-    const record = nonCombatScene === "treasure" ? treasureRecord : restRecord;
+    const record = withNoviceReview(nonCombatScene === "treasure" ? treasureRecord : restRecord);
     const timeline = createEncounterSceneTimeline(record, historicalHeroNames);
     const scene = projectEncounterScene(timeline);
     const view = createDungeonNonCombatSceneView(record, timeline, scene);

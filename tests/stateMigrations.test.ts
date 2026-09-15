@@ -26,12 +26,16 @@ import {
   LEGACY_HERO_PROGRESSION_MODEL,
   PUBLISHED_TIER_DEPENDENT_HERO_PROGRESSION_MODEL,
 } from "../shared/data/hero-progression-models";
+import {
+  getStableNovicePortraitVariant,
+  NOVICE_PORTRAIT_VARIANT_COUNT,
+} from "../shared/domain/hero-portrait-identity";
 
 const migrationContext = (seed = 42) => ({ defaults: initialTownState(seed), legacySeed: seed });
 
 describe("canonical state migrations", () => {
-  it("registers contiguous v0 -> v1 -> v2 -> v3 -> v4 -> v5 -> v6 migrations", () => {
-    expect(CURRENT_CANONICAL_STATE_VERSION).toBe(6);
+  it("registers contiguous v0 -> v1 -> v2 -> v3 -> v4 -> v5 -> v6 -> v7 migrations", () => {
+    expect(CURRENT_CANONICAL_STATE_VERSION).toBe(7);
     expect(CANONICAL_STATE_MIGRATIONS.map(({ from, to }) => ({ from, to }))).toEqual([
       { from: 0, to: 1 },
       { from: 1, to: 2 },
@@ -39,7 +43,32 @@ describe("canonical state migrations", () => {
       { from: 3, to: 4 },
       { from: 4, to: 5 },
       { from: 5, to: 6 },
+      { from: 6, to: 7 },
     ]);
+  });
+
+  it("assigns every existing Novice a stable pseudo-random CDI-136 sprite", () => {
+    const existingHero = makeHero({ id: "existing-novice", classType: "Novice", spriteIndex: 17 });
+    const onboardingCandidate = makeHero({ id: "onboarding-novice", classType: "Novice", spriteIndex: 3 });
+    const pendingRecruit = makeHero({ id: "pending-novice", classType: "Novice", spriteIndex: 11 });
+    const tierOneHero = makeHero({ id: "existing-mage", classType: "Mage", spriteIndex: 18 });
+    const v6 = {
+      ...initialTownState(42),
+      stateVersion: 6,
+      heroes: [existingHero, tierOneHero],
+      onboardingCandidates: [onboardingCandidate],
+      pendingRecruit,
+    } as unknown as Record<string, unknown>;
+
+    const migrated = migrateCanonicalState(v6, migrationContext());
+
+    expect(migrated.heroes[0].spriteIndex).toBe(getStableNovicePortraitVariant(existingHero.id));
+    expect(migrated.onboardingCandidates?.[0].spriteIndex)
+      .toBe(getStableNovicePortraitVariant(onboardingCandidate.id));
+    expect(migrated.pendingRecruit?.spriteIndex).toBe(getStableNovicePortraitVariant(pendingRecruit.id));
+    expect(migrated.heroes[0].spriteIndex).toBeLessThan(NOVICE_PORTRAIT_VARIANT_COUNT);
+    expect(migrated.heroes[1].spriteIndex).toBe(tierOneHero.spriteIndex);
+    expect(existingHero.spriteIndex).toBe(17);
   });
 
   it("matches the anonymized golden pair for an unversioned alpha snapshot", () => {
@@ -70,7 +99,7 @@ describe("canonical state migrations", () => {
       },
     } as unknown as Record<string, unknown>;
     const migrated = migrateCanonicalState(v3, migrationContext());
-    expect(migrated.stateVersion).toBe(6);
+    expect(migrated.stateVersion).toBe(7);
     expect(migrated.storedItems).toEqual(inventory);
     expect(migrated.itemBlueprints).toEqual([
       { itemId: "progression_sword", unlocked: true },
@@ -132,7 +161,7 @@ describe("canonical state migrations", () => {
     } as unknown as Record<string, unknown>;
 
     const migrated = migrateCanonicalState(v2, migrationContext());
-    expect(migrated.stateVersion).toBe(6);
+    expect(migrated.stateVersion).toBe(7);
     expect(migrated.storedItems[0]).toMatchObject({ itemLevel: 1, powerModelId: 'legacy-fixed-v1' });
     for (const hero of [migrated.heroes[0], migrated.onboardingCandidates?.[0], migrated.pendingRecruit]) {
       expect(hero?.equipment?.mainHand).toMatchObject({ itemLevel: 1, powerModelId: 'legacy-fixed-v1' });

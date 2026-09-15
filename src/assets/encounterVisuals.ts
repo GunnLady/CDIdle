@@ -210,11 +210,14 @@ export function resolveEncounterVisualDescriptor(key: string): EncounterVisualDe
   if (staticDescriptor) return staticDescriptor;
   const heroIdentity = parseHeroPortraitCacheKey(key);
   if (!heroIdentity) return fallbackDescriptor(key);
+  const isCdi136Novice = heroIdentity.classType === "Novice";
   return {
     key,
     kind: "hero",
     version: ENCOUNTER_VISUAL_CATALOG_VERSION,
-    provenance: "CDIdle canonical hero spritesheets",
+    provenance: isCdi136Novice
+      ? "CDI-136 validated Novice alpha sprites"
+      : "CDIdle canonical hero spritesheets",
     anchor: { x: 0.5, y: 0.93 },
     scale: 1,
     fallbackGlyph: "◆",

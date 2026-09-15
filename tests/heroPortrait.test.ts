@@ -1,10 +1,17 @@
 import { describe, expect, it } from "vitest";
 import { CANONICAL_HERO_CLASSES } from "../shared/domain/hero-classes";
-import { HERO_PORTRAIT_VARIANT_COUNT } from "../shared/domain/hero-portrait-identity";
+import {
+  HERO_PORTRAIT_VARIANT_COUNT,
+  NOVICE_PORTRAIT_VARIANT_COUNT,
+} from "../shared/domain/hero-portrait-identity";
 import { applyTier1ClassTransition } from "../shared/domain/tier1-class-transition";
 import { seededRng } from "../shared/domain/random";
 import { generateAuthoritativeNovice } from "../supabase/functions/game-api/novice-authority";
 import { HERO_SPRITE_SHEETS } from "../src/assets/heroSpriteSheets";
+import {
+  CDI136_NOVICE_VARIANT_COUNT,
+  getCdi136NovicePortraitUrl,
+} from "../src/assets/noviceCdi136Portraits";
 import {
   HERO_SPRITE_SLICES,
   getHeroPortraitCacheKey,
@@ -58,11 +65,12 @@ describe("hero portrait identity", () => {
 });
 
 describe("hero sprite sheet catalog", () => {
-  it("covers all canonical classes, both genders and all 20 variants", () => {
-    expect(Object.keys(HERO_SPRITE_SHEETS)).toEqual(CANONICAL_HERO_CLASSES);
+  it("covers all Tier 1 classes, both genders and all 20 variants", () => {
+    const tierOneClasses = CANONICAL_HERO_CLASSES.filter((classType) => classType !== "Novice");
+    expect(Object.keys(HERO_SPRITE_SHEETS)).toEqual(tierOneClasses);
     expect(HERO_SPRITE_SLICES).toHaveLength(HERO_PORTRAIT_VARIANT_COUNT);
 
-    for (const classType of CANONICAL_HERO_CLASSES) {
+    for (const classType of tierOneClasses) {
       expect(HERO_SPRITE_SHEETS[classType].Male).toBeTruthy();
       expect(HERO_SPRITE_SHEETS[classType].Female).toBeTruthy();
     }
@@ -75,12 +83,20 @@ describe("hero sprite sheet catalog", () => {
 });
 
 describe("authoritative novice portrait", () => {
-  it("assigns a deterministic persisted variant without leaving the 20-slot sheet", () => {
+  it("maps the 20 persisted identity slots onto the 10 validated sprites per gender", () => {
+    expect(CDI136_NOVICE_VARIANT_COUNT).toBe(10);
+    expect(getCdi136NovicePortraitUrl("Male", 0)).toContain("novice-male-01-v1");
+    expect(getCdi136NovicePortraitUrl("Female", 9)).toContain("novice-female-10-v1");
+    expect(getCdi136NovicePortraitUrl("Male", 10)).toBe(getCdi136NovicePortraitUrl("Male", 0));
+    expect(getCdi136NovicePortraitUrl("Female", 19)).toBe(getCdi136NovicePortraitUrl("Female", 9));
+  });
+
+  it("assigns a deterministic persisted variant among the 10 validated Novice sprites", () => {
     const first = generateAuthoritativeNovice("portrait-seed", "portrait-hero");
     const replay = generateAuthoritativeNovice("portrait-seed", "portrait-hero");
 
     expect(first.spriteIndex).toBe(replay.spriteIndex);
     expect(first.spriteIndex).toBeGreaterThanOrEqual(0);
-    expect(first.spriteIndex).toBeLessThan(HERO_PORTRAIT_VARIANT_COUNT);
+    expect(first.spriteIndex).toBeLessThan(NOVICE_PORTRAIT_VARIANT_COUNT);
   });
 });

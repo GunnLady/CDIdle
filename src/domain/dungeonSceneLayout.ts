@@ -17,9 +17,9 @@ const sceneSlots = {
   standard: {
     heroes: [
       { xPercent: 35, yPercent: 70, layer: 4, scale: 1.021 },
-      { xPercent: 26, yPercent: 52, layer: 2, scale: 0.965 },
-      { xPercent: 9, yPercent: 60, layer: 1, scale: 0.984 },
-      { xPercent: 18, yPercent: 82, layer: 3, scale: 1.04 },
+      { xPercent: 26, yPercent: 56, layer: 2, scale: 0.965 },
+      { xPercent: 9, yPercent: 62, layer: 1, scale: 0.984 },
+      { xPercent: 17, yPercent: 82, layer: 3, scale: 1.04 },
     ],
     enemies: [
       { xPercent: 69, yPercent: 74, layer: 4, scale: 1.034 },

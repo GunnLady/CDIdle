@@ -270,7 +270,7 @@ export interface CanonicalRngState {
 }
 
 export const MAX_CANONICAL_RNG_DRAWS = Number.MAX_SAFE_INTEGER;
-export const CURRENT_CANONICAL_STATE_VERSION = 6 as const;
+export const CURRENT_CANONICAL_STATE_VERSION = 7 as const;
 
 export const CANONICAL_GAME_STATE_REQUIRED_FIELDS = [
   "stateVersion", "resources", "buildings", "citizens", "districts", "heroes", "storedItems",

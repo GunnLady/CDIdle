@@ -47,7 +47,7 @@ export const legacyV0GoldenBefore: Record<string, unknown> = {
 
 export const currentV4GoldenAfter: Record<string, unknown> = {
   ...legacyV0GoldenBefore,
-  stateVersion: 6,
+  stateVersion: 7,
   heroProgressionModelId: "legacy-global-v1",
   pendingRecruit: undefined,
   pendingForge: undefined,

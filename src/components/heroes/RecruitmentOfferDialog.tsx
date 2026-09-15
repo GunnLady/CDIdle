@@ -44,7 +44,7 @@ export default function RecruitmentOfferDialog({
       </Button>
     </>}
   >
-      <HeroCandidateCard candidate={offer} nameLabel="Prénom de l'aventurier" onRename={onNameChange} />
+      <HeroCandidateCard candidate={offer} nameLabel="Prénom de l'aventurier" onRename={onNameChange} portraitScale={1.15} />
       {readOnly && blockReason && <Alert variant="locked" live="polite" className="mb-3 text-center">{blockReason}</Alert>}
   </Dialog>;
 }

@@ -27,6 +27,7 @@ import {
   getUndercityCommonCheckpoint,
 } from "../../../shared/domain/undercity-progression.ts";
 import { UNDERCITY_DUNGEON_ID, UNDERCITY_MAX_FLOOR } from "../../../shared/domain/undercity.ts";
+import { getStableNovicePortraitVariant } from "../../../shared/domain/hero-portrait-identity.ts";
 import {
   recoverItemInstance,
   type RecoverableEquipmentSlot,
@@ -461,6 +462,33 @@ function migrateV5ToV6(current: Record<string, unknown>): Record<string, unknown
     : migrated;
 }
 
+function migrateNovicePortrait(input: unknown): unknown {
+  if (!isRecord(input) || input.classType !== "Novice" || typeof input.id !== "string") return input;
+  return {
+    ...input,
+    spriteIndex: getStableNovicePortraitVariant(input.id),
+  };
+}
+
+function migrateV6ToV7(current: Record<string, unknown>): Record<string, unknown> {
+  const migrated = {
+    ...current,
+    stateVersion: 7,
+    heroes: Array.isArray(current.heroes)
+      ? current.heroes.map(migrateNovicePortrait)
+      : current.heroes,
+    onboardingCandidates: Array.isArray(current.onboardingCandidates)
+      ? current.onboardingCandidates.map(migrateNovicePortrait)
+      : current.onboardingCandidates,
+    pendingRecruit: current.pendingRecruit
+      ? migrateNovicePortrait(current.pendingRecruit)
+      : current.pendingRecruit,
+  };
+  return validateCanonicalGameState(migrated).length === 0
+    ? reconcileExistingVocations(migrated as CanonicalGameState)
+    : migrated;
+}
+
 export const CANONICAL_STATE_MIGRATIONS: readonly CanonicalStateMigration[] = [
   { from: LEGACY_UNVERSIONED_STATE_VERSION, to: 1, migrate: migrateV0ToV1 },
   { from: 1, to: 2, migrate: migrateV1ToV2 },
@@ -468,6 +496,7 @@ export const CANONICAL_STATE_MIGRATIONS: readonly CanonicalStateMigration[] = [
   { from: 3, to: 4, migrate: migrateV3ToV4 },
   { from: 4, to: 5, migrate: migrateV4ToV5 },
   { from: 5, to: 6, migrate: migrateV5ToV6 },
+  { from: 6, to: 7, migrate: migrateV6ToV7 },
 ];
 
 export function migrateCanonicalState(

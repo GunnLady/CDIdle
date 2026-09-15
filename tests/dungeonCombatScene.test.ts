@@ -124,9 +124,9 @@ describe("dungeon combat scene presentation", () => {
     expect(view.actors.some((entry) => entry.id === "hero-hidden" || entry.id === "enemy-hidden")).toBe(false);
     expect(view.actors.map((entry) => entry.standard)).toMatchObject([
       { xPercent: 35, yPercent: 70 },
-      { xPercent: 26, yPercent: 52 },
-      { xPercent: 9, yPercent: 60 },
-      { xPercent: 18, yPercent: 82 },
+      { xPercent: 26, yPercent: 56 },
+      { xPercent: 9, yPercent: 62 },
+      { xPercent: 17, yPercent: 82 },
       { xPercent: 69, yPercent: 74 },
       { xPercent: 79, yPercent: 64 },
       { xPercent: 87, yPercent: 83 },
@@ -190,9 +190,9 @@ describe("dungeon combat scene presentation", () => {
     expect(view.environment).toBe("smugglers");
     expect(view.actors[0]?.standard.yPercent).toBe(72);
     expect(view.actors[0]?.zoomed.yPercent).toBe(76);
-    expect(view.actors[1]?.standard.yPercent).toBe(60);
+    expect(view.actors[1]?.standard.yPercent).toBe(64);
     expect(view.actors[1]?.zoomed.yPercent).toBe(83);
-    expect(view.actors[2]?.standard.yPercent).toBe(62);
+    expect(view.actors[2]?.standard.yPercent).toBe(64);
     expect(view.actors[2]?.zoomed.yPercent).toBe(76);
   });
 
@@ -212,9 +212,9 @@ describe("dungeon combat scene presentation", () => {
     expect(view.environment).toBe("cisterns");
     expect(view.actors.map((actorView) => actorView.standard)).toEqual([
       expect.objectContaining({ xPercent: 36, yPercent: 75 }),
-      expect.objectContaining({ xPercent: 27, yPercent: 64 }),
-      expect.objectContaining({ xPercent: 10, yPercent: 70 }),
-      expect.objectContaining({ xPercent: 19, yPercent: 84 }),
+      expect.objectContaining({ xPercent: 27, yPercent: 68 }),
+      expect.objectContaining({ xPercent: 10, yPercent: 72 }),
+      expect.objectContaining({ xPercent: 18, yPercent: 84 }),
       expect.objectContaining({ xPercent: 68, yPercent: 76 }),
       expect.objectContaining({ xPercent: 80, yPercent: 69 }),
       expect.objectContaining({ xPercent: 92, yPercent: 84 }),

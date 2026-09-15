@@ -1,5 +1,6 @@
 import type { CanonicalHeroClass } from "../../shared/domain/hero-classes";
 import { HERO_SPRITE_SHEETS, type HeroPortraitGender } from "./heroSpriteSheets";
+import { getCdi136NovicePortraitUrl } from "./noviceCdi136Portraits";
 import { HERO_SPRITE_SLICES, getHeroPortraitCacheKey } from "../domain/heroPortrait";
 import { findHeroPortraitOpaqueBounds, fitHeroPortraitToFrame } from "./heroPortraitFraming";
 import { createBoundedAsyncAssetCache } from "./visualAssetCache";
@@ -94,19 +95,27 @@ export interface ResolvedHeroPortraitAsset {
 }
 
 export async function loadHeroPortraitAsset(request: HeroPortraitAssetRequest): Promise<ResolvedHeroPortraitAsset> {
-  const requestedKey = getHeroPortraitCacheKey(request.classType, request.gender, request.variant);
-  try {
+  const classType = request.classType;
+  const requestedKey = getHeroPortraitCacheKey(classType, request.gender, request.variant);
+  if (classType === "Novice") {
     return {
-      url: await extractHeroPortrait(HERO_SPRITE_SHEETS[request.classType][request.gender], requestedKey, request.variant),
+      url: getCdi136NovicePortraitUrl(request.gender, request.variant),
       requestedKey,
       resolvedKey: requestedKey,
       fallback: false,
     };
-  } catch (primaryError) {
-    if (request.classType === "Novice") throw primaryError;
+  }
+  try {
+    return {
+      url: await extractHeroPortrait(HERO_SPRITE_SHEETS[classType][request.gender], requestedKey, request.variant),
+      requestedKey,
+      resolvedKey: requestedKey,
+      fallback: false,
+    };
+  } catch {
     const fallbackKey = getHeroPortraitCacheKey("Novice", request.gender, request.variant);
     return {
-      url: await extractHeroPortrait(HERO_SPRITE_SHEETS.Novice[request.gender], fallbackKey, request.variant),
+      url: getCdi136NovicePortraitUrl(request.gender, request.variant),
       requestedKey,
       resolvedKey: fallbackKey,
       fallback: true,

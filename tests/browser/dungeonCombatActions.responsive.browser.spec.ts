@@ -136,3 +136,19 @@ test("provides a preloaded, replayable visual-review scenario", async ({ page })
   await expect(scene.getByTestId("dungeon-combat-action-payload")).toBeAttached();
   await expect.poll(() => payloadHandle?.evaluate((node) => node.isConnected)).toBe(false);
 });
+
+test("loads CDI-136 Novices through the production portrait pipeline", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 1000 });
+  await page.goto(
+    "/tests/browser/fixtures/dungeon-harness.html?combat-scene=1&integrated=1&advanced-combat=1&scenario=1&novice-review=1",
+  );
+
+  const heroes = page.locator("[data-testid='dungeon-combat-actor'][data-team='heroes']");
+  await expect(heroes).toHaveCount(4);
+  await expect(heroes.locator("[data-visual-key^='Novice_']")).toHaveCount(4);
+  const sources = await heroes.locator("img").evaluateAll((images) => (
+    images.map((image) => (image as HTMLImageElement).currentSrc)
+  ));
+  expect(sources).toHaveLength(4);
+  expect(sources.every((source) => /novice-(?:male|female)-\d{2}-v1/.test(source))).toBe(true);
+});

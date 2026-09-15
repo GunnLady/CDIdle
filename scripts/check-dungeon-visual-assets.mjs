@@ -40,7 +40,13 @@ const tier1Sheets = [
 ].flatMap((className) => ["female", "male"].map((gender) => (
   join("hero-sprites", "tier1", `human-tier1-${className}-${gender}-v1.png`)
 )));
-const heroSheets = ["human-novice-female.jpg", "human-novice-male.jpg", ...tier1Sheets];
+const heroSheets = tier1Sheets;
+const noviceSprites = ["female", "male"].flatMap((gender) => (
+  Array.from({ length: 10 }, (_, index) => join(
+    gender,
+    `novice-${gender}-${String(index + 1).padStart(2, "0")}-v1.png`,
+  ))
+));
 
 function readPngInfo(buffer) {
   assert.deepEqual(
@@ -291,9 +297,31 @@ for (const relativePath of heroSheets) {
   );
 }
 
+const noviceImageDirectory = join(
+  projectRoot,
+  "assets",
+  "design",
+  "hero-sprites",
+  "cdi-136",
+  "normalized-alpha-v1",
+);
+for (const relativePath of noviceSprites) {
+  const dimensions = readImageInfo(join(noviceImageDirectory, relativePath));
+  assert.deepEqual(
+    { width: dimensions.width, height: dimensions.height, alpha: dimensions.alpha },
+    { width: 341, height: 692, alpha: true },
+    `${relativePath} must remain a normalized CDI-136 alpha sprite`,
+  );
+  assert(
+    Math.max(...dimensions.cornerAlphas) <= 2,
+    `${relativePath} must not contain an opaque or semi-opaque baked background`,
+  );
+}
+
 console.log(JSON.stringify({
   heroSheets: heroSheets.length,
-  heroIdentities: heroSheets.length * 20,
+  noviceSprites: noviceSprites.length,
+  heroIdentities: heroSheets.length * 20 + noviceSprites.length * 2,
   sceneBudgetBytes,
   undercityPacks: measuredPacks,
   encounterBytes,
