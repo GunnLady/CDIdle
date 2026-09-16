@@ -8,7 +8,7 @@ size: L
 risk: medium
 source: Validations utilisateur des 13 et 15 septembre 2026
 depends_on: ["CDI-117"]
-blocks: ["CDI-113","CDI-118","CDI-125","CDI-134","CDI-135","CDI-137","CDI-138","CDI-139","CDI-140","CDI-141","CDI-142","CDI-143","CDI-144","CDI-145"]
+blocks: ["CDI-113","CDI-118","CDI-125","CDI-134","CDI-135","CDI-137","CDI-138","CDI-139","CDI-140","CDI-141","CDI-142","CDI-143","CDI-144","CDI-145","CDI-148"]
 github_issue: null
 related_docs: ["docs/development/dungeon-2d-action-production-plan.md","docs/development/dungeon-2d-sprite-audit.md","docs/development/session-2026-09-13-cdi-136-novice-male-handoff.md","docs/development/session-2026-09-15-cdi-136-completion.md","scripts/prepare-cdi-136-novice-assets.ps1","scripts/measure-cdi-136-novice-cache.mjs","src/assets/noviceCdi136Portraits.ts","src/assets/heroPortraitAssets.ts","AGENTS.md"]
 ---
@@ -40,8 +40,9 @@ Ressources historiques : `src/assets/images/human-novice-male.jpg` et `src/asset
   hommes et dix femmes, tous validés individuellement.
 - Il n’existe plus de contrat de correspondance individuelle avec les quarante
   anciennes cases : les anciennes identités visuelles sont remplacées.
-- Les classes T1 conservent vingt emplacements. Les Novices nouveaux utilisent
-  les index 0–9.
+- Les Novices nouveaux utilisent les index 0–9. La décision utilisateur
+  postérieure du 15 septembre 2026 applique aussi dix hommes et dix femmes aux
+  neuf autres classes T1 ; elle est portée par CDI-137 à CDI-145.
 - La migration canonique v6→v7 réattribue chaque Novice existant, candidat
   d’onboarding ou recrutement en attente à un index 0–9 pseudo-aléatoire dérivé
   de son identifiant. Le résultat reste stable entre les chargements.
@@ -133,7 +134,8 @@ recrutement et le cinéma sur les cinq zones de l’UnderCity.
 
 ## Preservation
 
-- Les classes T1 conservent leurs vingt index et leurs ressources actuelles.
+- Les anciennes clés restent compatibles, mais les classes T1 seront ramenées
+  à dix variantes par genre par CDI-137 à CDI-145.
 - Les images ne déduisent aucune classe, statistique ou pièce d’équipement.
 - Autorité, progression, ressources et cadence de jeu restent inchangées.
 - Aucun déploiement n’est autorisé par ce ticket.

@@ -69,7 +69,7 @@ Les dépendances directes et leurs liens blocks font foi ; les acquis déjà liv
 
 - [ ] Le graphe révisé est terminé : CDI-135 pour le combat, CDI-129–134 pour les autres scènes et tous les tickets artistiques ajoutés après CDI-117 ; aucune retouche réelle non tracée ou non validée.
 - [ ] V01–V18 sont tous reliés à des preuves suffisantes et actuelles ; aucun écart réel non corrigé ne reste ouvert sous couvert d'un test vert.
-- [ ] Neuf types intégrés, huit non-combats avec branches applicables, 400 identités, trente blueprints et cinq ambiances sont effectivement couverts.
+- [ ] Neuf types intégrés, huit non-combats avec branches applicables, 200 identités visuelles et les 400 clés historiques compatibles, trente blueprints et cinq ambiances sont effectivement couverts.
 - [ ] Quatre héros/trois ennemis, compétences, Roi/gardes, repos/réanimation et épreuves sont validés visuellement par l'utilisateur à 1024/1280/1440 px et au zoom 200 %.
 - [ ] Le pipeline Supabase local sur version complète prouve contrats ancien/nouveau, persistance, replay et concurrence sans double progression.
 - [ ] Les mesures CDI-116 respectent les budgets ou une révision explicite documentée est acceptée ; aucun FPS réel n'est présenté comme mesuré par une simulation.

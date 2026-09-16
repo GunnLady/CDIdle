@@ -7,7 +7,7 @@ priority: P1
 size: M
 risk: medium
 source: Demande utilisateur du 13 septembre 2026 - appliquer le plan amélioré, sobre et lisible
-depends_on: ["CDI-102","CDI-113"]
+depends_on: ["CDI-102","CDI-113","CDI-148","CDI-149","CDI-150","CDI-151","CDI-152","CDI-153","CDI-154","CDI-155","CDI-156","CDI-157"]
 blocks: ["CDI-134","CDI-135"]
 github_issue: null
 related_docs: ["docs/development/dungeon-2d-action-production-plan.md","docs/development/dungeon-2d-encounter-plan.md","AGENTS.md","shared/data/skills.ts","src/domain/dungeonCombatScene.ts","docs/development/dungeon-2d-combat-effects.md"]
@@ -29,7 +29,7 @@ Lot R1 du plan amélioré. Le socle et les images déjà livrés sont réutilis�
 
 ## Perimetre autorise
 
-Réactions partagées, contour auteur or/rouge, retour à l’attente déphasée, KO/mort, relèvement au repos, relâchement victoire/défaite. Utiliser les transformations simples avant de demander une pose.
+Réactions partagées, contour auteur or/rouge, retour à la garde de combat, KO/mort, relèvement au repos, relâchement victoire/défaite. Utiliser les transformations simples avant de demander une pose.
 
 ## Hors perimetre
 
@@ -76,7 +76,7 @@ Présenter le scénario intégré et rejouable à l’utilisateur, au rythme ré
 
 - PC uniquement ; compositions, identités, diversité et DA CDIdle conservées.
 - Arme propre au sprite, variable dans une classe mais indépendante de l’équipement réel.
-- Réutilisation d’abord ; une ou deux poses seulement si nécessaires. Pas de cycles complets ni de série automatique pour 400 identités.
+- Réutilisation d’abord ; les poses d’action restent ciblées après les gardes validées. Pas de cycles complets ni de série automatique pour 200 identités visuelles.
 - Autorité serveur, RNG, résultats, XP/loot, révisions, idempotence et cadence conservés ; aucune commande depuis une animation.
 - Autonomie technique/Git du chantier selon AGENTS.md ; validation visuelle par l’utilisateur écran par écran. Zéro déploiement sans contre-ordre explicite.
 

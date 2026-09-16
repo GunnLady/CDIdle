@@ -7,7 +7,7 @@ priority: P1
 size: M
 risk: high
 source: Demande utilisateur du 13 septembre 2026 - appliquer le plan amélioré, sobre et lisible
-depends_on: ["CDI-114","CDI-117","CDI-118","CDI-119","CDI-120","CDI-121","CDI-122","CDI-123","CDI-124","CDI-125","CDI-126","CDI-127","CDI-128","CDI-136","CDI-137","CDI-138","CDI-139","CDI-140","CDI-141","CDI-142","CDI-143","CDI-144","CDI-145","CDI-146","CDI-147"]
+depends_on: ["CDI-114","CDI-117","CDI-118","CDI-119","CDI-120","CDI-121","CDI-122","CDI-123","CDI-124","CDI-125","CDI-126","CDI-127","CDI-128","CDI-136","CDI-137","CDI-138","CDI-139","CDI-140","CDI-141","CDI-142","CDI-143","CDI-144","CDI-145","CDI-146","CDI-147","CDI-148","CDI-149","CDI-150","CDI-151","CDI-152","CDI-153","CDI-154","CDI-155","CDI-156","CDI-157"]
 blocks: ["CDI-116"]
 github_issue: null
 related_docs: ["docs/development/dungeon-2d-action-production-plan.md","docs/development/dungeon-2d-encounter-plan.md","AGENTS.md","shared/data/skills.ts","src/domain/dungeonCombatScene.ts","docs/development/dungeon-2d-combat-effects.md"]
@@ -29,7 +29,7 @@ Lot Q1 du plan amélioré. Le socle et les images déjà livrés sont réutilis�
 
 ## Perimetre autorise
 
-Matrice 36 compétences actives, bases héros/ennemis, réactions, effets, gardes et Roi ; toutes identités conservées, trente blueprints/cinq zones. Scénario automatique mélangeant les familles sur le vrai lecteur ; le pas-à-pas est seulement un outil de diagnostic.
+Matrice 36 compétences actives, bases neutres, gardes de combat, ennemis, réactions, effets et Roi ; 200 identités visuelles avec 400 clés historiques compatibles, trente blueprints/cinq zones. Scénario automatique mélangeant les familles sur le vrai lecteur ; le pas-à-pas est seulement un outil de diagnostic.
 
 ## Hors perimetre
 
@@ -88,7 +88,7 @@ Présenter le scénario intégré et rejouable à l’utilisateur, au rythme ré
 
 - PC uniquement ; compositions, identités, diversité et DA CDIdle conservées.
 - Arme propre au sprite, variable dans une classe mais indépendante de l’équipement réel.
-- Réutilisation d’abord ; une ou deux poses seulement si nécessaires. Pas de cycles complets ni de série automatique pour 400 identités.
+- Réutilisation d’abord ; les poses d’action restent ciblées après les gardes validées. Pas de cycles complets ni de série automatique pour 200 identités visuelles.
 - Autorité serveur, RNG, résultats, XP/loot, révisions, idempotence et cadence conservés ; aucune commande depuis une animation.
 - Autonomie technique/Git du chantier selon AGENTS.md ; validation visuelle par l’utilisateur écran par écran. Zéro déploiement sans contre-ordre explicite.
 

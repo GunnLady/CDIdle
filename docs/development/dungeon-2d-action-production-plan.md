@@ -1,6 +1,6 @@
 # Donjon 2D — production des sprites et animations d’action
 
-Révision du 13 septembre 2026. Complément directeur du
+Révision du 15 septembre 2026. Complément directeur du
 [plan des rencontres](dungeon-2d-encounter-plan.md).
 **Plan de production, pas constat de livraison ni validation visuelle.**
 
@@ -12,12 +12,15 @@ Révision du 13 septembre 2026. Complément directeur du
   poses dessinées pour les vrais gestes. Reprendre effectivement les héros
   pour normaliser leur DA et couvrir leurs actions ; harmoniser également les
   monstres qui le nécessitent.
-- Précision utilisateur : **le résultat le plus parlant au moindre coût**.
-  Pas d’animation complexe, de cycle de marche complet ou de poses produites
-  systématiquement. Essayer d’abord le sprite actuel + un mouvement court +
-  l’effet utile ; ajouter une ou deux poses ciblées seulement si le geste
-  reste incompréhensible. Ce plafond est un objectif de sobriété, pas une
-  obligation de produire deux poses pour chaque personnage ou compétence.
+- Les dix classes T1 comptent chacune dix hommes et dix femmes. Les anciennes
+  clés restent compatibles par une réattribution déterministe des index 0–19
+  vers 0–9 du même genre ; les quarante anciens visuels par classe ne sont pas
+  conservés individuellement.
+- Trois lots artistiques sont distincts : **base neutre → pose de combat →
+  poses d’action**. Chaque identité reçoit une pose de combat en garde, avec le
+  même visage et le même équipement dessiné. Les poses d’action restent
+  ciblées par famille de geste : pas d’animation complexe ni de cycle de marche
+  complet produit systématiquement.
 - L’arme visible appartient au sprite. Elle ne suit **pas** l’arme équipée.
   Plusieurs sprites d’une même classe peuvent avoir des armes différentes.
   Les poses éventuelles doivent conserver cette arme et une gestuelle compatible.
@@ -39,7 +42,7 @@ audit visuel des images :
 | Constat | Conséquence pour le plan |
 | --- | --- |
 | `shared/data/skills.ts` définit 36 compétences actives dans dix classes | Une catégorie « magie » et une catégorie « soutien » ne couvrent pas leurs gestes et signatures |
-| `HERO_SPRITE_SHEETS` couvre dix classes, deux genres, vingt variantes par genre | 400 identités à préserver ; une pose générique remplaçant tous les visages n’est pas une solution |
+| `HERO_SPRITE_SHEETS` expose encore dix classes, deux genres et vingt index historiques par genre | Produire 200 identités, dix par genre et par classe, puis conserver la compatibilité des 400 clés historiques par réattribution stable ; une garde générique remplaçant les visages n’est pas une solution |
 | `dungeonCombatActionProfile.ts` classe les attaques directes en mêlée et distingue seulement deux tirs par identifiant | Revoir le routage des attaques de base, les tirs avec debuff et les actions ennemies |
 | Le même profil classe tout dégât non physique en magie | Le poing tellurique et le coup de pied du zéphyr restent des gestes de corps à corps ; les appareils de l’Artificier ne deviennent pas des incantations |
 | Le rôle ennemi `ranged` est aussi attribué au membre central d’escortes, dont plusieurs chefs armés au contact | Ne pas déduire la gestuelle d’un rôle de combat ou d’un nom traduit ; utiliser la clé de contenu et le sprite associé |
@@ -160,7 +163,7 @@ incantation ; présenter uniquement l’action réellement résolue.
 
 | Événement | Rendu attendu | Production / contrainte |
 | --- | --- | --- |
-| Attente | Mouvement faible, déphasé entre acteurs, pieds et ombre stables | Réutiliser la base ; retour à cette attente à la fin de chaque geste, même sans action suivante |
+| Attente de combat | Garde lisible, mouvement faible, déphasé entre acteurs, pieds et ombre stables | Utiliser la pose `combat_idle` de la même identité ; retour à cette garde à la fin de chaque geste, même sans action suivante |
 | Prise d’action | Auteur immédiatement repérable | Contour dur à diffusion courte : or héros, rouge ennemi ; pas d’aura permanente |
 | Coup reçu | Réaction au contact, pas au début du trajet | Recul très court ou pose de réaction si nécessaire ; même horloge que PV et dégâts |
 | Critique | Accent bref sur un impact réel | Impact/typographie renforcés ; ni second coup ni secousse globale systématique |
@@ -207,10 +210,10 @@ validation ; leur animation d’apparition ne suffit pas à valider l’interact
 2. Faire valider un petit étalon avec deux héros contrastés et un monstre
    humanoïde existant. Conserver les autres morphologies comme contrepoints,
    sans imposer une anatomie humaine aux rats, cafards ou slimes.
-3. Garder les 400 clés héros existantes et contrôler leurs familles à partir
-   des planches déjà disponibles. Noter seulement les incompatibilités d’arme,
-   de morphologie ou de DA qui demandent une exception. Ne pas construire
-   manuellement 400 fiches identiques ni supprimer des identités pour simplifier.
+3. Garder compatibles les 400 clés héros historiques, mais produire 200
+   identités visuelles : dix hommes et dix femmes par classe. Réattribuer les
+   index 0–19 vers 0–9 du même genre de façon déterministe. Noter les
+   incompatibilités d’arme, de morphologie ou de DA qui demandent une exception.
 4. Auditer les images ennemies uniques des cinq zones avec tous leurs usages :
    `conserver`, `retouche ciblée`, `refaire la base`, `poses manquantes`.
    Lister les défauts concrets ; on ne sait pas encore quelles images exigent
@@ -221,28 +224,39 @@ validation ; leur animation d’apparition ne suffit pas à valider l’interact
    Ne lancer une série que pour un gain visuel constaté, pas pour compléter
    artificiellement une grille d’animation.
 
-### A1 — normalisation et poses des héros, par kit borné
+### A1 — bases neutres des héros, par classe
 
-Revoir les dix classes, sans refaire les bases déjà cohérentes. Séparer le
-verdict de normalisation et celui du geste. Pilotes : un contact, un tir,
-un sort/soin ; couvrir ensuite les exceptions constatées, pas dix productions
-complètes automatiques. L’archer mérite probablement une pose de tir ; un mage
-peut déjà être lisible avec sa base et un effet bien ancré. C’est une hypothèse
-de production à confronter au rendu, pas un verdict visuel acquis.
+Refaire les dix classes sur un format commun de dix hommes et dix femmes. La
+base neutre est utilisée dans le recrutement, le catalogue, le stockage et les
+scènes hors combat. Chaque ticket de classe valide d’abord un pilote contrasté,
+puis ses vingt identités et leur réattribution stable des anciens index 0–19
+vers 0–9. Il ne produit ni garde ni pose d’action.
 
-Pour chaque correction utile : base conservée ou normalisée → essai du geste
-simple → éventuelle pose ciblée → intégration et validation → réutilisation.
-Une arme ou une morphologie différente peut exiger une exception au sein de
-la même classe. Les compétences partagent une pose si le geste reste convaincant.
-Si un kit fonctionne avec les bases actuelles, il n’entraîne aucune génération
-de poses pour les autres identités. La couverture des actions n’est pas un
-objectif de quantité d’images.
+### A1b — poses de combat des héros, par classe
 
-Le lecteur distingue base/attente, préparation, émission ou contact,
-récupération, réaction et KO. Ces **états logiques** réutilisent autant que
-possible la même image. Garde, chant, soin et interaction n’exigent une pose
-spécifique que si le rendu simple ne communique pas l’action. Une réutilisation
-validée est une couverture ; changer le visage pour utiliser une pose ne l’est pas.
+Après chaque base validée, produire une garde pour les vingt mêmes identités.
+Visage, carnation, coiffure, tenue, arme ou accessoire, direction, lumière,
+échelle, pieds et pivot restent cohérents avec la base neutre. CDI-148 fixe le
+standard sur les Novices ; CDI-149 à CDI-157 l’appliquent aux neuf classes T1.
+
+La garde devient l’attente persistante du cinéma pendant un affrontement. Le
+lecteur suit **neutre → garde → action → garde → neutre en fin de combat**.
+Une action sans pose dédiée retombe sur la garde, jamais sur la pose d’une autre
+identité. La garde persistante ne remplace pas la compétence `guard_stance`,
+qui conserve son geste ou son effet propre.
+
+### A1c — poses d’action ciblées
+
+Après validation des gardes, produire uniquement les gestes nécessaires aux
+familles d’action : contact, tir, sort, soin, chant, appareil, réaction ou KO.
+Une arme ou une morphologie différente peut exiger une exception au sein de la
+même classe. Les compétences partagent une pose si le geste reste convaincant ;
+la couverture des actions n’est pas un objectif de quantité d’images.
+
+Le lecteur distingue garde, préparation, émission ou contact, récupération,
+réaction et KO. Ces états logiques réutilisent autant que possible les poses
+validées. Une réutilisation validée est une couverture ; changer le visage pour
+utiliser une pose ne l’est pas.
 
 ### A2 — harmonisation et poses des monstres, zone par zone
 
@@ -314,17 +328,19 @@ pour masquer une famille non implémentée.
 
 Découpage **appliqué le 13 septembre 2026** après demande utilisateur :
 CDI-104/113/114/115/116 recadrés, CDI-117–135 créés, CDI-136–145
-ajoutés pour les dix classes héros, puis CDI-146/147 pour les reprises ciblées
-des Galeries et du Bastion. Les liens ci-dessous
+ajoutés pour les dix bases neutres héros, CDI-146/147 pour les reprises ciblées
+des Galeries et du Bastion, puis CDI-148–157 pour les poses de combat des dix
+classes. Les liens ci-dessous
 pointent vers les tickets Markdown, source de vérité des statuts. Les codes
 A1/A2 restent des catégories de retouches à instancier après le tri CDI-117,
-avec consommateurs et recette bloqués explicitement. Aucun ticket n’est clôturé.
+avec consommateurs et recette bloqués explicitement. Les statuts courants sont
+portés par les tickets liés ci-dessous.
 
 ### Tickets existants recadrés
 
 | Ticket | Nouveau lot borné | Ce qui en sort |
 | --- | --- | --- |
-| CDI-113 | Chronologie d’action commune et un pilote de contact complet dans le vrai lecteur ; mapping explicite et reprise d’attente | Production du roster, toutes les autres familles avancées et leur validation globale |
+| CDI-113 | Chronologie d’action commune et un pilote de contact complet dans le vrai lecteur ; transition garde → action/contact → garde | Production du roster, toutes les autres familles avancées et leur validation globale |
 | CDI-114 | Cycle buffs/debuffs du producteur au rendu : début, renouvellement, expiration, cibles individuelles/collectives | Intentions/protections ennemies et chorégraphie Roi vers E1/E2 ; gestes de lancement vers les familles concernées |
 | CDI-115 | Interaction de piège complète succès/échec, socle partagé et un vrai geste du héros | Les cinq autres épreuves vers N1–N5 ; les accessoires existants restent conservés |
 | CDI-116 | Mesures sur **tous** les kits et familles révisés intégrés | Aucun travail artistique ou animation oubliée à cacher dans le ticket de performance |
@@ -339,9 +355,10 @@ ne sont plus annoncés prêts à la seule validation visuelle.
 | Lot | Livrable / limite | Prérequis | Clôture propre |
 | --- | --- | --- | --- |
 | A0 — [CDI-117](../../workboard/data/Done/CDI-117/ticket.md) | Étalon DA, tri des ressources conservées et création des seules reprises utiles | Acquis 099, 108–112 | Référence et cinq zones validées ; tickets A1/A2 bornés, aucune animation produite |
-| A1 — [CDI-136](../../workboard/data/Later/CDI-136/ticket.md) à [CDI-145](../../workboard/data/Later/CDI-145/ticket.md) | Refaire les bases des dix classes, quarante identités par classe | 117 ; 137–145 dépendent aussi du Novice 136 validé | Une classe par ticket ; identités préservées, aucune pose complexe incluse |
+| A1 — [CDI-136](../../workboard/data/Done/CDI-136/ticket.md) à [CDI-145](../../workboard/data/Later/CDI-145/ticket.md) | Refaire les bases neutres des dix classes, vingt identités par classe : dix hommes et dix femmes | 117 ; 137–145 dépendent aussi du Novice 136 validé | Une classe par ticket ; réattribution stable 0–19 → 0–9, aucune pose de combat ou d’action incluse |
+| A1b — [CDI-148](../../workboard/data/Done/CDI-148/ticket.md) à [CDI-157](../../workboard/data/Later/CDI-157/ticket.md) | Produire et intégrer la garde des vingt identités de chaque classe | Base neutre de la classe ; 149–157 réutilisent le standard Novice 148 | Même identité et équipement ; garde dans le cinéma, retour après action, neutre hors combat |
 | A2 — [CDI-146](../../workboard/data/Later/CDI-146/ticket.md), [CDI-147](../../workboard/data/Later/CDI-147/ticket.md), puis lots restants | CDI-146 regroupe les cinq écrans humains des Galeries ; CDI-147 les trois reprises de deux écrans du Bastion | A0 et geste concerné | Chaque écran validé, usages partagés revérifiés ; images conservées explicitement listées |
-| C1 — [CDI-118](../../workboard/data/Later/CDI-118/ticket.md) | Contact léger, lourd, estoc et armes jumelles à partir du pilote | 113 | Base, `heavy_blow`, `quick_shiv`, `double_cut` ; gestes simples et accents adaptés |
+| C1 — [CDI-118](../../workboard/data/Later/CDI-118/ticket.md) | Contact léger, lourd, estoc et armes jumelles à partir du pilote | 113 + gardes Novice/Guerrier/Voleur | `heavy_blow`, `quick_shiv`, `double_cut` ; gestes et accents adaptés, retour en garde |
 | C2 — [CDI-119](../../workboard/data/Later/CDI-119/ticket.md) | Balayage et pugilat / combo | 113 + C1 | `cleaving_strike`, poing, pied, cinq impacts reçus ; pose ciblée seulement pour geste impossible à lire |
 | C3 — [CDI-120](../../workboard/data/Later/CDI-120/ticket.md) | Créatures : morsure/pince et corps souple | 113 + pilotes A2 | Deux recettes simples sur rat/crabe et slime ; exceptions explicites, pas tout le bestiaire redessiné |
 | D1 — [CDI-121](../../workboard/data/Later/CDI-121/ticket.md) | Tir : arc et arbalète | 113 + éventuelle pose de tir | Base, précis, perforant, handicapant ; décoche, trajet, contact et debuff ; autres armes seulement si réellement dessinées |
@@ -351,15 +368,16 @@ ne sont plus annoncés prêts à la seule validation visuelle.
 | S2 — [CDI-125](../../workboard/data/Later/CDI-125/ticket.md) | Chant, cri, poudre et renforcement | 113 ; 114 pour états | Distinguer instrument/voix/lancer avec effets courts ; mêmes primitives d’état, pas un moteur par compétence |
 | E1 — [CDI-126](../../workboard/data/Later/CDI-126/ticket.md) | Intentions et protections ennemies | 113 ; contrat 106 | Trace/projection/rendu sur cover/surge et protecteur mort ; pas de fausse absorption |
 | E2 — [CDI-127](../../workboard/data/Later/CDI-127/ticket.md) | Roi : gardes, mutation et attaques P1/P2 | E1 + 112 | Réutiliser les formes validées, transition une fois à la vraie condition ; geste simple propre à chaque forme |
-| R1 — [CDI-128](../../workboard/data/Later/CDI-128/ticket.md) | Réactions, KO et relèvement | 113 | Dernier coup, esquive, arrêt/reprise d’attente, repos avec KO ; transformation simple avant toute pose neuve |
+| R1 — [CDI-128](../../workboard/data/Later/CDI-128/ticket.md) | Réactions, KO et relèvement | 113 + gardes héros | Dernier coup, esquive, retour en garde, repos avec KO ; transformation simple avant toute pose neuve |
 | N1–N5 — [CDI-129](../../workboard/data/Later/CDI-129/ticket.md), [CDI-130](../../workboard/data/Later/CDI-130/ticket.md), [CDI-131](../../workboard/data/Later/CDI-131/ticket.md), [CDI-132](../../workboard/data/Later/CDI-132/ticket.md), [CDI-133](../../workboard/data/Later/CDI-133/ticket.md) | Un ticket par énigme, embuscade, rituel, obstacle, négociation | 115 + pose d’interaction nécessaire | Réussite/échec, geste/accessoire, conséquences et écran validés |
 | N6 — [CDI-134](../../workboard/data/Later/CDI-134/ticket.md) | Réintégrer les héros retouchés dans trésor/repos | 102 + lots A1 terminés | Aucun recul de composition, ombre, bulles ou réanimation validées |
-| Q1 — [CDI-135](../../workboard/data/Later/CDI-135/ticket.md) | Combat complet continu et couverture du catalogue | Tous les lots de combat et séries A1/A2 | 36 compétences + bases ennemies/héros + réactions/états, aucune ligne actuelle au fallback |
+| Q1 — [CDI-135](../../workboard/data/Later/CDI-135/ticket.md) | Combat complet continu et couverture du catalogue | Tous les lots de combat et séries A1/A1b/A2 | 36 compétences + bases/gardes ennemies et héros + réactions/états, aucune ligne actuelle au fallback |
 
 Ce sont des lots de production, **pas une estimation uniforme en M**. Avant de
 créer un ticket artistique, nommer ses identités, ses poses utiles et ses exports.
 Pour N1–N5, les cinq tickets CDI-129–133 sont créés. Les bases héros A1 sont
-bornées par CDI-136–145, une classe par ticket. Les retouches ennemies A2
+bornées par CDI-136–145 et les gardes A1b par CDI-148–157, une classe par ticket
+dans chaque série. Les retouches ennemies A2
 restent à créer après le tri des zones, sans masquer plusieurs écrans sous un
 seul ticket. Les lots fonctionnels regroupent les actions
 qui réutilisent réellement la même technique ; tout nouveau geste complexe
@@ -367,10 +385,11 @@ doit d’abord être simplifié, puis éventuellement isolé si cela reste néce
 Chaque lot conserve son test intégré : pas de tickets « schéma seulement »
 déclarés complets alors que leur comportement ne fonctionne pas dans la scène.
 
-Ordre utile : Novice CDI-136 → contact simple et comparaison de mouvement
-CDI-113 → CDI-137–145 par classe → tir D1 → magie M1 → soin S1. Une classe peut alimenter son
-lot d’action dès validation sans attendre les neuf autres, mais CDI-134/135
-exigent les dix bases. Dérouler ensuite les autres familles et les seules
+Ordre utile : base Novice CDI-136 → garde Novice CDI-148 → chronologie/contact
+CDI-113 → bases CDI-137–145 → gardes correspondantes CDI-149–157 → poses
+d’action par famille. Une classe peut alimenter son lot d’action dès que sa
+base et sa garde sont validées, sans attendre les neuf autres, mais CDI-134
+exige les dix bases et CDI-135 exige les dix bases et les dix gardes. Dérouler ensuite les autres familles et les seules
 déclinaisons utiles, écran par écran. Les épreuves ont leur
 branche 115/N1–N6. La convergence appliquée est : CDI-135 (Q1) et CDI-129–134 (N1–N6),
 CDI-114/115 et les packs déjà livrés → CDI-116 → CDI-104. Les besoins A1/A2
@@ -379,9 +398,9 @@ consommateur et de CDI-135, ainsi que de CDI-134 pour les héros, avant clôture
 du tri ou du pilote concerné. Les liens réciproques sont vérifiés ; WIP ≤ 3
 et GitHub sync off conservés.
 
-CDI-113 passe de Doing à Paused jusqu’au Novice CDI-136 ; CDI-117 est Done après
-le tri complet et transmet la comparaison mouvement/pose à CDI-113. CDI-115 reste Doing sur le piège, sans déclarer les autres épreuves
-terminées. Les autres nouveaux tickets sont Later. Les lots avec états
+CDI-113, CDI-117, CDI-136, CDI-137, CDI-138, CDI-139 et CDI-148 sont `Done`. CDI-115 reste
+`Paused` sur le piège, sans déclarer les autres épreuves terminées. Les bases
+CDI-140–145 et les autres nouveaux tickets sont `Later`. Les lots avec états
 persistants (121, 123, 124, 125) dépendent de 114 : le pilote de tir/soin se
 clôture après cette preuve, même si sa préparation visuelle peut être étudiée avant.
 
@@ -412,7 +431,7 @@ PC 1024/1280/1440 et zoom 200 %. Les 2 MiB artistiques par scène doivent
 désormais comptabiliser les **nouvelles poses**, même si elles représentent un
 héros déjà existant ; l’exclusion des anciens portraits n’est pas un passe-droit.
 Mesurer froid/cache, mémoire décodée et changements de groupe ; charger les
-identités/poses utiles, pas les 400 kits au démarrage. Atlas et découpage de
+identités/poses utiles, pas les 200 paires neutre/garde au démarrage. Atlas et découpage de
 fichiers sont des choix à mesurer sur le pilote, pas une solution présumée.
 Toute révision de budget est une décision explicite avant généralisation.
 
@@ -425,11 +444,12 @@ supplémentaires pour atteindre un quota artistique.
 
 ## 9. État de cette révision
 
-Recherche, inventaire des familles et plan mis à jour. Aucun sprite produit,
-aucun code changé, aucun test de l’application relancé pour cette révision.
-Le Workboard est restructuré : 31 nouveaux tickets, cinq recadrés et liens
-inverses ajustés uniquement chez leurs prérequis. Les preuves antérieures de
-113/115 restent identifiées comme telles. Le validateur confirme 147 tickets,
-zéro erreur ; aucune nouvelle preuve applicative n’est revendiquée.
-Prochaine étape de production : Novice CDI-136, puis reprise du pilote CDI-113.
-Les retouches artistiques seront chiffrées et créées après tri, pas générées en série.
+Plan ajusté au verdict utilisateur du 15 septembre 2026 : vingt identités par
+classe, bases neutres, gardes puis poses d’action. Aucun sprite produit et aucun
+code applicatif changé par cette révision documentaire. Le Workboard ajoute
+CDI-148–157 et relie les gardes aux consommateurs. Les preuves antérieures de
+113/115 restent identifiées comme telles ; aucune nouvelle preuve applicative
+n’est revendiquée.
+Depuis cette révision documentaire, CDI-113, CDI-136–139 et CDI-148 ont été
+validés et déplacés en `Done`. La prochaine base neutre de la chaîne est
+CDI-140, consacrée aux Mages.

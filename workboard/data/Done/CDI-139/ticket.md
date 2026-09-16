@@ -1,37 +1,39 @@
 ---
-id: CDI-140
-title: Refaire les bases Mage selon l’étalon CDIdle
-status: Later
+id: CDI-139
+title: Refaire les bases Archer selon l’étalon CDIdle
+status: Done
 area: ui
 priority: P1
 size: L
 risk: medium
 source: Validation utilisateur du 13 septembre 2026 - toutes les classes héros à refaire selon l’étalon CDIdle
 depends_on: ["CDI-117","CDI-136"]
-blocks: ["CDI-122","CDI-123","CDI-134","CDI-135","CDI-152"]
+blocks: ["CDI-121","CDI-134","CDI-135","CDI-151"]
 github_issue: null
-related_docs: ["docs/development/dungeon-2d-action-production-plan.md","docs/development/dungeon-2d-sprite-audit.md","assets/design/hero-sprites/human-tier1-class-spritesheets-v1.prompt.md","src/assets/heroSpriteSheets.ts","src/domain/heroPortrait.ts","src/assets/heroPortraitAssets.ts","AGENTS.md"]
+related_docs: ["docs/development/dungeon-2d-action-production-plan.md","docs/development/dungeon-2d-sprite-audit.md","assets/design/hero-sprites/cdi-139/archer-identities-and-inspirations.md","assets/design/hero-sprites/human-tier1-class-spritesheets-v1.prompt.md","src/assets/heroSpriteSheets.ts","src/domain/heroPortrait.ts","src/assets/heroPortraitAssets.ts","AGENTS.md"]
 ---
 
-# CDI-140 — Refaire les bases Mage selon l’étalon CDIdle
+# CDI-139 — Refaire les bases Archer selon l’étalon CDIdle
+
+> **Portée livrée : poses neutres uniquement.** Les gardes de combat Archer relèvent de CDI-151 et les poses d’action de leurs tickets dédiés.
 
 ## Objectif
 
-Remplacer les deux planches Mage par des bases de meilleure qualité et mieux proportionnées, cohérentes avec l’étalon humanoïde CDIdle confirmé.
+Remplacer les deux planches Archer par des bases de meilleure qualité et mieux proportionnées, cohérentes avec l’étalon humanoïde CDIdle confirmé.
 
 ## Resultat utilisateur
 
-Les vingt identités Mage, dix hommes et dix femmes, proposent des tenues, carnations, coupes, couleurs de cheveux et particularités variées, avec la qualité et la présence des références validées.
+Les vingt identités Archer, dix hommes et dix femmes, proposent des tenues, carnations, coupes, couleurs de cheveux et particularités variées, avec la qualité et la présence des références validées.
 
 ## Contexte
 
 CDI-117 classe les dix classes historiques à refaire. Les bases Novice validées issues de CDI-136 s’ajoutent aux cinq références humanoïdes confirmées. Ce ticket reste borné à une classe : deux planches de dix variantes, réattribution stable des anciens index, détourage, intégration et validation. Il couvre uniquement les poses neutres ; les poses de combat et d’action ont leurs propres tickets.
 
-Ressources historiques : `src/assets/images/hero-sprites/tier1/human-tier1-mage-male-v1.png` et `src/assets/images/hero-sprites/tier1/human-tier1-mage-female-v1.png`.
+Les anciennes planches historiques Archer ont été retirées du workspace après remplacement par les ressources CDI-139 validées.
 
 ## Perimetre autorise
 
-- Refaire les bases neutres masculine et féminine Mage, dix variantes chacune.
+- Refaire les bases neutres masculine et féminine Archer, dix variantes chacune.
 - Préserver pour chaque case l’idée de tenue, la carnation, la coupe, la couleur de cheveux et les signes distinctifs ; adapter dessin, volumes, proportions, contours, matières et éclairage aux références.
 - Conserver une diversité forte sur les vingt nouvelles identités. Les armes ou accessoires peuvent varier entre sprites d’une même classe, mais ne suivent jamais l’équipement réel.
 - Produire sur fond monochrome éloigné des couleurs du personnage, détourer hors runtime et livrer un alpha propre avec cadrage, boîte visible, pieds et pivot homogènes.
@@ -62,13 +64,13 @@ Ressources historiques : `src/assets/images/hero-sprites/tier1/human-tier1-mage-
 
 ## Criteres d'acceptation
 
-- [ ] Une planche pilote d’identités contrastées est validée par l’utilisateur avant la série.
-- [ ] Dix hommes et dix femmes Mage sont validés, avec une réattribution stable des index historiques 0–19 vers 0–9 pour le même genre.
-- [ ] Qualité, proportions, détail, contours, matières et lumière correspondent aux références sans uniformiser corps ou visages.
-- [ ] Les exports ont un alpha réel propre, une taille visible et des pivots cohérents ; aucun faux fond, frange, détail isolé ou personnage translucide.
-- [ ] Les vingt variantes se chargent par les clés compatibles dans les écrans concernés, sans refléter l’équipement réel.
-- [ ] Poids froid/cache et mémoire décodée sont mesurés ; le budget est respecté ou sa révision demandée avant généralisation.
-- [ ] L’utilisateur valide les bases en planche puis dans une scène PC représentative ; les poses d’action restent distinctes.
+- [x] Une planche pilote d’identités contrastées est validée par l’utilisateur avant la série.
+- [x] Dix hommes et dix femmes Archer sont validés, avec une réattribution stable des index historiques 0–19 vers 0–9 pour le même genre.
+- [x] Qualité, proportions, détail, contours, matières et lumière correspondent aux références sans uniformiser corps ou visages.
+- [x] Les exports ont un alpha réel propre, une taille visible et des pivots cohérents ; aucun faux fond, frange, détail isolé ou personnage translucide.
+- [x] Les vingt variantes se chargent par les clés compatibles dans les écrans concernés, sans refléter l’équipement réel.
+- [x] Poids froid/cache et mémoire décodée sont mesurés ; le budget est respecté ou sa révision demandée avant généralisation.
+- [x] L’utilisateur valide les bases en planche puis dans une scène PC représentative ; les poses d’action restent distinctes.
 
 ## Tests
 
@@ -80,6 +82,18 @@ Ressources historiques : `src/assets/images/hero-sprites/tier1/human-tier1-mage-
 ## Validation manuelle
 
 L’utilisateur valide d’abord le pilote, puis les deux planches complètes et leur rendu dans une scène PC. Présenter les variantes à taille visible comparable aux références, sur fonds clair/sombre et dans le décor.
+
+## Livraison et preuves
+
+- Vingt sources validées une par une : `assets/design/hero-sprites/cdi-139/validated-male-v1/` et `validated-female-v1/`. Les premières identités masculine et féminine ont servi de pilote avant la poursuite de la série.
+- Le scénario, les accessoires et les inspirations de chaque identité sont conservés dans `assets/design/hero-sprites/cdi-139/archer-identities-and-inspirations.md`.
+- Vingt exports alpha individuels `341 × 692` : `assets/design/hero-sprites/cdi-139/normalized-alpha-v1/`. Les planches alpha et leurs aperçus clair/sombre ont été validés par l’utilisateur le 16 septembre 2026 ; pieds, hauteur visible et pivot sont normalisés sur les Novices CDI-136.
+- Les cinq pages `?archer-cinema=1` à `5`, couvrant les vingt identités dans le vrai composant de cinéma, ont été validées par l’utilisateur le 16 septembre 2026 avant l’activation du chargeur de production.
+- `src/assets/archerCdi139Portraits.ts` conserve la compatibilité : les index historiques 0–19 sont repliés de façon déterministe vers 0–9 du même genre. Les accessoires dessinés restent indépendants de l’équipement réel.
+- Le chargement de production utilise les vingt PNG individuels ; les deux anciennes planches Archer ne sont plus importées ni émises par le build.
+- Mesures : 5 942 368 octets encodés pour les vingt fichiers, 1 335 630 octets pour les quatre plus lourds, 943 888 octets RGBA décodés par sprite et 3 775 552 octets pour quatre sprites. Le cache chaud transfère 0 octet et les ressources sont `immutable`.
+- Validations réussies : tests Vitest ciblés (25), test navigateur des cinq pages cinéma (1), `check:dungeon-visuals`, `typecheck`, `lint -- --quiet`, `build` et `check:bundle`.
+- La livraison reste strictement neutre. La garde de combat Archer demeure dans CDI-151.
 
 ## Preservation
 

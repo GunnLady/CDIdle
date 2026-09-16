@@ -76,7 +76,7 @@ Présenter le scénario intégré et rejouable à l’utilisateur, au rythme ré
 
 - PC uniquement ; compositions, identités, diversité et DA CDIdle conservées.
 - Arme propre au sprite, variable dans une classe mais indépendante de l’équipement réel.
-- Réutilisation d’abord ; une ou deux poses seulement si nécessaires. Pas de cycles complets ni de série automatique pour 400 identités.
+- Réutilisation d’abord ; les poses d’action restent ciblées après les gardes validées. Pas de cycles complets ni de série automatique pour 200 identités visuelles.
 - Autorité serveur, RNG, résultats, XP/loot, révisions, idempotence et cadence conservés ; aucune commande depuis une animation.
 - Autonomie technique/Git du chantier selon AGENTS.md ; validation visuelle par l’utilisateur écran par écran. Zéro déploiement sans contre-ordre explicite.
 

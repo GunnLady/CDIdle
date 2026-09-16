@@ -1,37 +1,39 @@
 ---
-id: CDI-140
-title: Refaire les bases Mage selon l’étalon CDIdle
-status: Later
+id: CDI-137
+title: Refaire les bases Guerrier selon l’étalon CDIdle
+status: Done
 area: ui
 priority: P1
 size: L
 risk: medium
 source: Validation utilisateur du 13 septembre 2026 - toutes les classes héros à refaire selon l’étalon CDIdle
 depends_on: ["CDI-117","CDI-136"]
-blocks: ["CDI-122","CDI-123","CDI-134","CDI-135","CDI-152"]
+blocks: ["CDI-118","CDI-119","CDI-125","CDI-134","CDI-135","CDI-149"]
 github_issue: null
-related_docs: ["docs/development/dungeon-2d-action-production-plan.md","docs/development/dungeon-2d-sprite-audit.md","assets/design/hero-sprites/human-tier1-class-spritesheets-v1.prompt.md","src/assets/heroSpriteSheets.ts","src/domain/heroPortrait.ts","src/assets/heroPortraitAssets.ts","AGENTS.md"]
+related_docs: ["docs/development/dungeon-2d-action-production-plan.md","docs/development/dungeon-2d-sprite-audit.md","assets/design/hero-sprites/human-tier1-class-spritesheets-v1.prompt.md","scripts/prepare-cdi-137-warrior-assets.ps1","scripts/measure-cdi-136-novice-cache.mjs","src/assets/warriorCdi137Portraits.ts","src/assets/heroSpriteSheets.ts","src/domain/heroPortrait.ts","src/assets/heroPortraitAssets.ts","AGENTS.md"]
 ---
 
-# CDI-140 — Refaire les bases Mage selon l’étalon CDIdle
+# CDI-137 — Refaire les bases Guerrier selon l’étalon CDIdle
+
+> **Portée livrée : poses neutres uniquement.** Les gardes de combat Guerrier relèvent de CDI-149 et les poses d’action de leurs tickets dédiés.
 
 ## Objectif
 
-Remplacer les deux planches Mage par des bases de meilleure qualité et mieux proportionnées, cohérentes avec l’étalon humanoïde CDIdle confirmé.
+Remplacer les deux planches Guerrier par des bases **en pose neutre uniquement**, de meilleure qualité et mieux proportionnées, cohérentes avec l’étalon humanoïde CDIdle confirmé.
 
 ## Resultat utilisateur
 
-Les vingt identités Mage, dix hommes et dix femmes, proposent des tenues, carnations, coupes, couleurs de cheveux et particularités variées, avec la qualité et la présence des références validées.
+Les vingt identités Guerrier, dix hommes et dix femmes, proposent des tenues, carnations, coupes, couleurs de cheveux et particularités variées, avec la qualité et la présence des références validées.
 
 ## Contexte
 
 CDI-117 classe les dix classes historiques à refaire. Les bases Novice validées issues de CDI-136 s’ajoutent aux cinq références humanoïdes confirmées. Ce ticket reste borné à une classe : deux planches de dix variantes, réattribution stable des anciens index, détourage, intégration et validation. Il couvre uniquement les poses neutres ; les poses de combat et d’action ont leurs propres tickets.
 
-Ressources historiques : `src/assets/images/hero-sprites/tier1/human-tier1-mage-male-v1.png` et `src/assets/images/hero-sprites/tier1/human-tier1-mage-female-v1.png`.
+Les anciennes planches historiques Guerrier ont été retirées du workspace après remplacement par les ressources CDI-137 validées.
 
 ## Perimetre autorise
 
-- Refaire les bases neutres masculine et féminine Mage, dix variantes chacune.
+- Refaire les bases neutres masculine et féminine Guerrier, dix variantes chacune.
 - Préserver pour chaque case l’idée de tenue, la carnation, la coupe, la couleur de cheveux et les signes distinctifs ; adapter dessin, volumes, proportions, contours, matières et éclairage aux références.
 - Conserver une diversité forte sur les vingt nouvelles identités. Les armes ou accessoires peuvent varier entre sprites d’une même classe, mais ne suivent jamais l’équipement réel.
 - Produire sur fond monochrome éloigné des couleurs du personnage, détourer hors runtime et livrer un alpha propre avec cadrage, boîte visible, pieds et pivot homogènes.
@@ -62,13 +64,13 @@ Ressources historiques : `src/assets/images/hero-sprites/tier1/human-tier1-mage-
 
 ## Criteres d'acceptation
 
-- [ ] Une planche pilote d’identités contrastées est validée par l’utilisateur avant la série.
-- [ ] Dix hommes et dix femmes Mage sont validés, avec une réattribution stable des index historiques 0–19 vers 0–9 pour le même genre.
-- [ ] Qualité, proportions, détail, contours, matières et lumière correspondent aux références sans uniformiser corps ou visages.
-- [ ] Les exports ont un alpha réel propre, une taille visible et des pivots cohérents ; aucun faux fond, frange, détail isolé ou personnage translucide.
-- [ ] Les vingt variantes se chargent par les clés compatibles dans les écrans concernés, sans refléter l’équipement réel.
-- [ ] Poids froid/cache et mémoire décodée sont mesurés ; le budget est respecté ou sa révision demandée avant généralisation.
-- [ ] L’utilisateur valide les bases en planche puis dans une scène PC représentative ; les poses d’action restent distinctes.
+- [x] Une planche pilote d’identités contrastées est validée par l’utilisateur avant la série.
+- [x] Dix hommes et dix femmes Guerrier sont validés, avec une réattribution stable des index historiques 0–19 vers 0–9 pour le même genre.
+- [x] Qualité, proportions, détail, contours, matières et lumière correspondent aux références sans uniformiser corps ou visages.
+- [x] Les exports ont un alpha réel propre, une taille visible et des pivots cohérents ; aucun faux fond, frange, détail isolé ou personnage translucide.
+- [x] Les vingt variantes se chargent par les clés compatibles dans les écrans concernés, sans refléter l’équipement réel.
+- [x] Poids froid/cache et mémoire décodée sont mesurés ; le budget est respecté ou sa révision demandée avant généralisation.
+- [x] L’utilisateur valide les bases en planche puis dans une scène PC représentative ; les poses d’action restent distinctes.
 
 ## Tests
 
@@ -98,3 +100,14 @@ L’utilisateur valide d’abord le pilote, puis les deux planches complètes et
 ## Handoff
 
 Fournir références/prompts versionnés, table de réattribution 0–19 → 0–9, vingt sources/exports, poids et mesures, comparaisons, tests et verdicts utilisateur. Aucune pose de combat ou d’action n’est déclarée validée par ce lot.
+
+## Preuves de clôture — 16 septembre 2026
+
+- Production et validation utilisateur une par une de dix identités masculines et dix féminines, avec diversité de tenues Guerrier ; corrections ciblées appliquées avant validation définitive des variantes concernées.
+- Sources validées sous `assets/design/hero-sprites/cdi-137/validated-{male,female}-v1/` et vingt exports alpha sous `normalized-alpha-v1/{male,female}/`.
+- Normalisation sans étirement sur le gabarit Novice correspondant : canevas `341 × 692`, hauteur visible à un pixel près, même ligne de pieds et pivot horizontal centré. Contrôle automatique dans `scripts/check-dungeon-visual-assets.mjs`.
+- Table stable dans `src/assets/warriorCdi137Portraits.ts` : chaque ancien index 0–19 est replié modulo 10 vers la nouvelle variante 0–9 du même genre. L’image ne lit ni arme ni équipement canonique.
+- Validation utilisateur des planches puis des cinq pages du cinéma PC, variantes 01–10 homme et femme. Le harness `?warrior-cinema=1` à `5` reste couvert par Playwright.
+- Mesures de production : 20 images = **5,46 Mo** ; transfert froid = **5,46 Mo** ; cache chaud = **0 Ko** ; quatre images les plus lourdes = **1,18 Mo**, sous le budget scène de **2,10 Mo** ; mémoire décodée = **0,94 Mo** par sprite, **3,78 Mo** pour quatre et **18,88 Mo** pour les vingt.
+- Validations : tests portraits/visuels `21/21`, contrôle assets Donjon, typecheck, lint, build, budget bundle, workboard et test Playwright PC CDI-137 `1/1` réussis.
+- Audit pré-clôture : anciennes planches Guerrier non importées et absentes du build ; poses de garde/action explicitement laissées à CDI-149 et aux tickets d’action.
