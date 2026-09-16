@@ -13,9 +13,23 @@ import {
   getCdi136NovicePortraitUrl,
 } from "../src/assets/noviceCdi136Portraits";
 import {
+  CDI137_WARRIOR_VARIANT_COUNT,
+  getCdi137WarriorPortraitUrl,
+} from "../src/assets/warriorCdi137Portraits";
+import {
+  CDI138_ROGUE_VARIANT_COUNT,
+  getCdi138RoguePortraitUrl,
+} from "../src/assets/rogueCdi138Portraits";
+import {
+  CDI139_ARCHER_VARIANT_COUNT,
+  getCdi139ArcherPortraitUrl,
+} from "../src/assets/archerCdi139Portraits";
+import {
   HERO_SPRITE_SLICES,
   getHeroPortraitCacheKey,
+  getHeroPortraitPoseVisualKey,
   parseHeroPortraitCacheKey,
+  parseHeroPortraitPoseVisualKey,
   resolveHeroPortraitIdentity,
 } from "../src/domain/heroPortrait";
 import { makeHero } from "./fixtures/game";
@@ -62,15 +76,34 @@ describe("hero portrait identity", () => {
     expect(parseHeroPortraitCacheKey("Unknown_Male_0")).toBeNull();
     expect(parseHeroPortraitCacheKey("Mage_Other_0")).toBeNull();
   });
+
+  it("keeps pose separate from the stable hero identity", () => {
+    expect(getHeroPortraitPoseVisualKey("Novice", "Female", 0, "neutral"))
+      .toBe("Novice_Female_0");
+    expect(getHeroPortraitPoseVisualKey("Novice", "Female", 0, "combat_idle"))
+      .toBe("Novice_Female_0@combat_idle");
+    expect(parseHeroPortraitPoseVisualKey("Novice_Female_0@combat_idle")).toEqual({
+      classType: "Novice",
+      gender: "Female",
+      variant: 0,
+      pose: "combat_idle",
+    });
+    expect(parseHeroPortraitPoseVisualKey("Novice_Female_0@attack")).toBeNull();
+  });
 });
 
 describe("hero sprite sheet catalog", () => {
-  it("covers all Tier 1 classes, both genders and all 20 variants", () => {
-    const tierOneClasses = CANONICAL_HERO_CLASSES.filter((classType) => classType !== "Novice");
-    expect(Object.keys(HERO_SPRITE_SHEETS)).toEqual(tierOneClasses);
+  it("keeps legacy sheets for Tier 1 classes not yet migrated to individual sprites", () => {
+    const legacySheetClasses = CANONICAL_HERO_CLASSES.filter((classType) => (
+      classType !== "Novice"
+        && classType !== "Guerrier"
+        && classType !== "Voleur"
+        && classType !== "Archer"
+    ));
+    expect(Object.keys(HERO_SPRITE_SHEETS)).toEqual(legacySheetClasses);
     expect(HERO_SPRITE_SLICES).toHaveLength(HERO_PORTRAIT_VARIANT_COUNT);
 
-    for (const classType of tierOneClasses) {
+    for (const classType of legacySheetClasses) {
       expect(HERO_SPRITE_SHEETS[classType].Male).toBeTruthy();
       expect(HERO_SPRITE_SHEETS[classType].Female).toBeTruthy();
     }
@@ -79,6 +112,36 @@ describe("hero sprite sheet catalog", () => {
   it("maps the Aede class to the correctly named assets", () => {
     expect(HERO_SPRITE_SHEETS["A\u00e8de"].Male).toContain("aede");
     expect(HERO_SPRITE_SHEETS["A\u00e8de"].Female).toContain("aede");
+  });
+});
+
+describe("authoritative Warrior portrait", () => {
+  it("maps the 20 persisted identity slots onto the 10 validated sprites per gender", () => {
+    expect(CDI137_WARRIOR_VARIANT_COUNT).toBe(10);
+    expect(getCdi137WarriorPortraitUrl("Male", 0)).toContain("warrior-male-01-v1");
+    expect(getCdi137WarriorPortraitUrl("Female", 9)).toContain("warrior-female-10-v1");
+    expect(getCdi137WarriorPortraitUrl("Male", 10)).toBe(getCdi137WarriorPortraitUrl("Male", 0));
+    expect(getCdi137WarriorPortraitUrl("Female", 19)).toBe(getCdi137WarriorPortraitUrl("Female", 9));
+  });
+});
+
+describe("authoritative Rogue portrait", () => {
+  it("maps the 20 persisted identity slots onto the 10 validated sprites per gender", () => {
+    expect(CDI138_ROGUE_VARIANT_COUNT).toBe(10);
+    expect(getCdi138RoguePortraitUrl("Male", 0)).toContain("rogue-male-01-v1");
+    expect(getCdi138RoguePortraitUrl("Female", 9)).toContain("rogue-female-10-v1");
+    expect(getCdi138RoguePortraitUrl("Male", 10)).toBe(getCdi138RoguePortraitUrl("Male", 0));
+    expect(getCdi138RoguePortraitUrl("Female", 19)).toBe(getCdi138RoguePortraitUrl("Female", 9));
+  });
+});
+
+describe("authoritative Archer portrait", () => {
+  it("maps the 20 persisted identity slots onto the 10 validated sprites per gender", () => {
+    expect(CDI139_ARCHER_VARIANT_COUNT).toBe(10);
+    expect(getCdi139ArcherPortraitUrl("Male", 0)).toContain("archer-male-01-v1");
+    expect(getCdi139ArcherPortraitUrl("Female", 9)).toContain("archer-female-10-v1");
+    expect(getCdi139ArcherPortraitUrl("Male", 10)).toBe(getCdi139ArcherPortraitUrl("Male", 0));
+    expect(getCdi139ArcherPortraitUrl("Female", 19)).toBe(getCdi139ArcherPortraitUrl("Female", 9));
   });
 });
 

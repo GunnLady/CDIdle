@@ -211,6 +211,40 @@ describe("DungeonCombatScene", () => {
     expect(within(scene).getByTestId("dungeon-combat-effect")).toBeInTheDocument();
   });
 
+  it("settles pending presentation state while animations pause and resumes without a stuck gauge", () => {
+    vi.useFakeTimers();
+    try {
+      const readyEnemy = { ...enemy, currentHp: 16 } satisfies EncounterSceneActor;
+      const entry = createDungeonCombatSceneView(state({
+        actors: [hero, readyEnemy],
+        activeStep: action({
+          id: "entry",
+          type: "encounter.started",
+          sourceActorId: null,
+          targetActorIds: [],
+          impacts: [],
+        }),
+      }));
+      const contact = createDungeonCombatSceneView(state({
+        actors: [hero, enemy],
+        activeStep: action({ id: "paused-contact", impacts: [damageImpact()] }),
+      }));
+      const { rerender } = render(<DungeonCombatScene view={entry} />);
+
+      rerender(<DungeonCombatScene view={contact} />);
+      expect(screen.getByLabelText(/Rat des canaux, Ennemi, 16\/16 PV/)).toBeInTheDocument();
+      rerender(<DungeonCombatScene view={contact} animationsEnabled={false} />);
+      expect(screen.getByLabelText(/Rat des canaux, Ennemi, 10\/16 PV/)).toBeInTheDocument();
+      expect(screen.getByTestId("dungeon-combat-scene")).toHaveAttribute("data-animations", "disabled");
+
+      rerender(<DungeonCombatScene view={contact} animationsEnabled />);
+      expect(screen.getByLabelText(/Rat des canaux, Ennemi, 10\/16 PV/)).toBeInTheDocument();
+      expect(screen.getByTestId("dungeon-combat-scene")).toHaveAttribute("data-animations", "enabled");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("renders a structured projectile path from the exact source to the exact target", () => {
     const view = createDungeonCombatSceneView(state({
       activeStep: action({
@@ -276,15 +310,110 @@ describe("DungeonCombatScene", () => {
       }));
       const { rerender } = render(<DungeonCombatScene view={first} />);
       expect(screen.getAllByTestId("dungeon-combat-effect")).toHaveLength(1);
+      const firstEffect = screen.getByTestId("dungeon-combat-effect");
 
       act(() => vi.advanceTimersByTime(500));
       rerender(<DungeonCombatScene view={second} />);
       expect(screen.getAllByTestId("dungeon-combat-effect")).toHaveLength(2);
+      expect(screen.getAllByTestId("dungeon-combat-effect")[0]).toBe(firstEffect);
 
       act(() => vi.advanceTimersByTime(661));
       expect(screen.getAllByTestId("dungeon-combat-effect")).toHaveLength(1);
       act(() => vi.advanceTimersByTime(500));
       expect(screen.queryByTestId("dungeon-combat-effect")).not.toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("clears the previous effect stream on replay and encounter replacement", () => {
+    vi.useFakeTimers();
+    try {
+      const first = createDungeonCombatSceneView(state({
+        encounterId: "first-encounter",
+        activeStep: action({ id: "first-step", impacts: [damageImpact(1)] }),
+      }));
+      const replayEntry = createDungeonCombatSceneView(state({
+        encounterId: "first-encounter",
+        visibleCount: 0,
+        activeStep: null,
+      }));
+      const replacement = createDungeonCombatSceneView(state({
+        encounterId: "replacement-encounter",
+        activeStep: action({ id: "replacement-step", impacts: [damageImpact(2)] }),
+      }));
+      const { rerender } = render(<DungeonCombatScene view={first} />);
+
+      expect(screen.getByLabelText("−6, Rat des canaux")).toBeInTheDocument();
+      rerender(<DungeonCombatScene view={replayEntry} />);
+      expect(screen.queryByTestId("dungeon-combat-effect")).not.toBeInTheDocument();
+      rerender(<DungeonCombatScene view={replacement} />);
+      expect(screen.getAllByTestId("dungeon-combat-effect")).toHaveLength(1);
+      expect(screen.getByTestId("dungeon-combat-effect")).toHaveAttribute(
+        "data-target-actor-id",
+        enemy.id,
+      );
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("cancels effect and delayed-resource timers when the scene unmounts", () => {
+    vi.useFakeTimers();
+    try {
+      const readyEnemy = { ...enemy, currentHp: 16 } satisfies EncounterSceneActor;
+      const entry = createDungeonCombatSceneView(state({
+        actors: [hero, readyEnemy],
+        activeStep: action({
+          id: "entry",
+          type: "encounter.started",
+          sourceActorId: null,
+          targetActorIds: [],
+          impacts: [],
+        }),
+      }));
+      const contact = createDungeonCombatSceneView(state({
+        actors: [hero, enemy],
+        activeStep: action({ id: "contact", impacts: [damageImpact()] }),
+      }));
+      const { rerender, unmount } = render(<DungeonCombatScene view={entry} />);
+      rerender(<DungeonCombatScene view={contact} />);
+      expect(vi.getTimerCount()).toBeGreaterThan(0);
+
+      unmount();
+      expect(vi.getTimerCount()).toBe(0);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("does not reset a pending health update when the reader advances", () => {
+    vi.useFakeTimers();
+    try {
+      const initialEnemy = { ...enemy, currentHp: 16 } satisfies EncounterSceneActor;
+      const entry = createDungeonCombatSceneView(state({
+        visibleCount: 0,
+        actors: [hero, initialEnemy],
+        activeStep: null,
+      }));
+      const contact = createDungeonCombatSceneView(state({
+        actors: [hero, enemy],
+        activeStep: action({ id: "contact-step", impacts: [damageImpact()] }),
+      }));
+      const followingStep = createDungeonCombatSceneView(state({
+        visibleCount: 2,
+        actors: [hero, enemy],
+        activeStep: null,
+      }));
+      const { rerender } = render(<DungeonCombatScene view={entry} />);
+
+      rerender(<DungeonCombatScene view={contact} />);
+      act(() => vi.advanceTimersByTime(159));
+      rerender(<DungeonCombatScene view={followingStep} />);
+      expect(screen.getByLabelText(/Rat des canaux, Ennemi, 16\/16 PV/)).toBeInTheDocument();
+
+      act(() => vi.advanceTimersByTime(1));
+      expect(screen.getByLabelText(/Rat des canaux, Ennemi, 10\/16 PV/)).toBeInTheDocument();
     } finally {
       vi.useRealTimers();
     }

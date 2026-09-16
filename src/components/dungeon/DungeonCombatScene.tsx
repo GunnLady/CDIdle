@@ -1,10 +1,11 @@
-import { useEffect, useState, type CSSProperties } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { ENCOUNTER_VISUAL_KEYS } from "../../assets/encounterVisuals";
 import { getUndercityBackgroundVisualKey } from "../../assets/undercityVisualManifest";
 import {
   DUNGEON_COMBAT_ACTION_EFFECT_DURATION_MS,
   DUNGEON_COMBAT_ACTION_IMPACT_DELAY_MS,
   DUNGEON_COMBAT_ACTION_TRAVEL_DURATION_MS,
+  DUNGEON_COMBAT_CONTACT_TIMELINE,
   DUNGEON_COMBAT_EFFECT_DURATION_MS,
   DUNGEON_COMBAT_EFFECT_LIMIT,
   DUNGEON_COMBAT_EFFECT_STAGGER_MS,
@@ -47,15 +48,44 @@ function actorHealthLabel(actor: DungeonCombatSceneActorView): string {
 
 function useDelayedPresentationValue<T>(value: T, delayMs: number, animationsEnabled: boolean): T {
   const [displayedValue, setDisplayedValue] = useState(value);
+  const latestInput = useRef(value);
+  const sequence = useRef(0);
+  const latestAppliedSequence = useRef(0);
+  const timers = useRef(new Set<ReturnType<typeof globalThis.setTimeout>>());
 
   useEffect(() => {
-    if (!animationsEnabled || delayMs <= 0) {
+    if (!animationsEnabled) {
+      for (const timer of timers.current) globalThis.clearTimeout(timer);
+      timers.current.clear();
+      latestInput.current = value;
+      const currentSequence = sequence.current + 1;
+      sequence.current = currentSequence;
+      latestAppliedSequence.current = currentSequence;
       setDisplayedValue(value);
-      return undefined;
+      return;
     }
-    const timeout = globalThis.setTimeout(() => setDisplayedValue(value), delayMs);
-    return () => globalThis.clearTimeout(timeout);
+    if (Object.is(latestInput.current, value)) return;
+    latestInput.current = value;
+    const currentSequence = sequence.current + 1;
+    sequence.current = currentSequence;
+    if (delayMs <= 0) {
+      latestAppliedSequence.current = currentSequence;
+      setDisplayedValue(value);
+      return;
+    }
+    const timeout = globalThis.setTimeout(() => {
+      timers.current.delete(timeout);
+      if (currentSequence < latestAppliedSequence.current) return;
+      latestAppliedSequence.current = currentSequence;
+      setDisplayedValue(value);
+    }, delayMs);
+    timers.current.add(timeout);
   }, [animationsEnabled, delayMs, value]);
+
+  useEffect(() => () => {
+    for (const timer of timers.current) globalThis.clearTimeout(timer);
+    timers.current.clear();
+  }, []);
 
   return displayedValue;
 }
@@ -162,6 +192,7 @@ function CombatActor(props: {
       data-actor-id={actor.id}
       data-state={displayedState}
       data-team={actor.team}
+      data-visual-pose={actor.visualPose ?? undefined}
       data-testid="dungeon-combat-actor"
       style={style}
     >
@@ -201,7 +232,7 @@ function CombatActor(props: {
         <span className={actor.healthPercent === null ? styles.unknownVital : styles.vitalText}>{health}</span>
       </div>
       {props.effects.map((effect) => (
-        <CombatEffect key={`${props.actionKey}:${effect.id}`} actorName={actor.name} effect={effect} />
+        <CombatEffect key={effect.id} actorName={actor.name} effect={effect} />
       ))}
     </li>
   );
@@ -339,12 +370,14 @@ export default function DungeonCombatScene({
     })),
   ];
   const streamedEffects = useDungeonCombatEffectStream({
+    scopeKey: view.encounterId,
     actionKey: view.actionKey,
     effects: incomingEffects,
     animationsEnabled,
     durationMs: DUNGEON_COMBAT_EFFECT_DURATION_MS,
     staggerMs: DUNGEON_COMBAT_EFFECT_STAGGER_MS,
     limit: DUNGEON_COMBAT_EFFECT_LIMIT,
+    clearPrevious: view.actionMode === "entry" || view.actionMode === "result",
   });
   const labelEffects = streamedEffects
     .filter((effect): effect is Extract<StreamedCombatEffect, { type: "label" }> => effect.type === "label")
@@ -364,6 +397,7 @@ export default function DungeonCombatScene({
       data-testid="dungeon-combat-scene"
       style={{
         "--combat-action-duration": `${DUNGEON_COMBAT_ACTION_EFFECT_DURATION_MS}ms`,
+        "--combat-contact-duration": `${DUNGEON_COMBAT_CONTACT_TIMELINE.idleMs}ms`,
         "--combat-impact-delay": `${DUNGEON_COMBAT_ACTION_IMPACT_DELAY_MS}ms`,
         "--combat-travel-duration": `${DUNGEON_COMBAT_ACTION_TRAVEL_DURATION_MS}ms`,
       } as SceneStyle}
@@ -393,7 +427,7 @@ export default function DungeonCombatScene({
             viewBox="0 0 100 100"
           >
             {actionEffects.map((effect) => (
-              <CombatActionEffect effect={effect} key={`${view.actionKey}:${effect.id}`} />
+              <CombatActionEffect effect={effect} key={effect.id} />
             ))}
           </svg>
         )}

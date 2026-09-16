@@ -10,6 +10,7 @@ const projectRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const undercityDirectory = join(projectRoot, "public", "assets", "images", "dungeon", "undercity");
 const encounterDirectory = join(projectRoot, "src", "assets", "images", "dungeon", "encounters");
 const sceneBudgetBytes = 2 * 1024 * 1024;
+const combatHeroLimit = 4;
 
 const encounterManifest = [
   { file: "challenge-trap-v1.png", width: 768, height: 512, alpha: true },
@@ -36,7 +37,7 @@ const encounterScenes = {
 };
 
 const tier1Sheets = [
-  "acolyte", "aede", "archer", "artificer", "druid", "mage", "pugilist", "rogue", "warrior",
+  "acolyte", "aede", "artificer", "druid", "mage", "pugilist",
 ].flatMap((className) => ["female", "male"].map((gender) => (
   join("hero-sprites", "tier1", `human-tier1-${className}-${gender}-v1.png`)
 )));
@@ -45,6 +46,30 @@ const noviceSprites = ["female", "male"].flatMap((gender) => (
   Array.from({ length: 10 }, (_, index) => join(
     gender,
     `novice-${gender}-${String(index + 1).padStart(2, "0")}-v1.png`,
+  ))
+));
+const noviceCombatSprites = ["female", "male"].flatMap((gender) => (
+  Array.from({ length: 10 }, (_, index) => join(
+    gender,
+    `novice-${gender}-${String(index + 1).padStart(2, "0")}-combat-idle-v1.png`,
+  ))
+));
+const warriorSprites = ["female", "male"].flatMap((gender) => (
+  Array.from({ length: 10 }, (_, index) => join(
+    gender,
+    `warrior-${gender}-${String(index + 1).padStart(2, "0")}-v1.png`,
+  ))
+));
+const rogueSprites = ["female", "male"].flatMap((gender) => (
+  Array.from({ length: 10 }, (_, index) => join(
+    gender,
+    `rogue-${gender}-${String(index + 1).padStart(2, "0")}-v1.png`,
+  ))
+));
+const archerSprites = ["female", "male"].flatMap((gender) => (
+  Array.from({ length: 10 }, (_, index) => join(
+    gender,
+    `archer-${gender}-${String(index + 1).padStart(2, "0")}-v1.png`,
   ))
 ));
 
@@ -81,6 +106,7 @@ function readPngInfo(buffer) {
   let hasTransparentPixel = false;
   let transparentPixelCount = 0;
   const cornerAlphas = [];
+  const visibleBounds = { minX: width, minY: height, maxX: -1, maxY: -1 };
   for (let y = 0; y < height; y += 1) {
     const filter = filtered[y * (rowLength + 1)];
     const source = filtered.subarray(y * (rowLength + 1) + 1, (y + 1) * (rowLength + 1));
@@ -108,6 +134,13 @@ function readPngInfo(buffer) {
       const alpha = row[alphaIndex];
       if (alpha < 255) hasTransparentPixel = true;
       if (alpha === 0) transparentPixelCount += 1;
+      if (alpha > 2) {
+        const pixelX = (alphaIndex - 3) / bytesPerPixel;
+        visibleBounds.minX = Math.min(visibleBounds.minX, pixelX);
+        visibleBounds.minY = Math.min(visibleBounds.minY, y);
+        visibleBounds.maxX = Math.max(visibleBounds.maxX, pixelX);
+        visibleBounds.maxY = Math.max(visibleBounds.maxY, y);
+      }
     }
     if (y === 0 || y === height - 1) cornerAlphas.push(row[3], row[rowLength - 1]);
     previous = row;
@@ -118,6 +151,7 @@ function readPngInfo(buffer) {
     alpha: hasTransparentPixel,
     transparentPixelCount,
     cornerAlphas,
+    visibleBounds: visibleBounds.maxX >= 0 ? visibleBounds : null,
   };
 }
 
@@ -305,7 +339,7 @@ const noviceImageDirectory = join(
   "cdi-136",
   "normalized-alpha-v1",
 );
-for (const relativePath of noviceSprites) {
+const measuredNoviceSprites = new Map(noviceSprites.map((relativePath) => {
   const dimensions = readImageInfo(join(noviceImageDirectory, relativePath));
   assert.deepEqual(
     { width: dimensions.width, height: dimensions.height, alpha: dimensions.alpha },
@@ -316,12 +350,264 @@ for (const relativePath of noviceSprites) {
     Math.max(...dimensions.cornerAlphas) <= 2,
     `${relativePath} must not contain an opaque or semi-opaque baked background`,
   );
-}
+  assert(dimensions.visibleBounds, `${relativePath} must contain visible pixels`);
+  return [relativePath, dimensions];
+}));
+
+const warriorImageDirectory = join(
+  projectRoot,
+  "assets",
+  "design",
+  "hero-sprites",
+  "cdi-137",
+  "normalized-alpha-v1",
+);
+const measuredWarriorSprites = warriorSprites.map((relativePath) => {
+  const path = join(warriorImageDirectory, relativePath);
+  const dimensions = readImageInfo(path);
+  assert.deepEqual(
+    { width: dimensions.width, height: dimensions.height, alpha: dimensions.alpha },
+    { width: 341, height: 692, alpha: true },
+    `${relativePath} must remain a normalized CDI-137 alpha sprite`,
+  );
+  assert(
+    dimensions.transparentPixelCount >= dimensions.width * dimensions.height * 0.1,
+    `${relativePath} must contain a substantial transparent background`,
+  );
+  assert(
+    Math.max(...dimensions.cornerAlphas) <= 2,
+    `${relativePath} must not contain an opaque or semi-opaque baked background`,
+  );
+  assert(dimensions.visibleBounds, `${relativePath} must contain visible pixels`);
+
+  const noviceRelativePath = relativePath.replace("warrior-", "novice-");
+  const noviceDimensions = measuredNoviceSprites.get(noviceRelativePath);
+  assert(noviceDimensions?.visibleBounds, `Missing CDI-136 reference ${noviceRelativePath}`);
+  const visibleHeight = dimensions.visibleBounds.maxY - dimensions.visibleBounds.minY + 1;
+  const noviceVisibleHeight = noviceDimensions.visibleBounds.maxY - noviceDimensions.visibleBounds.minY + 1;
+  assert(
+    Math.abs(visibleHeight - noviceVisibleHeight) <= 1,
+    `${relativePath} must keep the visible height of ${noviceRelativePath}`,
+  );
+  assert.equal(
+    dimensions.visibleBounds.maxY,
+    noviceDimensions.visibleBounds.maxY,
+    `${relativePath} feet baseline must match ${noviceRelativePath}`,
+  );
+  const centerX = (dimensions.visibleBounds.minX + dimensions.visibleBounds.maxX) / 2;
+  assert(
+    Math.abs(centerX - (dimensions.width - 1) / 2) <= 1.5,
+    `${relativePath} visible pivot must remain centered`,
+  );
+  return { file: relativePath, bytes: statSync(path).size };
+});
+const warriorTotalBytes = measuredWarriorSprites.reduce((total, entry) => total + entry.bytes, 0);
+const warriorSceneBytes = measuredWarriorSprites
+  .map((entry) => entry.bytes)
+  .sort((left, right) => right - left)
+  .slice(0, combatHeroLimit)
+  .reduce((total, bytes) => total + bytes, 0);
+const warriorDecodedBytesPerSprite = 341 * 692 * 4;
+const warriorDecodedSceneBytes = warriorDecodedBytesPerSprite * combatHeroLimit;
+assert(
+  warriorSceneBytes <= sceneBudgetBytes,
+  `Four-hero CDI-137 Warrior scene exceeds ${sceneBudgetBytes} bytes`,
+);
+
+const rogueImageDirectory = join(
+  projectRoot,
+  "assets",
+  "design",
+  "hero-sprites",
+  "cdi-138",
+  "normalized-alpha-v1",
+);
+const measuredRogueSprites = rogueSprites.map((relativePath) => {
+  const path = join(rogueImageDirectory, relativePath);
+  const dimensions = readImageInfo(path);
+  assert.deepEqual(
+    { width: dimensions.width, height: dimensions.height, alpha: dimensions.alpha },
+    { width: 341, height: 692, alpha: true },
+    `${relativePath} must remain a normalized CDI-138 alpha sprite`,
+  );
+  assert(
+    dimensions.transparentPixelCount >= dimensions.width * dimensions.height * 0.1,
+    `${relativePath} must contain a substantial transparent background`,
+  );
+  assert(
+    Math.max(...dimensions.cornerAlphas) <= 2,
+    `${relativePath} must not contain an opaque or semi-opaque baked background`,
+  );
+  assert(dimensions.visibleBounds, `${relativePath} must contain visible pixels`);
+
+  const noviceRelativePath = relativePath.replace("rogue-", "novice-");
+  const noviceDimensions = measuredNoviceSprites.get(noviceRelativePath);
+  assert(noviceDimensions?.visibleBounds, `Missing CDI-136 reference ${noviceRelativePath}`);
+  const visibleHeight = dimensions.visibleBounds.maxY - dimensions.visibleBounds.minY + 1;
+  const noviceVisibleHeight = noviceDimensions.visibleBounds.maxY - noviceDimensions.visibleBounds.minY + 1;
+  assert(
+    Math.abs(visibleHeight - noviceVisibleHeight) <= 1,
+    `${relativePath} must keep the visible height of ${noviceRelativePath}`,
+  );
+  assert.equal(
+    dimensions.visibleBounds.maxY,
+    noviceDimensions.visibleBounds.maxY,
+    `${relativePath} feet baseline must match ${noviceRelativePath}`,
+  );
+  const centerX = (dimensions.visibleBounds.minX + dimensions.visibleBounds.maxX) / 2;
+  assert(
+    Math.abs(centerX - (dimensions.width - 1) / 2) <= 1.5,
+    `${relativePath} visible pivot must remain centered`,
+  );
+  return { file: relativePath, bytes: statSync(path).size };
+});
+const rogueTotalBytes = measuredRogueSprites.reduce((total, entry) => total + entry.bytes, 0);
+const rogueSceneBytes = measuredRogueSprites
+  .map((entry) => entry.bytes)
+  .sort((left, right) => right - left)
+  .slice(0, combatHeroLimit)
+  .reduce((total, bytes) => total + bytes, 0);
+const rogueDecodedBytesPerSprite = 341 * 692 * 4;
+const rogueDecodedSceneBytes = rogueDecodedBytesPerSprite * combatHeroLimit;
+assert(
+  rogueSceneBytes <= sceneBudgetBytes,
+  `Four-hero CDI-138 Rogue scene exceeds ${sceneBudgetBytes} bytes`,
+);
+
+const archerImageDirectory = join(
+  projectRoot,
+  "assets",
+  "design",
+  "hero-sprites",
+  "cdi-139",
+  "normalized-alpha-v1",
+);
+const measuredArcherSprites = archerSprites.map((relativePath) => {
+  const path = join(archerImageDirectory, relativePath);
+  const dimensions = readImageInfo(path);
+  assert.deepEqual(
+    { width: dimensions.width, height: dimensions.height, alpha: dimensions.alpha },
+    { width: 341, height: 692, alpha: true },
+    `${relativePath} must remain a normalized CDI-139 alpha sprite`,
+  );
+  assert(
+    dimensions.transparentPixelCount >= dimensions.width * dimensions.height * 0.1,
+    `${relativePath} must contain a substantial transparent background`,
+  );
+  assert(
+    Math.max(...dimensions.cornerAlphas) <= 2,
+    `${relativePath} must not contain an opaque or semi-opaque baked background`,
+  );
+  assert(dimensions.visibleBounds, `${relativePath} must contain visible pixels`);
+
+  const noviceRelativePath = relativePath.replace("archer-", "novice-");
+  const noviceDimensions = measuredNoviceSprites.get(noviceRelativePath);
+  assert(noviceDimensions?.visibleBounds, `Missing CDI-136 reference ${noviceRelativePath}`);
+  const visibleHeight = dimensions.visibleBounds.maxY - dimensions.visibleBounds.minY + 1;
+  const noviceVisibleHeight = noviceDimensions.visibleBounds.maxY - noviceDimensions.visibleBounds.minY + 1;
+  assert(
+    Math.abs(visibleHeight - noviceVisibleHeight) <= 1,
+    `${relativePath} must keep the visible height of ${noviceRelativePath}`,
+  );
+  assert.equal(
+    dimensions.visibleBounds.maxY,
+    noviceDimensions.visibleBounds.maxY,
+    `${relativePath} feet baseline must match ${noviceRelativePath}`,
+  );
+  const centerX = (dimensions.visibleBounds.minX + dimensions.visibleBounds.maxX) / 2;
+  assert(
+    Math.abs(centerX - (dimensions.width - 1) / 2) <= 1.5,
+    `${relativePath} visible pivot must remain centered`,
+  );
+  return { file: relativePath, bytes: statSync(path).size };
+});
+const archerTotalBytes = measuredArcherSprites.reduce((total, entry) => total + entry.bytes, 0);
+const archerSceneBytes = measuredArcherSprites
+  .map((entry) => entry.bytes)
+  .sort((left, right) => right - left)
+  .slice(0, combatHeroLimit)
+  .reduce((total, bytes) => total + bytes, 0);
+const archerDecodedBytesPerSprite = 341 * 692 * 4;
+const archerDecodedSceneBytes = archerDecodedBytesPerSprite * combatHeroLimit;
+assert(
+  archerSceneBytes <= sceneBudgetBytes,
+  `Four-hero CDI-139 Archer scene exceeds ${sceneBudgetBytes} bytes`,
+);
+
+const noviceCombatImageDirectory = join(
+  projectRoot,
+  "assets",
+  "design",
+  "hero-sprites",
+  "cdi-148",
+  "normalized-alpha-v1",
+);
+const measuredNoviceCombatSprites = noviceCombatSprites.map((relativePath) => {
+  const path = join(noviceCombatImageDirectory, relativePath);
+  const dimensions = readImageInfo(path);
+  assert.deepEqual(
+    { width: dimensions.width, height: dimensions.height, alpha: dimensions.alpha },
+    { width: 341, height: 692, alpha: true },
+    `${relativePath} must remain a normalized CDI-148 combat-idle alpha sprite`,
+  );
+  assert(
+    Math.max(...dimensions.cornerAlphas) <= 2,
+    `${relativePath} must not contain an opaque or semi-opaque baked background`,
+  );
+  return { file: relativePath, bytes: statSync(path).size };
+});
+const noviceCombatTotalBytes = measuredNoviceCombatSprites.reduce(
+  (total, entry) => total + entry.bytes,
+  0,
+);
+const noviceCombatSceneBytes = measuredNoviceCombatSprites
+  .map((entry) => entry.bytes)
+  .sort((left, right) => right - left)
+  .slice(0, combatHeroLimit)
+  .reduce((total, bytes) => total + bytes, 0);
+const noviceCombatDecodedBytesPerSprite = 341 * 692 * 4;
+const noviceCombatDecodedSceneBytes = noviceCombatDecodedBytesPerSprite * combatHeroLimit;
+assert(
+  noviceCombatSceneBytes <= sceneBudgetBytes,
+  `Four-hero CDI-148 combat-idle scene exceeds ${sceneBudgetBytes} bytes`,
+);
 
 console.log(JSON.stringify({
   heroSheets: heroSheets.length,
   noviceSprites: noviceSprites.length,
-  heroIdentities: heroSheets.length * 20 + noviceSprites.length * 2,
+  warriorSprites: warriorSprites.length,
+  warriorMetrics: {
+    totalBytes: warriorTotalBytes,
+    largestFourSceneBytes: warriorSceneBytes,
+    decodedBytesPerSprite: warriorDecodedBytesPerSprite,
+    decodedFourHeroSceneBytes: warriorDecodedSceneBytes,
+  },
+  rogueSprites: rogueSprites.length,
+  rogueMetrics: {
+    totalBytes: rogueTotalBytes,
+    largestFourSceneBytes: rogueSceneBytes,
+    decodedBytesPerSprite: rogueDecodedBytesPerSprite,
+    decodedFourHeroSceneBytes: rogueDecodedSceneBytes,
+  },
+  archerSprites: archerSprites.length,
+  archerMetrics: {
+    totalBytes: archerTotalBytes,
+    largestFourSceneBytes: archerSceneBytes,
+    decodedBytesPerSprite: archerDecodedBytesPerSprite,
+    decodedFourHeroSceneBytes: archerDecodedSceneBytes,
+  },
+  noviceCombatSprites: noviceCombatSprites.length,
+  noviceCombatMetrics: {
+    totalBytes: noviceCombatTotalBytes,
+    largestFourSceneBytes: noviceCombatSceneBytes,
+    decodedBytesPerSprite: noviceCombatDecodedBytesPerSprite,
+    decodedFourHeroSceneBytes: noviceCombatDecodedSceneBytes,
+  },
+  heroIdentities: heroSheets.length * 20
+    + noviceSprites.length * 2
+    + warriorSprites.length * 2
+    + rogueSprites.length * 2
+    + archerSprites.length * 2,
   sceneBudgetBytes,
   undercityPacks: measuredPacks,
   encounterBytes,

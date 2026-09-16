@@ -18,6 +18,11 @@ import {
   getDungeonCombatActionProfile,
   type DungeonCombatActionProfile,
 } from "./dungeonCombatActionProfile";
+import {
+  getHeroPortraitPoseVisualKey,
+  parseHeroPortraitCacheKey,
+  type HeroPortraitPose,
+} from "./heroPortrait";
 
 export const DUNGEON_COMBAT_EFFECT_LIMIT = 16;
 export const DUNGEON_COMBAT_EFFECT_STAGGER_MS = 600;
@@ -25,7 +30,14 @@ export const DUNGEON_COMBAT_EFFECT_DURATION_MS = 1_000;
 export const DUNGEON_COMBAT_ACTION_EFFECT_DURATION_MS = 720;
 export const DUNGEON_COMBAT_ACTION_TRAVEL_DURATION_MS = 430;
 export const DUNGEON_COMBAT_ACTION_IMPACT_DELAY_MS = 430;
-export const DUNGEON_COMBAT_MELEE_IMPACT_DELAY_MS = 160;
+export const DUNGEON_COMBAT_CONTACT_TIMELINE = {
+  prepareMs: 0,
+  releaseMs: 72,
+  contactMs: 160,
+  recoverMs: 248,
+  idleMs: 400,
+} as const;
+export const DUNGEON_COMBAT_MELEE_IMPACT_DELAY_MS = DUNGEON_COMBAT_CONTACT_TIMELINE.contactMs;
 
 export type DungeonCombatActionMode = "entry" | "idle" | DungeonCombatActionProfile | "result";
 export type DungeonCombatActorMotion = "enter" | "idle" | "melee" | "ranged" | "cast" | "focus";
@@ -47,6 +59,7 @@ export interface DungeonCombatSceneActorView {
   name: string;
   role: string;
   visualKey: string | null;
+  visualPose: HeroPortraitPose | null;
   currentHp: number | null;
   maximumHp: number | null;
   healthPercent: number | null;
@@ -86,6 +99,7 @@ export interface DungeonCombatSceneActionEffectView {
 }
 
 export interface DungeonCombatSceneView {
+  encounterId: string;
   actionKey: string;
   actionMode: DungeonCombatActionMode;
   actionSummary: string;
@@ -142,11 +156,21 @@ function heroRole(actor: EncounterSceneActor): string {
   return classType || "Héros";
 }
 
-function actorVisualKey(actor: EncounterSceneActor): string | null {
-  if (actor.team === "heroes") return actor.visualKey;
+function actorVisualKey(actor: EncounterSceneActor, pose: HeroPortraitPose | null): string | null {
+  if (actor.team === "heroes") {
+    if (!actor.visualKey || !pose) return actor.visualKey;
+    const identity = parseHeroPortraitCacheKey(actor.visualKey);
+    return identity
+      ? getHeroPortraitPoseVisualKey(identity.classType, identity.gender, identity.variant, pose)
+      : actor.visualKey;
+  }
   return actor.contentKey
     ? `undercity:${actor.contentKey}${actor.visualVariant ? `:${actor.visualVariant}` : ""}`
     : null;
+}
+
+function heroVisualPose(mode: DungeonCombatActionMode): HeroPortraitPose {
+  return mode === "result" ? "neutral" : "combat_idle";
 }
 
 const actorPositionOffsets: Readonly<Record<string, { xPercent: number; yPercent: number }>> = {
@@ -435,12 +459,14 @@ export function createDungeonCombatSceneView(
     );
     const zoomed = applyActorPositionOffset(zoomedSlot, actor.contentKey);
     const active = actor.id === activeActor?.id;
+    const visualPose = actor.team === "heroes" ? heroVisualPose(mode) : null;
     return [{
       id: actor.id,
       team: actor.team,
       name: actor.name,
       role: actor.team === "heroes" ? heroRole(actor) : rolesById.get(actor.sourceId ?? "") ?? "Ennemi",
-      visualKey: actorVisualKey(actor),
+      visualKey: actorVisualKey(actor, visualPose),
+      visualPose,
       currentHp: actor.currentHp,
       maximumHp: actor.maximumHp,
       healthPercent: percentage(actor.currentHp, actor.maximumHp),
@@ -516,6 +542,7 @@ export function createDungeonCombatSceneView(
         : "Combat terminé."
     : step?.summary ?? "Les équipes prennent position.";
   return {
+    encounterId: scene.encounterId,
     actionKey: step?.id ?? `${scene.encounterId}:${mode}`,
     actionMode: mode,
     actionSummary,

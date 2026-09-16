@@ -137,18 +137,73 @@ test("provides a preloaded, replayable visual-review scenario", async ({ page })
   await expect.poll(() => payloadHandle?.evaluate((node) => node.isConnected)).toBe(false);
 });
 
-test("loads CDI-136 Novices through the production portrait pipeline", async ({ page }) => {
+test("loads the matching CDI-148 combat-idle identity for every Novice in the scene", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 1000 });
   await page.goto(
     "/tests/browser/fixtures/dungeon-harness.html?combat-scene=1&integrated=1&advanced-combat=1&scenario=1&novice-review=1",
   );
 
   const heroes = page.locator("[data-testid='dungeon-combat-actor'][data-team='heroes']");
+  const scene = page.getByTestId("dungeon-combat-scene");
   await expect(heroes).toHaveCount(4);
-  await expect(heroes.locator("[data-visual-key^='Novice_']")).toHaveCount(4);
+  await expect(scene).toHaveAttribute("data-action-mode", "entry");
+  await expect(page.locator(
+    "[data-testid='dungeon-combat-actor'][data-team='heroes'][data-visual-pose='combat_idle']",
+  )).toHaveCount(4);
+
+  await page.getByTestId("advanced-combat-scenario-controls")
+    .getByRole("button", { name: "Suivante" })
+    .click();
+  await expect(scene).toHaveAttribute("data-action-mode", "projectile");
+  await expect(page.locator(
+    "[data-testid='dungeon-combat-actor'][data-team='heroes'][data-visual-pose='combat_idle']",
+  )).toHaveCount(4);
+  await expect(heroes.locator("[data-visual-key$='@combat_idle']")).toHaveCount(4);
   const sources = await heroes.locator("img").evaluateAll((images) => (
     images.map((image) => (image as HTMLImageElement).currentSrc)
   ));
   expect(sources).toHaveLength(4);
-  expect(sources.every((source) => /novice-(?:male|female)-\d{2}-v1/.test(source))).toBe(true);
+  expect(sources.filter((source) => /novice-(?:male|female)-01-combat-idle-v1/.test(source))).toHaveLength(2);
+  expect(sources.filter((source) => /novice-(?:male|female)-06-combat-idle-v1/.test(source))).toHaveLength(2);
 });
+
+for (const width of [1024, 1280, 1440]) {
+  test(`plays the CDI-113 Novice contact pilot and restores guard at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 1000 });
+    await page.goto(
+      "/tests/browser/fixtures/dungeon-harness.html?combat-scene=1&integrated=1&contact-pilot=1&novice-review=1",
+    );
+
+    const reader = page.getByTestId("contact-pilot-reader");
+    const scene = page.getByTestId("dungeon-combat-scene");
+    const firstAttacker = scene.locator("[data-actor-id*='ariane']");
+    await expect(reader).toHaveAttribute("data-playback-visible-count", "2");
+    await expect(scene).toHaveAttribute("data-action-mode", "melee");
+    await expect(firstAttacker).toHaveAttribute("data-active", "true");
+    await expect(firstAttacker).toHaveAttribute("data-visual-pose", "combat_idle");
+    await expect(firstAttacker.locator("[data-motion='melee']")).toHaveCount(1);
+    await expect(firstAttacker.locator("[data-idle-motion='true']")).toHaveCSS(
+      "animation-name",
+      /actor-idle/,
+    );
+    await expect(firstAttacker.locator("img")).toHaveCSS("animation-name", /active-actor-outline/);
+    expect(await firstAttacker.getByTestId("dungeon-combat-visual").evaluate((element) => (
+      getComputedStyle(element, "::before").content
+    ))).toBe("none");
+
+    await expect(reader).toHaveAttribute("data-playback-visible-count", "3");
+    await expect(firstAttacker).toHaveAttribute("data-active", "false");
+    await expect(firstAttacker).toHaveAttribute("data-visual-pose", "combat_idle");
+    await expect(firstAttacker.locator("[data-idle-motion='true']")).toHaveCSS("animation-name", /actor-idle/);
+
+    await expect(reader).toHaveAttribute("data-playback-complete", "true");
+    await expect(reader).toHaveAttribute("data-playback-seen-counts", "0,1,2,3,4,5,6");
+    await expect(scene).toHaveAttribute("data-action-mode", "result");
+    await expect(scene.locator("[data-team='heroes'][data-visual-pose='neutral']")).toHaveCount(4);
+    await expect(scene.locator("[data-team='heroes'] [data-visual-key$='@combat_idle']")).toHaveCount(0);
+    await expect(scene.locator("[data-state='ko'][data-team='heroes']")).toHaveCount(1);
+    await expect(scene.locator("[data-active='true']")).toHaveCount(0);
+    await expect(scene.locator("[data-idle-motion='true']").first()).toHaveCSS("animation-name", /actor-idle/);
+    await expect(scene.getByTestId("dungeon-combat-effect")).toHaveCount(0);
+  });
+}

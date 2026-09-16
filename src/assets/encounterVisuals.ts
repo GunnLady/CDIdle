@@ -3,11 +3,13 @@ import { HERO_PORTRAIT_VARIANT_COUNT } from "../../shared/domain/hero-portrait-i
 import {
   getHeroPortraitCacheKey,
   parseHeroPortraitCacheKey,
+  parseHeroPortraitPoseVisualKey,
 } from "../domain/heroPortrait";
 import {
   clearHeroPortraitAssetSession,
   loadHeroPortraitAsset,
 } from "./heroPortraitAssets";
+import { getCdi148NoviceCombatIdleUrl } from "./noviceCdi148CombatPoses";
 import { createBoundedAsyncAssetCache } from "./visualAssetCache";
 import { registerVisualAssetSessionCleaner } from "./visualAssetSession";
 import {
@@ -181,7 +183,7 @@ const visualAssetCache = createBoundedAsyncAssetCache<string>(ENCOUNTER_VISUAL_C
 
 function fallbackDescriptor(key: string): EncounterVisualDescriptor {
   const background = key.includes("background");
-  const hero = parseHeroPortraitCacheKey(key) !== null;
+  const hero = parseHeroPortraitCacheKey(key) !== null || parseHeroPortraitPoseVisualKey(key) !== null;
   const effect = key.startsWith("effect:");
   return {
     key,
@@ -208,15 +210,49 @@ export function getEncounterHeroVisualKeys(): string[] {
 export function resolveEncounterVisualDescriptor(key: string): EncounterVisualDescriptor {
   const staticDescriptor = staticCatalog[key];
   if (staticDescriptor) return staticDescriptor;
+  const heroPoseIdentity = parseHeroPortraitPoseVisualKey(key);
+  if (heroPoseIdentity) {
+    const combatIdleUrl = heroPoseIdentity.classType === "Novice"
+      ? getCdi148NoviceCombatIdleUrl(heroPoseIdentity.gender, heroPoseIdentity.variant)
+      : null;
+    return {
+      key,
+      kind: "hero",
+      version: ENCOUNTER_VISUAL_CATALOG_VERSION,
+      provenance: combatIdleUrl
+        ? "CDI-148 validated Novice combat-idle alpha sprites"
+        : "CDIdle explicit neutral hero-pose fallback",
+      anchor: { x: 0.5, y: 0.93 },
+      scale: 1,
+      fallbackGlyph: "◆",
+      fallback: false,
+      load: combatIdleUrl
+        ? loadedUrl(combatIdleUrl)
+        : () => loadHeroPortraitAsset({
+            classType: heroPoseIdentity.classType,
+            gender: heroPoseIdentity.gender,
+            variant: heroPoseIdentity.variant,
+          }).then((asset) => asset.url),
+    };
+  }
   const heroIdentity = parseHeroPortraitCacheKey(key);
   if (!heroIdentity) return fallbackDescriptor(key);
   const isCdi136Novice = heroIdentity.classType === "Novice";
+  const isCdi137Warrior = heroIdentity.classType === "Guerrier";
+  const isCdi138Rogue = heroIdentity.classType === "Voleur";
+  const isCdi139Archer = heroIdentity.classType === "Archer";
   return {
     key,
     kind: "hero",
     version: ENCOUNTER_VISUAL_CATALOG_VERSION,
     provenance: isCdi136Novice
       ? "CDI-136 validated Novice alpha sprites"
+      : isCdi137Warrior
+        ? "CDI-137 validated Warrior alpha sprites"
+      : isCdi138Rogue
+        ? "CDI-138 validated Rogue alpha sprites"
+      : isCdi139Archer
+        ? "CDI-139 validated Archer alpha sprites"
       : "CDIdle canonical hero spritesheets",
     anchor: { x: 0.5, y: 0.93 },
     scale: 1,

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import type {
   CanonicalDungeonEncounterRecord,
@@ -20,6 +20,7 @@ import {
 } from "../../../src/domain/dungeonChallengeScene";
 import { createDungeonNonCombatSceneView } from "../../../src/domain/dungeonNonCombatScene";
 import { createEncounterView } from "../../../src/domain/dungeonPresentation";
+import { useEncounterPlayback } from "../../../src/hooks/useEncounterPlayback";
 import {
   createEncounterSceneProjection,
   createEncounterSceneTimeline,
@@ -31,16 +32,45 @@ import { createUndercityProgress } from "../../../shared/domain/undercity-progre
 import "../../../src/index.css";
 
 const harnessParams = new URLSearchParams(window.location.search);
+const requestedWarriorCinemaPage = Number(harnessParams.get("warrior-cinema"));
+const warriorCinema = Number.isInteger(requestedWarriorCinemaPage)
+  && requestedWarriorCinemaPage >= 1
+  && requestedWarriorCinemaPage <= 5;
+const requestedRogueCinemaPage = Number(harnessParams.get("rogue-cinema"));
+const rogueCinema = Number.isInteger(requestedRogueCinemaPage)
+  && requestedRogueCinemaPage >= 1
+  && requestedRogueCinemaPage <= 5;
+const requestedArcherCinemaPage = Number(harnessParams.get("archer-cinema"));
+const archerCinema = Number.isInteger(requestedArcherCinemaPage)
+  && requestedArcherCinemaPage >= 1
+  && requestedArcherCinemaPage <= 5;
 const readOnly = harnessParams.get("readonly") === "1";
 const requestedStep = Number(harnessParams.get("step") ?? 2);
 const visibleCount = Number.isInteger(requestedStep) ? Math.max(0, Math.min(12, requestedStep)) : 2;
 const playbackComplete = harnessParams.get("complete") === "1";
-const combatSceneOnly = harnessParams.get("combat-scene") === "1";
-const integratedCombat = harnessParams.get("integrated") === "1";
+const combatSceneOnly = harnessParams.get("combat-scene") === "1" || warriorCinema || rogueCinema || archerCinema;
+const integratedCombat = harnessParams.get("integrated") === "1" || warriorCinema || rogueCinema || archerCinema;
 const advancedCombat = harnessParams.get("advanced-combat") === "1";
 const visualScenario = harnessParams.get("scenario") === "1";
+const continuousContactPilot = harnessParams.get("contact-pilot") === "1";
 const noviceReview = harnessParams.get("novice-review") === "1";
-const animationsEnabled = harnessParams.get("animations") !== "0";
+const warriorReview = harnessParams.get("warrior-review") === "1" || warriorCinema;
+const rogueReview = rogueCinema;
+const archerReview = archerCinema;
+const requestedReviewPage = Number(
+  harnessParams.get("review-page")
+    ?? (warriorCinema
+      ? requestedWarriorCinemaPage
+      : rogueCinema
+        ? requestedRogueCinemaPage
+        : archerCinema
+          ? requestedArcherCinemaPage
+          : 1),
+);
+const reviewPage = Number.isInteger(requestedReviewPage)
+  ? Math.max(1, Math.min(5, requestedReviewPage))
+  : 1;
+const animationsEnabled = !warriorCinema && !rogueCinema && !archerCinema && harnessParams.get("animations") !== "0";
 const requestedBlueprintId = harnessParams.get("blueprint");
 const requestedKingPhaseTwo = harnessParams.get("king-phase") === "2";
 const requestedNonCombatScene = harnessParams.get("non-combat-scene");
@@ -60,15 +90,48 @@ const noviceReviewVisualKeys = [
   "Novice_Male_5",
 ] as const;
 
-function withNoviceReview(record: CanonicalDungeonEncounterRecord): CanonicalDungeonEncounterRecord {
-  if (!noviceReview || !record.initialActors) return record;
+const warriorReviewFirstVariant = (reviewPage - 1) * 2;
+const warriorReviewVisualKeys = [
+  `Guerrier_Female_${warriorReviewFirstVariant}`,
+  `Guerrier_Male_${warriorReviewFirstVariant}`,
+  `Guerrier_Female_${warriorReviewFirstVariant + 1}`,
+  `Guerrier_Male_${warriorReviewFirstVariant + 1}`,
+] as const;
+
+const rogueReviewFirstVariant = (reviewPage - 1) * 2;
+const rogueReviewVisualKeys = [
+  `Voleur_Female_${rogueReviewFirstVariant}`,
+  `Voleur_Male_${rogueReviewFirstVariant}`,
+  `Voleur_Female_${rogueReviewFirstVariant + 1}`,
+  `Voleur_Male_${rogueReviewFirstVariant + 1}`,
+] as const;
+
+const archerReviewFirstVariant = (reviewPage - 1) * 2;
+const archerReviewVisualKeys = [
+  `Archer_Female_${archerReviewFirstVariant}`,
+  `Archer_Male_${archerReviewFirstVariant}`,
+  `Archer_Female_${archerReviewFirstVariant + 1}`,
+  `Archer_Male_${archerReviewFirstVariant + 1}`,
+] as const;
+
+function withHeroReview(record: CanonicalDungeonEncounterRecord): CanonicalDungeonEncounterRecord {
+  const reviewVisualKeys = archerReview
+    ? archerReviewVisualKeys
+    : rogueReview
+    ? rogueReviewVisualKeys
+    : warriorReview
+    ? warriorReviewVisualKeys
+    : noviceReview
+      ? noviceReviewVisualKeys
+      : null;
+  if (!reviewVisualKeys || !record.initialActors) return record;
   return {
     ...record,
     initialActors: {
       ...record.initialActors,
       h: record.initialActors.h.map((actor, index): CanonicalDungeonInitialHeroActor => [
         actor[0],
-        noviceReviewVisualKeys[index % noviceReviewVisualKeys.length]!,
+        reviewVisualKeys[index % reviewVisualKeys.length]!,
         actor[2],
         actor[3],
         actor[4],
@@ -228,6 +291,8 @@ const encounterRecord = {
   ],
   rewards: { gold: 8, loot: [] },
 } satisfies CanonicalDungeonEncounterRecord;
+
+const contactPilotRecord = withHeroReview(encounterRecord);
 
 const advancedCombatRecord = {
   encounterId: "advanced-combat-harness",
@@ -566,12 +631,34 @@ function Harness() {
   const [mutationCount, setMutationCount] = useState(0);
   const [scenarioStep, setScenarioStep] = useState(1);
   const [scenarioReplay, setScenarioReplay] = useState(0);
+  const [contactPilotReplay, setContactPilotReplay] = useState(0);
+  const [contactPilotSeenCounts, setContactPilotSeenCounts] = useState<number[]>([]);
   const [harnessAnimationsEnabled, setHarnessAnimationsEnabled] = useState(animationsEnabled);
   const [heroes, setHeroes] = useState<Hero[]>([
     makeHero({ id: "ariane", name: "Ariane", isActive: true, currentMana: 7 }),
     makeHero({ id: "borin", name: "Borin", isActive: false, currentHp: 16 }),
     makeHero({ id: "celia", name: "Célia", isActive: false, currentHp: 0 }),
   ]);
+  const {
+    encounterPlayback: contactPilotPlayback,
+    playEncounterTranscript: playContactPilot,
+    resetEncounterPlayback: resetContactPilot,
+  } = useEncounterPlayback("dungeon", "browser-contact-pilot");
+
+  useEffect(() => {
+    if (!continuousContactPilot) return undefined;
+    void playContactPilot(contactPilotRecord, { revision: `cdi-113-${contactPilotReplay}` });
+    return () => resetContactPilot("browser-contact-pilot");
+  }, [contactPilotReplay, playContactPilot, resetContactPilot]);
+
+  useEffect(() => {
+    if (!continuousContactPilot || !contactPilotPlayback) return;
+    setContactPilotSeenCounts((counts) => (
+      counts.at(-1) === contactPilotPlayback.visibleCount
+        ? counts
+        : [...counts, contactPilotPlayback.visibleCount]
+    ));
+  }, [contactPilotPlayback]);
   const recordMutation = () => setMutationCount((count) => count + 1);
   const toggleHero = (heroId: string) => {
     recordMutation();
@@ -580,7 +667,7 @@ function Harness() {
 
   if (combatSceneOnly) {
     if (requestedChallenge) {
-      const record = withNoviceReview(createChallengeRecord(requestedChallenge, requestedChallengeOutcome));
+      const record = withHeroReview(createChallengeRecord(requestedChallenge, requestedChallengeOutcome));
       const view = createEncounterView(record, historicalHeroNames, {
         visibleCount,
         complete: playbackComplete,
@@ -598,7 +685,7 @@ function Harness() {
         />
       </main>;
     }
-    const selectedRecord = withNoviceReview(advancedCombat
+    const selectedRecord = continuousContactPilot ? contactPilotRecord : withHeroReview(advancedCombat
       ? advancedCombatRecord
       : requestedBlueprint
       ? createUndercityEncounterRecord(
@@ -610,12 +697,18 @@ function Harness() {
     if (integratedCombat) {
       const scenarioActive = advancedCombat && visualScenario;
       const activeScenarioStep = scenarioActive ? scenarioStep : visibleCount;
-      const encounterView = createEncounterView(selectedRecord, historicalHeroNames, {
-        visibleCount: Math.min(activeScenarioStep, advancedCombatRecord.transcript.length),
-        complete: scenarioActive
-          ? activeScenarioStep > advancedCombatRecord.transcript.length
-          : playbackComplete,
-      });
+      const encounterView = createEncounterView(
+        selectedRecord,
+        historicalHeroNames,
+        continuousContactPilot
+          ? contactPilotPlayback ?? { visibleCount: 0, complete: false }
+          : {
+              visibleCount: Math.min(activeScenarioStep, advancedCombatRecord.transcript.length),
+              complete: scenarioActive
+                ? activeScenarioStep > advancedCombatRecord.transcript.length
+                : playbackComplete,
+            },
+      );
       const view = scenarioActive && encounterView.visualScene
         ? {
             ...encounterView,
@@ -627,7 +720,27 @@ function Harness() {
         : encounterView;
       return <main
         className="mx-auto w-full max-w-[1200px] p-6"
+        data-playback-complete={continuousContactPilot ? contactPilotPlayback?.complete ?? false : undefined}
+        data-playback-seen-counts={continuousContactPilot ? contactPilotSeenCounts.join(",") : undefined}
+        data-playback-visible-count={continuousContactPilot ? contactPilotPlayback?.visibleCount ?? 0 : undefined}
+        data-testid={continuousContactPilot ? "contact-pilot-reader" : undefined}
       >
+        {continuousContactPilot && <nav
+          aria-label="Contrôles du pilote de contact"
+          className="mb-3 flex min-h-12 items-center justify-between gap-3 rounded border border-amber-800 bg-[#110b06] px-3 py-2 text-amber-100"
+        >
+          <span>Pilote de contact automatique · 400 ms par action</span>
+          <button
+            className="rounded border border-amber-700 px-3 py-2"
+            onClick={() => {
+              setContactPilotSeenCounts([]);
+              setContactPilotReplay((replay) => replay + 1);
+            }}
+            type="button"
+          >
+            Rejouer
+          </button>
+        </nav>}
         {scenarioActive && <nav
           aria-label="Contrôles du scénario de combat avancé"
           className="mb-3 flex min-h-12 items-center justify-between gap-3 rounded border border-amber-800 bg-[#110b06] px-3 py-2 text-amber-100"
@@ -699,7 +812,7 @@ function Harness() {
   }
 
   if (nonCombatScene) {
-    const record = withNoviceReview(nonCombatScene === "treasure" ? treasureRecord : restRecord);
+    const record = withHeroReview(nonCombatScene === "treasure" ? treasureRecord : restRecord);
     const timeline = createEncounterSceneTimeline(record, historicalHeroNames);
     const scene = projectEncounterScene(timeline);
     const view = createDungeonNonCombatSceneView(record, timeline, scene);

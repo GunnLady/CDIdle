@@ -8,6 +8,7 @@ import {
 import type { HeroPortraitGender } from "../assets/heroSpriteSheets";
 
 export type HeroPortraitView = Pick<Hero, "id" | "name" | "classType" | "gender" | "spriteIndex">;
+export type HeroPortraitPose = "neutral" | "combat_idle";
 
 export const HERO_SPRITE_SLICES = [
   { x: 64, y: 38, width: 180, height: 280 },
@@ -51,6 +52,16 @@ export function getHeroPortraitCacheKey(
   return `${classType}_${gender}_${variant}`;
 }
 
+export function getHeroPortraitPoseVisualKey(
+  classType: HeroPortraitView["classType"],
+  gender: HeroPortraitGender,
+  variant: number,
+  pose: HeroPortraitPose,
+): string {
+  const identityKey = getHeroPortraitCacheKey(classType, gender, variant);
+  return pose === "neutral" ? identityKey : `${identityKey}@${pose}`;
+}
+
 export function parseHeroPortraitCacheKey(value: string): {
   classType: CanonicalHeroClass;
   gender: HeroPortraitGender;
@@ -65,4 +76,17 @@ export function parseHeroPortraitCacheKey(value: string): {
     || variant < 0
     || variant >= HERO_PORTRAIT_VARIANT_COUNT) return null;
   return { classType, gender: match[2] as HeroPortraitGender, variant };
+}
+
+export function parseHeroPortraitPoseVisualKey(value: string): {
+  classType: CanonicalHeroClass;
+  gender: HeroPortraitGender;
+  variant: number;
+  pose: Exclude<HeroPortraitPose, "neutral">;
+} | null {
+  const match = /^(.+_(?:Male|Female)_\d+)@(combat_idle)$/.exec(value);
+  if (!match) return null;
+  const identity = parseHeroPortraitCacheKey(match[1]);
+  if (!identity) return null;
+  return { ...identity, pose: match[2] as Exclude<HeroPortraitPose, "neutral"> };
 }

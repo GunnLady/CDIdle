@@ -1,6 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
 import { CANONICAL_HERO_CLASSES } from "../shared/domain/hero-classes";
-import { HERO_PORTRAIT_VARIANT_COUNT } from "../shared/domain/hero-portrait-identity";
+import {
+  HERO_PORTRAIT_VARIANT_COUNT,
+  NOVICE_PORTRAIT_VARIANT_COUNT,
+} from "../shared/domain/hero-portrait-identity";
 import { UNDERCITY_ZONES } from "../shared/domain/undercity";
 import {
   clearEncounterVisualAssetSession,
@@ -30,6 +33,72 @@ describe("encounter visual catalog", () => {
       expect(descriptor.load).toBeTypeOf("function");
     }
     expect(resolveEncounterVisualDescriptor("Mage_Female_7").key).toBe("Mage_Female_7");
+  });
+
+  it("loads all twenty CDI-148 combat-idle identities and keeps neutral fallback for other classes", async () => {
+    const noviceIdentities = (["Male", "Female"] as const).flatMap((gender) => (
+      Array.from({ length: NOVICE_PORTRAIT_VARIANT_COUNT }, (_, variant) => ({ gender, variant }))
+    ));
+    const noviceAssets = await Promise.all(noviceIdentities.map(({ gender, variant }) => (
+      loadEncounterVisualAsset(`Novice_${gender}_${variant}@combat_idle`)
+    )));
+    for (const [index, asset] of noviceAssets.entries()) {
+      const { gender, variant } = noviceIdentities[index];
+      expect(asset).toMatchObject({
+        status: "ready",
+        descriptor: { provenance: "CDI-148 validated Novice combat-idle alpha sprites" },
+      });
+      expect(asset.url).toContain(
+        `novice-${gender.toLowerCase()}-${String(variant + 1).padStart(2, "0")}-combat-idle-v1`,
+      );
+    }
+
+    const wrappedNovice = await loadEncounterVisualAsset("Novice_Male_10@combat_idle");
+    expect(wrappedNovice.url).toContain("novice-male-01-combat-idle-v1");
+
+    const otherClass = resolveEncounterVisualDescriptor("Mage_Female_7@combat_idle");
+    expect(otherClass).toMatchObject({
+      provenance: "CDIdle explicit neutral hero-pose fallback",
+      kind: "hero",
+      fallback: false,
+    });
+    expect(otherClass.load).toBeTypeOf("function");
+  });
+
+  it("loads CDI-137 Warrior neutral sprites through stable legacy identity keys", async () => {
+    const first = await loadEncounterVisualAsset("Guerrier_Male_0");
+    const wrapped = await loadEncounterVisualAsset("Guerrier_Female_19");
+
+    expect(first).toMatchObject({
+      status: "ready",
+      descriptor: { provenance: "CDI-137 validated Warrior alpha sprites" },
+    });
+    expect(first.url).toContain("warrior-male-01-v1");
+    expect(wrapped.url).toContain("warrior-female-10-v1");
+  });
+
+  it("loads CDI-138 Rogue neutral sprites through stable legacy identity keys", async () => {
+    const first = await loadEncounterVisualAsset("Voleur_Male_0");
+    const wrapped = await loadEncounterVisualAsset("Voleur_Female_19");
+
+    expect(first).toMatchObject({
+      status: "ready",
+      descriptor: { provenance: "CDI-138 validated Rogue alpha sprites" },
+    });
+    expect(first.url).toContain("rogue-male-01-v1");
+    expect(wrapped.url).toContain("rogue-female-10-v1");
+  });
+
+  it("loads CDI-139 Archer neutral sprites through stable legacy identity keys", async () => {
+    const first = await loadEncounterVisualAsset("Archer_Male_0");
+    const wrapped = await loadEncounterVisualAsset("Archer_Female_19");
+
+    expect(first).toMatchObject({
+      status: "ready",
+      descriptor: { provenance: "CDI-139 validated Archer alpha sprites" },
+    });
+    expect(first.url).toContain("archer-male-01-v1");
+    expect(wrapped.url).toContain("archer-female-10-v1");
   });
 
   it("aligns available UnderCity packs with immutable blueprint member keys", () => {

@@ -1,6 +1,9 @@
 import type { CanonicalHeroClass } from "../../shared/domain/hero-classes";
 import { HERO_SPRITE_SHEETS, type HeroPortraitGender } from "./heroSpriteSheets";
 import { getCdi136NovicePortraitUrl } from "./noviceCdi136Portraits";
+import { getCdi137WarriorPortraitUrl } from "./warriorCdi137Portraits";
+import { getCdi138RoguePortraitUrl } from "./rogueCdi138Portraits";
+import { getCdi139ArcherPortraitUrl } from "./archerCdi139Portraits";
 import { HERO_SPRITE_SLICES, getHeroPortraitCacheKey } from "../domain/heroPortrait";
 import { findHeroPortraitOpaqueBounds, fitHeroPortraitToFrame } from "./heroPortraitFraming";
 import { createBoundedAsyncAssetCache } from "./visualAssetCache";
@@ -100,6 +103,30 @@ export async function loadHeroPortraitAsset(request: HeroPortraitAssetRequest): 
   if (classType === "Novice") {
     return {
       url: getCdi136NovicePortraitUrl(request.gender, request.variant),
+      requestedKey,
+      resolvedKey: requestedKey,
+      fallback: false,
+    };
+  }
+  if (classType === "Guerrier") {
+    return {
+      url: getCdi137WarriorPortraitUrl(request.gender, request.variant),
+      requestedKey,
+      resolvedKey: requestedKey,
+      fallback: false,
+    };
+  }
+  if (classType === "Voleur") {
+    return {
+      url: getCdi138RoguePortraitUrl(request.gender, request.variant),
+      requestedKey,
+      resolvedKey: requestedKey,
+      fallback: false,
+    };
+  }
+  if (classType === "Archer") {
+    return {
+      url: getCdi139ArcherPortraitUrl(request.gender, request.variant),
       requestedKey,
       resolvedKey: requestedKey,
       fallback: false,

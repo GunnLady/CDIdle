@@ -2,7 +2,8 @@ param(
   [Parameter(Mandatory = $true)] [string]$InputPath,
   [Parameter(Mandatory = $true)] [string]$ReferencePath,
   [Parameter(Mandatory = $true)] [string]$OutputPath,
-  [switch]$PreserveCanvasFraming
+  [switch]$PreserveCanvasFraming,
+  [switch]$MatchReferenceHeight
 )
 
 $ErrorActionPreference = "Stop"
@@ -10,6 +11,7 @@ Add-Type -AssemblyName System.Drawing
 
 $sourceCode = @'
 using System;
+using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
@@ -22,11 +24,16 @@ public static class DungeonCharacterSpritePreparation
         return (int)Math.Max(0, Math.Min(255, Math.Round(value)));
     }
 
-    public static void Prepare(string inputPath, string referencePath, string outputPath, bool preserveCanvasFraming)
+    public static void Prepare(
+        string inputPath,
+        string referencePath,
+        string outputPath,
+        bool preserveCanvasFraming,
+        bool matchReferenceHeight)
     {
         using (var source = new Bitmap(inputPath))
         using (var reference = new Bitmap(referencePath))
-        using (var extracted = ExtractChroma(source))
+        using (var extracted = ExtractSource(source, matchReferenceHeight))
         {
             var sourceBounds = preserveCanvasFraming
                 ? new Rectangle(0, 0, source.Width, source.Height)
@@ -34,6 +41,28 @@ public static class DungeonCharacterSpritePreparation
             var targetBounds = preserveCanvasFraming
                 ? new Rectangle(0, 0, reference.Width, reference.Height)
                 : FindAlphaBounds(reference, 32);
+            var drawBounds = targetBounds;
+            if (matchReferenceHeight)
+            {
+                var scale = targetBounds.Height / (double)sourceBounds.Height;
+                var width = Math.Max(1, (int)Math.Round(sourceBounds.Width * scale));
+                var height = Math.Max(1, (int)Math.Round(sourceBounds.Height * scale));
+                if (width > reference.Width || height > reference.Height)
+                    throw new InvalidOperationException(String.Format(
+                        "Aspect-preserving sprite would overflow the {0}x{1} reference canvas: {2}x{3}.",
+                        reference.Width,
+                        reference.Height,
+                        width,
+                        height));
+                drawBounds = new Rectangle(
+                    (reference.Width - width) / 2,
+                    targetBounds.Bottom - height,
+                    width,
+                    height);
+                if (drawBounds.Left < 0 || drawBounds.Top < 0 ||
+                    drawBounds.Right > reference.Width || drawBounds.Bottom > reference.Height)
+                    throw new InvalidOperationException("Aspect-preserving sprite exceeds the reference canvas.");
+            }
             using (var output = new Bitmap(reference.Width, reference.Height, PixelFormat.Format32bppArgb))
             using (var graphics = Graphics.FromImage(output))
             using (var attributes = new ImageAttributes())
@@ -47,7 +76,7 @@ public static class DungeonCharacterSpritePreparation
                 attributes.SetWrapMode(WrapMode.TileFlipXY);
                 graphics.DrawImage(
                     extracted,
-                    targetBounds,
+                    drawBounds,
                     sourceBounds.X,
                     sourceBounds.Y,
                     sourceBounds.Width,
@@ -63,7 +92,15 @@ public static class DungeonCharacterSpritePreparation
                 }
                 else if (IsBrightGreen(keyColor))
                 {
-                    RemoveGreenSpill(output);
+                    if (matchReferenceHeight) RemoveResidualBrightChroma(output);
+                    else RemoveGreenSpill(output);
+                }
+
+                if (matchReferenceHeight)
+                {
+                    KeepLargestVisibleComponent(output, 4);
+                    AlignToReference(output, targetBounds);
+                    ValidateMatchedOutput(output, targetBounds);
                 }
 
                 var directory = Path.GetDirectoryName(outputPath);
@@ -76,6 +113,131 @@ public static class DungeonCharacterSpritePreparation
         }
     }
 
+    private static void KeepLargestVisibleComponent(Bitmap image, byte threshold)
+    {
+        var labels = new int[image.Width * image.Height];
+        var queue = new Queue<Point>();
+        var componentSizes = new List<int> { 0 };
+        var componentId = 0;
+        for (var y = 0; y < image.Height; y++)
+        for (var x = 0; x < image.Width; x++)
+        {
+            var root = y * image.Width + x;
+            if (labels[root] != 0 || image.GetPixel(x, y).A <= threshold) continue;
+            componentId++;
+            var size = 0;
+            labels[root] = componentId;
+            queue.Enqueue(new Point(x, y));
+            while (queue.Count > 0)
+            {
+                var point = queue.Dequeue();
+                size++;
+                for (var offsetY = -1; offsetY <= 1; offsetY++)
+                for (var offsetX = -1; offsetX <= 1; offsetX++)
+                {
+                    if (offsetX == 0 && offsetY == 0) continue;
+                    var neighborX = point.X + offsetX;
+                    var neighborY = point.Y + offsetY;
+                    if (neighborX < 0 || neighborY < 0 || neighborX >= image.Width || neighborY >= image.Height)
+                        continue;
+                    var neighbor = neighborY * image.Width + neighborX;
+                    if (labels[neighbor] != 0 || image.GetPixel(neighborX, neighborY).A <= threshold) continue;
+                    labels[neighbor] = componentId;
+                    queue.Enqueue(new Point(neighborX, neighborY));
+                }
+            }
+            componentSizes.Add(size);
+        }
+
+        if (componentId == 0)
+            throw new InvalidOperationException("Prepared sprite contains no visible component.");
+        var largestComponentId = 1;
+        for (var id = 2; id < componentSizes.Count; id++)
+            if (componentSizes[id] > componentSizes[largestComponentId]) largestComponentId = id;
+
+        for (var y = 0; y < image.Height; y++)
+        for (var x = 0; x < image.Width; x++)
+        {
+            var index = y * image.Width + x;
+            if (labels[index] != largestComponentId)
+                image.SetPixel(x, y, Color.Transparent);
+        }
+    }
+
+    private static void AlignToReference(Bitmap image, Rectangle referenceBounds)
+    {
+        var bounds = FindAlphaBounds(image, 32);
+        var offsetX = (int)Math.Round(image.Width / 2.0 - (bounds.Left + bounds.Width / 2.0));
+        var offsetY = referenceBounds.Bottom - bounds.Bottom;
+        var shiftedBounds = new Rectangle(
+            bounds.Left + offsetX,
+            bounds.Top + offsetY,
+            bounds.Width,
+            bounds.Height);
+        if (shiftedBounds.Left < 0 || shiftedBounds.Top < 0 ||
+            shiftedBounds.Right > image.Width || shiftedBounds.Bottom > image.Height)
+            throw new InvalidOperationException("Aligned sprite would exceed the reference canvas.");
+        if (offsetX == 0 && offsetY == 0) return;
+
+        using (var source = (Bitmap)image.Clone())
+        using (var graphics = Graphics.FromImage(image))
+        {
+            graphics.Clear(Color.Transparent);
+            graphics.CompositingMode = CompositingMode.SourceCopy;
+            graphics.DrawImageUnscaled(source, offsetX, offsetY);
+            graphics.Flush();
+        }
+    }
+
+    private static void ValidateMatchedOutput(Bitmap image, Rectangle referenceBounds)
+    {
+        var bounds = FindAlphaBounds(image, 32);
+        if (bounds.Bottom != referenceBounds.Bottom)
+            throw new InvalidOperationException("Prepared sprite feet do not match the reference baseline.");
+        var pivot = bounds.Left + bounds.Width / 2.0;
+        if (Math.Abs(pivot - image.Width / 2.0) > 1.0)
+            throw new InvalidOperationException("Prepared sprite horizontal pivot is not centered.");
+        // KeepLargestVisibleComponent uses the same threshold. Recounting at a
+        // higher alpha can split a single anti-aliased component into several
+        // false islands even though no detached visible pixels remain.
+        if (CountVisibleComponents(image, 4) != 1)
+            throw new InvalidOperationException("Prepared sprite contains isolated visible components.");
+    }
+
+    private static int CountVisibleComponents(Bitmap image, byte threshold)
+    {
+        var visited = new bool[image.Width * image.Height];
+        var queue = new Queue<Point>();
+        var count = 0;
+        for (var y = 0; y < image.Height; y++)
+        for (var x = 0; x < image.Width; x++)
+        {
+            var root = y * image.Width + x;
+            if (visited[root] || image.GetPixel(x, y).A <= threshold) continue;
+            count++;
+            visited[root] = true;
+            queue.Enqueue(new Point(x, y));
+            while (queue.Count > 0)
+            {
+                var point = queue.Dequeue();
+                for (var offsetY = -1; offsetY <= 1; offsetY++)
+                for (var offsetX = -1; offsetX <= 1; offsetX++)
+                {
+                    if (offsetX == 0 && offsetY == 0) continue;
+                    var neighborX = point.X + offsetX;
+                    var neighborY = point.Y + offsetY;
+                    if (neighborX < 0 || neighborY < 0 || neighborX >= image.Width || neighborY >= image.Height)
+                        continue;
+                    var neighbor = neighborY * image.Width + neighborX;
+                    if (visited[neighbor] || image.GetPixel(neighborX, neighborY).A <= threshold) continue;
+                    visited[neighbor] = true;
+                    queue.Enqueue(new Point(neighborX, neighborY));
+                }
+            }
+        }
+        return count;
+    }
+
     private static bool IsBrightMagenta(Color color)
     {
         return color.R > 100 && color.B > 90 && color.G < 40 &&
@@ -85,6 +247,17 @@ public static class DungeonCharacterSpritePreparation
     private static bool IsBrightGreen(Color color)
     {
         return color.G > 180 && color.G > color.R + 80 && color.G > color.B + 80;
+    }
+
+    private static void RemoveResidualBrightChroma(Bitmap image)
+    {
+        for (var y = 0; y < image.Height; y++)
+        for (var x = 0; x < image.Width; x++)
+        {
+            var color = image.GetPixel(x, y);
+            if (color.A > 0 && (IsBrightMagenta(color) || IsBrightGreen(color)))
+                image.SetPixel(x, y, Color.Transparent);
+        }
     }
 
     private static void RemoveGreenSpill(Bitmap image)
@@ -140,7 +313,7 @@ public static class DungeonCharacterSpritePreparation
         }
     }
 
-    private static Bitmap ExtractChroma(Bitmap source)
+    private static Bitmap ExtractChroma(Bitmap source, bool useDistanceChroma)
     {
         const int border = 12;
         double keyR = 0, keyG = 0, keyB = 0, count = 0;
@@ -163,7 +336,7 @@ public static class DungeonCharacterSpritePreparation
         {
             var color = source.GetPixel(x, y);
             double alpha;
-            if (isGreenKey)
+            if (isGreenKey && !useDistanceChroma)
             {
                 // With a pure green screen, channel dominance gives the actual
                 // coverage of pale one-pixel details (whiskers, hair, weapon
@@ -197,6 +370,26 @@ public static class DungeonCharacterSpritePreparation
         return output;
     }
 
+    private static Bitmap ExtractSource(Bitmap source, bool useDistanceChroma)
+    {
+        var corners = new[]
+        {
+            source.GetPixel(0, 0),
+            source.GetPixel(source.Width - 1, 0),
+            source.GetPixel(0, source.Height - 1),
+            source.GetPixel(source.Width - 1, source.Height - 1)
+        };
+        var hasNativeTransparency = false;
+        foreach (var corner in corners)
+            if (corner.A < 250) hasNativeTransparency = true;
+
+        if (!hasNativeTransparency) return ExtractChroma(source, useDistanceChroma);
+        return source.Clone(
+            new Rectangle(0, 0, source.Width, source.Height),
+            PixelFormat.Format32bppArgb
+        );
+    }
+
     private static Rectangle FindAlphaBounds(Bitmap image, byte threshold)
     {
         var minX = image.Width;
@@ -221,5 +414,15 @@ if (-not ("DungeonCharacterSpritePreparation" -as [type])) {
   Add-Type -TypeDefinition $sourceCode -ReferencedAssemblies System.Drawing
 }
 
-[DungeonCharacterSpritePreparation]::Prepare($InputPath, $ReferencePath, $OutputPath, $PreserveCanvasFraming.IsPresent)
+if ($PreserveCanvasFraming -and $MatchReferenceHeight) {
+  throw "PreserveCanvasFraming and MatchReferenceHeight cannot be combined."
+}
+
+[DungeonCharacterSpritePreparation]::Prepare(
+  $InputPath,
+  $ReferencePath,
+  $OutputPath,
+  $PreserveCanvasFraming.IsPresent,
+  $MatchReferenceHeight.IsPresent
+)
 Write-Output "Prepared dungeon character sprite at $OutputPath"

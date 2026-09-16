@@ -85,10 +85,6 @@
   transform-origin: 50% 100%;
 }
 
-.actor[data-active="true"] .idleLayer {
-  animation: none;
-}
-
 .reactionLayer {
   transform-origin: 50% 82%;
 }
@@ -97,29 +93,6 @@
   display: grid;
   height: clamp(5.5rem, 15cqi, 9.2rem);
   place-items: end center;
-}
-
-.visualShell::before {
-  position: absolute;
-  z-index: -1;
-  inset: 7% 4% 16%;
-  border-radius: 48%;
-  content: "";
-  opacity: 0;
-  pointer-events: none;
-}
-
-.actor[data-active="true"] .visualShell::before {
-  border: 2px solid var(--actor-aura-solid);
-  box-shadow:
-    0 0 0.15rem #fff4bd,
-    0 0 0.65rem var(--actor-aura-solid),
-    0 0 1.35rem var(--actor-aura-glow);
-  animation: aura-diffusion 400ms ease-out both;
-}
-
-.actor[data-active="true"][data-team="enemies"] .visualShell::before {
-  box-shadow: 0 0 0.15rem #ffd1ca, 0 0 0.65rem var(--actor-aura-solid), 0 0 1.35rem var(--actor-aura-glow);
 }
 
 .sprite {
@@ -239,7 +212,7 @@
 }
 
 .motionLayer[data-motion="melee"] {
-  animation: melee-action 400ms cubic-bezier(0.35, 0, 0.3, 1) both;
+  animation: melee-action var(--combat-contact-duration) cubic-bezier(0.35, 0, 0.3, 1) both;
 }
 
 .motionLayer[data-motion="ranged"] {
@@ -660,7 +633,7 @@
 @keyframes melee-action {
   0% { transform: translateX(0) rotate(0); }
   18% { transform: translateX(calc(var(--team-direction) * -0.22rem)) rotate(calc(var(--team-direction) * -2deg)); }
-  50% { transform: translateX(calc(var(--team-direction) * 1.4rem)) rotate(calc(var(--team-direction) * 3deg)); }
+  40% { transform: translateX(calc(var(--team-direction) * 1.4rem)) rotate(calc(var(--team-direction) * 3deg)); }
   62% { transform: translateX(calc(var(--team-direction) * 1.08rem)); }
   100% { transform: translateX(0) rotate(0); }
 }
@@ -684,26 +657,19 @@
 }
 
 @keyframes actor-impact {
-  0%, 42%, 100% { filter: none; transform: translateX(0); }
-  50% { filter: brightness(1.45) saturate(0.65); transform: translateX(calc(var(--team-direction) * 0.42rem)); }
-  65% { transform: translateX(calc(var(--team-direction) * -0.18rem)); }
+  0%, 32%, 100% { filter: none; transform: translateX(0); }
+  40% { filter: brightness(1.45) saturate(0.65); transform: translateX(calc(var(--team-direction) * 0.42rem)); }
+  55% { transform: translateX(calc(var(--team-direction) * -0.18rem)); }
 }
 
 @keyframes actor-dodge {
   0%, 100% { transform: translateX(0); }
-  44% { transform: translateX(calc(var(--team-direction) * 0.9rem)); }
+  40% { transform: translateX(calc(var(--team-direction) * 0.9rem)); }
 }
 
 @keyframes actor-ko {
-  0%, 45% { filter: none; transform: translateY(0) rotate(0); }
+  0%, 40% { filter: none; transform: translateY(0) rotate(0); }
   100% { filter: grayscale(0.75) brightness(0.65); transform: translateY(0.45rem) rotate(calc(var(--team-direction) * 8deg)); }
-}
-
-@keyframes aura-diffusion {
-  0% { opacity: 0; transform: scale(0.78); }
-  16% { opacity: 1; transform: scale(0.9); }
-  58% { opacity: 0.72; transform: scale(1.08); }
-  100% { opacity: 0; transform: scale(1.28); }
 }
 
 @keyframes active-actor-outline {
@@ -810,7 +776,6 @@
 .scene[data-animations="disabled"] .motionLayer,
 .scene[data-animations="disabled"] .idleLayer,
 .scene[data-animations="disabled"] .reactionLayer,
-.scene[data-animations="disabled"] .visualShell::before,
 .scene[data-animations="disabled"] .actor[data-active="true"] .sprite,
 .scene[data-animations="disabled"] .actor[data-active="true"] .visualShell > span,
 .scene[data-animations="disabled"] .effect,
@@ -856,11 +821,6 @@
   transform: translateX(-50%);
 }
 
-.scene[data-animations="disabled"] .actor[data-active="true"] .visualShell::before {
-  opacity: 0.78;
-  transform: none;
-}
-
 .scene[data-animations="disabled"] .actor[data-active="true"] .sprite,
 .scene[data-animations="disabled"] .actor[data-active="true"] .visualShell > span {
   filter:
@@ -875,7 +835,6 @@
   .motionLayer,
   .idleLayer,
   .reactionLayer,
-  .visualShell::before,
   .actor[data-active="true"] .sprite,
   .actor[data-active="true"] .visualShell > span,
   .effect,
@@ -919,11 +878,6 @@
     top: calc(-1rem - var(--effect-static-y));
     opacity: 1;
     transform: translateX(-50%);
-  }
-
-  .actor[data-active="true"] .visualShell::before {
-    opacity: 0.78;
-    transform: none;
   }
 
   .actor[data-active="true"] .sprite,

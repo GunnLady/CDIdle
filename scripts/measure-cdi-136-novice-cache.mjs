@@ -6,9 +6,37 @@ import { chromium } from "@playwright/test";
 
 const projectRoot = resolve(import.meta.dirname, "..");
 const assetDirectory = join(projectRoot, "dist", "assets");
-const assetPattern = /^novice-(?:male|female)-\d{2}-v1-[\w-]+\.png$/;
+const combatIdle = process.argv.includes("--combat-idle");
+const warrior = process.argv.includes("--warrior");
+const rogue = process.argv.includes("--rogue");
+const archer = process.argv.includes("--archer");
+assert(
+  [combatIdle, warrior, rogue, archer].filter(Boolean).length <= 1,
+  "Choose only one of --combat-idle, --warrior, --rogue or --archer",
+);
+const assetPattern = archer
+  ? /^archer-(?:male|female)-\d{2}-v1-[\w-]+\.png$/
+  : rogue
+  ? /^rogue-(?:male|female)-\d{2}-v1-[\w-]+\.png$/
+  : warrior
+  ? /^warrior-(?:male|female)-\d{2}-v1-[\w-]+\.png$/
+  : combatIdle
+  ? /^novice-(?:male|female)-\d{2}-combat-idle-v1-[\w-]+\.png$/
+  : /^novice-(?:male|female)-\d{2}-v1-[\w-]+\.png$/;
+const assetLabel = archer
+  ? "CDI-139 neutral Archer"
+  : rogue
+  ? "CDI-138 neutral Rogue"
+  : warrior
+  ? "CDI-137 neutral Warrior"
+  : combatIdle ? "CDI-148 combat-idle" : "CDI-136 neutral";
+const resourcePrefix = archer ? "archer-" : rogue ? "rogue-" : warrior ? "warrior-" : "novice-";
 const assetFiles = readdirSync(assetDirectory).filter((file) => assetPattern.test(file)).sort();
-assert.equal(assetFiles.length, 20, "The production build must contain exactly 20 CDI-136 Novice sprites");
+assert.equal(
+  assetFiles.length,
+  20,
+  `The production build must contain exactly 20 ${assetLabel} sprites`,
+);
 
 function readPngDimensions(path) {
   const header = readFileSync(path).subarray(0, 24);
@@ -59,14 +87,14 @@ async function readTimings(page) {
   await page.waitForFunction(() => (
     [...document.images].length === 20 && [...document.images].every((image) => image.complete && image.naturalWidth > 0)
   ));
-  return page.evaluate(() => performance.getEntriesByType("resource")
-    .filter((entry) => entry.name.includes("/assets/novice-"))
+  return page.evaluate((prefix) => performance.getEntriesByType("resource")
+    .filter((entry) => entry.name.includes(`/assets/${prefix}`))
     .map((entry) => ({
       name: entry.name,
       transferSize: entry.transferSize,
       encodedBodySize: entry.encodedBodySize,
       decodedBodySize: entry.decodedBodySize,
-    })));
+    })), resourcePrefix);
 }
 
 try {
@@ -82,6 +110,13 @@ try {
 
   const byLargest = [...assets].sort((left, right) => right.bytes - left.bytes);
   console.log(JSON.stringify({
+    mode: archer
+      ? "archer_neutral"
+      : rogue
+        ? "rogue_neutral"
+        : warrior
+          ? "warrior_neutral"
+          : combatIdle ? "combat_idle" : "novice_neutral",
     assets: assets.length,
     dimensions: [...new Set(assets.map(({ width, height }) => `${width}x${height}`))],
     fileBytes: assets.reduce((sum, asset) => sum + asset.bytes, 0),

@@ -47,9 +47,9 @@ mouvement court d’abord, une ou deux poses seulement si le geste reste illisib
 | Classe | Ressources examinées | Faits techniques | Verdict utilisateur | Suite |
 | --- | --- | --- | --- | --- |
 | Novice | `src/assets/images/human-novice-male.jpg`, `human-novice-female.jpg` | Deux planches JPEG 20 variantes, fond vert, silhouettes frontales chibi ; extraction runtime historique | À refaire | CDI-136 : premier étalon héros, préserver les quarante idées identitaires |
-| Guerrier | Deux planches PNG 20 variantes | Bases historiques à adapter après validation Novice | À refaire | CDI-137 |
-| Voleur | Deux planches PNG 20 variantes | Bases historiques à adapter après validation Novice | À refaire | CDI-138 |
-| Archer | Deux planches PNG 20 variantes | Bases historiques à adapter après validation Novice | À refaire | CDI-139 |
+| Guerrier | 20 PNG alpha individuels `341 × 692`, dix hommes et dix femmes | Nouvelles bases neutres dérivées une à une des Novices ; index historiques 0–19 repliés de façon stable vers 0–9 du même genre | Validé | CDI-137 terminé ; garde de combat séparée dans CDI-149 |
+| Voleur | 20 PNG alpha individuels `341 × 692`, dix hommes et dix femmes | Nouvelles bases neutres dérivées une à une des Novices ; index historiques 0–19 repliés de façon stable vers 0–9 du même genre | Validé | CDI-138 terminé ; garde de combat séparée dans CDI-150 |
+| Archer | 20 PNG alpha individuels `341 × 692`, dix hommes et dix femmes | Nouvelles bases neutres dérivées une à une des Novices ; index historiques 0–19 repliés de façon stable vers 0–9 du même genre | Validé | CDI-139 terminé ; garde de combat séparée dans CDI-151 |
 | Mage | Deux planches PNG 20 variantes | Bases historiques à adapter après validation Novice | À refaire | CDI-140 |
 | Acolyte | Deux planches PNG 20 variantes | Bases historiques à adapter après validation Novice | À refaire | CDI-141 |
 | Aède | Deux planches PNG 20 variantes | Bases historiques à adapter après validation Novice | À refaire | CDI-142 |
@@ -165,9 +165,9 @@ du verdict. Aucun ticket A2 Cour n’est nécessaire.
 
 ## Limites actuelles
 
-- Les dix classes sont confirmées à refaire ; CDI-136–145 sont créés. Aucune image n’est encore produite.
-- CDI-136 livre le Novice en premier. Une fois validé, il rejoint les cinq références pour CDI-137–145.
+- Les dix classes sont confirmées à refaire ; CDI-136–145 sont créés. Les bases Novice CDI-136, Guerrier CDI-137, Voleur CDI-138 et Archer CDI-139 sont produites, intégrées et validées.
+- Les bases Novice validées ont rejoint les cinq références pour CDI-137–145 ; CDI-140–145 restent à produire.
 - Le tri des cinq zones est terminé : Égouts, Citernes et Cour sont conservés intégralement ; Galeries et Bastion ont leurs tickets A2 bornés.
 - CDI-146 porte les onze humains des Galeries et bloque leurs consommateurs jusqu’aux cinq validations d’écran.
 - CDI-147 porte les trois reprises ciblées du Bastion et bloque leurs consommateurs jusqu’aux deux validations d’écran.
-- Aucun sprite, pose, code applicatif ou budget n’a été modifié par ce relevé.
+- Les livraisons postérieures au relevé sont tracées dans leurs tickets ; ce document conserve le verdict initial et reflète désormais les bases clôturées.

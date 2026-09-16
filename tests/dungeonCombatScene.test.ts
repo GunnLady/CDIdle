@@ -1,9 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { UNDERCITY_ZONES } from "../shared/domain/undercity";
 import {
+  DUNGEON_COMBAT_CONTACT_TIMELINE,
   DUNGEON_COMBAT_EFFECT_LIMIT,
   createDungeonCombatSceneView,
 } from "../src/domain/dungeonCombatScene";
+import { getDungeonCombatActionProfile } from "../src/domain/dungeonCombatActionProfile";
+import { ENCOUNTER_PLAYBACK_STEP_MS } from "../src/domain/encounterPlayback";
 import type {
   EncounterSceneActor,
   EncounterSceneImpact,
@@ -104,6 +107,42 @@ function scene(overrides: Partial<EncounterSceneState> = {}): EncounterSceneStat
 }
 
 describe("dungeon combat scene presentation", () => {
+  it("keeps the contact markers inside the fixed reader step", () => {
+    expect(DUNGEON_COMBAT_CONTACT_TIMELINE).toEqual({
+      prepareMs: 0,
+      releaseMs: 72,
+      contactMs: 160,
+      recoverMs: 248,
+      idleMs: ENCOUNTER_PLAYBACK_STEP_MS,
+    });
+    expect(Object.values(DUNGEON_COMBAT_CONTACT_TIMELINE)).toEqual(
+      [...Object.values(DUNGEON_COMBAT_CONTACT_TIMELINE)].sort((left, right) => left - right),
+    );
+  });
+
+  it("routes structured skills without inferring their gesture from damage type", () => {
+    expect(getDungeonCombatActionProfile(step({
+      type: "hero.skill.damage",
+      skillId: "earthen_fist",
+      damageType: "earth",
+    }))).toBe("melee");
+    expect(getDungeonCombatActionProfile(step({
+      type: "hero.skill.damage",
+      skillId: "flame_thrower",
+      damageType: "physical",
+    }))).toBe("projectile");
+    expect(getDungeonCombatActionProfile(step({
+      type: "hero.skill.damage",
+      skillId: "fire_bolt",
+      damageType: "physical",
+    }))).toBe("magic");
+    expect(getDungeonCombatActionProfile(step({
+      type: "hero.skill.damage",
+      skillId: "future_physical_skill",
+      damageType: "physical",
+    }))).toBe("neutral");
+  });
+
   it("uses the approved CDIdle formation and depth scale for four heroes and three enemies", () => {
     const state = scene({
       actors: [
@@ -134,6 +173,39 @@ describe("dungeon combat scene presentation", () => {
     expect(view.actors[1].standard.scale).toBeLessThan(view.actors[3].standard.scale);
     expect(view.actors[4]).toMatchObject({ visualKey: "undercity:rat-pack:a", role: "Combattant" });
     expect(view.environment).toBe("sewers");
+  });
+
+  it("uses explicit neutral and combat-idle pose keys without changing hero identity", () => {
+    const actors = [
+      actor("novice", "heroes", 0, { visualKey: "Novice_Male_0" }),
+      actor("enemy-0", "enemies", 0),
+    ];
+    const entry = createDungeonCombatSceneView(scene({
+      actors,
+      activeStep: step({ type: "encounter.started", sourceActorId: null, impacts: [] }),
+    }));
+    const idle = createDungeonCombatSceneView(scene({ actors, activeStep: null, visibleCount: 1 }));
+    const action = createDungeonCombatSceneView(scene({ actors }));
+    const result = createDungeonCombatSceneView(scene({
+      actors,
+      activeStep: null,
+      complete: true,
+      result: "victory",
+    }));
+
+    expect(entry.actors[0]).toMatchObject({
+      visualKey: "Novice_Male_0@combat_idle",
+      visualPose: "combat_idle",
+    });
+    expect(idle.actors[0]).toMatchObject({
+      visualKey: "Novice_Male_0@combat_idle",
+      visualPose: "combat_idle",
+    });
+    expect(action.actors[0]).toMatchObject({
+      visualKey: "Novice_Male_0@combat_idle",
+      visualPose: "combat_idle",
+    });
+    expect(result.actors[0]).toMatchObject({ visualKey: "Novice_Male_0", visualPose: "neutral" });
   });
 
   it("selects the canonical environment for every UnderCity blueprint", () => {
@@ -622,34 +694,52 @@ describe("dungeon combat scene presentation", () => {
     expect(support.actionEffects[0]).toMatchObject({ kind: "support", targetActorId: "enemy-1" });
   });
 
-  it("preserves ordered multi-hit values, criticals and the lethal target", () => {
+  it("preserves five ordered impacts, criticals and the lethal target", () => {
     const hits = [
       impact("hit-1", "enemy-0", {
         hit: 1,
-        hitCount: 3,
+        hitCount: 5,
         critical: false,
         announcedValue: 3,
         appliedValue: 3,
-        hp: { before: 10, after: 7, maximum: 20 },
+        hp: { before: 20, after: 17, maximum: 20 },
         knockedOutAfter: false,
       }),
       impact("hit-2", "enemy-0", {
         hit: 2,
-        hitCount: 3,
+        hitCount: 5,
         critical: true,
         announcedValue: 4,
         appliedValue: 4,
-        hp: { before: 7, after: 3, maximum: 20 },
+        hp: { before: 17, after: 13, maximum: 20 },
         knockedOutAfter: false,
       }),
       impact("hit-3", "enemy-0", {
-        kind: "defeat",
         hit: 3,
-        hitCount: 3,
+        hitCount: 5,
+        critical: false,
+        announcedValue: 3,
+        appliedValue: 3,
+        hp: { before: 13, after: 10, maximum: 20 },
+        knockedOutAfter: false,
+      }),
+      impact("hit-4", "enemy-0", {
+        hit: 4,
+        hitCount: 5,
         critical: false,
         announcedValue: 5,
-        appliedValue: 3,
-        hp: { before: 3, after: 0, maximum: 20 },
+        appliedValue: 5,
+        hp: { before: 10, after: 5, maximum: 20 },
+        knockedOutAfter: false,
+      }),
+      impact("hit-5", "enemy-0", {
+        kind: "defeat",
+        hit: 5,
+        hitCount: 5,
+        critical: false,
+        announcedValue: 7,
+        appliedValue: 5,
+        hp: { before: 5, after: 0, maximum: 20 },
         knockedOutAfter: true,
       }),
     ];
@@ -668,11 +758,13 @@ describe("dungeon combat scene presentation", () => {
     expect(view.effects).toEqual([
       expect.objectContaining({ targetActorId: "enemy-0", kind: "damage", label: "\u22123", offset: 0 }),
       expect.objectContaining({ targetActorId: "enemy-0", kind: "critical", label: "\u22124", offset: 1 }),
-      expect.objectContaining({ targetActorId: "enemy-0", kind: "defeat", label: "\u22123", offset: 2 }),
+      expect.objectContaining({ targetActorId: "enemy-0", kind: "damage", label: "\u22123", offset: 2 }),
+      expect.objectContaining({ targetActorId: "enemy-0", kind: "damage", label: "\u22125", offset: 3 }),
+      expect.objectContaining({ targetActorId: "enemy-0", kind: "defeat", label: "\u22125", offset: 4 }),
     ]);
     expect(view.actors.find((actor) => actor.id === "enemy-0")?.reaction).toBe("ko");
-    expect(view.effects.map((effect) => effect.delayMs)).toEqual([160, 160, 160]);
-    expect(view.actors.find((actor) => actor.id === "enemy-0")?.healthDelayMs).toBe(1_360);
+    expect(view.effects.map((effect) => effect.delayMs)).toEqual([160, 160, 160, 160, 160]);
+    expect(view.actors.find((actor) => actor.id === "enemy-0")?.healthDelayMs).toBe(2_560);
     expect(view.actors.find((actor) => actor.id === "enemy-1")?.reaction).toBe("none");
   });
 
