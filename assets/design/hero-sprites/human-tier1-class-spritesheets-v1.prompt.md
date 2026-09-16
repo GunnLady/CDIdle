@@ -22,6 +22,10 @@ Shared Tier 1 direction: do not preserve the original small shoulder bag as a re
 
 ## Homme — Guerrier
 
+> **Prompt historique remplacé par CDI-137.** Ne pas le réutiliser comme
+> direction autoritaire ; les vingt identités Guerrier validées sont dans
+> `assets/design/hero-sprites/cdi-137/validated-{male,female}-v1/`.
+
 ```text
 Use case: identity-preserve
 Asset type: complete 5-by-4 pixel-art human adventurer spritesheet for a fantasy idle RPG
@@ -36,6 +40,10 @@ Avoid: repeated identical outfits, a bag on every character, veteran or high-tie
 
 ## Homme — Voleur
 
+> **Prompt historique remplacé par CDI-138.** Ne pas le réutiliser comme
+> direction autoritaire ; les vingt identités Voleur validées sont dans
+> `assets/design/hero-sprites/cdi-138/validated-{male,female}-v1/`.
+
 ```text
 Use case: identity-preserve
 Asset type: complete 5-by-4 pixel-art human adventurer spritesheet for a fantasy idle RPG
@@ -49,6 +57,13 @@ Avoid: martial-artist appearance, monk or pugilist clothing, wrap-front tunics, 
 ```
 
 ## Homme — Archer
+
+> **Prompt historique remplacé par CDI-139.** Ne pas réutiliser ses contraintes
+> de petit carquois dorsal ou d’interdiction du carquois de hanche. La direction
+> validée et les vingt identités autoritaires sont documentées dans
+> `assets/design/hero-sprites/cdi-139/archer-identities-and-inspirations.md` :
+> aucune arme tenue ou portée, carquois et accessoires de tir fortement lisibles,
+> inspirations historiques variées et accessoires sans lien avec l’équipement réel.
 
 ```text
 Use case: identity-preserve
@@ -148,6 +163,10 @@ Avoid: face changes, hair changes, skin changes, pose drift, position drift, ana
 
 ## Femme — Guerrière
 
+> **Prompt historique remplacé par CDI-137.** Ne pas le réutiliser comme
+> direction autoritaire ; les vingt identités Guerrier validées sont dans
+> `assets/design/hero-sprites/cdi-137/validated-{male,female}-v1/`.
+
 ```text
 Use case: identity-preserve
 Asset type: complete 5-by-4 pixel-art human adventurer spritesheet for a fantasy idle RPG
@@ -162,6 +181,10 @@ Avoid: repeated identical outfits, a bag on every character, veteran or high-tie
 
 ## Femme — Voleuse
 
+> **Prompt historique remplacé par CDI-138.** Ne pas le réutiliser comme
+> direction autoritaire ; les vingt identités Voleur validées sont dans
+> `assets/design/hero-sprites/cdi-138/validated-{male,female}-v1/`.
+
 ```text
 Use case: identity-preserve
 Asset type: complete 5-by-4 pixel-art human adventurer spritesheet for a fantasy idle RPG
@@ -175,6 +198,13 @@ Avoid: martial-artist appearance, monk or pugilist clothing, wrap-front tunics, 
 ```
 
 ## Femme — Archère
+
+> **Prompt historique remplacé par CDI-139.** Ne pas réutiliser ses contraintes
+> de petit carquois dorsal ou d’interdiction du carquois de hanche. La direction
+> validée et les vingt identités autoritaires sont documentées dans
+> `assets/design/hero-sprites/cdi-139/archer-identities-and-inspirations.md` :
+> aucune arme tenue ou portée, carquois et accessoires de tir fortement lisibles,
+> inspirations historiques variées et accessoires sans lien avec l’équipement réel.
 
 ```text
 Use case: identity-preserve

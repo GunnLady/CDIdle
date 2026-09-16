@@ -4,7 +4,7 @@
 
 - Génération : ImageGen intégré à Codex, 10 septembre 2026.
 - Référence de style du décor : `src/assets/images/backgrounds/app-shell-background-v3-main-safe.jpg`.
-- Référence de densité pixel des rats : `src/assets/images/hero-sprites/tier1/human-tier1-warrior-male-v1.png`.
+- Référence de densité pixel des rats : `assets/design/hero-sprites/cdi-137/normalized-alpha-v1/male/warrior-male-01-v1.png`.
 - Livrables optimisés : `public/assets/images/dungeon/undercity/sewers/`.
 - Usage autorisé : scène Donjon 2D CDIdle, kit pilote PC.
 - Version : v1. Les originaux de génération ne sont pas requis au runtime ; les prompts et sorties optimisées versionnées font foi.

@@ -2,6 +2,11 @@
 
 Date d'arrêt : 9 septembre 2026.
 
+> **Handoff historique, remplacé pour Guerrier, Voleur et Archer.** Leurs six
+> anciennes planches ont été retirées du workspace après livraison de CDI-137,
+> CDI-138 et CDI-139. Les classes restantes conservent leurs planches dans
+> `assets/design/hero-sprites/approved/` jusqu'à leur remplacement.
+
 ## Objectif et règle validée
 
 Produire, à partir des deux planches Novice canoniques, une planche homme et
@@ -35,20 +40,17 @@ La majorité des personnages ne doit porter aucun sac.
   `assets/design/hero-sprites/human-tier1-class-spritesheets-v1.prompt.md`
 - Le document de prompts, ce handoff et les six planches retenues sont locaux
   et non commités.
-- Les six planches retenues sont sauvegardées dans
-  `assets/design/hero-sprites/approved/`. Elles ne sont pas encore branchées
-  dans l'application.
+- Les six planches alors retenues ont depuis été remplacées et retirées du
+  workspace. Les sources et exports autoritaires sont ceux de CDI-137,
+  CDI-138 et CDI-139.
 
-Aperçus retenus et copiés sous des noms stables dans le dépôt :
+Aperçus historiques retirés après remplacement :
 
-- Guerrier homme : `approved/human-tier1-warrior-male-v1.png`
-- Guerrière : `approved/human-tier1-warrior-female-v1.png`
-- Voleur homme : `approved/human-tier1-rogue-male-v1.png`
-- Voleuse : `approved/human-tier1-rogue-female-v1.png`
-- Archer homme : `approved/human-tier1-archer-male-v1.png`
-- Archère : `approved/human-tier1-archer-female-v1.png`
+- Guerrier : remplacé par les vingt sources et exports de `cdi-137/`.
+- Voleur : remplacé par les vingt sources et exports de `cdi-138/`.
+- Archer : remplacé par les vingt sources et exports de `cdi-139/`.
 
-Ces chemins sont relatifs à `assets/design/hero-sprites/`.
+Ces dossiers sont relatifs à `assets/design/hero-sprites/`.
 
 ## Reprise recommandée
 
