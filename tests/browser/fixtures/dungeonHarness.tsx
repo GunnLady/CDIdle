@@ -44,12 +44,16 @@ const requestedArcherCinemaPage = Number(harnessParams.get("archer-cinema"));
 const archerCinema = Number.isInteger(requestedArcherCinemaPage)
   && requestedArcherCinemaPage >= 1
   && requestedArcherCinemaPage <= 5;
+const requestedMageCinemaPage = Number(harnessParams.get("mage-cinema"));
+const mageCinema = Number.isInteger(requestedMageCinemaPage)
+  && requestedMageCinemaPage >= 1
+  && requestedMageCinemaPage <= 5;
 const readOnly = harnessParams.get("readonly") === "1";
 const requestedStep = Number(harnessParams.get("step") ?? 2);
 const visibleCount = Number.isInteger(requestedStep) ? Math.max(0, Math.min(12, requestedStep)) : 2;
 const playbackComplete = harnessParams.get("complete") === "1";
-const combatSceneOnly = harnessParams.get("combat-scene") === "1" || warriorCinema || rogueCinema || archerCinema;
-const integratedCombat = harnessParams.get("integrated") === "1" || warriorCinema || rogueCinema || archerCinema;
+const combatSceneOnly = harnessParams.get("combat-scene") === "1" || warriorCinema || rogueCinema || archerCinema || mageCinema;
+const integratedCombat = harnessParams.get("integrated") === "1" || warriorCinema || rogueCinema || archerCinema || mageCinema;
 const advancedCombat = harnessParams.get("advanced-combat") === "1";
 const visualScenario = harnessParams.get("scenario") === "1";
 const continuousContactPilot = harnessParams.get("contact-pilot") === "1";
@@ -57,6 +61,7 @@ const noviceReview = harnessParams.get("novice-review") === "1";
 const warriorReview = harnessParams.get("warrior-review") === "1" || warriorCinema;
 const rogueReview = rogueCinema;
 const archerReview = archerCinema;
+const mageReview = mageCinema;
 const requestedReviewPage = Number(
   harnessParams.get("review-page")
     ?? (warriorCinema
@@ -65,12 +70,14 @@ const requestedReviewPage = Number(
         ? requestedRogueCinemaPage
         : archerCinema
           ? requestedArcherCinemaPage
-          : 1),
+          : mageCinema
+            ? requestedMageCinemaPage
+            : 1),
 );
 const reviewPage = Number.isInteger(requestedReviewPage)
   ? Math.max(1, Math.min(5, requestedReviewPage))
   : 1;
-const animationsEnabled = !warriorCinema && !rogueCinema && !archerCinema && harnessParams.get("animations") !== "0";
+const animationsEnabled = !warriorCinema && !rogueCinema && !archerCinema && !mageCinema && harnessParams.get("animations") !== "0";
 const requestedBlueprintId = harnessParams.get("blueprint");
 const requestedKingPhaseTwo = harnessParams.get("king-phase") === "2";
 const requestedNonCombatScene = harnessParams.get("non-combat-scene");
@@ -114,8 +121,18 @@ const archerReviewVisualKeys = [
   `Archer_Male_${archerReviewFirstVariant + 1}`,
 ] as const;
 
+const mageReviewFirstVariant = (reviewPage - 1) * 2;
+const mageReviewVisualKeys = [
+  `Mage_Female_${mageReviewFirstVariant}`,
+  `Mage_Male_${mageReviewFirstVariant}`,
+  `Mage_Female_${mageReviewFirstVariant + 1}`,
+  `Mage_Male_${mageReviewFirstVariant + 1}`,
+] as const;
+
 function withHeroReview(record: CanonicalDungeonEncounterRecord): CanonicalDungeonEncounterRecord {
-  const reviewVisualKeys = archerReview
+  const reviewVisualKeys = mageReview
+    ? mageReviewVisualKeys
+    : archerReview
     ? archerReviewVisualKeys
     : rogueReview
     ? rogueReviewVisualKeys

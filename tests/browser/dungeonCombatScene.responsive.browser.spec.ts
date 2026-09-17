@@ -240,6 +240,44 @@ test("loads all twenty CDI-139 Archer sprites across the five PC cinema review p
   }
 });
 
+test("loads all twenty CDI-140 Mage sprites across the five PC cinema review pages", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 1000 });
+
+  for (let reviewPage = 1; reviewPage <= 5; reviewPage += 1) {
+    await page.goto(`/tests/browser/fixtures/dungeon-harness.html?mage-cinema=${reviewPage}`);
+    const scene = page.getByTestId("dungeon-combat-scene");
+    const heroes = scene.locator("[data-testid='dungeon-combat-actor'][data-team='heroes']");
+    await expect(scene).toBeVisible();
+    await expect(heroes).toHaveCount(4);
+    await expect(heroes.locator("[data-testid='dungeon-combat-visual'][data-asset-status='ready']"))
+      .toHaveCount(4);
+    await expect(scene.locator("[data-team='heroes'][data-visual-pose='combat_idle']")).toHaveCount(4);
+
+    const sources = await heroes.locator("img").evaluateAll((images) => images.map((image) => {
+      const sprite = image as HTMLImageElement;
+      return {
+        naturalWidth: sprite.naturalWidth,
+        naturalHeight: sprite.naturalHeight,
+        source: sprite.currentSrc,
+      };
+    }));
+    const firstVariant = (reviewPage - 1) * 2 + 1;
+    const expectedNames = (["female", "male"] as const).flatMap((gender) => (
+      [firstVariant, firstVariant + 1].map((variant) => (
+        `mage-${gender}-${String(variant).padStart(2, "0")}-v1`
+      ))
+    ));
+    expect(sources).toHaveLength(4);
+    expect(sources.every(({ naturalWidth, naturalHeight }) => (
+      naturalWidth === 341 && naturalHeight === 692
+    ))).toBe(true);
+    for (const expectedName of expectedNames) {
+      expect(sources.some(({ source }) => source.includes(expectedName))).toBe(true);
+    }
+    await expectCombatSceneContained(page);
+  }
+});
+
 test("keeps the PC combat scene composed at the 1024px / 200% zoom equivalent", async ({ page }) => {
   // Browser zoom divides the CSS viewport. A 512px CSS viewport exercises the
   // layout available to a 1024px desktop viewport at 200% without claiming

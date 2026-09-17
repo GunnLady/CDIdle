@@ -25,6 +25,10 @@ import {
   getCdi139ArcherPortraitUrl,
 } from "../src/assets/archerCdi139Portraits";
 import {
+  CDI140_MAGE_VARIANT_COUNT,
+  getCdi140MagePortraitUrl,
+} from "../src/assets/mageCdi140Portraits";
+import {
   HERO_SPRITE_SLICES,
   getHeroPortraitCacheKey,
   getHeroPortraitPoseVisualKey,
@@ -99,6 +103,7 @@ describe("hero sprite sheet catalog", () => {
         && classType !== "Guerrier"
         && classType !== "Voleur"
         && classType !== "Archer"
+        && classType !== "Mage"
     ));
     expect(Object.keys(HERO_SPRITE_SHEETS)).toEqual(legacySheetClasses);
     expect(HERO_SPRITE_SLICES).toHaveLength(HERO_PORTRAIT_VARIANT_COUNT);
@@ -142,6 +147,16 @@ describe("authoritative Archer portrait", () => {
     expect(getCdi139ArcherPortraitUrl("Female", 9)).toContain("archer-female-10-v1");
     expect(getCdi139ArcherPortraitUrl("Male", 10)).toBe(getCdi139ArcherPortraitUrl("Male", 0));
     expect(getCdi139ArcherPortraitUrl("Female", 19)).toBe(getCdi139ArcherPortraitUrl("Female", 9));
+  });
+});
+
+describe("authoritative Mage portrait", () => {
+  it("maps the 20 persisted identity slots onto the 10 validated sprites per gender", () => {
+    expect(CDI140_MAGE_VARIANT_COUNT).toBe(10);
+    expect(getCdi140MagePortraitUrl("Male", 0)).toContain("mage-male-01-v1");
+    expect(getCdi140MagePortraitUrl("Female", 9)).toContain("mage-female-10-v1");
+    expect(getCdi140MagePortraitUrl("Male", 10)).toBe(getCdi140MagePortraitUrl("Male", 0));
+    expect(getCdi140MagePortraitUrl("Female", 19)).toBe(getCdi140MagePortraitUrl("Female", 9));
   });
 });
 

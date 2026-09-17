@@ -241,6 +241,7 @@ export function resolveEncounterVisualDescriptor(key: string): EncounterVisualDe
   const isCdi137Warrior = heroIdentity.classType === "Guerrier";
   const isCdi138Rogue = heroIdentity.classType === "Voleur";
   const isCdi139Archer = heroIdentity.classType === "Archer";
+  const isCdi140Mage = heroIdentity.classType === "Mage";
   return {
     key,
     kind: "hero",
@@ -253,6 +254,8 @@ export function resolveEncounterVisualDescriptor(key: string): EncounterVisualDe
         ? "CDI-138 validated Rogue alpha sprites"
       : isCdi139Archer
         ? "CDI-139 validated Archer alpha sprites"
+      : isCdi140Mage
+        ? "CDI-140 validated Mage alpha sprites"
       : "CDIdle canonical hero spritesheets",
     anchor: { x: 0.5, y: 0.93 },
     scale: 1,

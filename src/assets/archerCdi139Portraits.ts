@@ -1,4 +1,4 @@
-import type { HeroPortraitGender } from "./heroSpriteSheets";
+import { createNormalizedHeroPortraitResolver } from "./normalizedHeroPortraits";
 
 export const CDI139_ARCHER_VARIANT_COUNT = 10;
 
@@ -7,17 +7,9 @@ const portraitUrls = import.meta.glob<string>(
   { eager: true, import: "default" },
 );
 
-const portraitsByKey = new Map<string, string>();
-for (const [path, url] of Object.entries(portraitUrls)) {
-  const match = /archer-(male|female)-(\d{2})-v1\.png$/.exec(path);
-  if (match) portraitsByKey.set(`${match[1]}:${match[2]}`, url);
-}
-
-export function getCdi139ArcherPortraitUrl(gender: HeroPortraitGender, variant: number): string {
-  const normalizedVariant = ((variant % CDI139_ARCHER_VARIANT_COUNT) + CDI139_ARCHER_VARIANT_COUNT)
-    % CDI139_ARCHER_VARIANT_COUNT;
-  const key = `${gender.toLowerCase()}:${String(normalizedVariant + 1).padStart(2, "0")}`;
-  const url = portraitsByKey.get(key);
-  if (!url) throw new Error(`Missing CDI-139 Archer portrait: ${key}`);
-  return url;
-}
+export const getCdi139ArcherPortraitUrl = createNormalizedHeroPortraitResolver(
+  portraitUrls,
+  /archer-(male|female)-(\d{2})-v1\.png$/,
+  CDI139_ARCHER_VARIANT_COUNT,
+  "CDI-139 Archer",
+);

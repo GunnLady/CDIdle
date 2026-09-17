@@ -1,7 +1,7 @@
 ---
 id: CDI-140
 title: Refaire les bases Mage selon l’étalon CDIdle
-status: Later
+status: Done
 area: ui
 priority: P1
 size: L
@@ -10,7 +10,7 @@ source: Validation utilisateur du 13 septembre 2026 - toutes les classes héros 
 depends_on: ["CDI-117","CDI-136"]
 blocks: ["CDI-122","CDI-123","CDI-134","CDI-135","CDI-152"]
 github_issue: null
-related_docs: ["docs/development/dungeon-2d-action-production-plan.md","docs/development/dungeon-2d-sprite-audit.md","assets/design/hero-sprites/human-tier1-class-spritesheets-v1.prompt.md","src/assets/heroSpriteSheets.ts","src/domain/heroPortrait.ts","src/assets/heroPortraitAssets.ts","AGENTS.md"]
+related_docs: ["docs/development/dungeon-2d-action-production-plan.md","docs/development/dungeon-2d-sprite-audit.md","assets/design/hero-sprites/cdi-140/mage-identities-and-inspirations.md","assets/design/hero-sprites/human-tier1-class-spritesheets-v1.prompt.md","src/assets/heroSpriteSheets.ts","src/domain/heroPortrait.ts","src/assets/heroPortraitAssets.ts","AGENTS.md"]
 ---
 
 # CDI-140 — Refaire les bases Mage selon l’étalon CDIdle
@@ -49,6 +49,7 @@ Ressources historiques : `src/assets/images/hero-sprites/tier1/human-tier1-mage-
 
 - Utiliser comme références `chamberlain-blade-v3.png`, `deep-chamberlain-v3.png`, `deep-alchemist-v2.png`, `barricade-blade-v1.png` et `outcast-standard-bearer-v1.png`, puis les bases Novice validées de CDI-136.
 - Commencer par une petite planche pilote d’identités contrastées ; obtenir le verdict utilisateur avant la production des vingt variantes.
+- Conserver dans `assets/design/hero-sprites/cdi-140/mage-identities-and-inspirations.md` le petit scénario, les marqueurs et les sources d’inspiration de chaque variante au fil de ses validations.
 - Maintenir une table de réattribution stable des index historiques 0–19 vers les nouvelles variantes 0–9 du même genre ; aucune correspondance visuelle individuelle avec les quarante anciennes identités n’est requise.
 - Vérifier alpha réel sur fonds clair/sombre, faux fond, franges, transparence du personnage, armes/accessoires coupés et éléments isolés.
 - Normaliser taille alpha visible, pieds et pivot afin d’éviter les sauts de taille et le flottement en scène.
@@ -62,13 +63,13 @@ Ressources historiques : `src/assets/images/hero-sprites/tier1/human-tier1-mage-
 
 ## Criteres d'acceptation
 
-- [ ] Une planche pilote d’identités contrastées est validée par l’utilisateur avant la série.
-- [ ] Dix hommes et dix femmes Mage sont validés, avec une réattribution stable des index historiques 0–19 vers 0–9 pour le même genre.
-- [ ] Qualité, proportions, détail, contours, matières et lumière correspondent aux références sans uniformiser corps ou visages.
-- [ ] Les exports ont un alpha réel propre, une taille visible et des pivots cohérents ; aucun faux fond, frange, détail isolé ou personnage translucide.
-- [ ] Les vingt variantes se chargent par les clés compatibles dans les écrans concernés, sans refléter l’équipement réel.
-- [ ] Poids froid/cache et mémoire décodée sont mesurés ; le budget est respecté ou sa révision demandée avant généralisation.
-- [ ] L’utilisateur valide les bases en planche puis dans une scène PC représentative ; les poses d’action restent distinctes.
+- [x] Une planche pilote d’identités contrastées est validée par l’utilisateur avant la série.
+- [x] Dix hommes et dix femmes Mage sont validés, avec une réattribution stable des index historiques 0–19 vers 0–9 pour le même genre.
+- [x] Qualité, proportions, détail, contours, matières et lumière correspondent aux références sans uniformiser corps ou visages.
+- [x] Les exports ont un alpha réel propre, une taille visible et des pivots cohérents ; aucun faux fond, frange, détail isolé ou personnage translucide.
+- [x] Les vingt variantes se chargent par les clés compatibles dans les écrans concernés, sans refléter l’équipement réel.
+- [x] Poids froid/cache et mémoire décodée sont mesurés ; le budget est respecté ou sa révision demandée avant généralisation.
+- [x] L’utilisateur valide les bases en planche puis dans une scène PC représentative ; les poses d’action restent distinctes.
 
 ## Tests
 
@@ -98,3 +99,19 @@ L’utilisateur valide d’abord le pilote, puis les deux planches complètes et
 ## Handoff
 
 Fournir références/prompts versionnés, table de réattribution 0–19 → 0–9, vingt sources/exports, poids et mesures, comparaisons, tests et verdicts utilisateur. Aucune pose de combat ou d’action n’est déclarée validée par ce lot.
+
+## Preuves de clôture — 17 septembre 2026
+
+- Vingt sources et vingt exports alpha `341 × 692` archivés ; planches homme et
+  femme validées sur fonds clair et sombre.
+- Validation utilisateur obtenue sur les cinq pages du cinéma PC. `Male 07` a
+  été corrigé après contrôle en scène, harmonisé avec `Male 06` et `Male 08`,
+  puis revalidé dans la scène réelle.
+- `npm.cmd run check:dungeon-visuals` : succès ; Mage total `5 167 754` octets,
+  quatre plus lourds `1 139 868` octets sous le budget de `2 Mio`.
+- Vitest ciblé portraits/visuels : `27` tests réussis.
+- Playwright ciblé : les vingt Mage chargent sur les cinq pages PC, `1` test
+  réussi.
+- Typecheck, lint, build et validation workboard : succès.
+- Bundle gzip : `256 278` octets sous le plafond minimal révisé de `251 Kio` ;
+  plus gros chunk `118 347` octets sous `300 Kio`.

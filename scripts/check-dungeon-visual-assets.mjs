@@ -37,7 +37,7 @@ const encounterScenes = {
 };
 
 const tier1Sheets = [
-  "acolyte", "aede", "artificer", "druid", "mage", "pugilist",
+  "acolyte", "aede", "artificer", "druid", "pugilist",
 ].flatMap((className) => ["female", "male"].map((gender) => (
   join("hero-sprites", "tier1", `human-tier1-${className}-${gender}-v1.png`)
 )));
@@ -70,6 +70,12 @@ const archerSprites = ["female", "male"].flatMap((gender) => (
   Array.from({ length: 10 }, (_, index) => join(
     gender,
     `archer-${gender}-${String(index + 1).padStart(2, "0")}-v1.png`,
+  ))
+));
+const mageSprites = ["female", "male"].flatMap((gender) => (
+  Array.from({ length: 10 }, (_, index) => join(
+    gender,
+    `mage-${gender}-${String(index + 1).padStart(2, "0")}-v1.png`,
   ))
 ));
 
@@ -534,6 +540,66 @@ assert(
   `Four-hero CDI-139 Archer scene exceeds ${sceneBudgetBytes} bytes`,
 );
 
+const mageImageDirectory = join(
+  projectRoot,
+  "assets",
+  "design",
+  "hero-sprites",
+  "cdi-140",
+  "normalized-alpha-v1",
+);
+const measuredMageSprites = mageSprites.map((relativePath) => {
+  const path = join(mageImageDirectory, relativePath);
+  const dimensions = readImageInfo(path);
+  assert.deepEqual(
+    { width: dimensions.width, height: dimensions.height, alpha: dimensions.alpha },
+    { width: 341, height: 692, alpha: true },
+    `${relativePath} must remain a normalized CDI-140 alpha sprite`,
+  );
+  assert(
+    dimensions.transparentPixelCount >= dimensions.width * dimensions.height * 0.1,
+    `${relativePath} must contain a substantial transparent background`,
+  );
+  assert(
+    Math.max(...dimensions.cornerAlphas) <= 2,
+    `${relativePath} must not contain an opaque or semi-opaque baked background`,
+  );
+  assert(dimensions.visibleBounds, `${relativePath} must contain visible pixels`);
+
+  const noviceRelativePath = relativePath.replace("mage-", "novice-");
+  const noviceDimensions = measuredNoviceSprites.get(noviceRelativePath);
+  assert(noviceDimensions?.visibleBounds, `Missing CDI-136 reference ${noviceRelativePath}`);
+  const visibleHeight = dimensions.visibleBounds.maxY - dimensions.visibleBounds.minY + 1;
+  const noviceVisibleHeight = noviceDimensions.visibleBounds.maxY - noviceDimensions.visibleBounds.minY + 1;
+  assert(
+    Math.abs(visibleHeight - noviceVisibleHeight) <= 1,
+    `${relativePath} must keep the visible height of ${noviceRelativePath}`,
+  );
+  assert.equal(
+    dimensions.visibleBounds.maxY,
+    noviceDimensions.visibleBounds.maxY,
+    `${relativePath} feet baseline must match ${noviceRelativePath}`,
+  );
+  const centerX = (dimensions.visibleBounds.minX + dimensions.visibleBounds.maxX) / 2;
+  assert(
+    Math.abs(centerX - (dimensions.width - 1) / 2) <= 1.5,
+    `${relativePath} visible pivot must remain centered`,
+  );
+  return { file: relativePath, bytes: statSync(path).size };
+});
+const mageTotalBytes = measuredMageSprites.reduce((total, entry) => total + entry.bytes, 0);
+const mageSceneBytes = measuredMageSprites
+  .map((entry) => entry.bytes)
+  .sort((left, right) => right - left)
+  .slice(0, combatHeroLimit)
+  .reduce((total, bytes) => total + bytes, 0);
+const mageDecodedBytesPerSprite = 341 * 692 * 4;
+const mageDecodedSceneBytes = mageDecodedBytesPerSprite * combatHeroLimit;
+assert(
+  mageSceneBytes <= sceneBudgetBytes,
+  `Four-hero CDI-140 Mage scene exceeds ${sceneBudgetBytes} bytes`,
+);
+
 const noviceCombatImageDirectory = join(
   projectRoot,
   "assets",
@@ -596,6 +662,13 @@ console.log(JSON.stringify({
     decodedBytesPerSprite: archerDecodedBytesPerSprite,
     decodedFourHeroSceneBytes: archerDecodedSceneBytes,
   },
+  mageSprites: mageSprites.length,
+  mageMetrics: {
+    totalBytes: mageTotalBytes,
+    largestFourSceneBytes: mageSceneBytes,
+    decodedBytesPerSprite: mageDecodedBytesPerSprite,
+    decodedFourHeroSceneBytes: mageDecodedSceneBytes,
+  },
   noviceCombatSprites: noviceCombatSprites.length,
   noviceCombatMetrics: {
     totalBytes: noviceCombatTotalBytes,
@@ -607,7 +680,8 @@ console.log(JSON.stringify({
     + noviceSprites.length * 2
     + warriorSprites.length * 2
     + rogueSprites.length * 2
-    + archerSprites.length * 2,
+    + archerSprites.length * 2
+    + mageSprites.length * 2,
   sceneBudgetBytes,
   undercityPacks: measuredPacks,
   encounterBytes,
