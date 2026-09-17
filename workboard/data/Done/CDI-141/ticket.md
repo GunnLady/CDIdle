@@ -1,7 +1,7 @@
 ---
 id: CDI-141
 title: Refaire les bases Acolyte selon l’étalon CDIdle
-status: Later
+status: Done
 area: ui
 priority: P1
 size: L
@@ -10,7 +10,7 @@ source: Validation utilisateur du 13 septembre 2026 - toutes les classes héros 
 depends_on: ["CDI-117","CDI-136"]
 blocks: ["CDI-124","CDI-134","CDI-135","CDI-153"]
 github_issue: null
-related_docs: ["docs/development/dungeon-2d-action-production-plan.md","docs/development/dungeon-2d-sprite-audit.md","assets/design/hero-sprites/human-tier1-class-spritesheets-v1.prompt.md","src/assets/heroSpriteSheets.ts","src/domain/heroPortrait.ts","src/assets/heroPortraitAssets.ts","AGENTS.md"]
+related_docs: ["docs/development/dungeon-2d-action-production-plan.md","docs/development/dungeon-2d-sprite-audit.md","docs/development/session-2026-09-17-cdi-141-acolyte-sprites-handoff.md","assets/design/hero-sprites/cdi-141/acolyte-identities-and-inspirations.md","assets/design/hero-sprites/human-tier1-class-spritesheets-v1.prompt.md","src/assets/heroSpriteSheets.ts","src/domain/heroPortrait.ts","src/assets/heroPortraitAssets.ts","AGENTS.md"]
 ---
 
 # CDI-141 — Refaire les bases Acolyte selon l’étalon CDIdle
@@ -62,13 +62,13 @@ Ressources historiques : `src/assets/images/hero-sprites/tier1/human-tier1-acoly
 
 ## Criteres d'acceptation
 
-- [ ] Une planche pilote d’identités contrastées est validée par l’utilisateur avant la série.
-- [ ] Dix hommes et dix femmes Acolyte sont validés, avec une réattribution stable des index historiques 0–19 vers 0–9 pour le même genre.
-- [ ] Qualité, proportions, détail, contours, matières et lumière correspondent aux références sans uniformiser corps ou visages.
-- [ ] Les exports ont un alpha réel propre, une taille visible et des pivots cohérents ; aucun faux fond, frange, détail isolé ou personnage translucide.
-- [ ] Les vingt variantes se chargent par les clés compatibles dans les écrans concernés, sans refléter l’équipement réel.
-- [ ] Poids froid/cache et mémoire décodée sont mesurés ; le budget est respecté ou sa révision demandée avant généralisation.
-- [ ] L’utilisateur valide les bases en planche puis dans une scène PC représentative ; les poses d’action restent distinctes.
+- [x] Une planche pilote d’identités contrastées est validée par l’utilisateur avant la série.
+- [x] Dix hommes et dix femmes Acolyte sont validés, avec une réattribution stable des index historiques 0–19 vers 0–9 pour le même genre.
+- [x] Qualité, proportions, détail, contours, matières et lumière correspondent aux références sans uniformiser corps ou visages.
+- [x] Les exports ont un alpha réel propre, une taille visible et des pivots cohérents ; aucun faux fond, frange, détail isolé ou personnage translucide.
+- [x] Les vingt variantes se chargent par les clés compatibles dans les écrans concernés, sans refléter l’équipement réel.
+- [x] Poids froid/cache et mémoire décodée sont mesurés ; le budget est respecté ou sa révision demandée avant généralisation.
+- [x] L’utilisateur valide les bases en planche puis dans une scène PC représentative ; les poses d’action restent distinctes.
 
 ## Tests
 
@@ -76,6 +76,23 @@ Ressources historiques : `src/assets/images/hero-sprites/tier1/human-tier1-acoly
 - Vérifier dimensions, alpha, boîte visible, pivots et correspondance stable des clés.
 - Tests ciblés des portraits/visuels, puis `npm.cmd run check:dungeon-visuals`, `npm.cmd run typecheck`, `npm.cmd run lint -- --quiet`, `npm.cmd run build`, `npm.cmd run check:bundle` et `npm.cmd run board:validate`.
 - Après validation de l’écran, exécuter la suite navigateur PC ciblée ; ne pas déclarer les poses ou autres classes couvertes.
+
+### Preuves acquises le 17 septembre 2026
+
+- Les quatre planches normalisées, masculines et féminines sur fonds clair et
+  sombre, ont été validées par l’utilisateur.
+- `check:dungeon-visuals` valide les vingt PNG de `341 × 692`, leur alpha, leur
+  boîte visible, leurs pieds et leurs pivots. Poids total à froid :
+  `5 356 017 octets` ; maximum pour quatre héros : `1 176 549 octets` ; mémoire
+  décodée par sprite : `943 888 octets`, soit `3 775 552 octets` pour quatre.
+- Les anciennes clés `0–19` sont résolues de façon stable vers `0–9` pour le
+  même genre ; les tests portraits/visuels passent (`29/29`).
+- `typecheck`, `lint --quiet`, le build de production et `check:bundle` passent.
+  Le JavaScript produit pèse `256 788 octets` gzip au total ; le plus gros
+  chunk pèse `118 347 octets`. Aucun budget n’a dû être relevé.
+- Le scénario navigateur PC ciblé passe (`1/1`) sur les cinq pages de revue et
+  les vingt sprites. L’utilisateur a validé leur rendu en scène le 17 septembre
+  2026. Les poses de combat ou d’action restent hors périmètre.
 
 ## Validation manuelle
 

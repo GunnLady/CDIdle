@@ -30,6 +30,16 @@ import challengeTrapUrl from "./images/dungeon/encounters/challenge-trap-v1.png"
 export const ENCOUNTER_VISUAL_CATALOG_VERSION = 1;
 export const ENCOUNTER_VISUAL_CACHE_LIMIT = 16;
 
+const validatedHeroSpriteMetadata: Partial<Record<CanonicalHeroClass, readonly [string, string]>> = {
+  Novice: ["136", "Novice"],
+  Guerrier: ["137", "Warrior"],
+  Voleur: ["138", "Rogue"],
+  Archer: ["139", "Archer"],
+  Mage: ["140", "Mage"],
+  Acolyte: ["141", "Acolyte"],
+  "A\u00e8de": ["142", "Aede"],
+};
+
 function undercityAssetUrl(directory: string, file: string): string {
   return `/assets/images/dungeon/undercity/${directory}/${file}`;
 }
@@ -237,25 +247,13 @@ export function resolveEncounterVisualDescriptor(key: string): EncounterVisualDe
   }
   const heroIdentity = parseHeroPortraitCacheKey(key);
   if (!heroIdentity) return fallbackDescriptor(key);
-  const isCdi136Novice = heroIdentity.classType === "Novice";
-  const isCdi137Warrior = heroIdentity.classType === "Guerrier";
-  const isCdi138Rogue = heroIdentity.classType === "Voleur";
-  const isCdi139Archer = heroIdentity.classType === "Archer";
-  const isCdi140Mage = heroIdentity.classType === "Mage";
+  const validatedMetadata = validatedHeroSpriteMetadata[heroIdentity.classType as CanonicalHeroClass];
   return {
     key,
     kind: "hero",
     version: ENCOUNTER_VISUAL_CATALOG_VERSION,
-    provenance: isCdi136Novice
-      ? "CDI-136 validated Novice alpha sprites"
-      : isCdi137Warrior
-        ? "CDI-137 validated Warrior alpha sprites"
-      : isCdi138Rogue
-        ? "CDI-138 validated Rogue alpha sprites"
-      : isCdi139Archer
-        ? "CDI-139 validated Archer alpha sprites"
-      : isCdi140Mage
-        ? "CDI-140 validated Mage alpha sprites"
+    provenance: validatedMetadata
+      ? `CDI-${validatedMetadata[0]} validated ${validatedMetadata[1]} alpha sprites`
       : "CDIdle canonical hero spritesheets",
     anchor: { x: 0.5, y: 0.93 },
     scale: 1,

@@ -398,9 +398,10 @@ consommateur et de CDI-135, ainsi que de CDI-134 pour les héros, avant clôture
 du tri ou du pilote concerné. Les liens réciproques sont vérifiés ; WIP ≤ 3
 et GitHub sync off conservés.
 
-CDI-113, CDI-117, CDI-136, CDI-137, CDI-138, CDI-139 et CDI-148 sont `Done`. CDI-115 reste
+CDI-113, CDI-117, CDI-136–142 et CDI-148 sont `Done`. CDI-115 reste
 `Paused` sur le piège, sans déclarer les autres épreuves terminées. Les bases
-CDI-140–145 et les autres nouveaux tickets sont `Later`. Les lots avec états
+CDI-143–145 et les autres nouveaux tickets sont `Later`.
+Les lots avec états
 persistants (121, 123, 124, 125) dépendent de 114 : le pilote de tir/soin se
 clôture après cette preuve, même si sa préparation visuelle peut être étudiée avant.
 
@@ -450,6 +451,6 @@ code applicatif changé par cette révision documentaire. Le Workboard ajoute
 CDI-148–157 et relie les gardes aux consommateurs. Les preuves antérieures de
 113/115 restent identifiées comme telles ; aucune nouvelle preuve applicative
 n’est revendiquée.
-Depuis cette révision documentaire, CDI-113, CDI-136–139 et CDI-148 ont été
+Depuis cette révision documentaire, CDI-113, CDI-136–142 et CDI-148 ont été
 validés et déplacés en `Done`. La prochaine base neutre de la chaîne est
-CDI-140, consacrée aux Mages.
+CDI-143, consacrée aux Druides.

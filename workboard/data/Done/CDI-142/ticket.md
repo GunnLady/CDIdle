@@ -1,7 +1,7 @@
 ---
 id: CDI-142
 title: Refaire les bases Aède selon l’étalon CDIdle
-status: Later
+status: Done
 area: ui
 priority: P1
 size: L
@@ -10,7 +10,7 @@ source: Validation utilisateur du 13 septembre 2026 - toutes les classes héros 
 depends_on: ["CDI-117","CDI-136"]
 blocks: ["CDI-125","CDI-134","CDI-135","CDI-154"]
 github_issue: null
-related_docs: ["docs/development/dungeon-2d-action-production-plan.md","docs/development/dungeon-2d-sprite-audit.md","assets/design/hero-sprites/human-tier1-class-spritesheets-v1.prompt.md","src/assets/heroSpriteSheets.ts","src/domain/heroPortrait.ts","src/assets/heroPortraitAssets.ts","AGENTS.md"]
+related_docs: ["docs/development/dungeon-2d-action-production-plan.md","docs/development/dungeon-2d-sprite-audit.md","docs/development/session-2026-09-17-cdi-142-aede-sprites-handoff.md","assets/design/hero-sprites/cdi-142/aede-identities-and-inspirations.md","assets/design/hero-sprites/human-tier1-class-spritesheets-v1.prompt.md","src/assets/heroSpriteSheets.ts","src/domain/heroPortrait.ts","src/assets/heroPortraitAssets.ts","AGENTS.md"]
 ---
 
 # CDI-142 — Refaire les bases Aède selon l’étalon CDIdle
@@ -62,13 +62,13 @@ Ressources historiques : `src/assets/images/hero-sprites/tier1/human-tier1-aede-
 
 ## Criteres d'acceptation
 
-- [ ] Une planche pilote d’identités contrastées est validée par l’utilisateur avant la série.
-- [ ] Dix hommes et dix femmes Aède sont validés, avec une réattribution stable des index historiques 0–19 vers 0–9 pour le même genre.
-- [ ] Qualité, proportions, détail, contours, matières et lumière correspondent aux références sans uniformiser corps ou visages.
-- [ ] Les exports ont un alpha réel propre, une taille visible et des pivots cohérents ; aucun faux fond, frange, détail isolé ou personnage translucide.
-- [ ] Les vingt variantes se chargent par les clés compatibles dans les écrans concernés, sans refléter l’équipement réel.
-- [ ] Poids froid/cache et mémoire décodée sont mesurés ; le budget est respecté ou sa révision demandée avant généralisation.
-- [ ] L’utilisateur valide les bases en planche puis dans une scène PC représentative ; les poses d’action restent distinctes.
+- [x] Une planche pilote d’identités contrastées est validée par l’utilisateur avant la série.
+- [x] Dix hommes et dix femmes Aède sont validés, avec une réattribution stable des index historiques 0–19 vers 0–9 pour le même genre.
+- [x] Qualité, proportions, détail, contours, matières et lumière correspondent aux références sans uniformiser corps ou visages.
+- [x] Les exports ont un alpha réel propre, une taille visible et des pivots cohérents ; aucun faux fond, frange, détail isolé ou personnage translucide.
+- [x] Les vingt variantes se chargent par les clés compatibles dans les écrans concernés, sans refléter l’équipement réel.
+- [x] Poids froid/cache et mémoire décodée sont mesurés ; le budget est respecté ou sa révision demandée avant généralisation.
+- [x] L’utilisateur valide les bases en planche puis dans une scène PC représentative ; les poses d’action restent distinctes.
 
 ## Tests
 
@@ -98,3 +98,19 @@ L’utilisateur valide d’abord le pilote, puis les deux planches complètes et
 ## Handoff
 
 Fournir références/prompts versionnés, table de réattribution 0–19 → 0–9, vingt sources/exports, poids et mesures, comparaisons, tests et verdicts utilisateur. Aucune pose de combat ou d’action n’est déclarée validée par ce lot.
+
+## Preuves de clôture — 17 septembre 2026
+
+- Vingt sources validées et vingt exports alpha `341 × 692` archivés ; quatre
+  planches hommes/femmes sur fonds clair/sombre validées par l’utilisateur.
+- Les anciennes clés `0–19` se replient de façon stable vers `0–9` pour le même
+  genre ; les vingt Aèdes chargent sur les cinq pages du cinéma PC.
+- `check:dungeon-visuals` : succès ; poids total `5 522 745 octets`, quatre plus
+  lourds `1 234 784 octets`, mémoire décodée `943 888 octets` par sprite et
+  `3 775 552 octets` pour quatre.
+- Tests portraits/visuels : `30/30` ; Playwright ciblé : `1/1` ; typecheck,
+  lint, build et validation Workboard réussis.
+- Budget JS global borné à `254 Kio` après accord utilisateur : sortie mesurée
+  `257 368 octets` gzip, plus gros chunk `118 347 octets` sous `300 Kio`.
+- Validation visuelle utilisateur des planches et des cinq pages PC acquise le
+  17 septembre 2026. Les poses de combat ou d’action restent hors périmètre.

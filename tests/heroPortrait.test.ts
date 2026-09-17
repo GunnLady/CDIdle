@@ -29,6 +29,14 @@ import {
   getCdi140MagePortraitUrl,
 } from "../src/assets/mageCdi140Portraits";
 import {
+  CDI141_ACOLYTE_VARIANT_COUNT,
+  getCdi141AcolytePortraitUrl,
+} from "../src/assets/acolyteCdi141Portraits";
+import {
+  CDI142_AEDE_VARIANT_COUNT,
+  getCdi142AedePortraitUrl,
+} from "../src/assets/aedeCdi142Portraits";
+import {
   HERO_SPRITE_SLICES,
   getHeroPortraitCacheKey,
   getHeroPortraitPoseVisualKey,
@@ -104,6 +112,8 @@ describe("hero sprite sheet catalog", () => {
         && classType !== "Voleur"
         && classType !== "Archer"
         && classType !== "Mage"
+        && classType !== "Acolyte"
+        && classType !== "A\u00e8de"
     ));
     expect(Object.keys(HERO_SPRITE_SHEETS)).toEqual(legacySheetClasses);
     expect(HERO_SPRITE_SLICES).toHaveLength(HERO_PORTRAIT_VARIANT_COUNT);
@@ -112,11 +122,6 @@ describe("hero sprite sheet catalog", () => {
       expect(HERO_SPRITE_SHEETS[classType].Male).toBeTruthy();
       expect(HERO_SPRITE_SHEETS[classType].Female).toBeTruthy();
     }
-  });
-
-  it("maps the Aede class to the correctly named assets", () => {
-    expect(HERO_SPRITE_SHEETS["A\u00e8de"].Male).toContain("aede");
-    expect(HERO_SPRITE_SHEETS["A\u00e8de"].Female).toContain("aede");
   });
 });
 
@@ -157,6 +162,26 @@ describe("authoritative Mage portrait", () => {
     expect(getCdi140MagePortraitUrl("Female", 9)).toContain("mage-female-10-v1");
     expect(getCdi140MagePortraitUrl("Male", 10)).toBe(getCdi140MagePortraitUrl("Male", 0));
     expect(getCdi140MagePortraitUrl("Female", 19)).toBe(getCdi140MagePortraitUrl("Female", 9));
+  });
+});
+
+describe("authoritative Acolyte portrait", () => {
+  it("maps the 20 persisted identity slots onto the 10 validated sprites per gender", () => {
+    expect(CDI141_ACOLYTE_VARIANT_COUNT).toBe(10);
+    expect(getCdi141AcolytePortraitUrl("Male", 0)).toContain("acolyte-male-01-v1");
+    expect(getCdi141AcolytePortraitUrl("Female", 9)).toContain("acolyte-female-10-v1");
+    expect(getCdi141AcolytePortraitUrl("Male", 10)).toBe(getCdi141AcolytePortraitUrl("Male", 0));
+    expect(getCdi141AcolytePortraitUrl("Female", 19)).toBe(getCdi141AcolytePortraitUrl("Female", 9));
+  });
+});
+
+describe("authoritative Aede portrait", () => {
+  it("maps the 20 persisted identity slots onto the 10 validated sprites per gender", () => {
+    expect(CDI142_AEDE_VARIANT_COUNT).toBe(10);
+    expect(getCdi142AedePortraitUrl("Male", 0)).toContain("aede-male-01-v1");
+    expect(getCdi142AedePortraitUrl("Female", 9)).toContain("aede-female-10-v1");
+    expect(getCdi142AedePortraitUrl("Male", 10)).toBe(getCdi142AedePortraitUrl("Male", 0));
+    expect(getCdi142AedePortraitUrl("Female", 19)).toBe(getCdi142AedePortraitUrl("Female", 9));
   });
 });
 

@@ -5,6 +5,8 @@ import { getCdi137WarriorPortraitUrl } from "./warriorCdi137Portraits";
 import { getCdi138RoguePortraitUrl } from "./rogueCdi138Portraits";
 import { getCdi139ArcherPortraitUrl } from "./archerCdi139Portraits";
 import { getCdi140MagePortraitUrl } from "./mageCdi140Portraits";
+import { getCdi141AcolytePortraitUrl } from "./acolyteCdi141Portraits";
+import { getCdi142AedePortraitUrl } from "./aedeCdi142Portraits";
 import { HERO_SPRITE_SLICES, getHeroPortraitCacheKey } from "../domain/heroPortrait";
 import { findHeroPortraitOpaqueBounds, fitHeroPortraitToFrame } from "./heroPortraitFraming";
 import { createBoundedAsyncAssetCache } from "./visualAssetCache";
@@ -12,6 +14,18 @@ import { registerVisualAssetSessionCleaner } from "./visualAssetSession";
 
 export const HERO_PORTRAIT_SHEET_CACHE_LIMIT = 4;
 export const HERO_PORTRAIT_SPRITE_CACHE_LIMIT = 32;
+
+type HeroPortraitResolver = (gender: HeroPortraitGender, variant: number) => string;
+
+const individualHeroPortraitResolvers: Partial<Record<CanonicalHeroClass, HeroPortraitResolver>> = {
+  Novice: getCdi136NovicePortraitUrl,
+  Guerrier: getCdi137WarriorPortraitUrl,
+  Voleur: getCdi138RoguePortraitUrl,
+  Archer: getCdi139ArcherPortraitUrl,
+  Mage: getCdi140MagePortraitUrl,
+  Acolyte: getCdi141AcolytePortraitUrl,
+  "A\u00e8de": getCdi142AedePortraitUrl,
+};
 
 const sourceImageCache = createBoundedAsyncAssetCache<HTMLImageElement>(HERO_PORTRAIT_SHEET_CACHE_LIMIT);
 const processedSpriteCache = createBoundedAsyncAssetCache<string>(HERO_PORTRAIT_SPRITE_CACHE_LIMIT);
@@ -101,41 +115,10 @@ export interface ResolvedHeroPortraitAsset {
 export async function loadHeroPortraitAsset(request: HeroPortraitAssetRequest): Promise<ResolvedHeroPortraitAsset> {
   const classType = request.classType;
   const requestedKey = getHeroPortraitCacheKey(classType, request.gender, request.variant);
-  if (classType === "Novice") {
+  const individualResolver = individualHeroPortraitResolvers[classType];
+  if (individualResolver) {
     return {
-      url: getCdi136NovicePortraitUrl(request.gender, request.variant),
-      requestedKey,
-      resolvedKey: requestedKey,
-      fallback: false,
-    };
-  }
-  if (classType === "Guerrier") {
-    return {
-      url: getCdi137WarriorPortraitUrl(request.gender, request.variant),
-      requestedKey,
-      resolvedKey: requestedKey,
-      fallback: false,
-    };
-  }
-  if (classType === "Voleur") {
-    return {
-      url: getCdi138RoguePortraitUrl(request.gender, request.variant),
-      requestedKey,
-      resolvedKey: requestedKey,
-      fallback: false,
-    };
-  }
-  if (classType === "Archer") {
-    return {
-      url: getCdi139ArcherPortraitUrl(request.gender, request.variant),
-      requestedKey,
-      resolvedKey: requestedKey,
-      fallback: false,
-    };
-  }
-  if (classType === "Mage") {
-    return {
-      url: getCdi140MagePortraitUrl(request.gender, request.variant),
+      url: individualResolver(request.gender, request.variant),
       requestedKey,
       resolvedKey: requestedKey,
       fallback: false,

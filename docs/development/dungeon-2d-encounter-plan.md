@@ -551,13 +551,13 @@ Nouveaux tickets du plan amélioré :
 | [CDI-133](../../workboard/data/Later/CDI-133/ticket.md) | N5 — Mettre en scène l’échange de négociation | Later | M / medium | CDI-115, CDI-117 |
 | [CDI-134](../../workboard/data/Later/CDI-134/ticket.md) | N6 — Préserver trésor et repos avec les héros retouchés | Later | M / medium | CDI-102, CDI-117, CDI-128, CDI-136–145 |
 | [CDI-135](../../workboard/data/Later/CDI-135/ticket.md) | Q1 — Vérifier le combat continu et la couverture des actions | Later | M / high | CDI-114, CDI-117–147 |
-| [CDI-136](../../workboard/data/Later/CDI-136/ticket.md) | A1 — Refaire les bases visuelles des Novices | Later | L / medium | CDI-117 |
-| [CDI-137](../../workboard/data/Later/CDI-137/ticket.md) | A1 — Refaire les bases visuelles des Guerriers | Later | L / medium | CDI-117, CDI-136 |
-| [CDI-138](../../workboard/data/Later/CDI-138/ticket.md) | A1 — Refaire les bases visuelles des Voleurs | Later | L / medium | CDI-117, CDI-136 |
-| [CDI-139](../../workboard/data/Later/CDI-139/ticket.md) | A1 — Refaire les bases visuelles des Archers | Later | L / medium | CDI-117, CDI-136 |
-| [CDI-140](../../workboard/data/Later/CDI-140/ticket.md) | A1 — Refaire les bases visuelles des Mages | Later | L / medium | CDI-117, CDI-136 |
-| [CDI-141](../../workboard/data/Later/CDI-141/ticket.md) | A1 — Refaire les bases visuelles des Acolytes | Later | L / medium | CDI-117, CDI-136 |
-| [CDI-142](../../workboard/data/Later/CDI-142/ticket.md) | A1 — Refaire les bases visuelles des Aèdes | Later | L / medium | CDI-117, CDI-136 |
+| [CDI-136](../../workboard/data/Done/CDI-136/ticket.md) | A1 — Refaire les bases visuelles des Novices | Done | L / medium | CDI-117 |
+| [CDI-137](../../workboard/data/Done/CDI-137/ticket.md) | A1 — Refaire les bases visuelles des Guerriers | Done | L / medium | CDI-117, CDI-136 |
+| [CDI-138](../../workboard/data/Done/CDI-138/ticket.md) | A1 — Refaire les bases visuelles des Voleurs | Done | L / medium | CDI-117, CDI-136 |
+| [CDI-139](../../workboard/data/Done/CDI-139/ticket.md) | A1 — Refaire les bases visuelles des Archers | Done | L / medium | CDI-117, CDI-136 |
+| [CDI-140](../../workboard/data/Done/CDI-140/ticket.md) | A1 — Refaire les bases visuelles des Mages | Done | L / medium | CDI-117, CDI-136 |
+| [CDI-141](../../workboard/data/Done/CDI-141/ticket.md) | A1 — Refaire les bases visuelles des Acolytes | Done | L / medium | CDI-117, CDI-136 |
+| [CDI-142](../../workboard/data/Done/CDI-142/ticket.md) | A1 — Refaire les bases visuelles des Aèdes | Done | L / medium | CDI-117, CDI-136 |
 | [CDI-143](../../workboard/data/Later/CDI-143/ticket.md) | A1 — Refaire les bases visuelles des Druides | Later | L / medium | CDI-117, CDI-136 |
 | [CDI-144](../../workboard/data/Later/CDI-144/ticket.md) | A1 — Refaire les bases visuelles des Artificiers | Later | L / medium | CDI-117, CDI-136 |
 | [CDI-145](../../workboard/data/Later/CDI-145/ticket.md) | A1 — Refaire les bases visuelles des Pugilistes | Later | L / medium | CDI-117, CDI-136 |

@@ -1,8 +1,4 @@
 import type { CanonicalHeroClass } from "../../shared/domain/hero-classes";
-import acolyteFemale from "./images/hero-sprites/tier1/human-tier1-acolyte-female-v1.png";
-import acolyteMale from "./images/hero-sprites/tier1/human-tier1-acolyte-male-v1.png";
-import aedeFemale from "./images/hero-sprites/tier1/human-tier1-aede-female-v1.png";
-import aedeMale from "./images/hero-sprites/tier1/human-tier1-aede-male-v1.png";
 import artificerFemale from "./images/hero-sprites/tier1/human-tier1-artificer-female-v1.png";
 import artificerMale from "./images/hero-sprites/tier1/human-tier1-artificer-male-v1.png";
 import druidFemale from "./images/hero-sprites/tier1/human-tier1-druid-female-v1.png";
@@ -12,11 +8,9 @@ import pugilistMale from "./images/hero-sprites/tier1/human-tier1-pugilist-male-
 
 export type HeroPortraitGender = "Male" | "Female";
 export type HeroSpriteSheetPair = Record<HeroPortraitGender, string>;
-export type HeroSpriteSheetClass = Exclude<CanonicalHeroClass, "Novice" | "Guerrier" | "Voleur" | "Archer" | "Mage">;
+export type HeroSpriteSheetClass = Exclude<CanonicalHeroClass, "Novice" | "Guerrier" | "Voleur" | "Archer" | "Mage" | "Acolyte" | "A\u00e8de">;
 
 export const HERO_SPRITE_SHEETS = {
-  Acolyte: { Male: acolyteMale, Female: acolyteFemale },
-  "A\u00e8de": { Male: aedeMale, Female: aedeFemale },
   Druide: { Male: druidMale, Female: druidFemale },
   Artificier: { Male: artificerMale, Female: artificerFemale },
   Pugiliste: { Male: pugilistMale, Female: pugilistFemale },

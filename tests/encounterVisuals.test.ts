@@ -113,6 +113,30 @@ describe("encounter visual catalog", () => {
     expect(wrapped.url).toContain("mage-female-10-v1");
   });
 
+  it("loads CDI-141 Acolyte neutral sprites through stable legacy identity keys", async () => {
+    const first = await loadEncounterVisualAsset("Acolyte_Male_0");
+    const wrapped = await loadEncounterVisualAsset("Acolyte_Female_19");
+
+    expect(first).toMatchObject({
+      status: "ready",
+      descriptor: { provenance: "CDI-141 validated Acolyte alpha sprites" },
+    });
+    expect(first.url).toContain("acolyte-male-01-v1");
+    expect(wrapped.url).toContain("acolyte-female-10-v1");
+  });
+
+  it("loads CDI-142 Aede neutral sprites through stable legacy identity keys", async () => {
+    const first = await loadEncounterVisualAsset("A\u00e8de_Male_0");
+    const wrapped = await loadEncounterVisualAsset("A\u00e8de_Female_19");
+
+    expect(first).toMatchObject({
+      status: "ready",
+      descriptor: { provenance: "CDI-142 validated Aede alpha sprites" },
+    });
+    expect(first.url).toContain("aede-male-01-v1");
+    expect(wrapped.url).toContain("aede-female-10-v1");
+  });
+
   it("aligns available UnderCity packs with immutable blueprint member keys", () => {
     for (const pack of UNDERCITY_ZONE_VISUAL_PACKS) {
       const zone = UNDERCITY_ZONES.find((candidate) => candidate.id === pack.zoneId);

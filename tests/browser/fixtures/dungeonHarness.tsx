@@ -48,12 +48,20 @@ const requestedMageCinemaPage = Number(harnessParams.get("mage-cinema"));
 const mageCinema = Number.isInteger(requestedMageCinemaPage)
   && requestedMageCinemaPage >= 1
   && requestedMageCinemaPage <= 5;
+const requestedAcolyteCinemaPage = Number(harnessParams.get("acolyte-cinema"));
+const acolyteCinema = Number.isInteger(requestedAcolyteCinemaPage)
+  && requestedAcolyteCinemaPage >= 1
+  && requestedAcolyteCinemaPage <= 5;
+const requestedAedeCinemaPage = Number(harnessParams.get("aede-cinema"));
+const aedeCinema = Number.isInteger(requestedAedeCinemaPage)
+  && requestedAedeCinemaPage >= 1
+  && requestedAedeCinemaPage <= 5;
 const readOnly = harnessParams.get("readonly") === "1";
 const requestedStep = Number(harnessParams.get("step") ?? 2);
 const visibleCount = Number.isInteger(requestedStep) ? Math.max(0, Math.min(12, requestedStep)) : 2;
 const playbackComplete = harnessParams.get("complete") === "1";
-const combatSceneOnly = harnessParams.get("combat-scene") === "1" || warriorCinema || rogueCinema || archerCinema || mageCinema;
-const integratedCombat = harnessParams.get("integrated") === "1" || warriorCinema || rogueCinema || archerCinema || mageCinema;
+const combatSceneOnly = harnessParams.get("combat-scene") === "1" || warriorCinema || rogueCinema || archerCinema || mageCinema || acolyteCinema || aedeCinema;
+const integratedCombat = harnessParams.get("integrated") === "1" || warriorCinema || rogueCinema || archerCinema || mageCinema || acolyteCinema || aedeCinema;
 const advancedCombat = harnessParams.get("advanced-combat") === "1";
 const visualScenario = harnessParams.get("scenario") === "1";
 const continuousContactPilot = harnessParams.get("contact-pilot") === "1";
@@ -62,6 +70,8 @@ const warriorReview = harnessParams.get("warrior-review") === "1" || warriorCine
 const rogueReview = rogueCinema;
 const archerReview = archerCinema;
 const mageReview = mageCinema;
+const acolyteReview = acolyteCinema;
+const aedeReview = aedeCinema;
 const requestedReviewPage = Number(
   harnessParams.get("review-page")
     ?? (warriorCinema
@@ -72,12 +82,16 @@ const requestedReviewPage = Number(
           ? requestedArcherCinemaPage
           : mageCinema
             ? requestedMageCinemaPage
-            : 1),
+            : acolyteCinema
+              ? requestedAcolyteCinemaPage
+              : aedeCinema
+                ? requestedAedeCinemaPage
+                : 1),
 );
 const reviewPage = Number.isInteger(requestedReviewPage)
   ? Math.max(1, Math.min(5, requestedReviewPage))
   : 1;
-const animationsEnabled = !warriorCinema && !rogueCinema && !archerCinema && !mageCinema && harnessParams.get("animations") !== "0";
+const animationsEnabled = !warriorCinema && !rogueCinema && !archerCinema && !mageCinema && !acolyteCinema && !aedeCinema && harnessParams.get("animations") !== "0";
 const requestedBlueprintId = harnessParams.get("blueprint");
 const requestedKingPhaseTwo = harnessParams.get("king-phase") === "2";
 const requestedNonCombatScene = harnessParams.get("non-combat-scene");
@@ -129,8 +143,28 @@ const mageReviewVisualKeys = [
   `Mage_Male_${mageReviewFirstVariant + 1}`,
 ] as const;
 
+const acolyteReviewFirstVariant = (reviewPage - 1) * 2;
+const acolyteReviewVisualKeys = [
+  `Acolyte_Female_${acolyteReviewFirstVariant}`,
+  `Acolyte_Male_${acolyteReviewFirstVariant}`,
+  `Acolyte_Female_${acolyteReviewFirstVariant + 1}`,
+  `Acolyte_Male_${acolyteReviewFirstVariant + 1}`,
+] as const;
+
+const aedeReviewFirstVariant = (reviewPage - 1) * 2;
+const aedeReviewVisualKeys = [
+  `A\u00e8de_Female_${aedeReviewFirstVariant}`,
+  `A\u00e8de_Male_${aedeReviewFirstVariant}`,
+  `A\u00e8de_Female_${aedeReviewFirstVariant + 1}`,
+  `A\u00e8de_Male_${aedeReviewFirstVariant + 1}`,
+] as const;
+
 function withHeroReview(record: CanonicalDungeonEncounterRecord): CanonicalDungeonEncounterRecord {
-  const reviewVisualKeys = mageReview
+  const reviewVisualKeys = aedeReview
+    ? aedeReviewVisualKeys
+    : acolyteReview
+    ? acolyteReviewVisualKeys
+    : mageReview
     ? mageReviewVisualKeys
     : archerReview
     ? archerReviewVisualKeys

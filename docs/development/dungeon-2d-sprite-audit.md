@@ -50,9 +50,9 @@ mouvement court d’abord, une ou deux poses seulement si le geste reste illisib
 | Guerrier | 20 PNG alpha individuels `341 × 692`, dix hommes et dix femmes | Nouvelles bases neutres dérivées une à une des Novices ; index historiques 0–19 repliés de façon stable vers 0–9 du même genre | Validé | CDI-137 terminé ; garde de combat séparée dans CDI-149 |
 | Voleur | 20 PNG alpha individuels `341 × 692`, dix hommes et dix femmes | Nouvelles bases neutres dérivées une à une des Novices ; index historiques 0–19 repliés de façon stable vers 0–9 du même genre | Validé | CDI-138 terminé ; garde de combat séparée dans CDI-150 |
 | Archer | 20 PNG alpha individuels `341 × 692`, dix hommes et dix femmes | Nouvelles bases neutres dérivées une à une des Novices ; index historiques 0–19 repliés de façon stable vers 0–9 du même genre | Validé | CDI-139 terminé ; garde de combat séparée dans CDI-151 |
-| Mage | Deux planches PNG 20 variantes | Bases historiques à adapter après validation Novice | À refaire | CDI-140 |
-| Acolyte | Deux planches PNG 20 variantes | Bases historiques à adapter après validation Novice | À refaire | CDI-141 |
-| Aède | Deux planches PNG 20 variantes | Bases historiques à adapter après validation Novice | À refaire | CDI-142 |
+| Mage | 20 PNG alpha individuels `341 × 692`, dix hommes et dix femmes | Nouvelles bases neutres dérivées une à une des Novices ; index historiques 0–19 repliés de façon stable vers 0–9 du même genre | Validé | CDI-140 terminé ; garde de combat séparée dans CDI-152 |
+| Acolyte | 20 PNG alpha individuels `341 × 692`, dix hommes et dix femmes | Nouvelles bases neutres dérivées une à une des Novices ; index historiques 0–19 repliés de façon stable vers 0–9 du même genre | Validé | CDI-141 terminé ; garde de combat séparée dans CDI-153 |
+| Aède | 20 PNG alpha individuels `341 × 692`, dix hommes et dix femmes | Nouvelles bases neutres dérivées une à une des Novices ; index historiques 0–19 repliés de façon stable vers 0–9 du même genre | Validé | CDI-142 terminé ; garde de combat séparée dans CDI-154 |
 | Druide | Deux planches PNG 20 variantes | Bases historiques à adapter après validation Novice | À refaire | CDI-143 |
 | Artificier | Deux planches PNG 20 variantes | Bases historiques à adapter après validation Novice | À refaire | CDI-144 |
 | Pugiliste | Deux planches PNG 20 variantes | Bases historiques à adapter après validation Novice | À refaire | CDI-145 |
@@ -165,8 +165,8 @@ du verdict. Aucun ticket A2 Cour n’est nécessaire.
 
 ## Limites actuelles
 
-- Les dix classes sont confirmées à refaire ; CDI-136–145 sont créés. Les bases Novice CDI-136, Guerrier CDI-137, Voleur CDI-138 et Archer CDI-139 sont produites, intégrées et validées.
-- Les bases Novice validées ont rejoint les cinq références pour CDI-137–145 ; CDI-140–145 restent à produire.
+- Les dix classes sont confirmées à refaire ; CDI-136–145 sont créés. Les bases CDI-136–142 sont produites, intégrées et validées.
+- Les bases Novice validées ont rejoint les cinq références pour CDI-137–145 ; CDI-143–145 restent à produire.
 - Le tri des cinq zones est terminé : Égouts, Citernes et Cour sont conservés intégralement ; Galeries et Bastion ont leurs tickets A2 bornés.
 - CDI-146 porte les onze humains des Galeries et bloque leurs consommateurs jusqu’aux cinq validations d’écran.
 - CDI-147 porte les trois reprises ciblées du Bastion et bloque leurs consommateurs jusqu’aux deux validations d’écran.
