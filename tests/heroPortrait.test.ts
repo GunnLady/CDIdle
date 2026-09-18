@@ -37,6 +37,10 @@ import {
   getCdi142AedePortraitUrl,
 } from "../src/assets/aedeCdi142Portraits";
 import {
+  CDI143_DRUID_VARIANT_COUNT,
+  getCdi143DruidPortraitUrl,
+} from "../src/assets/druidCdi143Portraits";
+import {
   HERO_SPRITE_SLICES,
   getHeroPortraitCacheKey,
   getHeroPortraitPoseVisualKey,
@@ -114,6 +118,7 @@ describe("hero sprite sheet catalog", () => {
         && classType !== "Mage"
         && classType !== "Acolyte"
         && classType !== "A\u00e8de"
+        && classType !== "Druide"
     ));
     expect(Object.keys(HERO_SPRITE_SHEETS)).toEqual(legacySheetClasses);
     expect(HERO_SPRITE_SLICES).toHaveLength(HERO_PORTRAIT_VARIANT_COUNT);
@@ -182,6 +187,16 @@ describe("authoritative Aede portrait", () => {
     expect(getCdi142AedePortraitUrl("Female", 9)).toContain("aede-female-10-v1");
     expect(getCdi142AedePortraitUrl("Male", 10)).toBe(getCdi142AedePortraitUrl("Male", 0));
     expect(getCdi142AedePortraitUrl("Female", 19)).toBe(getCdi142AedePortraitUrl("Female", 9));
+  });
+});
+
+describe("authoritative Druid portrait", () => {
+  it("maps the 20 persisted identity slots onto the 10 validated sprites per gender", () => {
+    expect(CDI143_DRUID_VARIANT_COUNT).toBe(10);
+    expect(getCdi143DruidPortraitUrl("Male", 0)).toContain("druid-male-01-v1");
+    expect(getCdi143DruidPortraitUrl("Female", 9)).toContain("druid-female-10-v1");
+    expect(getCdi143DruidPortraitUrl("Male", 10)).toBe(getCdi143DruidPortraitUrl("Male", 0));
+    expect(getCdi143DruidPortraitUrl("Female", 19)).toBe(getCdi143DruidPortraitUrl("Female", 9));
   });
 });
 

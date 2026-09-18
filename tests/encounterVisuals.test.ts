@@ -137,6 +137,18 @@ describe("encounter visual catalog", () => {
     expect(wrapped.url).toContain("aede-female-10-v1");
   });
 
+  it("loads CDI-143 Druid neutral sprites through stable legacy identity keys", async () => {
+    const first = await loadEncounterVisualAsset("Druide_Male_0");
+    const wrapped = await loadEncounterVisualAsset("Druide_Female_19");
+
+    expect(first).toMatchObject({
+      status: "ready",
+      descriptor: { provenance: "CDI-143 validated Druid alpha sprites" },
+    });
+    expect(first.url).toContain("druid-male-01-v1");
+    expect(wrapped.url).toContain("druid-female-10-v1");
+  });
+
   it("aligns available UnderCity packs with immutable blueprint member keys", () => {
     for (const pack of UNDERCITY_ZONE_VISUAL_PACKS) {
       const zone = UNDERCITY_ZONES.find((candidate) => candidate.id === pack.zoneId);

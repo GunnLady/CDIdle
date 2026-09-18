@@ -7,6 +7,7 @@ import { getCdi139ArcherPortraitUrl } from "./archerCdi139Portraits";
 import { getCdi140MagePortraitUrl } from "./mageCdi140Portraits";
 import { getCdi141AcolytePortraitUrl } from "./acolyteCdi141Portraits";
 import { getCdi142AedePortraitUrl } from "./aedeCdi142Portraits";
+import { getCdi143DruidPortraitUrl } from "./druidCdi143Portraits";
 import { HERO_SPRITE_SLICES, getHeroPortraitCacheKey } from "../domain/heroPortrait";
 import { findHeroPortraitOpaqueBounds, fitHeroPortraitToFrame } from "./heroPortraitFraming";
 import { createBoundedAsyncAssetCache } from "./visualAssetCache";
@@ -25,6 +26,7 @@ const individualHeroPortraitResolvers: Partial<Record<CanonicalHeroClass, HeroPo
   Mage: getCdi140MagePortraitUrl,
   Acolyte: getCdi141AcolytePortraitUrl,
   "A\u00e8de": getCdi142AedePortraitUrl,
+  Druide: getCdi143DruidPortraitUrl,
 };
 
 const sourceImageCache = createBoundedAsyncAssetCache<HTMLImageElement>(HERO_PORTRAIT_SHEET_CACHE_LIMIT);

@@ -37,7 +37,7 @@ const encounterScenes = {
 };
 
 const tier1Sheets = [
-  "artificer", "druid", "pugilist",
+  "artificer", "pugilist",
 ].flatMap((className) => ["female", "male"].map((gender) => (
   join("hero-sprites", "tier1", `human-tier1-${className}-${gender}-v1.png`)
 )));
@@ -88,6 +88,12 @@ const aedeSprites = ["female", "male"].flatMap((gender) => (
   Array.from({ length: 10 }, (_, index) => join(
     gender,
     `aede-${gender}-${String(index + 1).padStart(2, "0")}-v1.png`,
+  ))
+));
+const druidSprites = ["female", "male"].flatMap((gender) => (
+  Array.from({ length: 10 }, (_, index) => join(
+    gender,
+    `druid-${gender}-${String(index + 1).padStart(2, "0")}-v1.png`,
   ))
 ));
 
@@ -732,6 +738,66 @@ assert(
   `Four-hero CDI-142 Aede scene exceeds ${sceneBudgetBytes} bytes`,
 );
 
+const druidImageDirectory = join(
+  projectRoot,
+  "assets",
+  "design",
+  "hero-sprites",
+  "cdi-143",
+  "normalized-alpha-v1",
+);
+const measuredDruidSprites = druidSprites.map((relativePath) => {
+  const path = join(druidImageDirectory, relativePath);
+  const dimensions = readImageInfo(path);
+  assert.deepEqual(
+    { width: dimensions.width, height: dimensions.height, alpha: dimensions.alpha },
+    { width: 341, height: 692, alpha: true },
+    `${relativePath} must remain a normalized CDI-143 alpha sprite`,
+  );
+  assert(
+    dimensions.transparentPixelCount >= dimensions.width * dimensions.height * 0.1,
+    `${relativePath} must contain a substantial transparent background`,
+  );
+  assert(
+    Math.max(...dimensions.cornerAlphas) <= 2,
+    `${relativePath} must not contain an opaque or semi-opaque baked background`,
+  );
+  assert(dimensions.visibleBounds, `${relativePath} must contain visible pixels`);
+
+  const noviceRelativePath = relativePath.replace("druid-", "novice-");
+  const noviceDimensions = measuredNoviceSprites.get(noviceRelativePath);
+  assert(noviceDimensions?.visibleBounds, `Missing CDI-136 reference ${noviceRelativePath}`);
+  const visibleHeight = dimensions.visibleBounds.maxY - dimensions.visibleBounds.minY + 1;
+  const noviceVisibleHeight = noviceDimensions.visibleBounds.maxY - noviceDimensions.visibleBounds.minY + 1;
+  assert(
+    Math.abs(visibleHeight - noviceVisibleHeight) <= 1,
+    `${relativePath} must keep the visible height of ${noviceRelativePath}`,
+  );
+  assert.equal(
+    dimensions.visibleBounds.maxY,
+    noviceDimensions.visibleBounds.maxY,
+    `${relativePath} feet baseline must match ${noviceRelativePath}`,
+  );
+  const centerX = (dimensions.visibleBounds.minX + dimensions.visibleBounds.maxX) / 2;
+  assert(
+    Math.abs(centerX - (dimensions.width - 1) / 2) <= 1.5,
+    `${relativePath} visible pivot must remain centered`,
+  );
+  return { file: relativePath, bytes: statSync(path).size };
+});
+const druidTotalBytes = measuredDruidSprites.reduce((total, entry) => total + entry.bytes, 0);
+const druidSceneBytes = measuredDruidSprites
+  .map((entry) => entry.bytes)
+  .sort((left, right) => right - left)
+  .slice(0, combatHeroLimit)
+  .reduce((total, bytes) => total + bytes, 0);
+const druidDecodedBytesPerSprite = 341 * 692 * 4;
+const druidDecodedSceneBytes = druidDecodedBytesPerSprite * combatHeroLimit;
+assert(
+  druidSceneBytes <= sceneBudgetBytes,
+  `Four-hero CDI-143 Druid scene exceeds ${sceneBudgetBytes} bytes`,
+);
+
 const noviceCombatImageDirectory = join(
   projectRoot,
   "assets",
@@ -815,6 +881,13 @@ console.log(JSON.stringify({
     decodedBytesPerSprite: aedeDecodedBytesPerSprite,
     decodedFourHeroSceneBytes: aedeDecodedSceneBytes,
   },
+  druidSprites: druidSprites.length,
+  druidMetrics: {
+    totalBytes: druidTotalBytes,
+    largestFourSceneBytes: druidSceneBytes,
+    decodedBytesPerSprite: druidDecodedBytesPerSprite,
+    decodedFourHeroSceneBytes: druidDecodedSceneBytes,
+  },
   noviceCombatSprites: noviceCombatSprites.length,
   noviceCombatMetrics: {
     totalBytes: noviceCombatTotalBytes,
@@ -829,7 +902,8 @@ console.log(JSON.stringify({
     + archerSprites.length * 2
     + mageSprites.length * 2
     + acolyteSprites.length * 2
-    + aedeSprites.length * 2,
+    + aedeSprites.length * 2
+    + druidSprites.length * 2,
   sceneBudgetBytes,
   undercityPacks: measuredPacks,
   encounterBytes,
