@@ -45,6 +45,10 @@ import {
   getCdi144ArtificerPortraitUrl,
 } from "../src/assets/artificerCdi144Portraits";
 import {
+  CDI145_PUGILIST_VARIANT_COUNT,
+  getCdi145PugilistPortraitUrl,
+} from "../src/assets/pugilistCdi145Portraits";
+import {
   HERO_SPRITE_SLICES,
   getHeroPortraitCacheKey,
   getHeroPortraitPoseVisualKey,
@@ -113,7 +117,7 @@ describe("hero portrait identity", () => {
 });
 
 describe("hero sprite sheet catalog", () => {
-  it("keeps legacy sheets for Tier 1 classes not yet migrated to individual sprites", () => {
+  it("has no remaining Tier 1 class on a legacy sprite sheet", () => {
     const legacySheetClasses = CANONICAL_HERO_CLASSES.filter((classType) => (
       classType !== "Novice"
         && classType !== "Guerrier"
@@ -124,14 +128,11 @@ describe("hero sprite sheet catalog", () => {
         && classType !== "A\u00e8de"
         && classType !== "Druide"
         && classType !== "Artificier"
+        && classType !== "Pugiliste"
     ));
     expect(Object.keys(HERO_SPRITE_SHEETS)).toEqual(legacySheetClasses);
+    expect(legacySheetClasses).toEqual([]);
     expect(HERO_SPRITE_SLICES).toHaveLength(HERO_PORTRAIT_VARIANT_COUNT);
-
-    for (const classType of legacySheetClasses) {
-      expect(HERO_SPRITE_SHEETS[classType].Male).toBeTruthy();
-      expect(HERO_SPRITE_SHEETS[classType].Female).toBeTruthy();
-    }
   });
 });
 
@@ -212,6 +213,16 @@ describe("authoritative Artificer portrait", () => {
     expect(getCdi144ArtificerPortraitUrl("Female", 9)).toContain("artificer-female-10-v1");
     expect(getCdi144ArtificerPortraitUrl("Male", 10)).toBe(getCdi144ArtificerPortraitUrl("Male", 0));
     expect(getCdi144ArtificerPortraitUrl("Female", 19)).toBe(getCdi144ArtificerPortraitUrl("Female", 9));
+  });
+});
+
+describe("authoritative Pugilist portrait", () => {
+  it("maps the 20 persisted identity slots onto the 10 validated sprites per gender", () => {
+    expect(CDI145_PUGILIST_VARIANT_COUNT).toBe(10);
+    expect(getCdi145PugilistPortraitUrl("Male", 0)).toContain("pugilist-male-01-v1");
+    expect(getCdi145PugilistPortraitUrl("Female", 9)).toContain("pugilist-female-10-v1");
+    expect(getCdi145PugilistPortraitUrl("Male", 10)).toBe(getCdi145PugilistPortraitUrl("Male", 0));
+    expect(getCdi145PugilistPortraitUrl("Female", 19)).toBe(getCdi145PugilistPortraitUrl("Female", 9));
   });
 });
 

@@ -36,10 +36,7 @@ const encounterScenes = {
   negotiation: ["rest-chamber-background-v1.jpg", "challenge-negotiation-v1.png"],
 };
 
-const tier1Sheets = ["pugilist"].flatMap((className) => ["female", "male"].map((gender) => (
-  join("hero-sprites", "tier1", `human-tier1-${className}-${gender}-v1.png`)
-)));
-const heroSheets = tier1Sheets;
+const heroSheets = [];
 const noviceSprites = ["female", "male"].flatMap((gender) => (
   Array.from({ length: 10 }, (_, index) => join(
     gender,
@@ -98,6 +95,12 @@ const artificerSprites = ["female", "male"].flatMap((gender) => (
   Array.from({ length: 10 }, (_, index) => join(
     gender,
     `artificer-${gender}-${String(index + 1).padStart(2, "0")}-v1.png`,
+  ))
+));
+const pugilistSprites = ["female", "male"].flatMap((gender) => (
+  Array.from({ length: 10 }, (_, index) => join(
+    gender,
+    `pugilist-${gender}-${String(index + 1).padStart(2, "0")}-v1.png`,
   ))
 ));
 
@@ -864,6 +867,70 @@ assert(
   `Four-hero CDI-144 Artificer scene exceeds ${sceneBudgetBytes} bytes`,
 );
 
+const pugilistImageDirectory = join(
+  projectRoot,
+  "assets",
+  "design",
+  "hero-sprites",
+  "cdi-145",
+  "normalized-alpha-v1",
+);
+const measuredPugilistSprites = pugilistSprites.map((relativePath) => {
+  const path = join(pugilistImageDirectory, relativePath);
+  const dimensions = readImageInfo(path);
+  assert.deepEqual(
+    { width: dimensions.width, height: dimensions.height, alpha: dimensions.alpha },
+    { width: 341, height: 692, alpha: true },
+    `${relativePath} must remain a normalized CDI-145 alpha sprite`,
+  );
+  assert(
+    dimensions.transparentPixelCount >= dimensions.width * dimensions.height * 0.1,
+    `${relativePath} must contain a substantial transparent background`,
+  );
+  assert(
+    Math.max(...dimensions.cornerAlphas) <= 2,
+    `${relativePath} must not contain an opaque or semi-opaque baked background`,
+  );
+  assert(dimensions.visibleBounds, `${relativePath} must contain visible pixels`);
+
+  const gender = relativePath.includes("pugilist-female-") ? "female" : "male";
+  const match = relativePath.match(/pugilist-(?:female|male)-(\d{2})-v1\.png$/);
+  assert(match, `Invalid CDI-145 Pugilist filename: ${relativePath}`);
+  const referenceVariant = gender === "female" && Number(match[1]) >= 8 ? "08" : "06";
+  const mageReferencePath = join(gender, `mage-${gender}-${referenceVariant}-v1.png`);
+  const mageDimensions = readImageInfo(join(mageImageDirectory, mageReferencePath));
+  assert(mageDimensions.visibleBounds, `Missing CDI-140 reference ${mageReferencePath}`);
+  const visibleHeight = dimensions.visibleBounds.maxY - dimensions.visibleBounds.minY + 1;
+  const mageVisibleHeight = mageDimensions.visibleBounds.maxY - mageDimensions.visibleBounds.minY + 1;
+  assert(
+    Math.abs(visibleHeight - mageVisibleHeight) <= 1,
+    `${relativePath} must keep the visible height of ${mageReferencePath}`,
+  );
+  assert.equal(
+    dimensions.visibleBounds.maxY,
+    mageDimensions.visibleBounds.maxY,
+    `${relativePath} feet baseline must match ${mageReferencePath}`,
+  );
+  const centerX = (dimensions.visibleBounds.minX + dimensions.visibleBounds.maxX) / 2;
+  assert(
+    Math.abs(centerX - (dimensions.width - 1) / 2) <= 1.5,
+    `${relativePath} visible pivot must remain centered`,
+  );
+  return { file: relativePath, bytes: statSync(path).size };
+});
+const pugilistTotalBytes = measuredPugilistSprites.reduce((total, entry) => total + entry.bytes, 0);
+const pugilistSceneBytes = measuredPugilistSprites
+  .map((entry) => entry.bytes)
+  .sort((left, right) => right - left)
+  .slice(0, combatHeroLimit)
+  .reduce((total, bytes) => total + bytes, 0);
+const pugilistDecodedBytesPerSprite = 341 * 692 * 4;
+const pugilistDecodedSceneBytes = pugilistDecodedBytesPerSprite * combatHeroLimit;
+assert(
+  pugilistSceneBytes <= sceneBudgetBytes,
+  `Four-hero CDI-145 Pugilist scene exceeds ${sceneBudgetBytes} bytes`,
+);
+
 const noviceCombatImageDirectory = join(
   projectRoot,
   "assets",
@@ -961,6 +1028,13 @@ console.log(JSON.stringify({
     decodedBytesPerSprite: artificerDecodedBytesPerSprite,
     decodedFourHeroSceneBytes: artificerDecodedSceneBytes,
   },
+  pugilistSprites: pugilistSprites.length,
+  pugilistMetrics: {
+    totalBytes: pugilistTotalBytes,
+    largestFourSceneBytes: pugilistSceneBytes,
+    decodedBytesPerSprite: pugilistDecodedBytesPerSprite,
+    decodedFourHeroSceneBytes: pugilistDecodedSceneBytes,
+  },
   noviceCombatSprites: noviceCombatSprites.length,
   noviceCombatMetrics: {
     totalBytes: noviceCombatTotalBytes,
@@ -977,7 +1051,8 @@ console.log(JSON.stringify({
     + acolyteSprites.length * 2
     + aedeSprites.length * 2
     + druidSprites.length * 2
-    + artificerSprites.length * 2,
+    + artificerSprites.length * 2
+    + pugilistSprites.length * 2,
   sceneBudgetBytes,
   undercityPacks: measuredPacks,
   encounterBytes,

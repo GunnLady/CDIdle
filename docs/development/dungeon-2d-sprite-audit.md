@@ -54,8 +54,8 @@ mouvement court d’abord, une ou deux poses seulement si le geste reste illisib
 | Acolyte | 20 PNG alpha individuels `341 × 692`, dix hommes et dix femmes | Nouvelles bases neutres dérivées une à une des Novices ; index historiques 0–19 repliés de façon stable vers 0–9 du même genre | Validé | CDI-141 terminé ; garde de combat séparée dans CDI-153 |
 | Aède | 20 PNG alpha individuels `341 × 692`, dix hommes et dix femmes | Nouvelles bases neutres dérivées une à une des Novices ; index historiques 0–19 repliés de façon stable vers 0–9 du même genre | Validé | CDI-142 terminé ; garde de combat séparée dans CDI-154 |
 | Druide | 20 PNG alpha individuels `341 × 692`, dix hommes et dix femmes | Nouvelles bases neutres dérivées une à une des Novices ; index historiques 0–19 repliés de façon stable vers 0–9 du même genre | Validé | CDI-143 terminé ; garde de combat séparée dans CDI-155 |
-| Artificier | Deux planches PNG 20 variantes | Bases historiques à adapter après validation Novice | À refaire | CDI-144 |
-| Pugiliste | Deux planches PNG 20 variantes | Bases historiques à adapter après validation Novice | À refaire | CDI-145 |
+| Artificier | 20 PNG alpha individuels `341 × 692`, dix hommes et dix femmes | Nouvelles bases neutres dérivées une à une des Novices ; index historiques 0–19 repliés de façon stable vers 0–9 du même genre | Validé | CDI-144 terminé ; garde de combat séparée dans CDI-156 |
+| Pugiliste | 20 PNG alpha individuels `341 × 692`, dix hommes et dix femmes | Nouvelles bases neutres d’inspiration martiale asiatique ; index historiques 0–19 repliés de façon stable vers 0–9 du même genre | Validé | CDI-145 terminé ; garde de combat séparée dans CDI-157 |
 
 ## Monstres
 

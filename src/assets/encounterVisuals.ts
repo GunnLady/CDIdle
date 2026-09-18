@@ -40,6 +40,7 @@ const validatedHeroSpriteMetadata: Partial<Record<CanonicalHeroClass, readonly [
   "A\u00e8de": ["142", "Aede"],
   Druide: ["143", "Druid"],
   Artificier: ["144", "Artificer"],
+  Pugiliste: ["145", "Pugilist"],
 };
 
 function undercityAssetUrl(directory: string, file: string): string {

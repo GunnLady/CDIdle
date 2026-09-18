@@ -64,12 +64,16 @@ const requestedArtificerCinemaPage = Number(harnessParams.get("artificer-cinema"
 const artificerCinema = Number.isInteger(requestedArtificerCinemaPage)
   && requestedArtificerCinemaPage >= 1
   && requestedArtificerCinemaPage <= 5;
+const requestedPugilistCinemaPage = Number(harnessParams.get("pugilist-cinema"));
+const pugilistCinema = Number.isInteger(requestedPugilistCinemaPage)
+  && requestedPugilistCinemaPage >= 1
+  && requestedPugilistCinemaPage <= 5;
 const readOnly = harnessParams.get("readonly") === "1";
 const requestedStep = Number(harnessParams.get("step") ?? 2);
 const visibleCount = Number.isInteger(requestedStep) ? Math.max(0, Math.min(12, requestedStep)) : 2;
 const playbackComplete = harnessParams.get("complete") === "1";
-const combatSceneOnly = harnessParams.get("combat-scene") === "1" || warriorCinema || rogueCinema || archerCinema || mageCinema || acolyteCinema || aedeCinema || druidCinema || artificerCinema;
-const integratedCombat = harnessParams.get("integrated") === "1" || warriorCinema || rogueCinema || archerCinema || mageCinema || acolyteCinema || aedeCinema || druidCinema || artificerCinema;
+const combatSceneOnly = harnessParams.get("combat-scene") === "1" || warriorCinema || rogueCinema || archerCinema || mageCinema || acolyteCinema || aedeCinema || druidCinema || artificerCinema || pugilistCinema;
+const integratedCombat = harnessParams.get("integrated") === "1" || warriorCinema || rogueCinema || archerCinema || mageCinema || acolyteCinema || aedeCinema || druidCinema || artificerCinema || pugilistCinema;
 const advancedCombat = harnessParams.get("advanced-combat") === "1";
 const visualScenario = harnessParams.get("scenario") === "1";
 const continuousContactPilot = harnessParams.get("contact-pilot") === "1";
@@ -82,6 +86,7 @@ const acolyteReview = acolyteCinema;
 const aedeReview = aedeCinema;
 const druidReview = druidCinema;
 const artificerReview = artificerCinema;
+const pugilistReview = pugilistCinema;
 const requestedReviewPage = Number(
   harnessParams.get("review-page")
     ?? (warriorCinema
@@ -100,12 +105,14 @@ const requestedReviewPage = Number(
                   ? requestedDruidCinemaPage
                   : artificerCinema
                     ? requestedArtificerCinemaPage
-                    : 1),
+                    : pugilistCinema
+                      ? requestedPugilistCinemaPage
+                      : 1),
 );
 const reviewPage = Number.isInteger(requestedReviewPage)
   ? Math.max(1, Math.min(5, requestedReviewPage))
   : 1;
-const animationsEnabled = !warriorCinema && !rogueCinema && !archerCinema && !mageCinema && !acolyteCinema && !aedeCinema && !druidCinema && !artificerCinema && harnessParams.get("animations") !== "0";
+const animationsEnabled = !warriorCinema && !rogueCinema && !archerCinema && !mageCinema && !acolyteCinema && !aedeCinema && !druidCinema && !artificerCinema && !pugilistCinema && harnessParams.get("animations") !== "0";
 const requestedBlueprintId = harnessParams.get("blueprint");
 const requestedKingPhaseTwo = harnessParams.get("king-phase") === "2";
 const requestedNonCombatScene = harnessParams.get("non-combat-scene");
@@ -189,8 +196,18 @@ const artificerReviewVisualKeys = [
   `Artificier_Male_${artificerReviewFirstVariant + 1}`,
 ] as const;
 
+const pugilistReviewFirstVariant = (reviewPage - 1) * 2;
+const pugilistReviewVisualKeys = [
+  `Pugiliste_Female_${pugilistReviewFirstVariant}`,
+  `Pugiliste_Male_${pugilistReviewFirstVariant}`,
+  `Pugiliste_Female_${pugilistReviewFirstVariant + 1}`,
+  `Pugiliste_Male_${pugilistReviewFirstVariant + 1}`,
+] as const;
+
 function withHeroReview(record: CanonicalDungeonEncounterRecord): CanonicalDungeonEncounterRecord {
-  const reviewVisualKeys = artificerReview
+  const reviewVisualKeys = pugilistReview
+    ? pugilistReviewVisualKeys
+    : artificerReview
     ? artificerReviewVisualKeys
     : druidReview
     ? druidReviewVisualKeys

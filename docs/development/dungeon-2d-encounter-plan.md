@@ -558,9 +558,9 @@ Nouveaux tickets du plan amélioré :
 | [CDI-140](../../workboard/data/Done/CDI-140/ticket.md) | A1 — Refaire les bases visuelles des Mages | Done | L / medium | CDI-117, CDI-136 |
 | [CDI-141](../../workboard/data/Done/CDI-141/ticket.md) | A1 — Refaire les bases visuelles des Acolytes | Done | L / medium | CDI-117, CDI-136 |
 | [CDI-142](../../workboard/data/Done/CDI-142/ticket.md) | A1 — Refaire les bases visuelles des Aèdes | Done | L / medium | CDI-117, CDI-136 |
-| [CDI-143](../../workboard/data/Later/CDI-143/ticket.md) | A1 — Refaire les bases visuelles des Druides | Later | L / medium | CDI-117, CDI-136 |
-| [CDI-144](../../workboard/data/Later/CDI-144/ticket.md) | A1 — Refaire les bases visuelles des Artificiers | Later | L / medium | CDI-117, CDI-136 |
-| [CDI-145](../../workboard/data/Later/CDI-145/ticket.md) | A1 — Refaire les bases visuelles des Pugilistes | Later | L / medium | CDI-117, CDI-136 |
+| [CDI-143](../../workboard/data/Done/CDI-143/ticket.md) | A1 — Refaire les bases visuelles des Druides | Done | L / medium | CDI-117, CDI-136 |
+| [CDI-144](../../workboard/data/Done/CDI-144/ticket.md) | A1 — Refaire les bases visuelles des Artificiers | Done | L / medium | CDI-117, CDI-136 |
+| [CDI-145](../../workboard/data/Done/CDI-145/ticket.md) | A1 — Refaire les bases visuelles des Pugilistes | Done | L / medium | CDI-117, CDI-136 |
 | [CDI-146](../../workboard/data/Later/CDI-146/ticket.md) | A2 — Refaire les onze humanoïdes des Galeries | Later | L / medium | CDI-117 |
 | [CDI-147](../../workboard/data/Later/CDI-147/ticket.md) | A2 — Refaire la sentinelle et la patrouille du Bastion | Later | M / medium | CDI-117 |
 

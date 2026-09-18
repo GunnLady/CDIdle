@@ -161,6 +161,18 @@ describe("encounter visual catalog", () => {
     expect(wrapped.url).toContain("artificer-female-10-v1");
   });
 
+  it("loads CDI-145 Pugilist neutral sprites through stable legacy identity keys", async () => {
+    const first = await loadEncounterVisualAsset("Pugiliste_Male_0");
+    const wrapped = await loadEncounterVisualAsset("Pugiliste_Female_19");
+
+    expect(first).toMatchObject({
+      status: "ready",
+      descriptor: { provenance: "CDI-145 validated Pugilist alpha sprites" },
+    });
+    expect(first.url).toContain("pugilist-male-01-v1");
+    expect(wrapped.url).toContain("pugilist-female-10-v1");
+  });
+
   it("aligns available UnderCity packs with immutable blueprint member keys", () => {
     for (const pack of UNDERCITY_ZONE_VISUAL_PACKS) {
       const zone = UNDERCITY_ZONES.find((candidate) => candidate.id === pack.zoneId);

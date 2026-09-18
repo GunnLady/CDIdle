@@ -1,7 +1,7 @@
 ---
 id: CDI-145
 title: Refaire les bases Pugiliste selon l’étalon CDIdle
-status: Later
+status: Done
 area: ui
 priority: P1
 size: L
@@ -10,7 +10,7 @@ source: Validation utilisateur du 13 septembre 2026 - toutes les classes héros 
 depends_on: ["CDI-117","CDI-136"]
 blocks: ["CDI-119","CDI-125","CDI-134","CDI-135","CDI-157"]
 github_issue: null
-related_docs: ["docs/development/dungeon-2d-action-production-plan.md","docs/development/dungeon-2d-sprite-audit.md","assets/design/hero-sprites/human-tier1-class-spritesheets-v1.prompt.md","src/assets/heroSpriteSheets.ts","src/domain/heroPortrait.ts","src/assets/heroPortraitAssets.ts","AGENTS.md"]
+related_docs: ["docs/development/dungeon-2d-action-production-plan.md","docs/development/dungeon-2d-sprite-audit.md","docs/development/session-2026-09-18-cdi-145-pugilist-sprites-handoff.md","assets/design/hero-sprites/cdi-145/pugilist-identities-and-inspirations.md","assets/design/hero-sprites/cdi-145/handoff.md","assets/design/hero-sprites/human-tier1-class-spritesheets-v1.prompt.md","scripts/prepare-cdi-145-pugilist-assets.ps1","src/assets/pugilistCdi145Portraits.ts","src/assets/heroSpriteSheets.ts","src/domain/heroPortrait.ts","src/assets/heroPortraitAssets.ts","AGENTS.md"]
 ---
 
 # CDI-145 — Refaire les bases Pugiliste selon l’étalon CDIdle
@@ -62,13 +62,34 @@ Ressources historiques : `src/assets/images/hero-sprites/tier1/human-tier1-pugil
 
 ## Criteres d'acceptation
 
-- [ ] Une planche pilote d’identités contrastées est validée par l’utilisateur avant la série.
-- [ ] Dix hommes et dix femmes Pugiliste sont validés, avec une réattribution stable des index historiques 0–19 vers 0–9 pour le même genre.
-- [ ] Qualité, proportions, détail, contours, matières et lumière correspondent aux références sans uniformiser corps ou visages.
-- [ ] Les exports ont un alpha réel propre, une taille visible et des pivots cohérents ; aucun faux fond, frange, détail isolé ou personnage translucide.
-- [ ] Les vingt variantes se chargent par les clés compatibles dans les écrans concernés, sans refléter l’équipement réel.
-- [ ] Poids froid/cache et mémoire décodée sont mesurés ; le budget est respecté ou sa révision demandée avant généralisation.
-- [ ] L’utilisateur valide les bases en planche puis dans une scène PC représentative ; les poses d’action restent distinctes.
+- [x] Une planche pilote d’identités contrastées est validée par l’utilisateur avant la série.
+- [x] Dix hommes et dix femmes Pugiliste sont validés, avec une réattribution stable des index historiques 0–19 vers 0–9 pour le même genre.
+- [x] Qualité, proportions, détail, contours, matières et lumière correspondent aux références sans uniformiser corps ou visages.
+- [x] Les exports ont un alpha réel propre, une taille visible et des pivots cohérents ; aucun faux fond, frange, détail isolé ou personnage translucide.
+- [x] Les vingt variantes se chargent par les clés compatibles dans les écrans concernés, sans refléter l’équipement réel.
+- [x] Poids froid/cache et mémoire décodée sont mesurés ; le budget est respecté ou sa révision demandée avant généralisation.
+- [x] L’utilisateur valide les bases en planche puis dans une scène PC représentative ; les poses d’action restent distinctes.
+
+## Preuves de clôture — 18 septembre 2026
+
+- Vingt sources validées et vingt exports alpha `341 × 692` archivés ; les
+  planches homme et femme sur fonds clair/sombre ont été validées par
+  l’utilisateur.
+- Les anciennes clés `0–19` se replient de façon stable vers `0–9` pour le même
+  genre ; les vingt Pugilistes chargent sur les cinq pages du vrai cinéma PC,
+  validées par l’utilisateur.
+- Les boîtes visibles mesurent `623 px` pour les hommes et `595–596 px` pour les
+  femmes, se terminent à `y = 673` et restent centrées entre `x = 169,5` et
+  `x = 170`.
+- Le script de préparation reproduit les vingt exports bit pour bit : `20/20`
+  SHA-256 identiques.
+- `npm.cmd run check:dungeon-visuals` : succès ; poids total
+  `5 407 431 octets`, quatre plus lourds `1 180 161 octets`, mémoire décodée
+  `943 888 octets` par sprite et `3 775 552 octets` pour quatre.
+- Tests portraits/visuels : `36/36` ; Playwright ciblé : `1/1` ; typecheck,
+  lint, build et contrôle bundle réussis.
+- Bundle JavaScript gzip : `258 773 octets` ; plus gros chunk
+  `118 347 octets`, sous les plafonds configurés.
 
 ## Tests
 
@@ -79,7 +100,8 @@ Ressources historiques : `src/assets/images/hero-sprites/tier1/human-tier1-pugil
 
 ## Validation manuelle
 
-L’utilisateur valide d’abord le pilote, puis les deux planches complètes et leur rendu dans une scène PC. Présenter les variantes à taille visible comparable aux références, sur fonds clair/sombre et dans le décor.
+L’utilisateur a validé le pilote, les vingt bases, les deux planches complètes
+sur fonds clair/sombre et les cinq pages du vrai cinéma PC le 18 septembre 2026.
 
 ## Preservation
 
