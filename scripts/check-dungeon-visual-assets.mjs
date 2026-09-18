@@ -36,9 +36,7 @@ const encounterScenes = {
   negotiation: ["rest-chamber-background-v1.jpg", "challenge-negotiation-v1.png"],
 };
 
-const tier1Sheets = [
-  "artificer", "pugilist",
-].flatMap((className) => ["female", "male"].map((gender) => (
+const tier1Sheets = ["pugilist"].flatMap((className) => ["female", "male"].map((gender) => (
   join("hero-sprites", "tier1", `human-tier1-${className}-${gender}-v1.png`)
 )));
 const heroSheets = tier1Sheets;
@@ -94,6 +92,12 @@ const druidSprites = ["female", "male"].flatMap((gender) => (
   Array.from({ length: 10 }, (_, index) => join(
     gender,
     `druid-${gender}-${String(index + 1).padStart(2, "0")}-v1.png`,
+  ))
+));
+const artificerSprites = ["female", "male"].flatMap((gender) => (
+  Array.from({ length: 10 }, (_, index) => join(
+    gender,
+    `artificer-${gender}-${String(index + 1).padStart(2, "0")}-v1.png`,
   ))
 ));
 
@@ -798,6 +802,68 @@ assert(
   `Four-hero CDI-143 Druid scene exceeds ${sceneBudgetBytes} bytes`,
 );
 
+const artificerImageDirectory = join(
+  projectRoot,
+  "assets",
+  "design",
+  "hero-sprites",
+  "cdi-144",
+  "normalized-alpha-v1",
+);
+const measuredArtificerSprites = artificerSprites.map((relativePath) => {
+  const path = join(artificerImageDirectory, relativePath);
+  const dimensions = readImageInfo(path);
+  assert.deepEqual(
+    { width: dimensions.width, height: dimensions.height, alpha: dimensions.alpha },
+    { width: 341, height: 692, alpha: true },
+    `${relativePath} must remain a normalized CDI-144 alpha sprite`,
+  );
+  assert(
+    dimensions.transparentPixelCount >= dimensions.width * dimensions.height * 0.1,
+    `${relativePath} must contain a substantial transparent background`,
+  );
+  assert(
+    Math.max(...dimensions.cornerAlphas) <= 2,
+    `${relativePath} must not contain an opaque or semi-opaque baked background`,
+  );
+  assert(dimensions.visibleBounds, `${relativePath} must contain visible pixels`);
+
+  const gender = relativePath.includes("artificer-female-") ? "female" : "male";
+  const referenceVariant = relativePath.includes("artificer-female-04-") ? "08" : "06";
+  const mageReferencePath = join(gender, `mage-${gender}-${referenceVariant}-v1.png`);
+  const mageDimensions = readImageInfo(join(mageImageDirectory, mageReferencePath));
+  assert(mageDimensions.visibleBounds, `Missing CDI-140 reference ${mageReferencePath}`);
+  const visibleHeight = dimensions.visibleBounds.maxY - dimensions.visibleBounds.minY + 1;
+  const mageVisibleHeight = mageDimensions.visibleBounds.maxY - mageDimensions.visibleBounds.minY + 1;
+  assert(
+    Math.abs(visibleHeight - mageVisibleHeight) <= 1,
+    `${relativePath} must keep the visible height of ${mageReferencePath}`,
+  );
+  assert.equal(
+    dimensions.visibleBounds.maxY,
+    mageDimensions.visibleBounds.maxY,
+    `${relativePath} feet baseline must match ${mageReferencePath}`,
+  );
+  const centerX = (dimensions.visibleBounds.minX + dimensions.visibleBounds.maxX) / 2;
+  assert(
+    Math.abs(centerX - (dimensions.width - 1) / 2) <= 1.5,
+    `${relativePath} visible pivot must remain centered`,
+  );
+  return { file: relativePath, bytes: statSync(path).size };
+});
+const artificerTotalBytes = measuredArtificerSprites.reduce((total, entry) => total + entry.bytes, 0);
+const artificerSceneBytes = measuredArtificerSprites
+  .map((entry) => entry.bytes)
+  .sort((left, right) => right - left)
+  .slice(0, combatHeroLimit)
+  .reduce((total, bytes) => total + bytes, 0);
+const artificerDecodedBytesPerSprite = 341 * 692 * 4;
+const artificerDecodedSceneBytes = artificerDecodedBytesPerSprite * combatHeroLimit;
+assert(
+  artificerSceneBytes <= sceneBudgetBytes,
+  `Four-hero CDI-144 Artificer scene exceeds ${sceneBudgetBytes} bytes`,
+);
+
 const noviceCombatImageDirectory = join(
   projectRoot,
   "assets",
@@ -888,6 +954,13 @@ console.log(JSON.stringify({
     decodedBytesPerSprite: druidDecodedBytesPerSprite,
     decodedFourHeroSceneBytes: druidDecodedSceneBytes,
   },
+  artificerSprites: artificerSprites.length,
+  artificerMetrics: {
+    totalBytes: artificerTotalBytes,
+    largestFourSceneBytes: artificerSceneBytes,
+    decodedBytesPerSprite: artificerDecodedBytesPerSprite,
+    decodedFourHeroSceneBytes: artificerDecodedSceneBytes,
+  },
   noviceCombatSprites: noviceCombatSprites.length,
   noviceCombatMetrics: {
     totalBytes: noviceCombatTotalBytes,
@@ -903,7 +976,8 @@ console.log(JSON.stringify({
     + mageSprites.length * 2
     + acolyteSprites.length * 2
     + aedeSprites.length * 2
-    + druidSprites.length * 2,
+    + druidSprites.length * 2
+    + artificerSprites.length * 2,
   sceneBudgetBytes,
   undercityPacks: measuredPacks,
   encounterBytes,
