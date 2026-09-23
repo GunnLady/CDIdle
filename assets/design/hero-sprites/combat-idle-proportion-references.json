@@ -1,0 +1,316 @@
+﻿{
+  "schemaVersion": 2,
+  "measurementConvention": {
+    "faceRect": "Tight skin-face box from cheek to cheek and forehead to chin; exclude hair, ears, headgear and accessories.",
+    "bodyRect": "Visible anatomical body from highest body point to feet; exclude weapon extensions and detached effects.",
+    "faceDiameter": "sqrt(faceRect.width * faceRect.height)",
+    "reviewRule": "The face frame and anatomical landmark overlay must both be visually reviewed before an entry is reused.",
+    "landmarkSides": "left and right always mean image-left and image-right, not the character's anatomical side",
+    "anatomyNormalization": "Every segment length is divided by sqrt(faceRect.width * faceRect.height)."
+  },
+  "entries": {
+    "rogue-male-01-neutral": {"path":"assets/design/hero-sprites/cdi-138/normalized-alpha-v1/male/rogue-male-01-v1.png","sha256":"a82787c43a0d0a3cd7605d104d06cad50a47839d8169e87fd9dd1d39518ca3b7","imageSize":[341,692],"bodyRect":[45,52,253,622],"faceRect":[150,101,69,76],"reviewStatus":"reviewed","reviewEvidence":"assets/design/hero-sprites/cdi-150/references/m01/m01-neutral-face-review.png"},
+    "rogue-male-02-neutral": {"path":"assets/design/hero-sprites/cdi-138/normalized-alpha-v1/male/rogue-male-02-v1.png","sha256":"f0ab8507cf5ca727493c9d883f64c95ea768338179934380f8e672cccb5c0750","imageSize":[341,692],"bodyRect":[19,52,304,622],"faceRect":[157,103,71,77],"reviewStatus":"reviewed","reviewEvidence":"assets/design/hero-sprites/cdi-150/references/m02/m02-neutral-face-review.png"},
+    "rogue-male-04-neutral": {"path":"assets/design/hero-sprites/cdi-138/normalized-alpha-v1/male/rogue-male-04-v1.png","sha256":"3c94fdd6f57d6530b7eb786f693a986ea4257a68ecd25cda7cd3087cd5fcb780","imageSize":[341,692],"bodyRect":[44,52,255,622],"faceRect":[153,93,67,72],"reviewStatus":"reviewed","reviewEvidence":"assets/design/hero-sprites/cdi-150/references/m04/m04-neutral-face-review.png"},
+    "rogue-male-05-neutral": {"path":"assets/design/hero-sprites/cdi-138/normalized-alpha-v1/male/rogue-male-05-v1.png","sha256":"bfa5d28578cc08b9ba7e5df30cb6d670f71c0fd7df27d93e0132aed74db85df2","imageSize":[341,692],"bodyRect":[42,52,260,622],"faceRect":[152,104,66,72],"reviewStatus":"reviewed","reviewEvidence":"assets/design/hero-sprites/cdi-150/references/m05/m05-neutral-face-review.png"},
+    "rogue-male-06-neutral": {"path":"assets/design/hero-sprites/cdi-138/normalized-alpha-v1/male/rogue-male-06-v1.png","sha256":"00f93c58cef406440f3a568c3319b89132340f93201383c018a59a08f9eb14fd","imageSize":[341,692],"bodyRect":[42,52,260,622],"faceRect":[155,104,68,72],"reviewStatus":"reviewed","reviewEvidence":"assets/design/hero-sprites/cdi-150/references/m06/m06-neutral-face-review.png"},
+    "rogue-female-04-neutral": {"path":"assets/design/hero-sprites/cdi-138/normalized-alpha-v1/female/rogue-female-04-v1.png","sha256":"4e0d367c19805de31db5bb2ae9e5ebc0ca4abb0f1044409e268743a8e9862aae","imageSize":[341,692],"bodyRect":[48,79,246,595],"faceRect":[145,110,69,92],"reviewStatus":"reviewed","reviewEvidence":"assets/design/hero-sprites/cdi-150/references/f04/f04-neutral-face-review.png"},
+    "rogue-male-03-neutral": {"path":"assets/design/hero-sprites/cdi-138/normalized-alpha-v1/male/rogue-male-03-v1.png","sha256":"4d634bab0fcb13fb1588d0b5edf9f38d96a8d8e7b9c31aeb9a2391d8cd81490c","imageSize":[341,692],"bodyRect":[42,52,260,622],"faceRect":[153,94,70,73],"reviewStatus":"reviewed","reviewEvidence":"assets/design/hero-sprites/cdi-150/references/m03/rogue-male-03-neutral-face-frame-review.png"},
+    "rogue-female-03-neutral": {"path":"assets/design/hero-sprites/cdi-138/normalized-alpha-v1/female/rogue-female-03-v1.png","sha256":"a87957f802d42f89e3ec700a7b4726132440d8ebe69d01b61250e3eb94fac542","imageSize":[341,692],"bodyRect":[46,78,248,596],"faceRect":[145,108,72,76],"reviewStatus":"reviewed","reviewEvidence":"assets/design/hero-sprites/cdi-150/references/f03/rogue-female-03-neutral-face-frame-review.png"},
+    "rogue-female-05-neutral": {"path":"assets/design/hero-sprites/cdi-138/normalized-alpha-v1/female/rogue-female-05-v1.png","sha256":"4f055c583b5318aa24ce1d4898f18bada3aaf0e969c718478acf66e534f23ddc","imageSize":[341,692],"bodyRect":[46,78,249,596],"faceRect":[147,110,70,74],"reviewStatus":"reviewed","reviewEvidence":"assets/design/hero-sprites/cdi-150/references/f05/rogue-female-05-neutral-face-frame-review.png"},
+    "rogue-female-06-neutral": {"path":"assets/design/hero-sprites/cdi-138/normalized-alpha-v1/female/rogue-female-06-v1.png","sha256":"47258839c47d806575443c3c2d273a2d19f1d1e3f43501f0343506dee1fff92f","imageSize":[341,692],"bodyRect":[46,77,250,597],"faceRect":[149,111,69,75],"reviewStatus":"reviewed","reviewEvidence":"assets/design/hero-sprites/cdi-150/references/f06/rogue-female-06-neutral-face-frame-review.png"},
+    "rogue-female-07-neutral": {"path":"assets/design/hero-sprites/cdi-138/normalized-alpha-v1/female/rogue-female-07-v1.png","sha256":"90de692d76f6f42a5ba13fea27bb893b110bee7229e752bd328e343dafc96ebd","imageSize":[341,692],"bodyRect":[45,77,252,597],"faceRect":[147,110,71,75],"reviewStatus":"reviewed","reviewEvidence":"assets/design/hero-sprites/cdi-150/references/f07/rogue-female-07-neutral-face-frame-review.png"},
+    "rogue-female-08-neutral": {"path":"assets/design/hero-sprites/cdi-138/normalized-alpha-v1/female/rogue-female-08-v1.png","sha256":"e11b443d0fa5ec16de524db9ba369d30e98c5f23902fb6112a05ac9d4bd7c77b","imageSize":[341,692],"bodyRect":[44,77,255,597],"faceRect":[149,109,71,91],"reviewStatus":"reviewed","reviewEvidence":"assets/design/hero-sprites/cdi-150/references/f08/rogue-female-08-neutral-face-frame-review.png"},
+    "rogue-female-09-neutral": {"path":"assets/design/hero-sprites/cdi-138/normalized-alpha-v1/female/rogue-female-09-v1.png","sha256":"bcb2f2d7299cede5c187fc0b6d610d431767113dc2eeffdf03bcbc32b60345c2","imageSize":[341,692],"bodyRect":[45,78,251,596],"faceRect":[149,112,69,74],"reviewStatus":"reviewed","reviewEvidence":"assets/design/hero-sprites/cdi-150/references/f09/rogue-female-09-neutral-face-frame-review.png"},
+    "rogue-female-10-neutral": {"path":"assets/design/hero-sprites/cdi-138/normalized-alpha-v1/female/rogue-female-10-v1.png","sha256":"696f193b029f823f79db5404083349272f36025863a15b40597fbbaef11b4db3","imageSize":[341,692],"bodyRect":[44,77,254,597],"faceRect":[145,108,72,79],"reviewStatus":"reviewed","reviewEvidence":"assets/design/hero-sprites/cdi-150/references/f10/rogue-female-10-neutral-face-frame-review.png"},
+    "rogue-female-02-neutral": {
+      "path": "assets/design/hero-sprites/cdi-138/normalized-alpha-v1/female/rogue-female-02-v1.png",
+      "sha256": "9de5f251a3a036d4f2a3a87d99ac5196d6efcfc7b58476de22d58b9686afff97",
+      "imageSize": [341, 692],
+      "bodyRect": [46, 79, 249, 595],
+      "faceRect": [146, 116, 66, 73],
+      "reviewStatus": "reviewed",
+      "reviewEvidence": "assets/design/hero-sprites/cdi-150/references/f02/rogue-female-02-neutral-face-frame-review.png"
+    },
+    "rogue-female-01-neutral": {
+      "path": "assets/design/hero-sprites/cdi-138/normalized-alpha-v1/female/rogue-female-01-v1.png",
+      "sha256": "813ca450a79c4a7319bddbf499bcbd894f84ad9138329ede356cb89049030314",
+      "imageSize": [341, 692],
+      "bodyRect": [45, 78, 252, 596],
+      "faceRect": [150, 111, 70, 72],
+      "reviewStatus": "reviewed",
+      "reviewEvidence": "assets/design/hero-sprites/cdi-150/references/f01/rogue-female-01-neutral-face-frame-review.png"
+    },
+    "mage-male-06": {
+      "path": "assets/design/hero-sprites/cdi-140/normalized-alpha-v1/male/mage-male-06-v1.png",
+      "sha256": "b10329ed6949eeaec2f9e17b3e7b694bb6742b9563737e4bd7337af6b79aaa89",
+      "imageSize": [341, 692],
+      "bodyRect": [36, 51, 269, 623],
+      "faceRect": [143, 102, 69, 68],
+      "reviewStatus": "reviewed",
+      "reviewEvidence": "assets/design/hero-sprites/cdi-150/candidates/male/rogue-male-07-combat-idle-v3-proportion-check-v4.png",
+      "anatomy": {
+        "reviewStatus": "reviewed",
+        "reviewEvidence": "assets/design/hero-sprites/proportion-reviews/mage-male-06-anatomy-review.png",
+        "landmarks": {
+          "headTop": [177, 61], "chin": [184, 168],
+          "leftShoulder": [92, 190], "rightShoulder": [244, 186],
+          "leftElbow": [59, 296], "rightElbow": [273, 291],
+          "leftWrist": [67, 355], "rightWrist": [274, 353],
+          "leftHip": [146, 403], "rightHip": [212, 402],
+          "leftKnee": [108, 522], "rightKnee": [232, 521],
+          "leftAnkle": [96, 624], "rightAnkle": [239, 621]
+        },
+        "notVerifiable": {}
+      }
+    },
+    "mage-male-08": {
+      "path": "assets/design/hero-sprites/cdi-140/normalized-alpha-v1/male/mage-male-08-v1.png",
+      "sha256": "753860297eb282079ec8c7d3f6a174ba22a845f1014c1b3e95f27537b8d9d0a8",
+      "imageSize": [341, 692],
+      "bodyRect": [35, 51, 271, 623],
+      "faceRect": [149, 90, 68, 69],
+      "reviewStatus": "reviewed",
+      "reviewEvidence": "assets/design/hero-sprites/cdi-150/candidates/male/rogue-male-07-combat-idle-v3-proportion-check-v4.png",
+      "anatomy": {
+        "reviewStatus": "reviewed",
+        "reviewEvidence": "assets/design/hero-sprites/proportion-reviews/mage-male-08-anatomy-review.png",
+        "landmarks": {
+          "headTop": [169, 54], "chin": [188, 157],
+          "leftShoulder": [100, 177], "rightShoulder": [244, 173],
+          "leftElbow": [61, 294], "rightElbow": [274, 291],
+          "leftWrist": [71, 355], "rightWrist": [273, 354],
+          "leftHip": [153, 360], "rightHip": [214, 360],
+          "leftKnee": [121, 515], "rightKnee": [228, 513],
+          "leftAnkle": [99, 622], "rightAnkle": [240, 620]
+        },
+        "notVerifiable": {}
+      }
+    },
+    "rogue-male-07-neutral": {
+      "path": "assets/design/hero-sprites/cdi-138/normalized-alpha-v1/male/rogue-male-07-v1.png",
+      "sha256": "2ddfa82a589ae3c0ab7325efff910a6a9224dc2abb2f531cfe6bd305502117b5",
+      "imageSize": [341, 692],
+      "bodyRect": [43, 51, 254, 623],
+      "faceRect": [140, 91, 71, 72],
+      "reviewStatus": "reviewed",
+      "reviewEvidence": "assets/design/hero-sprites/cdi-150/candidates/male/rogue-male-07-combat-idle-v3-proportion-check-v4.png",
+      "anatomy": {
+        "reviewStatus": "reviewed",
+        "reviewEvidence": "assets/design/hero-sprites/proportion-reviews/rogue-male-07-neutral-anatomy-review.png",
+        "landmarks": {
+          "headTop": [169, 52], "chin": [186, 162],
+          "leftShoulder": [104, 195], "rightShoulder": [239, 195],
+          "leftElbow": [72, 311], "rightElbow": [267, 310],
+          "leftWrist": [71, 371], "rightWrist": [270, 369],
+          "leftHip": [145, 404], "rightHip": [213, 404],
+          "leftKnee": [116, 521], "rightKnee": [227, 521],
+          "leftAnkle": [102, 620], "rightAnkle": [238, 621]
+        },
+        "notVerifiable": {}
+      }
+    },
+    "rogue-male-08-neutral": {
+      "path": "assets/design/hero-sprites/cdi-138/normalized-alpha-v1/male/rogue-male-08-v1.png",
+      "sha256": "c5a684bbc20722e9de7ebcdd394049d967e4e889c251919843343970519f990f",
+      "imageSize": [341, 692],
+      "bodyRect": [34, 51, 273, 623],
+      "faceRect": [149, 90, 68, 69],
+      "reviewStatus": "reviewed",
+      "reviewEvidence": "assets/design/hero-sprites/cdi-150/references/m08/rogue-male-08-neutral-face-frame-review.png",
+      "anatomy": {
+        "reviewStatus": "reviewed",
+        "reviewEvidence": "assets/design/hero-sprites/proportion-reviews/rogue-male-08-neutral-anatomy-review.png",
+        "landmarks": {
+          "headTop": [169, 51], "chin": [188, 163],
+          "leftShoulder": [102, 196], "rightShoulder": [244, 196],
+          "leftElbow": [72, 315], "rightElbow": [270, 315],
+          "leftWrist": [77, 379], "rightWrist": [270, 379],
+          "leftHip": [145, 421], "rightHip": [214, 421],
+          "leftKnee": [117, 531], "rightKnee": [230, 531],
+          "leftAnkle": [99, 623], "rightAnkle": [241, 623]
+        },
+        "notVerifiable": {}
+      }
+    },
+    "rogue-male-08-candidate-v4": {
+      "path": "assets/design/hero-sprites/cdi-150/candidates/male/rogue-male-08-combat-idle-v4.png",
+      "sha256": "0a2b57d2dcbf4075052b3b7fa89e53eacace274d31d149c5fdbfd3663e70a8fe",
+      "imageSize": [1536, 1024],
+      "bodyRect": [288, 20, 795, 965],
+      "faceRect": [674, 108, 114, 136],
+      "reviewStatus": "reviewed",
+      "reviewEvidence": "assets/design/hero-sprites/cdi-150/references/m08/rogue-male-08-v4-face-frame-review.png",
+      "anatomy": {
+        "reviewStatus": "reviewed",
+        "reviewEvidence": "assets/design/hero-sprites/cdi-150/references/m08/rogue-male-08-v4-anatomy-review.png",
+        "landmarks": {
+          "headTop": [709, 22], "chin": [732, 244],
+          "leftShoulder": [520, 296], "rightShoulder": [791, 296],
+          "leftElbow": [452, 404], "rightElbow": [865, 389],
+          "leftWrist": [504, 474], "rightWrist": [933, 456],
+          "leftHip": [650, 570], "rightHip": [783, 575],
+          "leftKnee": [499, 691], "rightKnee": [882, 690],
+          "leftAnkle": [357, 904], "rightAnkle": [962, 904]
+        },
+        "notVerifiable": {}
+      }
+    },
+    "rogue-male-08-candidate-v5": {
+      "path": "assets/design/hero-sprites/cdi-150/candidates/male/rogue-male-08-combat-idle-v5.png",
+      "sha256": "04cf0258b5d575c92719e368e838f19717e53db135e64403a466d9eaa6333427",
+      "imageSize": [1536, 1024],
+      "bodyRect": [217, 46, 935, 938],
+      "faceRect": [692, 125, 125, 151],
+      "reviewStatus": "reviewed",
+      "reviewEvidence": "assets/design/hero-sprites/cdi-150/references/m08/rogue-male-08-v5-face-frame-review.png",
+      "anatomy": {
+        "reviewStatus": "reviewed",
+        "reviewEvidence": "assets/design/hero-sprites/cdi-150/references/m08/rogue-male-08-v5-anatomy-review.png",
+        "landmarks": {
+          "headTop": [759, 47], "chin": [766, 276],
+          "leftShoulder": [529, 338], "rightShoulder": [861, 333],
+          "leftElbow": [432, 438], "rightElbow": [917, 379],
+          "leftWrist": [491, 548], "rightWrist": [1000, 431],
+          "leftHip": [650, 559], "rightHip": [807, 574],
+          "leftKnee": [465, 703], "rightKnee": [905, 706],
+          "leftAnkle": [318, 886], "rightAnkle": [1008, 892]
+        },
+        "notVerifiable": {}
+      }
+    },
+    "rogue-male-08-candidate-v8": {
+      "path": "assets/design/hero-sprites/cdi-150/candidates/male/rogue-male-08-combat-idle-v8.png",
+      "sha256": "9a6d9d27035a7ca857ea008b78b6c27c8af55c509cc58739a1ee78d86a572db1",
+      "imageSize": [1122, 1402],
+      "bodyRect": [40, 99, 982, 1198],
+      "faceRect": [515, 190, 119, 140],
+      "reviewStatus": "reviewed",
+      "reviewEvidence": "assets/design/hero-sprites/cdi-150/references/m08/rogue-male-08-v8-face-frame-review.png",
+      "anatomy": {
+        "reviewStatus": "reviewed",
+        "reviewEvidence": "assets/design/hero-sprites/cdi-150/references/m08/rogue-male-08-v8-anatomy-review.png",
+        "landmarks": {
+          "headTop": [535, 101], "chin": [592, 330],
+          "leftShoulder": [346, 450], "rightShoulder": [615, 449],
+          "leftElbow": [211, 579], "rightElbow": [635, 548],
+          "leftWrist": [160, 706], "rightWrist": [718, 592],
+          "leftHip": [487, 740], "rightHip": [628, 737],
+          "leftKnee": [292, 941], "rightKnee": [785, 936],
+          "leftAnkle": [154, 1162], "rightAnkle": [854, 1148]
+        },
+        "notVerifiable": {}
+      }
+    },
+    "rogue-male-08-candidate-v11": {
+      "path": "assets/design/hero-sprites/cdi-150/candidates/male/rogue-male-08-combat-idle-v11.png",
+      "sha256": "0710e9fbe687bb61c417c44830fa4bac9aaff2628118f3a108f514f5af77353a",
+      "imageSize": [1100, 1430],
+      "bodyRect": [28, 104, 1041, 1279],
+      "faceRect": [417, 208, 137, 145],
+      "reviewStatus": "reviewed",
+      "reviewEvidence": "assets/design/hero-sprites/cdi-150/references/m08/rogue-male-08-v11-face-frame-review.png",
+      "anatomy": {
+        "reviewStatus": "reviewed",
+        "reviewEvidence": "assets/design/hero-sprites/cdi-150/references/m08/rogue-male-08-v11-anatomy-review.png",
+        "landmarks": {
+          "headTop": [454, 106], "chin": [506, 352],
+          "leftShoulder": [304, 369], "rightShoulder": [628, 382],
+          "leftElbow": [190, 553], "rightElbow": [736, 512],
+          "leftWrist": [181, 725], "rightWrist": [887, 555],
+          "leftHip": [419, 758], "rightHip": [647, 755],
+          "leftKnee": [201, 1028], "rightKnee": [815, 1020],
+          "leftAnkle": [99, 1274], "rightAnkle": [943, 1279]
+        },
+        "notVerifiable": {}
+      }
+    },
+    "rogue-male-09-neutral": {
+      "path": "assets/design/hero-sprites/cdi-138/normalized-alpha-v1/male/rogue-male-09-v1.png",
+      "sha256": "09d0368005aaced190602aa0bac7416eb27356f1d6413ad27aae2da1a13443f5",
+      "imageSize": [341, 692],
+      "bodyRect": [35, 51, 272, 623],
+      "faceRect": [145, 91, 70, 72],
+      "reviewStatus": "reviewed",
+      "reviewEvidence": "assets/design/hero-sprites/cdi-150/references/m09/rogue-male-09-neutral-face-frame-review.png",
+      "anatomy": {
+        "reviewStatus": "reviewed",
+        "reviewEvidence": "assets/design/hero-sprites/proportion-reviews/rogue-male-09-neutral-anatomy-review.png",
+        "landmarks": {
+          "headTop": [168, 52], "chin": [186, 162],
+          "leftShoulder": [103, 194], "rightShoulder": [238, 193],
+          "leftElbow": [70, 312], "rightElbow": [268, 310],
+          "leftWrist": [70, 373], "rightWrist": [270, 372],
+          "leftHip": [145, 421], "rightHip": [214, 421],
+          "leftKnee": [116, 528], "rightKnee": [229, 528],
+          "leftAnkle": [101, 622], "rightAnkle": [239, 621]
+        },
+        "notVerifiable": {}
+      }
+    },
+    "rogue-male-09-candidate-v1": {
+      "path": "assets/design/hero-sprites/cdi-150/candidates/male/rogue-male-09-combat-idle-v1.png",
+      "sha256": "d6239b59b750eed7057db76de84bf2c64e3eec0b5cec8549cc5286a7e6a58717",
+      "imageSize": [880, 1788],
+      "bodyRect": [27, 190, 825, 1410],
+      "faceRect": [435, 310, 140, 180],
+      "reviewStatus": "pending",
+      "reviewEvidence": "assets/design/hero-sprites/cdi-150/references/m09/rogue-male-09-v1-face-frame-review.png",
+      "anatomy": {
+        "reviewStatus": "pending",
+        "reviewEvidence": "assets/design/hero-sprites/cdi-150/references/m09/rogue-male-09-v1-anatomy-review.png",
+        "landmarks": {
+          "headTop": [455, 200], "chin": [505, 490],
+          "leftShoulder": [270, 570], "rightShoulder": [585, 560],
+          "leftElbow": [101, 710], "rightElbow": [626, 664],
+          "leftWrist": [183, 891], "rightWrist": [731, 740],
+          "leftHip": [361, 948], "rightHip": [533, 950],
+          "leftKnee": [235, 1189], "rightKnee": [641, 1180],
+          "leftAnkle": [144, 1450], "rightAnkle": [701, 1431]
+        },
+        "notVerifiable": {}
+      }
+    },
+    "rogue-male-09-candidate-v11": {
+      "path": "assets/design/hero-sprites/cdi-150/candidates/male/rogue-male-09-combat-idle-v11.png",
+      "sha256": "ddf0d576c9e8a2c1ce518f77ad82f264f4c20b7e8da46d7a917963d5f22b8707",
+      "imageSize": [1024, 1536],
+      "bodyRect": [100, 105, 860, 1375],
+      "faceRect": [464, 205, 177, 176],
+      "reviewStatus": "reviewed",
+      "reviewEvidence": "assets/design/hero-sprites/cdi-150/references/m09/rogue-male-09-v11-face-frame-review.png",
+      "anatomy": {
+        "reviewStatus": "reviewed",
+        "reviewEvidence": "assets/design/hero-sprites/cdi-150/references/m09/rogue-male-09-v11-anatomy-review.png",
+        "landmarks": {
+          "headTop": [510, 108], "chin": [567, 372],
+          "leftShoulder": [350, 390], "rightShoulder": [704, 390],
+          "leftElbow": [270, 540], "rightElbow": [800, 540],
+          "leftWrist": [439, 582], "rightWrist": [674, 582],
+          "leftHip": [405, 782], "rightHip": [650, 782],
+          "leftKnee": [282, 1080], "rightKnee": [755, 1090],
+          "leftAnkle": [205, 1350], "rightAnkle": [829, 1328]
+        },
+        "notVerifiable": {}
+      }
+    },
+    "rogue-male-10-neutral": {
+      "path": "assets/design/hero-sprites/cdi-138/normalized-alpha-v1/male/rogue-male-10-v1.png",
+      "sha256": "129685b73b5691ad6e5d7cfbff8cc29c4710d5c1ff1a7fa417f28aba0a3d2b93",
+      "imageSize": [341, 692],
+      "bodyRect": [35, 51, 270, 623],
+      "faceRect": [143, 92, 77, 73],
+      "reviewStatus": "reviewed",
+      "reviewEvidence": "assets/design/hero-sprites/cdi-150/references/m10/rogue-male-10-neutral-face-frame-review.png"
+    },
+    "rogue-male-10-candidate-v12": {
+      "path": "assets/design/hero-sprites/cdi-150/candidates/male/rogue-male-10-combat-idle-v12.png",
+      "sha256": "4e6e954caeb4e621dc1f8ae837684b3ef89cf35c6f89d340fa3928d08c8d0d26",
+      "imageSize": [1083, 1453],
+      "bodyRect": [51, 83, 1026, 1321],
+      "faceRect": [500, 192, 202, 176],
+      "reviewStatus": "reviewed",
+      "reviewEvidence": "assets/design/hero-sprites/cdi-150/references/m10/rogue-male-10-v12-face-frame-review.png"
+    }
+  }
+}

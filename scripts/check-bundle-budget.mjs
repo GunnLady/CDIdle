@@ -10,10 +10,9 @@ const sizes = assets.map(([name, source]) => [name, gzipSync(source).byteLength]
 const total = sizes.reduce((sum, [, size]) => sum + size, 0);
 const largest = Math.max(0, ...sizes.map(([, size]) => size));
 // CDI-140 through CDI-142 add stable individual asset URLs to the eager hero
-// portrait manifest. Shared resolver code is deduplicated; 254 KiB keeps bounded
-// headroom for the remaining CDI-143 through CDI-145 migrations without hiding
-// their measured cost or changing the independent per-chunk ceiling.
-const maxInitial = 254 * 1024;
+// portrait manifest. CDI-150 adds per-identity cinema scale corrections; 255 KiB
+// keeps bounded headroom without changing the independent per-chunk ceiling.
+const maxInitial = 255 * 1024;
 const maxChunk = 300 * 1024;
 const privateCatalogMarker = "CDIDLE_PRIVATE_UI_CATALOG";
 if (assets.some(([, source]) => source.includes(privateCatalogMarker))) {

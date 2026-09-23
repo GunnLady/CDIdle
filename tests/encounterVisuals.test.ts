@@ -18,6 +18,11 @@ import {
 import { createBoundedAsyncAssetCache } from "../src/assets/visualAssetCache";
 import { clearVisualAssetSession, registerVisualAssetSessionCleaner } from "../src/assets/visualAssetSession";
 import {
+  CDI149_WARRIOR_COMBAT_IDLE_VARIANT_COUNT,
+  getCdi149WarriorCombatIdlePivotX,
+} from "../src/assets/warriorCdi149CombatPoses";
+import { CDI150_ROGUE_COMBAT_IDLE_VARIANT_COUNT } from "../src/assets/rogueCdi150CombatPoses";
+import {
   getUndercityEnemyVisualKey,
   UNDERCITY_ZONE_VISUAL_PACKS,
 } from "../src/assets/undercityVisualManifest";
@@ -35,7 +40,7 @@ describe("encounter visual catalog", () => {
     expect(resolveEncounterVisualDescriptor("Mage_Female_7").key).toBe("Mage_Female_7");
   });
 
-  it("loads all twenty CDI-148 combat-idle identities and keeps neutral fallback for other classes", async () => {
+  it("loads all twenty CDI-148 Novice combat-idle identities", async () => {
     const noviceIdentities = (["Male", "Female"] as const).flatMap((gender) => (
       Array.from({ length: NOVICE_PORTRAIT_VARIANT_COUNT }, (_, variant) => ({ gender, variant }))
     ));
@@ -55,6 +60,35 @@ describe("encounter visual catalog", () => {
 
     const wrappedNovice = await loadEncounterVisualAsset("Novice_Male_10@combat_idle");
     expect(wrappedNovice.url).toContain("novice-male-01-combat-idle-v1");
+  });
+
+  it("loads all twenty CDI-149 Warrior combat-idle identities without weapon-based downscaling", async () => {
+    const warriorIdentities = (["Male", "Female"] as const).flatMap((gender) => (
+      Array.from({ length: CDI149_WARRIOR_COMBAT_IDLE_VARIANT_COUNT }, (_, variant) => ({ gender, variant }))
+    ));
+    const warriorAssets = await Promise.all(warriorIdentities.map(({ gender, variant }) => (
+      loadEncounterVisualAsset(`Guerrier_${gender}_${variant}@combat_idle`)
+    )));
+    for (const [index, asset] of warriorAssets.entries()) {
+      const { gender, variant } = warriorIdentities[index];
+      expect(asset).toMatchObject({
+        status: "ready",
+        descriptor: {
+          provenance: "CDI-149 validated Warrior combat-idle alpha sprites",
+          anchor: { x: 0.5, y: 900 / 920 },
+          pivotX: getCdi149WarriorCombatIdlePivotX(gender, variant),
+          scale: 920 / 692,
+          fit: "height",
+        },
+      });
+      expect(asset.url).toContain(
+        `warrior-${gender.toLowerCase()}-${String(variant + 1).padStart(2, "0")}-combat-idle-v1`,
+      );
+    }
+
+    const wrappedWarrior = await loadEncounterVisualAsset("Guerrier_Female_19@combat_idle");
+    expect(wrappedWarrior.url).toContain("warrior-female-10-combat-idle-v1");
+    expect(wrappedWarrior.descriptor.pivotX).toBe(314.5 / 776);
 
     const otherClass = resolveEncounterVisualDescriptor("Mage_Female_7@combat_idle");
     expect(otherClass).toMatchObject({
@@ -63,6 +97,41 @@ describe("encounter visual catalog", () => {
       fallback: false,
     });
     expect(otherClass.load).toBeTypeOf("function");
+  });
+
+  it("loads all twenty CDI-150 Rogue combat-idle identities with their neutral variant", async () => {
+    const identities = (["Male", "Female"] as const).flatMap((gender) => (
+      Array.from({ length: CDI150_ROGUE_COMBAT_IDLE_VARIANT_COUNT }, (_, variant) => ({ gender, variant }))
+    ));
+    const assets = await Promise.all(identities.map(({ gender, variant }) => (
+      loadEncounterVisualAsset(`Voleur_${gender}_${variant}@combat_idle`)
+    )));
+    for (const [index, asset] of assets.entries()) {
+      const { gender, variant } = identities[index];
+      const rogueScale = gender === "Female"
+        ? ({ 1: 1.05, 3: 0.90, 5: 1.04, 6: 1.03, 9: 1.05 } as Record<number, number>)[variant] ?? 1
+        : ({ 2: 1.03, 3: 1.03, 8: 1.05, 9: 1.05 } as Record<number, number>)[variant] ?? 1;
+      expect(asset).toMatchObject({
+        status: "ready",
+        descriptor: {
+          provenance: "CDI-150 validated Rogue combat-idle alpha sprites",
+          anchor: { x: 0.5, y: 900 / 920 },
+          pivotX: 0.5,
+          scale: 920 / 692 * rogueScale,
+          fit: "height",
+        },
+      });
+      expect(asset.url).toContain(
+        `rogue-${gender.toLowerCase()}-${String(variant + 1).padStart(2, "0")}-combat-idle-v1`,
+      );
+      expect(resolveEncounterVisualDescriptor(`Voleur_${gender}_${variant}`)).toMatchObject({
+        provenance: "CDI-138 validated Rogue alpha sprites",
+        anchor: { x: 0.5, y: 0.93 },
+        scale: 1,
+      });
+    }
+    const wrapped = await loadEncounterVisualAsset("Voleur_Female_19@combat_idle");
+    expect(wrapped.url).toContain("rogue-female-10-combat-idle-v1");
   });
 
   it("loads CDI-137 Warrior neutral sprites through stable legacy identity keys", async () => {

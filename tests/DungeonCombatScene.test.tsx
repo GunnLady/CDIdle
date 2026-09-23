@@ -20,7 +20,9 @@ vi.mock("../src/hooks/useEncounterVisualAsset", () => ({
       version: 1,
       provenance: "fixture",
       anchor: { x: 0.5, y: 0.9 },
+      pivotX: key.includes("@combat_idle") ? 0.37 : undefined,
       scale: 1,
+      fit: key.includes("@combat_idle") ? "height" : "contain",
       fallbackGlyph: key === "encounter:treasure" ? "◇" : key === "encounter:rest-camp" ? "✦" : "?",
       fallback: key === "fallback:actor" || key === "fallback:background",
     },
@@ -135,6 +137,16 @@ describe("DungeonCombatScene", () => {
     expect(within(scene).getAllByTestId("dungeon-combat-effect")).toHaveLength(DUNGEON_COMBAT_EFFECT_LIMIT);
     expect(within(scene).getAllByLabelText("−6, Rat des canaux")).toHaveLength(DUNGEON_COMBAT_EFFECT_LIMIT);
     expect(within(scene).getAllByTestId("dungeon-combat-effect")[0]).toHaveAttribute("data-target-actor-id", enemy.id);
+  });
+
+  it("renders combat-idle heroes by authoritative height so wide weapons do not shrink them", () => {
+    render(<DungeonCombatScene view={createDungeonCombatSceneView(state())} />);
+
+    const heroSprite = screen.getByTestId("dungeon-combat-scene")
+      .querySelector<HTMLImageElement>("[data-team='heroes'] img");
+    expect(heroSprite).not.toBeNull();
+    expect(heroSprite).toHaveAttribute("data-visual-fit", "height");
+    expect(heroSprite?.style.getPropertyValue("--visual-pivot-x")).toBe("37%");
   });
 
   it("shows mana below health for any actor that has a mana resource", () => {

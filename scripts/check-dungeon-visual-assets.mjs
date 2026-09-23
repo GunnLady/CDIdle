@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { readFileSync, readdirSync, statSync } from "node:fs";
-import { dirname, join, resolve } from "node:path";
+import { basename, dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { inflateSync } from "node:zlib";
 import { UNDERCITY_ZONES } from "../shared/domain/undercity.ts";
@@ -49,6 +49,26 @@ const noviceCombatSprites = ["female", "male"].flatMap((gender) => (
     `novice-${gender}-${String(index + 1).padStart(2, "0")}-combat-idle-v1.png`,
   ))
 ));
+const warriorCombatSprites = ["female", "male"].flatMap((gender) => (
+  Array.from({ length: 10 }, (_, index) => join(
+    gender,
+    `warrior-${gender}-${String(index + 1).padStart(2, "0")}-combat-idle-v1.png`,
+  ))
+));
+const warriorCombatFrameWidths = {
+  female: [838, 776, 556, 666, 457, 739, 464, 495, 494, 776],
+  male: [654, 626, 750, 832, 483, 900, 579, 992, 433, 555],
+};
+const rogueCombatSprites = ["female", "male"].flatMap((gender) => (
+  Array.from({ length: 10 }, (_, index) => join(
+    gender,
+    `rogue-${gender}-${String(index + 1).padStart(2, "0")}-combat-idle-v1.png`,
+  ))
+));
+const rogueCombatFrameWidths = {
+  female: [526, 426, 444, 512, 454, 400, 712, 430, 464, 504],
+  male: [408, 484, 480, 434, 472, 454, 1042, 572, 366, 436],
+};
 const warriorSprites = ["female", "male"].flatMap((gender) => (
   Array.from({ length: 10 }, (_, index) => join(
     gender,
@@ -969,6 +989,121 @@ assert(
   `Four-hero CDI-148 combat-idle scene exceeds ${sceneBudgetBytes} bytes`,
 );
 
+const warriorCombatImageDirectory = join(
+  projectRoot,
+  "assets",
+  "design",
+  "hero-sprites",
+  "cdi-149",
+  "normalized-alpha-v1",
+);
+for (const gender of ["female", "male"]) {
+  const expectedFiles = warriorCombatSprites
+    .filter((relativePath) => dirname(relativePath) === gender)
+    .map((relativePath) => basename(relativePath))
+    .sort();
+  const actualFiles = readdirSync(join(warriorCombatImageDirectory, gender))
+    .filter((file) => file.endsWith(".png"))
+    .sort();
+  assert.deepEqual(
+    actualFiles,
+    expectedFiles,
+    `CDI-149 ${gender} combat-idle directory must contain exactly the ten expected sprites`,
+  );
+}
+const measuredWarriorCombatSprites = warriorCombatSprites.map((relativePath) => {
+  const path = join(warriorCombatImageDirectory, relativePath);
+  const dimensions = readImageInfo(path);
+  const match = /warrior-(female|male)-(\d{2})-combat-idle-v1\.png$/.exec(relativePath);
+  assert(match, `${relativePath} must use the expected CDI-149 filename`);
+  const expectedWidth = warriorCombatFrameWidths[match[1]][Number(match[2]) - 1];
+  assert.equal(dimensions.height, 920, `${relativePath} must remain 920 px high`);
+  assert.equal(
+    dimensions.width,
+    expectedWidth,
+    `${relativePath} width changed and its foot-pivot metadata must be reviewed`,
+  );
+  assert.equal(dimensions.alpha, true, `${relativePath} must remain an alpha sprite`);
+  assert(
+    Math.max(...dimensions.cornerAlphas) <= 2,
+    `${relativePath} must not contain an opaque or semi-opaque baked background`,
+  );
+  assert(dimensions.visibleBounds, `${relativePath} must contain visible pixels`);
+  assert.equal(
+    dimensions.visibleBounds.maxY,
+    900,
+    `${relativePath} visible alpha bottom must remain at y=900`,
+  );
+  return {
+    file: relativePath,
+    bytes: statSync(path).size,
+    width: dimensions.width,
+    height: dimensions.height,
+    decodedBytes: dimensions.width * dimensions.height * 4,
+  };
+});
+const warriorCombatTotalBytes = measuredWarriorCombatSprites.reduce(
+  (total, entry) => total + entry.bytes,
+  0,
+);
+const warriorCombatSceneBytes = measuredWarriorCombatSprites
+  .map((entry) => entry.bytes)
+  .sort((left, right) => right - left)
+  .slice(0, combatHeroLimit)
+  .reduce((total, bytes) => total + bytes, 0);
+const warriorCombatDecodedSceneBytes = measuredWarriorCombatSprites
+  .map((entry) => entry.decodedBytes)
+  .sort((left, right) => right - left)
+  .slice(0, combatHeroLimit)
+  .reduce((total, bytes) => total + bytes, 0);
+assert(
+  warriorCombatSceneBytes <= sceneBudgetBytes,
+  `Four-hero CDI-149 combat-idle scene exceeds ${sceneBudgetBytes} bytes`,
+);
+
+const rogueCombatImageDirectory = join(
+  projectRoot,
+  "assets", "design", "hero-sprites", "cdi-150", "normalized-alpha-v1",
+);
+for (const gender of ["female", "male"]) {
+  const expectedFiles = rogueCombatSprites
+    .filter((relativePath) => dirname(relativePath) === gender)
+    .map((relativePath) => basename(relativePath))
+    .sort();
+  const actualFiles = readdirSync(join(rogueCombatImageDirectory, gender))
+    .filter((file) => file.endsWith(".png"))
+    .sort();
+  assert.deepEqual(actualFiles, expectedFiles, `CDI-150 ${gender} must contain exactly ten combat sprites`);
+}
+const measuredRogueCombatSprites = rogueCombatSprites.map((relativePath) => {
+  const path = join(rogueCombatImageDirectory, relativePath);
+  const dimensions = readImageInfo(path);
+  const match = /rogue-(female|male)-(\d{2})-combat-idle-v1\.png$/.exec(relativePath);
+  assert(match, `${relativePath} must use the expected CDI-150 filename`);
+  assert.equal(dimensions.width, rogueCombatFrameWidths[match[1]][Number(match[2]) - 1]);
+  assert.equal(dimensions.height, 920, `${relativePath} must remain 920 px high`);
+  assert.equal(dimensions.alpha, true, `${relativePath} must remain an alpha sprite`);
+  assert(Math.max(...dimensions.cornerAlphas) <= 2, `${relativePath} must have transparent corners`);
+  assert(dimensions.visibleBounds, `${relativePath} must contain visible pixels`);
+  assert(Math.abs(dimensions.visibleBounds.maxY - 900) <= 5,
+    `${relativePath} visible bottom must stay within five pixels of y=900`);
+  return {
+    file: relativePath,
+    bytes: statSync(path).size,
+    width: dimensions.width,
+    visibleBottomY: dimensions.visibleBounds.maxY,
+    decodedBytes: dimensions.width * dimensions.height * 4,
+  };
+});
+const rogueCombatTotalBytes = measuredRogueCombatSprites.reduce((total, entry) => total + entry.bytes, 0);
+const rogueCombatSceneBytes = measuredRogueCombatSprites
+  .map((entry) => entry.bytes).sort((left, right) => right - left)
+  .slice(0, combatHeroLimit).reduce((total, bytes) => total + bytes, 0);
+const rogueCombatDecodedSceneBytes = measuredRogueCombatSprites
+  .map((entry) => entry.decodedBytes).sort((left, right) => right - left)
+  .slice(0, combatHeroLimit).reduce((total, bytes) => total + bytes, 0);
+assert(rogueCombatSceneBytes <= sceneBudgetBytes, `Four-hero CDI-150 scene exceeds ${sceneBudgetBytes} bytes`);
+
 console.log(JSON.stringify({
   heroSheets: heroSheets.length,
   noviceSprites: noviceSprites.length,
@@ -1041,6 +1176,29 @@ console.log(JSON.stringify({
     largestFourSceneBytes: noviceCombatSceneBytes,
     decodedBytesPerSprite: noviceCombatDecodedBytesPerSprite,
     decodedFourHeroSceneBytes: noviceCombatDecodedSceneBytes,
+  },
+  warriorCombatSprites: warriorCombatSprites.length,
+  warriorCombatMetrics: {
+    totalBytes: warriorCombatTotalBytes,
+    largestFourSceneBytes: warriorCombatSceneBytes,
+    decodedLargestFourSceneBytes: warriorCombatDecodedSceneBytes,
+    minimumWidth: Math.min(...measuredWarriorCombatSprites.map((entry) => entry.width)),
+    maximumWidth: Math.max(...measuredWarriorCombatSprites.map((entry) => entry.width)),
+    height: 920,
+    visibleBottomY: 900,
+  },
+  rogueCombatSprites: rogueCombatSprites.length,
+  rogueCombatMetrics: {
+    totalBytes: rogueCombatTotalBytes,
+    largestFourSceneBytes: rogueCombatSceneBytes,
+    decodedLargestFourSceneBytes: rogueCombatDecodedSceneBytes,
+    minimumWidth: Math.min(...measuredRogueCombatSprites.map((entry) => entry.width)),
+    maximumWidth: Math.max(...measuredRogueCombatSprites.map((entry) => entry.width)),
+    height: 920,
+    visibleBottomYRange: [
+      Math.min(...measuredRogueCombatSprites.map((entry) => entry.visibleBottomY)),
+      Math.max(...measuredRogueCombatSprites.map((entry) => entry.visibleBottomY)),
+    ],
   },
   heroIdentities: heroSheets.length * 20
     + noviceSprites.length * 2

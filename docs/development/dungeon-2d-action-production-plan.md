@@ -238,6 +238,9 @@ Après chaque base validée, produire une garde pour les vingt mêmes identités
 Visage, carnation, coiffure, tenue, arme ou accessoire, direction, lumière,
 échelle, pieds et pivot restent cohérents avec la base neutre. CDI-148 fixe le
 standard sur les Novices ; CDI-149 à CDI-157 l’appliquent aux neuf classes T1.
+La recherche, la génération unitaire, le contrôle obligatoire des proportions,
+le verdict utilisateur, la reprise de zéro, l'archivage et la validation cinéma
+suivent le [workflow commun des sprites de garde](dungeon-2d-combat-idle-sprite-workflow.md).
 
 La garde devient l’attente persistante du cinéma pendant un affrontement. Le
 lecteur suit **neutre → garde → action → garde → neutre en fin de combat**.

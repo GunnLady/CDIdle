@@ -10,7 +10,7 @@ source: Validation utilisateur du 15 septembre 2026 - séparer pose neutre, pose
 depends_on: ["CDI-136"]
 blocks: ["CDI-113","CDI-118","CDI-125","CDI-128","CDI-135","CDI-149","CDI-150","CDI-151","CDI-152","CDI-153","CDI-154","CDI-155","CDI-156","CDI-157"]
 github_issue: null
-related_docs: ["docs/development/dungeon-2d-action-production-plan.md","docs/development/session-2026-09-15-cdi-148-combat-poses-handoff.md","src/assets/heroSpriteSheets.ts","src/domain/dungeonCombatScene.ts","src/components/dungeon/CurrentEncounterPanel.tsx","AGENTS.md"]
+related_docs: ["docs/development/dungeon-2d-action-production-plan.md","docs/development/dungeon-2d-combat-idle-sprite-workflow.md","docs/development/session-2026-09-15-cdi-148-combat-poses-handoff.md","src/assets/heroSpriteSheets.ts","src/domain/dungeonCombatScene.ts","src/components/dungeon/CurrentEncounterPanel.tsx","AGENTS.md"]
 ---
 
 # CDI-148 — Produire et intégrer les poses de combat Novice

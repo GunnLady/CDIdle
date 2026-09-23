@@ -126,7 +126,7 @@ for (const width of [1024, 1280, 1440] as const) {
   });
 }
 
-test("loads all twenty CDI-137 Warrior sprites across the five PC cinema review pages", async ({ page }) => {
+test("loads all twenty CDI-149 Warrior combat-idle sprites across the five PC cinema review pages", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 1000 });
 
   for (let reviewPage = 1; reviewPage <= 5; reviewPage += 1) {
@@ -150,13 +150,28 @@ test("loads all twenty CDI-137 Warrior sprites across the five PC cinema review 
     const firstVariant = (reviewPage - 1) * 2 + 1;
     const expectedNames = (["female", "male"] as const).flatMap((gender) => (
       [firstVariant, firstVariant + 1].map((variant) => (
-        `warrior-${gender}-${String(variant).padStart(2, "0")}-v1`
+        `warrior-${gender}-${String(variant).padStart(2, "0")}-combat-idle-v1`
       ))
     ));
     expect(sources).toHaveLength(4);
     expect(sources.every(({ naturalWidth, naturalHeight }) => (
-      naturalWidth === 341 && naturalHeight === 692
+      naturalWidth >= 341 && naturalHeight === 920
     ))).toBe(true);
+    await expect(heroes.locator("img[data-visual-fit='height']")).toHaveCount(4);
+    const pivotAlignmentErrors = await heroes.locator("img").evaluateAll((images) => images.map((image) => {
+      const sprite = image as HTMLImageElement;
+      const shell = sprite.closest("[data-testid='dungeon-combat-visual']");
+      if (!(shell instanceof HTMLElement)) return Number.POSITIVE_INFINITY;
+      const spriteBounds = sprite.getBoundingClientRect();
+      const shellBounds = shell.getBoundingClientRect();
+      const pivotRatio = Number.parseFloat(
+        getComputedStyle(sprite).getPropertyValue("--visual-pivot-x"),
+      ) / 100;
+      const renderedPivotX = spriteBounds.left + spriteBounds.width * pivotRatio;
+      const expectedCenterX = shellBounds.left + shellBounds.width / 2;
+      return Math.abs(renderedPivotX - expectedCenterX);
+    }));
+    expect(pivotAlignmentErrors.every((error) => error <= 1)).toBe(true);
     for (const expectedName of expectedNames) {
       expect(sources.some(({ source }) => source.includes(expectedName))).toBe(true);
     }
@@ -164,7 +179,7 @@ test("loads all twenty CDI-137 Warrior sprites across the five PC cinema review 
   }
 });
 
-test("loads all twenty CDI-138 Rogue sprites across the five PC cinema review pages", async ({ page }) => {
+test("loads all twenty CDI-150 Rogue combat-idle sprites across the five PC cinema review pages", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 1000 });
 
   for (let reviewPage = 1; reviewPage <= 5; reviewPage += 1) {
@@ -188,12 +203,12 @@ test("loads all twenty CDI-138 Rogue sprites across the five PC cinema review pa
     const firstVariant = (reviewPage - 1) * 2 + 1;
     const expectedNames = (["female", "male"] as const).flatMap((gender) => (
       [firstVariant, firstVariant + 1].map((variant) => (
-        `rogue-${gender}-${String(variant).padStart(2, "0")}-v1`
+        `rogue-${gender}-${String(variant).padStart(2, "0")}-combat-idle-v1`
       ))
     ));
     expect(sources).toHaveLength(4);
     expect(sources.every(({ naturalWidth, naturalHeight }) => (
-      naturalWidth === 341 && naturalHeight === 692
+      naturalWidth >= 366 && naturalWidth <= 1042 && naturalHeight === 920
     ))).toBe(true);
     for (const expectedName of expectedNames) {
       expect(sources.some(({ source }) => source.includes(expectedName))).toBe(true);

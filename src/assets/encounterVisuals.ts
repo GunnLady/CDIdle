@@ -10,6 +10,20 @@ import {
   loadHeroPortraitAsset,
 } from "./heroPortraitAssets";
 import { getCdi148NoviceCombatIdleUrl } from "./noviceCdi148CombatPoses";
+import {
+  CDI150_ROGUE_COMBAT_IDLE_FRAME_HEIGHT,
+  CDI150_ROGUE_COMBAT_IDLE_VISIBLE_BOTTOM,
+  CDI150_ROGUE_NEUTRAL_FRAME_HEIGHT,
+  getCdi150RogueCombatIdleScale,
+  getCdi150RogueCombatIdleUrl,
+} from "./rogueCdi150CombatPoses";
+import {
+  CDI149_WARRIOR_COMBAT_IDLE_FRAME_HEIGHT,
+  CDI149_WARRIOR_COMBAT_IDLE_VISIBLE_BOTTOM,
+  CDI149_WARRIOR_NEUTRAL_FRAME_HEIGHT,
+  getCdi149WarriorCombatIdleUrl,
+  getCdi149WarriorCombatIdlePivotX,
+} from "./warriorCdi149CombatPoses";
 import { createBoundedAsyncAssetCache } from "./visualAssetCache";
 import { registerVisualAssetSessionCleaner } from "./visualAssetSession";
 import {
@@ -114,7 +128,9 @@ export interface EncounterVisualDescriptor {
   version: number;
   provenance: string;
   anchor: { x: number; y: number };
+  pivotX?: number;
   scale: number;
+  fit?: "contain" | "height";
   fallbackGlyph: string;
   fallback: boolean;
   load?: () => Promise<string>;
@@ -225,18 +241,46 @@ export function resolveEncounterVisualDescriptor(key: string): EncounterVisualDe
   if (staticDescriptor) return staticDescriptor;
   const heroPoseIdentity = parseHeroPortraitPoseVisualKey(key);
   if (heroPoseIdentity) {
-    const combatIdleUrl = heroPoseIdentity.classType === "Novice"
+    const noviceCombatIdleUrl = heroPoseIdentity.classType === "Novice"
       ? getCdi148NoviceCombatIdleUrl(heroPoseIdentity.gender, heroPoseIdentity.variant)
       : null;
+    const warriorCombatIdleUrl = heroPoseIdentity.classType === "Guerrier"
+      ? getCdi149WarriorCombatIdleUrl(heroPoseIdentity.gender, heroPoseIdentity.variant)
+      : null;
+    const rogueCombatIdleUrl = heroPoseIdentity.classType === "Voleur"
+      ? getCdi150RogueCombatIdleUrl(heroPoseIdentity.gender, heroPoseIdentity.variant)
+      : null;
+    const combatIdleUrl = noviceCombatIdleUrl ?? warriorCombatIdleUrl ?? rogueCombatIdleUrl;
+    const warriorCombatIdle = warriorCombatIdleUrl !== null;
+    const rogueCombatIdle = rogueCombatIdleUrl !== null;
     return {
       key,
       kind: "hero",
       version: ENCOUNTER_VISUAL_CATALOG_VERSION,
-      provenance: combatIdleUrl
+      provenance: noviceCombatIdleUrl
         ? "CDI-148 validated Novice combat-idle alpha sprites"
+        : warriorCombatIdleUrl
+          ? "CDI-149 validated Warrior combat-idle alpha sprites"
+          : rogueCombatIdleUrl
+            ? "CDI-150 validated Rogue combat-idle alpha sprites"
         : "CDIdle explicit neutral hero-pose fallback",
-      anchor: { x: 0.5, y: 0.93 },
-      scale: 1,
+      anchor: warriorCombatIdle
+        ? { x: 0.5, y: CDI149_WARRIOR_COMBAT_IDLE_VISIBLE_BOTTOM / CDI149_WARRIOR_COMBAT_IDLE_FRAME_HEIGHT }
+        : rogueCombatIdle
+          ? { x: 0.5, y: CDI150_ROGUE_COMBAT_IDLE_VISIBLE_BOTTOM / CDI150_ROGUE_COMBAT_IDLE_FRAME_HEIGHT }
+        : { x: 0.5, y: 0.93 },
+      pivotX: warriorCombatIdle
+        ? getCdi149WarriorCombatIdlePivotX(heroPoseIdentity.gender, heroPoseIdentity.variant)
+        : rogueCombatIdle
+          ? 0.5
+        : undefined,
+      scale: warriorCombatIdle
+        ? CDI149_WARRIOR_COMBAT_IDLE_FRAME_HEIGHT / CDI149_WARRIOR_NEUTRAL_FRAME_HEIGHT
+        : rogueCombatIdle
+          ? CDI150_ROGUE_COMBAT_IDLE_FRAME_HEIGHT / CDI150_ROGUE_NEUTRAL_FRAME_HEIGHT
+            * getCdi150RogueCombatIdleScale(heroPoseIdentity.gender, heroPoseIdentity.variant)
+        : 1,
+      fit: warriorCombatIdle || rogueCombatIdle ? "height" : "contain",
       fallbackGlyph: "◆",
       fallback: false,
       load: combatIdleUrl

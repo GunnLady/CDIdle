@@ -10,7 +10,7 @@ source: Validation utilisateur du 15 septembre 2026 - séparer pose neutre, pose
 depends_on: ["CDI-145","CDI-148"]
 blocks: ["CDI-119","CDI-125","CDI-128","CDI-135"]
 github_issue: null
-related_docs: ["docs/development/dungeon-2d-action-production-plan.md","src/assets/heroSpriteSheets.ts","src/domain/dungeonCombatScene.ts","src/components/dungeon/CurrentEncounterPanel.tsx","AGENTS.md"]
+related_docs: ["docs/development/dungeon-2d-action-production-plan.md","docs/development/dungeon-2d-combat-idle-sprite-workflow.md","src/assets/heroSpriteSheets.ts","src/domain/dungeonCombatScene.ts","src/components/dungeon/CurrentEncounterPanel.tsx","AGENTS.md"]
 ---
 
 # CDI-157 — Produire et intégrer les poses de combat Pugiliste

@@ -102,6 +102,7 @@ function VisualAsset({ className, testId, visualKey }: {
     "--visual-scale": visual.descriptor.scale,
     "--visual-anchor-x": `${visual.descriptor.anchor.x * 100}%`,
     "--visual-anchor-y": `${visual.descriptor.anchor.y * 100}%`,
+    "--visual-pivot-x": `${(visual.descriptor.pivotX ?? visual.descriptor.anchor.x) * 100}%`,
   } as SceneStyle;
 
   return (
@@ -115,6 +116,7 @@ function VisualAsset({ className, testId, visualKey }: {
         ? <img
             alt=""
             className={styles.sprite}
+            data-visual-fit={visual.descriptor.fit ?? "contain"}
             draggable={false}
             onError={() => setFailedUrl(url)}
             src={url}

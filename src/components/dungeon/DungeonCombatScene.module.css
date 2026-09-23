@@ -105,10 +105,15 @@
   object-fit: contain;
   object-position: center bottom;
   image-rendering: auto;
-  transform: translate(calc(-1 * var(--visual-anchor-x)), calc(100% - var(--visual-anchor-y)));
-  transform-origin: var(--visual-anchor-x) var(--visual-anchor-y);
+  transform: translate(calc(-1 * var(--visual-pivot-x)), calc(100% - var(--visual-anchor-y)));
+  transform-origin: var(--visual-pivot-x) var(--visual-anchor-y);
   user-select: none;
   pointer-events: none;
+}
+
+.sprite[data-visual-fit="height"] {
+  width: auto;
+  object-fit: fill;
 }
 
 .actor[data-active="true"] .sprite,
