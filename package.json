@@ -2,10 +2,10 @@
   "name": "react-example",
   "private": true,
   "version": "0.0.0",
-  "packageManager": "npm@12.0.1",
+  "packageManager": "npm@12.1.0",
   "engines": {
     "node": "^24.15.0",
-    "npm": "12.0.1"
+    "npm": "12.1.0"
   },
   "devEngines": {
     "runtime": {
@@ -15,7 +15,7 @@
     },
     "packageManager": {
       "name": "npm",
-      "version": "12.0.1",
+      "version": "12.1.0",
       "onFail": "error"
     }
   },

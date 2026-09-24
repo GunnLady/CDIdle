@@ -3,12 +3,12 @@
 ## Versions de reference
 
 - Node.js : `24.18.0` LTS.
-- npm : `12.0.1`.
+- npm : `12.1.0`.
 - Installation canonique : `npm.cmd ci` sous Windows, `npm ci` en CI.
 
-`packageManager`, `engines`, `devEngines`, `.nvmrc` et les trois workflows
-portent les memes versions. `devEngines` refuse une commande projet lancee avec
-un autre runtime ou gestionnaire de paquets.
+`packageManager`, `engines`, `devEngines`, le lockfile et les six workflows
+epinglent npm. `.nvmrc` fixe Node.js. `devEngines` refuse une commande projet
+lancee avec un autre runtime ou gestionnaire de paquets.
 
 ## Migration locale Windows
 
@@ -17,13 +17,13 @@ rencontre pas la contrainte `devEngines` destinee a npm 12 :
 
 ```powershell
 Push-Location $env:TEMP
-npm.cmd install --global npm@12.0.1 --ignore-scripts
+npm.cmd install --global npm@12.1.0 --ignore-scripts
 Pop-Location
 npm.cmd --version
 npm.cmd ci
 ```
 
-La version affichee doit etre `12.0.1`.
+La version affichee doit etre `12.1.0`.
 
 ## Matrice des changements npm 12
 
@@ -62,7 +62,7 @@ git diff -- package-lock.json
 ```
 
 Les deux installations doivent passer et le second diff doit etre vide. La CI
-Ubuntu repete l'installation avec Node `24.18.0` et npm `12.0.1` avant les
+Ubuntu repete l'installation avec Node `24.18.0` et npm `12.1.0` avant les
 controles complets.
 
 ## Rollback vers npm 11

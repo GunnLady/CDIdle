@@ -29,9 +29,9 @@ jobs:
           package-manager-cache: false
       - name: Install pinned npm
         working-directory: ${{ runner.temp }}
-        run: npm install --global npm@12.0.1 --ignore-scripts
+        run: npm install --global npm@12.1.0 --ignore-scripts
       - name: Verify npm
-        run: test "$(npm --version)" = "12.0.1"
+        run: test "$(npm --version)" = "12.1.0"
       - run: npm ci
       - run: npm run check
       - uses: supabase/setup-cli@3c2f5e2ae34c34e428e8e206e2c4d21fa2d20fbf # v2.1.1

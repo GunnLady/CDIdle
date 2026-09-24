@@ -6,7 +6,7 @@ les commandes serveur Edge et le Workboard de suivi.
 
 ## Prérequis
 
-- Node.js `24.18.0` LTS et npm `12.0.1` ;
+- Node.js `24.18.0` LTS et npm `12.1.0` ;
 - Docker Desktop uniquement pour Supabase local ;
 - PowerShell sous Windows.
 
@@ -18,7 +18,7 @@ Copy-Item .env.example .env.local
 npm.cmd run dev
 ```
 
-Si la version locale de npm differe de `12.0.1`, suivre la
+Si la version locale de npm differe de `12.1.0`, suivre la
 [procedure de migration npm 12](docs/development/npm-12-migration.md) avant
 l'installation.
 
