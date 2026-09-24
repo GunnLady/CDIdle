@@ -2,6 +2,26 @@
 
 Date de formalisation : 20 septembre 2026.
 
+## Ordre prioritaire pour les générations — décision utilisateur du 24 septembre 2026
+
+1. Rechercher une pose de **combat stylisée** (fantasy, jeu vidéo, manga ou fan
+   art), une référence de l'arme ou de l'accessoire, et charger la pose neutre
+   exacte. Ces trois images sont les références transmises à ImageGen.
+2. Rédiger un prompt **simple et clair** : identité et tenue du neutre intactes,
+   garde prête mais au repos, arme lisible, aucun effet ou attaque déjà lancé.
+   Le relire au moins une fois, corriger ambiguïtés et contradictions, puis
+   seulement lancer ImageGen.
+3. Générer **un seul candidat** et le montrer immédiatement à l'utilisateur
+   pour verdict visuel. Si rejeté, ajuster références et prompt puis présenter
+   un seul nouveau candidat.
+4. **Après validation visuelle seulement**, documenter les références et le
+   prompt dans le ticket, contrôler proportions et alpha, normaliser, intégrer
+   et tester. Les obligations de documentation et de contrôle ci-dessous
+   s'appliquent à cette étape. Aucun autre sprite n'est généré avant le verdict.
+
+Cet ordre prime sur les passages plus bas qui placent des mesures, un registre
+détaillé ou un rapport technique avant la validation visuelle.
+
 ## Objet et périmètre
 
 Ce document définit la méthode commune des tickets CDI-148 à CDI-157 pour

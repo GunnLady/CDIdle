@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -79,6 +80,12 @@ const archerCombatFrameWidths = {
   female: [552, 490, 484, 472, 396, 414, 452, 438, 392, 400],
   male: [612, 414, 486, 404, 538, 500, 528, 766, 426, 524],
 };
+const mageCombatSprites = ["female", "male"].flatMap((gender) => (
+  Array.from({ length: 10 }, (_, index) => join(
+    gender,
+    `mage-${gender}-${String(index + 1).padStart(2, "0")}-combat-idle-v1.png`,
+  ))
+));
 const warriorSprites = ["female", "male"].flatMap((gender) => (
   Array.from({ length: 10 }, (_, index) => join(
     gender,
@@ -1154,6 +1161,69 @@ const archerCombatDecodedSceneBytes = measuredArcherCombatSprites
   .slice(0, combatHeroLimit).reduce((total, bytes) => total + bytes, 0);
 assert(archerCombatSceneBytes <= sceneBudgetBytes, `Four-hero CDI-151 scene exceeds ${sceneBudgetBytes} bytes`);
 
+const mageCombatRoot = join(projectRoot, "assets", "design", "hero-sprites", "cdi-152");
+const mageCombatImageDirectory = join(mageCombatRoot, "normalized-alpha-v1");
+const mageCombatRuntimeDirectory = join(mageCombatRoot, "runtime-webp-v1");
+for (const gender of ["female", "male"]) {
+  const expectedPng = mageCombatSprites
+    .filter((relativePath) => dirname(relativePath) === gender)
+    .map((relativePath) => basename(relativePath)).sort();
+  const actualPng = readdirSync(join(mageCombatImageDirectory, gender))
+    .filter((file) => file.endsWith(".png")).sort();
+  assert.deepEqual(actualPng, expectedPng, `CDI-152 ${gender} must contain ten normalized sprites`);
+  const expectedWebp = expectedPng.map((file) => file.replace(/\.png$/, ".webp"));
+  const actualWebp = readdirSync(join(mageCombatRuntimeDirectory, gender))
+    .filter((file) => file.endsWith(".webp")).sort();
+  assert.deepEqual(actualWebp, expectedWebp, `CDI-152 ${gender} must contain ten runtime sprites`);
+}
+const measuredMageCombatSprites = mageCombatSprites.map((relativePath) => {
+  const pngPath = join(mageCombatImageDirectory, relativePath);
+  const dimensions = readImageInfo(pngPath);
+  assert.equal(dimensions.height, 920, `${relativePath} must remain 920 px high`);
+  assert.equal(dimensions.alpha, true, `${relativePath} must remain an alpha sprite`);
+  assert(Math.max(...dimensions.cornerAlphas) <= 2, `${relativePath} must have transparent corners`);
+  assert(dimensions.visibleBounds, `${relativePath} must contain visible pixels`);
+  assert(Math.abs(dimensions.visibleBounds.maxY - 900) <= 5,
+    `${relativePath} visible bottom ${dimensions.visibleBounds.maxY} must stay near y=900`);
+  const webpPath = join(mageCombatRuntimeDirectory, relativePath.replace(/\.png$/, ".webp"));
+  const webp = readFileSync(webpPath);
+  assert.equal(webp.toString("ascii", 0, 4), "RIFF", `${webpPath} must be RIFF`);
+  assert.equal(webp.toString("ascii", 8, 12), "WEBP", `${webpPath} must be WebP`);
+  assert.equal(webp.toString("ascii", 12, 16), "VP8X", `${webpPath} must expose dimensions and alpha`);
+  assert((webp[20] & 0x10) !== 0, `${webpPath} must preserve alpha`);
+  assert.equal(1 + webp.readUIntLE(24, 3), dimensions.width);
+  assert.equal(1 + webp.readUIntLE(27, 3), dimensions.height);
+  return {
+    file: relativePath,
+    bytes: webp.length,
+    width: dimensions.width,
+    visibleBottomY: dimensions.visibleBounds.maxY,
+    decodedBytes: dimensions.width * dimensions.height * 4,
+  };
+});
+const mageCombatTotalBytes = measuredMageCombatSprites.reduce((total, entry) => total + entry.bytes, 0);
+const mageCombatSceneBytes = measuredMageCombatSprites
+  .map((entry) => entry.bytes).sort((left, right) => right - left)
+  .slice(0, combatHeroLimit).reduce((total, bytes) => total + bytes, 0);
+const mageCombatDecodedSceneBytes = measuredMageCombatSprites
+  .map((entry) => entry.decodedBytes).sort((left, right) => right - left)
+  .slice(0, combatHeroLimit).reduce((total, bytes) => total + bytes, 0);
+assert(mageCombatSceneBytes <= sceneBudgetBytes, `Four-hero CDI-152 scene exceeds ${sceneBudgetBytes} bytes`);
+const mageManifest = JSON.parse(readFileSync(join(mageCombatRoot, "manifest.json"), "utf8").replace(/^\uFEFF/, ""));
+assert.equal(mageManifest.entries.length, 20, "CDI-152 manifest must map twenty identities");
+assert.equal(new Set(mageManifest.entries.map((entry) => entry.key)).size, 20);
+for (const entry of mageManifest.entries) {
+  for (const [pathField, hashField] of [
+    ["approvedSource", "sourceSha256"],
+    ["alphaSource", "alphaSha256"],
+    ["runtime", "runtimeSha256"],
+  ]) {
+    const file = readFileSync(join(projectRoot, entry[pathField]));
+    assert.equal(createHash("sha256").update(file).digest("hex"), entry[hashField],
+      `CDI-152 ${entry.key} ${pathField} changed after validation`);
+  }
+}
+
 console.log(JSON.stringify({
   heroSheets: heroSheets.length,
   noviceSprites: noviceSprites.length,
@@ -1261,6 +1331,19 @@ console.log(JSON.stringify({
     visibleBottomYRange: [
       Math.min(...measuredArcherCombatSprites.map((entry) => entry.visibleBottomY)),
       Math.max(...measuredArcherCombatSprites.map((entry) => entry.visibleBottomY)),
+    ],
+  },
+  mageCombatSprites: mageCombatSprites.length,
+  mageCombatMetrics: {
+    totalBytes: mageCombatTotalBytes,
+    largestFourSceneBytes: mageCombatSceneBytes,
+    decodedLargestFourSceneBytes: mageCombatDecodedSceneBytes,
+    minimumWidth: Math.min(...measuredMageCombatSprites.map((entry) => entry.width)),
+    maximumWidth: Math.max(...measuredMageCombatSprites.map((entry) => entry.width)),
+    height: 920,
+    visibleBottomYRange: [
+      Math.min(...measuredMageCombatSprites.map((entry) => entry.visibleBottomY)),
+      Math.max(...measuredMageCombatSprites.map((entry) => entry.visibleBottomY)),
     ],
   },
   heroIdentities: heroSheets.length * 20

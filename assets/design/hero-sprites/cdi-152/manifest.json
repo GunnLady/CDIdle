@@ -1,0 +1,326 @@
+﻿{
+    "schemaVersion":  1,
+    "ticket":  "CDI-152",
+    "entries":  [
+                    {
+                        "key":  "Mage_Male_0@combat_idle",
+                        "neutral":  "assets/design/hero-sprites/cdi-140/normalized-alpha-v1/male/mage-male-01-v1.png",
+                        "approvedSource":  "assets/design/hero-sprites/cdi-152/validated-male-v1/mage-male-01-combat-idle-v1.png",
+                        "alphaSource":  "assets/design/hero-sprites/cdi-152/validated-male-v1/mage-male-01-combat-idle-v1.png",
+                        "normalized":  "assets/design/hero-sprites/cdi-152/normalized-alpha-v1/male/mage-male-01-combat-idle-v1.png",
+                        "runtime":  "assets/design/hero-sprites/cdi-152/runtime-webp-v1/male/mage-male-01-combat-idle-v1.webp",
+                        "sourceSha256":  "e0c2021208e986fcef69eab881ac57aaa6ed98dbbfd68b0ea503bbff06b754ba",
+                        "alphaSha256":  "e0c2021208e986fcef69eab881ac57aaa6ed98dbbfd68b0ea503bbff06b754ba",
+                        "runtimeSha256":  "88a6f6a66fe2fabde06f33922bda928dc39724150c9ec8e00ecc6ce7d1aa9466",
+                        "runtimeBytes":  115022,
+                        "frame":  [
+                                      876,
+                                      920
+                                  ]
+                    },
+                    {
+                        "key":  "Mage_Male_1@combat_idle",
+                        "neutral":  "assets/design/hero-sprites/cdi-140/normalized-alpha-v1/male/mage-male-02-v1.png",
+                        "approvedSource":  "assets/design/hero-sprites/cdi-152/validated-male-v1/mage-male-02-combat-idle-v1.png",
+                        "alphaSource":  "assets/design/hero-sprites/cdi-152/validated-male-v1/mage-male-02-combat-idle-v1.png",
+                        "normalized":  "assets/design/hero-sprites/cdi-152/normalized-alpha-v1/male/mage-male-02-combat-idle-v1.png",
+                        "runtime":  "assets/design/hero-sprites/cdi-152/runtime-webp-v1/male/mage-male-02-combat-idle-v1.webp",
+                        "sourceSha256":  "3b4c4b3a2ab6e925d7fd698644304562be0c5d17b7399509bfe51dbcbe494c5c",
+                        "alphaSha256":  "3b4c4b3a2ab6e925d7fd698644304562be0c5d17b7399509bfe51dbcbe494c5c",
+                        "runtimeSha256":  "f7ddf2ad3197584497d18c4eaa0d717eec74f21974e4a73ac82244f81a9e48f4",
+                        "runtimeBytes":  88908,
+                        "frame":  [
+                                      576,
+                                      920
+                                  ]
+                    },
+                    {
+                        "key":  "Mage_Male_2@combat_idle",
+                        "neutral":  "assets/design/hero-sprites/cdi-140/normalized-alpha-v1/male/mage-male-03-v1.png",
+                        "approvedSource":  "assets/design/hero-sprites/cdi-152/validated-male-v1/mage-male-03-combat-idle-v1.png",
+                        "alphaSource":  "assets/design/hero-sprites/cdi-152/validated-male-v1/mage-male-03-combat-idle-v1.png",
+                        "normalized":  "assets/design/hero-sprites/cdi-152/normalized-alpha-v1/male/mage-male-03-combat-idle-v1.png",
+                        "runtime":  "assets/design/hero-sprites/cdi-152/runtime-webp-v1/male/mage-male-03-combat-idle-v1.webp",
+                        "sourceSha256":  "5f02318ae81d113dcaf03a2f02481d56ce85c2046668ecd6b0ab18e7dfef9c71",
+                        "alphaSha256":  "5f02318ae81d113dcaf03a2f02481d56ce85c2046668ecd6b0ab18e7dfef9c71",
+                        "runtimeSha256":  "fdce6ee08c8a1686d927ae4b0ec9e471d0c82cf7d098eae3e75ae74b59bb1bb8",
+                        "runtimeBytes":  94622,
+                        "frame":  [
+                                      772,
+                                      920
+                                  ]
+                    },
+                    {
+                        "key":  "Mage_Male_3@combat_idle",
+                        "neutral":  "assets/design/hero-sprites/cdi-140/normalized-alpha-v1/male/mage-male-04-v1.png",
+                        "approvedSource":  "assets/design/hero-sprites/cdi-152/validated-male-v1/mage-male-04-combat-idle-v1.png",
+                        "alphaSource":  "assets/design/hero-sprites/cdi-152/validated-male-v1/mage-male-04-combat-idle-v1.png",
+                        "normalized":  "assets/design/hero-sprites/cdi-152/normalized-alpha-v1/male/mage-male-04-combat-idle-v1.png",
+                        "runtime":  "assets/design/hero-sprites/cdi-152/runtime-webp-v1/male/mage-male-04-combat-idle-v1.webp",
+                        "sourceSha256":  "686a90b06443ff8e1447be405f61031b1ec469dc3d659ab454e7b7a680fe0856",
+                        "alphaSha256":  "686a90b06443ff8e1447be405f61031b1ec469dc3d659ab454e7b7a680fe0856",
+                        "runtimeSha256":  "854f9076d0ef4034fd1816e5f10703b7246d05ef949946863f36e158cd3d7863",
+                        "runtimeBytes":  68180,
+                        "frame":  [
+                                      544,
+                                      920
+                                  ]
+                    },
+                    {
+                        "key":  "Mage_Male_4@combat_idle",
+                        "neutral":  "assets/design/hero-sprites/cdi-140/normalized-alpha-v1/male/mage-male-05-v1.png",
+                        "approvedSource":  "assets/design/hero-sprites/cdi-152/validated-male-v1/mage-male-05-combat-idle-v1.png",
+                        "alphaSource":  "assets/design/hero-sprites/cdi-152/alpha-source-v1/mage-male-05-combat-idle-v1.png",
+                        "normalized":  "assets/design/hero-sprites/cdi-152/normalized-alpha-v1/male/mage-male-05-combat-idle-v1.png",
+                        "runtime":  "assets/design/hero-sprites/cdi-152/runtime-webp-v1/male/mage-male-05-combat-idle-v1.webp",
+                        "sourceSha256":  "4e1d112da9492f9ce526e4ac72b711992f27a8a4355be24ded289d7355896249",
+                        "alphaSha256":  "75f5a0a361c0c654e09b6526e4ebccf4744a3917c72042fffc41fda1d2800ded",
+                        "runtimeSha256":  "3927f817d683dc6a0f8cb27e85539d389a42bd0d752da31b18f5ec49ac9799b5",
+                        "runtimeBytes":  92634,
+                        "frame":  [
+                                      590,
+                                      920
+                                  ]
+                    },
+                    {
+                        "key":  "Mage_Male_5@combat_idle",
+                        "neutral":  "assets/design/hero-sprites/cdi-140/normalized-alpha-v1/male/mage-male-06-v1.png",
+                        "approvedSource":  "assets/design/hero-sprites/cdi-152/validated-male-v1/mage-male-06-combat-idle-v1.png",
+                        "alphaSource":  "assets/design/hero-sprites/cdi-152/validated-male-v1/mage-male-06-combat-idle-v1.png",
+                        "normalized":  "assets/design/hero-sprites/cdi-152/normalized-alpha-v1/male/mage-male-06-combat-idle-v1.png",
+                        "runtime":  "assets/design/hero-sprites/cdi-152/runtime-webp-v1/male/mage-male-06-combat-idle-v1.webp",
+                        "sourceSha256":  "fbd7bbe18b31fae301e1b5b522229f548861a0ad12888ba166c0c32531ed5b3b",
+                        "alphaSha256":  "fbd7bbe18b31fae301e1b5b522229f548861a0ad12888ba166c0c32531ed5b3b",
+                        "runtimeSha256":  "59567e9f49177ecb72fdd165581aee1f7e80660096f41bd3440c5427706e2145",
+                        "runtimeBytes":  88474,
+                        "frame":  [
+                                      572,
+                                      920
+                                  ]
+                    },
+                    {
+                        "key":  "Mage_Male_6@combat_idle",
+                        "neutral":  "assets/design/hero-sprites/cdi-140/normalized-alpha-v1/male/mage-male-07-v1.png",
+                        "approvedSource":  "assets/design/hero-sprites/cdi-152/validated-male-v1/mage-male-07-combat-idle-v1.png",
+                        "alphaSource":  "assets/design/hero-sprites/cdi-152/validated-male-v1/mage-male-07-combat-idle-v1.png",
+                        "normalized":  "assets/design/hero-sprites/cdi-152/normalized-alpha-v1/male/mage-male-07-combat-idle-v1.png",
+                        "runtime":  "assets/design/hero-sprites/cdi-152/runtime-webp-v1/male/mage-male-07-combat-idle-v1.webp",
+                        "sourceSha256":  "84d8268303440ee3bcd25bae9cef4cbdf60dde1394f6d5100295ae65c9e60ab0",
+                        "alphaSha256":  "84d8268303440ee3bcd25bae9cef4cbdf60dde1394f6d5100295ae65c9e60ab0",
+                        "runtimeSha256":  "a3a25ff2401b740b9c838703b0b136f01efd57405c70b5f38170d719ac729bc2",
+                        "runtimeBytes":  89168,
+                        "frame":  [
+                                      574,
+                                      920
+                                  ]
+                    },
+                    {
+                        "key":  "Mage_Male_7@combat_idle",
+                        "neutral":  "assets/design/hero-sprites/cdi-140/normalized-alpha-v1/male/mage-male-08-v1.png",
+                        "approvedSource":  "assets/design/hero-sprites/cdi-152/validated-male-v1/mage-male-08-combat-idle-v1.png",
+                        "alphaSource":  "assets/design/hero-sprites/cdi-152/validated-male-v1/mage-male-08-combat-idle-v1.png",
+                        "normalized":  "assets/design/hero-sprites/cdi-152/normalized-alpha-v1/male/mage-male-08-combat-idle-v1.png",
+                        "runtime":  "assets/design/hero-sprites/cdi-152/runtime-webp-v1/male/mage-male-08-combat-idle-v1.webp",
+                        "sourceSha256":  "4c9677b3ca894c3f5f97d0cd47a7355be8aa2478f5142da1c4547095889cc656",
+                        "alphaSha256":  "4c9677b3ca894c3f5f97d0cd47a7355be8aa2478f5142da1c4547095889cc656",
+                        "runtimeSha256":  "66cc2144c14b61dbf4b38a4b163dfbfab8eac9e5a0f4bfa19bc6bf114f4f0e9d",
+                        "runtimeBytes":  79872,
+                        "frame":  [
+                                      572,
+                                      920
+                                  ]
+                    },
+                    {
+                        "key":  "Mage_Male_8@combat_idle",
+                        "neutral":  "assets/design/hero-sprites/cdi-140/normalized-alpha-v1/male/mage-male-09-v1.png",
+                        "approvedSource":  "assets/design/hero-sprites/cdi-152/validated-male-v1/mage-male-09-combat-idle-v1.png",
+                        "alphaSource":  "assets/design/hero-sprites/cdi-152/validated-male-v1/mage-male-09-combat-idle-v1.png",
+                        "normalized":  "assets/design/hero-sprites/cdi-152/normalized-alpha-v1/male/mage-male-09-combat-idle-v1.png",
+                        "runtime":  "assets/design/hero-sprites/cdi-152/runtime-webp-v1/male/mage-male-09-combat-idle-v1.webp",
+                        "sourceSha256":  "2425525f4daaa077a2f109d47b53c91c37f2a41794ecfae0b602e59cbaf95187",
+                        "alphaSha256":  "2425525f4daaa077a2f109d47b53c91c37f2a41794ecfae0b602e59cbaf95187",
+                        "runtimeSha256":  "2efb7bad1f0d97b72133481f952adb54f14072884ed2980c10529d7363409d22",
+                        "runtimeBytes":  90478,
+                        "frame":  [
+                                      564,
+                                      920
+                                  ]
+                    },
+                    {
+                        "key":  "Mage_Male_9@combat_idle",
+                        "neutral":  "assets/design/hero-sprites/cdi-140/normalized-alpha-v1/male/mage-male-10-v1.png",
+                        "approvedSource":  "assets/design/hero-sprites/cdi-152/validated-male-v1/mage-male-10-combat-idle-v1.png",
+                        "alphaSource":  "assets/design/hero-sprites/cdi-152/validated-male-v1/mage-male-10-combat-idle-v1.png",
+                        "normalized":  "assets/design/hero-sprites/cdi-152/normalized-alpha-v1/male/mage-male-10-combat-idle-v1.png",
+                        "runtime":  "assets/design/hero-sprites/cdi-152/runtime-webp-v1/male/mage-male-10-combat-idle-v1.webp",
+                        "sourceSha256":  "5b300d9478a3785164fad8b01034ad2252649458007f7777ddcbce1f196e8374",
+                        "alphaSha256":  "5b300d9478a3785164fad8b01034ad2252649458007f7777ddcbce1f196e8374",
+                        "runtimeSha256":  "40740efc6042dccf39f22abb66aa40ae93e1ef02c72f490a6ec77b6619ec588f",
+                        "runtimeBytes":  83634,
+                        "frame":  [
+                                      554,
+                                      920
+                                  ]
+                    },
+                    {
+                        "key":  "Mage_Female_0@combat_idle",
+                        "neutral":  "assets/design/hero-sprites/cdi-140/normalized-alpha-v1/female/mage-female-01-v1.png",
+                        "approvedSource":  "assets/design/hero-sprites/cdi-152/validated-female-v1/mage-female-01-combat-idle-v1.png",
+                        "alphaSource":  "assets/design/hero-sprites/cdi-152/validated-female-v1/mage-female-01-combat-idle-v1.png",
+                        "normalized":  "assets/design/hero-sprites/cdi-152/normalized-alpha-v1/female/mage-female-01-combat-idle-v1.png",
+                        "runtime":  "assets/design/hero-sprites/cdi-152/runtime-webp-v1/female/mage-female-01-combat-idle-v1.webp",
+                        "sourceSha256":  "8ea0261d2c617f90056f3f9d053b6f9c759f60cb4e935a79a55ecae550664e08",
+                        "alphaSha256":  "8ea0261d2c617f90056f3f9d053b6f9c759f60cb4e935a79a55ecae550664e08",
+                        "runtimeSha256":  "3235207fa31b1257204b76b6c1443d4b67f955e821cc1ec3b0add08b49f0f50f",
+                        "runtimeBytes":  136130,
+                        "frame":  [
+                                      1058,
+                                      920
+                                  ]
+                    },
+                    {
+                        "key":  "Mage_Female_1@combat_idle",
+                        "neutral":  "assets/design/hero-sprites/cdi-140/normalized-alpha-v1/female/mage-female-02-v1.png",
+                        "approvedSource":  "assets/design/hero-sprites/cdi-152/validated-female-v1/mage-female-02-combat-idle-v1.png",
+                        "alphaSource":  "assets/design/hero-sprites/cdi-152/validated-female-v1/mage-female-02-combat-idle-v1.png",
+                        "normalized":  "assets/design/hero-sprites/cdi-152/normalized-alpha-v1/female/mage-female-02-combat-idle-v1.png",
+                        "runtime":  "assets/design/hero-sprites/cdi-152/runtime-webp-v1/female/mage-female-02-combat-idle-v1.webp",
+                        "sourceSha256":  "7783b9d7a0f11156584c536189dca956e7aed83d9d6172a46992d13978c46e52",
+                        "alphaSha256":  "7783b9d7a0f11156584c536189dca956e7aed83d9d6172a46992d13978c46e52",
+                        "runtimeSha256":  "68283e6176ebf7b9e9c027a7f0edf874650581af8baad342f6886a99ffc9fe61",
+                        "runtimeBytes":  79774,
+                        "frame":  [
+                                      626,
+                                      920
+                                  ]
+                    },
+                    {
+                        "key":  "Mage_Female_2@combat_idle",
+                        "neutral":  "assets/design/hero-sprites/cdi-140/normalized-alpha-v1/female/mage-female-03-v1.png",
+                        "approvedSource":  "assets/design/hero-sprites/cdi-152/validated-female-v1/mage-female-03-combat-idle-v1.png",
+                        "alphaSource":  "assets/design/hero-sprites/cdi-152/validated-female-v1/mage-female-03-combat-idle-v1.png",
+                        "normalized":  "assets/design/hero-sprites/cdi-152/normalized-alpha-v1/female/mage-female-03-combat-idle-v1.png",
+                        "runtime":  "assets/design/hero-sprites/cdi-152/runtime-webp-v1/female/mage-female-03-combat-idle-v1.webp",
+                        "sourceSha256":  "b8b0476e28a56730cbb0050e796b86bb34f9839b7d6eec0c01cc0a9ddabbc1d8",
+                        "alphaSha256":  "b8b0476e28a56730cbb0050e796b86bb34f9839b7d6eec0c01cc0a9ddabbc1d8",
+                        "runtimeSha256":  "497a08e44b52de0eeab52aa3ea3e4afce20341be660948e3a8844af89950e62d",
+                        "runtimeBytes":  85386,
+                        "frame":  [
+                                      640,
+                                      920
+                                  ]
+                    },
+                    {
+                        "key":  "Mage_Female_3@combat_idle",
+                        "neutral":  "assets/design/hero-sprites/cdi-140/normalized-alpha-v1/female/mage-female-04-v1.png",
+                        "approvedSource":  "assets/design/hero-sprites/cdi-152/validated-female-v1/mage-female-04-combat-idle-v1.png",
+                        "alphaSource":  "assets/design/hero-sprites/cdi-152/validated-female-v1/mage-female-04-combat-idle-v1.png",
+                        "normalized":  "assets/design/hero-sprites/cdi-152/normalized-alpha-v1/female/mage-female-04-combat-idle-v1.png",
+                        "runtime":  "assets/design/hero-sprites/cdi-152/runtime-webp-v1/female/mage-female-04-combat-idle-v1.webp",
+                        "sourceSha256":  "8543b52369e3e1afe5c81e6a8e4992c3c824c24129c14a13eb16112c7253d7eb",
+                        "alphaSha256":  "8543b52369e3e1afe5c81e6a8e4992c3c824c24129c14a13eb16112c7253d7eb",
+                        "runtimeSha256":  "ca42d0daea6f9d7c31926ed362a7b72b61a56196bb797eb919661b0f99d5b3b1",
+                        "runtimeBytes":  98564,
+                        "frame":  [
+                                      614,
+                                      920
+                                  ]
+                    },
+                    {
+                        "key":  "Mage_Female_4@combat_idle",
+                        "neutral":  "assets/design/hero-sprites/cdi-140/normalized-alpha-v1/female/mage-female-05-v1.png",
+                        "approvedSource":  "assets/design/hero-sprites/cdi-152/validated-female-v1/mage-female-05-combat-idle-v1.png",
+                        "alphaSource":  "assets/design/hero-sprites/cdi-152/validated-female-v1/mage-female-05-combat-idle-v1.png",
+                        "normalized":  "assets/design/hero-sprites/cdi-152/normalized-alpha-v1/female/mage-female-05-combat-idle-v1.png",
+                        "runtime":  "assets/design/hero-sprites/cdi-152/runtime-webp-v1/female/mage-female-05-combat-idle-v1.webp",
+                        "sourceSha256":  "5dc66b272a7bcdddd53174ce8314a8d6c277161982d60c8cfc9d41d46037cfb8",
+                        "alphaSha256":  "5dc66b272a7bcdddd53174ce8314a8d6c277161982d60c8cfc9d41d46037cfb8",
+                        "runtimeSha256":  "203f0ded03b9695de1fd586171278f458dc26efb131ffed443493241ced5137a",
+                        "runtimeBytes":  82764,
+                        "frame":  [
+                                      564,
+                                      920
+                                  ]
+                    },
+                    {
+                        "key":  "Mage_Female_5@combat_idle",
+                        "neutral":  "assets/design/hero-sprites/cdi-140/normalized-alpha-v1/female/mage-female-06-v1.png",
+                        "approvedSource":  "assets/design/hero-sprites/cdi-152/validated-female-v1/mage-female-06-combat-idle-v1.png",
+                        "alphaSource":  "assets/design/hero-sprites/cdi-152/validated-female-v1/mage-female-06-combat-idle-v1.png",
+                        "normalized":  "assets/design/hero-sprites/cdi-152/normalized-alpha-v1/female/mage-female-06-combat-idle-v1.png",
+                        "runtime":  "assets/design/hero-sprites/cdi-152/runtime-webp-v1/female/mage-female-06-combat-idle-v1.webp",
+                        "sourceSha256":  "c67653f01be98ad4c4b58d6f4b3d006a1818887579d8f686cb147ee8688679f9",
+                        "alphaSha256":  "c67653f01be98ad4c4b58d6f4b3d006a1818887579d8f686cb147ee8688679f9",
+                        "runtimeSha256":  "d976dd60bf0d5dd045f15a0d8473f8ab54541f2af6cf2ad083827baad9ed4998",
+                        "runtimeBytes":  139648,
+                        "frame":  [
+                                      758,
+                                      920
+                                  ]
+                    },
+                    {
+                        "key":  "Mage_Female_6@combat_idle",
+                        "neutral":  "assets/design/hero-sprites/cdi-140/normalized-alpha-v1/female/mage-female-07-v1.png",
+                        "approvedSource":  "assets/design/hero-sprites/cdi-152/validated-female-v1/mage-female-07-combat-idle-v1.png",
+                        "alphaSource":  "assets/design/hero-sprites/cdi-152/validated-female-v1/mage-female-07-combat-idle-v1.png",
+                        "normalized":  "assets/design/hero-sprites/cdi-152/normalized-alpha-v1/female/mage-female-07-combat-idle-v1.png",
+                        "runtime":  "assets/design/hero-sprites/cdi-152/runtime-webp-v1/female/mage-female-07-combat-idle-v1.webp",
+                        "sourceSha256":  "62ae59ef15fe4fc8d507029b5e6f7019ac4013f242d4fb26d7aa10f882e7303e",
+                        "alphaSha256":  "62ae59ef15fe4fc8d507029b5e6f7019ac4013f242d4fb26d7aa10f882e7303e",
+                        "runtimeSha256":  "207833393bc733d14f3292fd65101f3033d69eb432fc4a3a84ae5e4df8412125",
+                        "runtimeBytes":  105718,
+                        "frame":  [
+                                      604,
+                                      920
+                                  ]
+                    },
+                    {
+                        "key":  "Mage_Female_7@combat_idle",
+                        "neutral":  "assets/design/hero-sprites/cdi-140/normalized-alpha-v1/female/mage-female-08-v1.png",
+                        "approvedSource":  "assets/design/hero-sprites/cdi-152/validated-female-v1/mage-female-08-combat-idle-v1.png",
+                        "alphaSource":  "assets/design/hero-sprites/cdi-152/validated-female-v1/mage-female-08-combat-idle-v1.png",
+                        "normalized":  "assets/design/hero-sprites/cdi-152/normalized-alpha-v1/female/mage-female-08-combat-idle-v1.png",
+                        "runtime":  "assets/design/hero-sprites/cdi-152/runtime-webp-v1/female/mage-female-08-combat-idle-v1.webp",
+                        "sourceSha256":  "a2e09a77db5bf6ff3bc02496223063a68728dac29f539697064152f01210553c",
+                        "alphaSha256":  "a2e09a77db5bf6ff3bc02496223063a68728dac29f539697064152f01210553c",
+                        "runtimeSha256":  "1c83761e1bcb5492f51b9a443b923ff215d6337c45732a13d392d9afa22de0a2",
+                        "runtimeBytes":  89414,
+                        "frame":  [
+                                      586,
+                                      920
+                                  ]
+                    },
+                    {
+                        "key":  "Mage_Female_8@combat_idle",
+                        "neutral":  "assets/design/hero-sprites/cdi-140/normalized-alpha-v1/female/mage-female-09-v1.png",
+                        "approvedSource":  "assets/design/hero-sprites/cdi-152/validated-female-v1/mage-female-09-combat-idle-v1.png",
+                        "alphaSource":  "assets/design/hero-sprites/cdi-152/validated-female-v1/mage-female-09-combat-idle-v1.png",
+                        "normalized":  "assets/design/hero-sprites/cdi-152/normalized-alpha-v1/female/mage-female-09-combat-idle-v1.png",
+                        "runtime":  "assets/design/hero-sprites/cdi-152/runtime-webp-v1/female/mage-female-09-combat-idle-v1.webp",
+                        "sourceSha256":  "7d01b4164ad9cbd43e7399fd73f8197ae70a54b006c20af3ad2523865f1251ea",
+                        "alphaSha256":  "7d01b4164ad9cbd43e7399fd73f8197ae70a54b006c20af3ad2523865f1251ea",
+                        "runtimeSha256":  "c6b7e9e4b8bfa05dee07643d55064d46d1017d29fb66c7ea9eb43adba005a62f",
+                        "runtimeBytes":  107012,
+                        "frame":  [
+                                      646,
+                                      920
+                                  ]
+                    },
+                    {
+                        "key":  "Mage_Female_9@combat_idle",
+                        "neutral":  "assets/design/hero-sprites/cdi-140/normalized-alpha-v1/female/mage-female-10-v1.png",
+                        "approvedSource":  "assets/design/hero-sprites/cdi-152/validated-female-v1/mage-female-10-combat-idle-v1.png",
+                        "alphaSource":  "assets/design/hero-sprites/cdi-152/validated-female-v1/mage-female-10-combat-idle-v1.png",
+                        "normalized":  "assets/design/hero-sprites/cdi-152/normalized-alpha-v1/female/mage-female-10-combat-idle-v1.png",
+                        "runtime":  "assets/design/hero-sprites/cdi-152/runtime-webp-v1/female/mage-female-10-combat-idle-v1.webp",
+                        "sourceSha256":  "a34230af673cc88a585e07021882d0040aeb2119eb530cddc7e30ff5dd1f387c",
+                        "alphaSha256":  "a34230af673cc88a585e07021882d0040aeb2119eb530cddc7e30ff5dd1f387c",
+                        "runtimeSha256":  "f2db86f10590e51034144e50dc467f20fd12d5344c2f71cbacbd1f4664ec7abc",
+                        "runtimeBytes":  92900,
+                        "frame":  [
+                                      632,
+                                      920
+                                  ]
+                    }
+                ]
+}

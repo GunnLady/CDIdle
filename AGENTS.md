@@ -49,6 +49,20 @@ et l'objectif exacts, puis attend le résultat.
 
 ## Collaboration et contrôles
 
+### Sprites de garde `combat_idle` — ordre de travail validé le 24 septembre 2026
+
+Pour chaque sprite, rechercher puis fournir exactement trois références à la
+génération : la pose neutre exacte de l'identité, une pose de combat stylisée
+(fantasy, jeu vidéo, manga ou fan art) et une référence d'arme ou d'accessoire.
+Écrire un prompt court et clair qui préserve l'identité et demande une garde
+lisible, sans action ni effet déjà déclenché. Le relire au moins une fois et
+corriger toute ambiguïté ou contradiction avant l'appel ImageGen. Générer un seul candidat et le
+montrer aussitôt à l'utilisateur pour validation visuelle. Avant ce verdict,
+ne pas rédiger de suivi détaillé ni lancer de mesures de proportions,
+normalisation, intégration ou nouvelle génération. Après validation seulement,
+faire les contrôles techniques et mettre à jour le ticket. Un rejet permet une
+nouvelle recherche et un nouveau candidat, toujours présenté seul.
+
 1. Pour les travaux d'interface, Codex réalise les contrôles structurels et
    techniques. L'utilisateur réalise les contrôles visuels, sauf demande
    explicite contraire.
