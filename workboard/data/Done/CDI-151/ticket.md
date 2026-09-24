@@ -1,7 +1,7 @@
 ---
 id: CDI-151
 title: Produire et intégrer les poses de combat Archer
-status: Later
+status: Done
 area: ui
 priority: P1
 size: L
@@ -59,13 +59,13 @@ La base neutre reste destinée au recrutement, au catalogue, au stockage et aux 
 
 ## Criteres d'acceptation
 
-- [ ] Un pilote contrasté est validé visuellement avant la production en série.
-- [ ] Les vingt poses de combat correspondent une à une aux vingt bases neutres par genre et index 0–9.
-- [ ] Identité, équipement visuel, proportions, direction, lumière, pieds et pivot restent cohérents entre les deux poses.
-- [ ] Le cinéma affiche la garde pendant l’affrontement, revient en garde après chaque action et n’utilise la pose neutre qu’hors combat.
-- [ ] Recrutement, catalogue, stockage et autres scènes hors combat conservent la pose neutre.
-- [ ] La pose de combat ne remplace aucune pose d’action et ne modifie aucun résultat métier.
-- [ ] Alpha, chargement, cache, mémoire et budget de scène sont vérifiés ; le rendu est validé dans les écrans cinéma représentatifs.
+- [x] Un pilote contrasté est validé visuellement avant la production en série.
+- [x] Les vingt poses de combat correspondent une à une aux vingt bases neutres par genre et index 0–9.
+- [x] Identité, équipement visuel, proportions, direction, lumière, pieds et pivot restent cohérents entre les deux poses.
+- [x] Le cinéma affiche la garde pendant l’affrontement, revient en garde après chaque action et n’utilise la pose neutre qu’hors combat.
+- [x] Recrutement, catalogue, stockage et autres scènes hors combat conservent la pose neutre.
+- [x] La pose de combat ne remplace aucune pose d’action et ne modifie aucun résultat métier.
+- [x] Alpha, chargement, cache, mémoire et budget de scène sont vérifiés ; le rendu est validé dans les écrans cinéma représentatifs.
 
 ## Tests
 
@@ -76,7 +76,7 @@ La base neutre reste destinée au recrutement, au catalogue, au stockage et aux 
 
 ## Validation manuelle
 
-L’utilisateur valide d’abord le pilote, puis les vingt correspondances neutral/combat et enfin le rendu dans les écrans du cinéma. Les tests complets et la documentation de livraison viennent après le verdict visuel.
+L’utilisateur a validé le pilote, les vingt correspondances neutral/combat et les cinq écrans du cinéma. Les validations techniques finales ont suivi ce verdict visuel.
 
 ## Preservation
 
@@ -94,4 +94,8 @@ L’utilisateur valide d’abord le pilote, puis les vingt correspondances neutr
 
 ## Handoff
 
-Fournir références et prompts versionnés, table neutral/combat par genre et index, sources/exports, mesures, tests et verdicts utilisateur. Aucune pose d’action, réaction ou KO n’est déclarée livrée par ce lot.
+Au 24 septembre 2026, l’utilisateur a validé individuellement les vingt images, puis les cinq écrans du cinéma dans le harness `archer-cinema=1..5` après réglage des échelles par variante. Les vingt sources approuvées sont dans `assets/design/hero-sprites/cdi-151/candidates/` et les vingt exports alpha dans `normalized-alpha-v1/` ; les bases neutres CDI-139 restent indépendantes. Le catalogue sélectionne `Archer_<Gender>_<index>@combat_idle` en combat et la clé neutre hors combat.
+
+Preuves finales : 71 tests ciblés du lecteur et du catalogue ; test Playwright des cinq vues PC ; `check:dungeon-visuals`, `typecheck`, `lint -- --quiet`, `build` et `check:bundle` réussis. Les vingt PNG totalisent 6 688 246 octets ; les quatre plus lourds totalisent 1 694 587 octets sous le budget de 2 097 152 octets, et 9 082 240 octets RGBA décodés. La mesure locale sur les fichiers hashés du build donne 6 694 246 octets transférés à froid et 0 au rechargement avec cache immuable. Le Workboard est validé à la clôture.
+
+L’utilisateur a demandé de clore le ticket sans handoff documentaire séparé. Les prompts ImageGen historiques ne sont pas archivés ; cette limite concerne uniquement une éventuelle régénération future. Celle-ci devra repartir de la base neutre et du candidat approuvé de même genre/index, refaire les contrôles alpha/pivot/budget et obtenir un nouveau verdict visuel avant de remplacer un export. Aucune pose d’action, réaction ou KO ni aucun déploiement n’est livré par CDI-151.

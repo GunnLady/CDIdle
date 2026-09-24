@@ -11,6 +11,13 @@ import {
 } from "./heroPortraitAssets";
 import { getCdi148NoviceCombatIdleUrl } from "./noviceCdi148CombatPoses";
 import {
+  CDI151_ARCHER_COMBAT_IDLE_FRAME_HEIGHT,
+  CDI151_ARCHER_COMBAT_IDLE_VISIBLE_BOTTOM,
+  CDI151_ARCHER_NEUTRAL_FRAME_HEIGHT,
+  getCdi151ArcherCombatIdleScale,
+  getCdi151ArcherCombatIdleUrl,
+} from "./archerCdi151CombatPoses";
+import {
   CDI150_ROGUE_COMBAT_IDLE_FRAME_HEIGHT,
   CDI150_ROGUE_COMBAT_IDLE_VISIBLE_BOTTOM,
   CDI150_ROGUE_NEUTRAL_FRAME_HEIGHT,
@@ -250,9 +257,13 @@ export function resolveEncounterVisualDescriptor(key: string): EncounterVisualDe
     const rogueCombatIdleUrl = heroPoseIdentity.classType === "Voleur"
       ? getCdi150RogueCombatIdleUrl(heroPoseIdentity.gender, heroPoseIdentity.variant)
       : null;
-    const combatIdleUrl = noviceCombatIdleUrl ?? warriorCombatIdleUrl ?? rogueCombatIdleUrl;
+    const archerCombatIdleUrl = heroPoseIdentity.classType === "Archer"
+      ? getCdi151ArcherCombatIdleUrl(heroPoseIdentity.gender, heroPoseIdentity.variant)
+      : null;
+    const combatIdleUrl = noviceCombatIdleUrl ?? warriorCombatIdleUrl ?? rogueCombatIdleUrl ?? archerCombatIdleUrl;
     const warriorCombatIdle = warriorCombatIdleUrl !== null;
     const rogueCombatIdle = rogueCombatIdleUrl !== null;
+    const archerCombatIdle = archerCombatIdleUrl !== null;
     return {
       key,
       kind: "hero",
@@ -263,15 +274,21 @@ export function resolveEncounterVisualDescriptor(key: string): EncounterVisualDe
           ? "CDI-149 validated Warrior combat-idle alpha sprites"
           : rogueCombatIdleUrl
             ? "CDI-150 validated Rogue combat-idle alpha sprites"
+          : archerCombatIdleUrl
+            ? "CDI-151 validated Archer combat-idle alpha sprites"
         : "CDIdle explicit neutral hero-pose fallback",
       anchor: warriorCombatIdle
         ? { x: 0.5, y: CDI149_WARRIOR_COMBAT_IDLE_VISIBLE_BOTTOM / CDI149_WARRIOR_COMBAT_IDLE_FRAME_HEIGHT }
         : rogueCombatIdle
           ? { x: 0.5, y: CDI150_ROGUE_COMBAT_IDLE_VISIBLE_BOTTOM / CDI150_ROGUE_COMBAT_IDLE_FRAME_HEIGHT }
+        : archerCombatIdle
+          ? { x: 0.5, y: CDI151_ARCHER_COMBAT_IDLE_VISIBLE_BOTTOM / CDI151_ARCHER_COMBAT_IDLE_FRAME_HEIGHT }
         : { x: 0.5, y: 0.93 },
       pivotX: warriorCombatIdle
         ? getCdi149WarriorCombatIdlePivotX(heroPoseIdentity.gender, heroPoseIdentity.variant)
         : rogueCombatIdle
+          ? 0.5
+        : archerCombatIdle
           ? 0.5
         : undefined,
       scale: warriorCombatIdle
@@ -279,8 +296,11 @@ export function resolveEncounterVisualDescriptor(key: string): EncounterVisualDe
         : rogueCombatIdle
           ? CDI150_ROGUE_COMBAT_IDLE_FRAME_HEIGHT / CDI150_ROGUE_NEUTRAL_FRAME_HEIGHT
             * getCdi150RogueCombatIdleScale(heroPoseIdentity.gender, heroPoseIdentity.variant)
+        : archerCombatIdle
+          ? CDI151_ARCHER_COMBAT_IDLE_FRAME_HEIGHT / CDI151_ARCHER_NEUTRAL_FRAME_HEIGHT
+            * getCdi151ArcherCombatIdleScale(heroPoseIdentity.gender, heroPoseIdentity.variant)
         : 1,
-      fit: warriorCombatIdle || rogueCombatIdle ? "height" : "contain",
+      fit: warriorCombatIdle || rogueCombatIdle || archerCombatIdle ? "height" : "contain",
       fallbackGlyph: "◆",
       fallback: false,
       load: combatIdleUrl

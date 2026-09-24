@@ -22,6 +22,7 @@ import {
   getCdi149WarriorCombatIdlePivotX,
 } from "../src/assets/warriorCdi149CombatPoses";
 import { CDI150_ROGUE_COMBAT_IDLE_VARIANT_COUNT } from "../src/assets/rogueCdi150CombatPoses";
+import { CDI151_ARCHER_COMBAT_IDLE_VARIANT_COUNT } from "../src/assets/archerCdi151CombatPoses";
 import {
   getUndercityEnemyVisualKey,
   UNDERCITY_ZONE_VISUAL_PACKS,
@@ -132,6 +133,53 @@ describe("encounter visual catalog", () => {
     }
     const wrapped = await loadEncounterVisualAsset("Voleur_Female_19@combat_idle");
     expect(wrapped.url).toContain("rogue-female-10-combat-idle-v1");
+  });
+
+  it("loads all twenty CDI-151 Archer combat-idle identities with their neutral variant", async () => {
+    const expectedScaleAdjustments: Record<string, number> = {
+      Male_0: 1.05,
+      Female_1: 1.03,
+      Male_1: 1.03,
+      Female_3: 1.05,
+      Male_3: 1.05,
+      Female_4: 1.08,
+      Female_5: 1.05,
+      Male_5: 1.08,
+      Female_6: 1.03,
+      Male_6: 1.05,
+      Female_7: 1.08,
+      Female_8: 1.07,
+      Female_9: 1.15,
+    };
+    const identities = (["Male", "Female"] as const).flatMap((gender) => (
+      Array.from({ length: CDI151_ARCHER_COMBAT_IDLE_VARIANT_COUNT }, (_, variant) => ({ gender, variant }))
+    ));
+    const assets = await Promise.all(identities.map(({ gender, variant }) => (
+      loadEncounterVisualAsset(`Archer_${gender}_${variant}@combat_idle`)
+    )));
+    for (const [index, asset] of assets.entries()) {
+      const { gender, variant } = identities[index];
+      expect(asset).toMatchObject({
+        status: "ready",
+        descriptor: {
+          provenance: "CDI-151 validated Archer combat-idle alpha sprites",
+          anchor: { x: 0.5, y: 900 / 920 },
+          pivotX: 0.5,
+          scale: 920 / 692 * (expectedScaleAdjustments[`${gender}_${variant}`] ?? 1),
+          fit: "height",
+        },
+      });
+      expect(asset.url).toContain(
+        `archer-${gender.toLowerCase()}-${String(variant + 1).padStart(2, "0")}-combat-idle-v1`,
+      );
+      expect(resolveEncounterVisualDescriptor(`Archer_${gender}_${variant}`)).toMatchObject({
+        provenance: "CDI-139 validated Archer alpha sprites",
+        anchor: { x: 0.5, y: 0.93 },
+        scale: 1,
+      });
+    }
+    const wrapped = await loadEncounterVisualAsset("Archer_Female_19@combat_idle");
+    expect(wrapped.url).toContain("archer-female-10-combat-idle-v1");
   });
 
   it("loads CDI-137 Warrior neutral sprites through stable legacy identity keys", async () => {

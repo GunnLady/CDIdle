@@ -69,6 +69,16 @@ const rogueCombatFrameWidths = {
   female: [526, 426, 444, 512, 454, 400, 712, 430, 464, 504],
   male: [408, 484, 480, 434, 472, 454, 1042, 572, 366, 436],
 };
+const archerCombatSprites = ["female", "male"].flatMap((gender) => (
+  Array.from({ length: 10 }, (_, index) => join(
+    gender,
+    `archer-${gender}-${String(index + 1).padStart(2, "0")}-combat-idle-v1.png`,
+  ))
+));
+const archerCombatFrameWidths = {
+  female: [552, 490, 484, 472, 396, 414, 452, 438, 392, 400],
+  male: [612, 414, 486, 404, 538, 500, 528, 766, 426, 524],
+};
 const warriorSprites = ["female", "male"].flatMap((gender) => (
   Array.from({ length: 10 }, (_, index) => join(
     gender,
@@ -1104,6 +1114,46 @@ const rogueCombatDecodedSceneBytes = measuredRogueCombatSprites
   .slice(0, combatHeroLimit).reduce((total, bytes) => total + bytes, 0);
 assert(rogueCombatSceneBytes <= sceneBudgetBytes, `Four-hero CDI-150 scene exceeds ${sceneBudgetBytes} bytes`);
 
+const archerCombatImageDirectory = join(
+  projectRoot, "assets", "design", "hero-sprites", "cdi-151", "normalized-alpha-v1",
+);
+for (const gender of ["female", "male"]) {
+  const expectedFiles = archerCombatSprites
+    .filter((relativePath) => dirname(relativePath) === gender)
+    .map((relativePath) => basename(relativePath)).sort();
+  const actualFiles = readdirSync(join(archerCombatImageDirectory, gender))
+    .filter((file) => file.endsWith(".png")).sort();
+  assert.deepEqual(actualFiles, expectedFiles, `CDI-151 ${gender} must contain exactly ten combat sprites`);
+}
+const measuredArcherCombatSprites = archerCombatSprites.map((relativePath) => {
+  const path = join(archerCombatImageDirectory, relativePath);
+  const dimensions = readImageInfo(path);
+  const match = /archer-(female|male)-(\d{2})-combat-idle-v1\.png$/.exec(relativePath);
+  assert(match, `${relativePath} must use the expected CDI-151 filename`);
+  assert.equal(dimensions.width, archerCombatFrameWidths[match[1]][Number(match[2]) - 1]);
+  assert.equal(dimensions.height, 920, `${relativePath} must remain 920 px high`);
+  assert.equal(dimensions.alpha, true, `${relativePath} must remain an alpha sprite`);
+  assert(Math.max(...dimensions.cornerAlphas) <= 2, `${relativePath} must have transparent corners`);
+  assert(dimensions.visibleBounds, `${relativePath} must contain visible pixels`);
+  assert(Math.abs(dimensions.visibleBounds.maxY - 900) <= 5,
+    `${relativePath} visible bottom ${dimensions.visibleBounds.maxY} must stay within five pixels of y=900`);
+  return {
+    file: relativePath,
+    bytes: statSync(path).size,
+    width: dimensions.width,
+    visibleBottomY: dimensions.visibleBounds.maxY,
+    decodedBytes: dimensions.width * dimensions.height * 4,
+  };
+});
+const archerCombatTotalBytes = measuredArcherCombatSprites.reduce((total, entry) => total + entry.bytes, 0);
+const archerCombatSceneBytes = measuredArcherCombatSprites
+  .map((entry) => entry.bytes).sort((left, right) => right - left)
+  .slice(0, combatHeroLimit).reduce((total, bytes) => total + bytes, 0);
+const archerCombatDecodedSceneBytes = measuredArcherCombatSprites
+  .map((entry) => entry.decodedBytes).sort((left, right) => right - left)
+  .slice(0, combatHeroLimit).reduce((total, bytes) => total + bytes, 0);
+assert(archerCombatSceneBytes <= sceneBudgetBytes, `Four-hero CDI-151 scene exceeds ${sceneBudgetBytes} bytes`);
+
 console.log(JSON.stringify({
   heroSheets: heroSheets.length,
   noviceSprites: noviceSprites.length,
@@ -1198,6 +1248,19 @@ console.log(JSON.stringify({
     visibleBottomYRange: [
       Math.min(...measuredRogueCombatSprites.map((entry) => entry.visibleBottomY)),
       Math.max(...measuredRogueCombatSprites.map((entry) => entry.visibleBottomY)),
+    ],
+  },
+  archerCombatSprites: archerCombatSprites.length,
+  archerCombatMetrics: {
+    totalBytes: archerCombatTotalBytes,
+    largestFourSceneBytes: archerCombatSceneBytes,
+    decodedLargestFourSceneBytes: archerCombatDecodedSceneBytes,
+    minimumWidth: Math.min(...measuredArcherCombatSprites.map((entry) => entry.width)),
+    maximumWidth: Math.max(...measuredArcherCombatSprites.map((entry) => entry.width)),
+    height: 920,
+    visibleBottomYRange: [
+      Math.min(...measuredArcherCombatSprites.map((entry) => entry.visibleBottomY)),
+      Math.max(...measuredArcherCombatSprites.map((entry) => entry.visibleBottomY)),
     ],
   },
   heroIdentities: heroSheets.length * 20

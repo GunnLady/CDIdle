@@ -11,13 +11,16 @@ const warrior = process.argv.includes("--warrior");
 const rogue = process.argv.includes("--rogue");
 const rogueCombat = process.argv.includes("--rogue-combat");
 const archer = process.argv.includes("--archer");
+const archerCombat = process.argv.includes("--archer-combat");
 const mage = process.argv.includes("--mage");
 assert(
-  [combatIdle, warrior, rogue, rogueCombat, archer, mage].filter(Boolean).length <= 1,
+  [combatIdle, warrior, rogue, rogueCombat, archer, archerCombat, mage].filter(Boolean).length <= 1,
   "Choose only one asset family flag",
 );
 const assetPattern = mage
   ? /^mage-(?:male|female)-\d{2}-v1-[\w-]+\.png$/
+  : archerCombat
+  ? /^archer-(?:male|female)-\d{2}-combat-idle-v1-[\w-]+\.png$/
   : archer
   ? /^archer-(?:male|female)-\d{2}-v1-[\w-]+\.png$/
   : rogue
@@ -31,6 +34,8 @@ const assetPattern = mage
   : /^novice-(?:male|female)-\d{2}-v1-[\w-]+\.png$/;
 const assetLabel = mage
   ? "CDI-140 neutral Mage"
+  : archerCombat
+  ? "CDI-151 combat-idle Archer"
   : archer
   ? "CDI-139 neutral Archer"
   : rogue
@@ -40,7 +45,7 @@ const assetLabel = mage
   : warrior
   ? "CDI-137 neutral Warrior"
   : combatIdle ? "CDI-148 combat-idle" : "CDI-136 neutral";
-const resourcePrefix = mage ? "mage-" : archer ? "archer-" : rogue || rogueCombat ? "rogue-" : warrior ? "warrior-" : "novice-";
+const resourcePrefix = mage ? "mage-" : archer || archerCombat ? "archer-" : rogue || rogueCombat ? "rogue-" : warrior ? "warrior-" : "novice-";
 const assetFiles = readdirSync(assetDirectory).filter((file) => assetPattern.test(file)).sort();
 assert.equal(
   assetFiles.length,
@@ -122,6 +127,8 @@ try {
   console.log(JSON.stringify({
     mode: mage
       ? "mage_neutral"
+      : archerCombat
+      ? "archer_combat_idle"
       : archer
       ? "archer_neutral"
       : rogue
