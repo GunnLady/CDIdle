@@ -1,7 +1,7 @@
 ---
 id: CDI-153
 title: Produire et intégrer les poses de combat Acolyte
-status: Later
+status: Done
 area: ui
 priority: P1
 size: L
@@ -59,13 +59,13 @@ La base neutre reste destinée au recrutement, au catalogue, au stockage et aux 
 
 ## Criteres d'acceptation
 
-- [ ] Un pilote contrasté est validé visuellement avant la production en série.
-- [ ] Les vingt poses de combat correspondent une à une aux vingt bases neutres par genre et index 0–9.
-- [ ] Identité, équipement visuel, proportions, direction, lumière, pieds et pivot restent cohérents entre les deux poses.
-- [ ] Le cinéma affiche la garde pendant l’affrontement, revient en garde après chaque action et n’utilise la pose neutre qu’hors combat.
-- [ ] Recrutement, catalogue, stockage et autres scènes hors combat conservent la pose neutre.
-- [ ] La pose de combat ne remplace aucune pose d’action et ne modifie aucun résultat métier.
-- [ ] Alpha, chargement, cache, mémoire et budget de scène sont vérifiés ; le rendu est validé dans les écrans cinéma représentatifs.
+- [x] Un pilote contrasté est validé visuellement avant la production en série.
+- [x] Les vingt poses de combat correspondent une à une aux vingt bases neutres par genre et index 0–9.
+- [x] Identité, équipement visuel, proportions, direction, lumière, pieds et pivot restent cohérents entre les deux poses.
+- [x] Le cinéma affiche la garde pendant l’affrontement, revient en garde après chaque action et n’utilise la pose neutre qu’hors combat.
+- [x] Recrutement, catalogue, stockage et autres scènes hors combat conservent la pose neutre.
+- [x] La pose de combat ne remplace aucune pose d’action et ne modifie aucun résultat métier.
+- [x] Alpha, chargement, cache, mémoire et budget de scène sont vérifiés ; le rendu est validé dans les écrans cinéma représentatifs.
 
 ## Tests
 
@@ -76,7 +76,7 @@ La base neutre reste destinée au recrutement, au catalogue, au stockage et aux 
 
 ## Validation manuelle
 
-L’utilisateur valide d’abord le pilote, puis les vingt correspondances neutral/combat et enfin le rendu dans les écrans du cinéma. Les tests complets et la documentation de livraison viennent après le verdict visuel.
+L’utilisateur confirme le 25 septembre 2026 qu’un pilote contrasté a été validé avant la série et que les vingt sources `validated-male-v1/` et `validated-female-v1/` ont reçu sa validation individuelle. Il valide les cinq écrans `acolyte-cinema=1..5`, puis confirme leur rendu après passage des exports runtime en WebP.
 
 ## Preservation
 
@@ -94,4 +94,10 @@ L’utilisateur valide d’abord le pilote, puis les vingt correspondances neutr
 
 ## Handoff
 
-Fournir références et prompts versionnés, table neutral/combat par genre et index, sources/exports, mesures, tests et verdicts utilisateur. Aucune pose d’action, réaction ou KO n’est déclarée livrée par ce lot.
+Le manifeste `assets/design/hero-sprites/cdi-153/manifest.json` relie les vingt clés neutres et `combat_idle` aux sources validées, exports PNG alpha, WebP runtime et SHA-256. Les scripts `prepare-cdi153-acolyte-combat.ps1` et `encode-cdi153-acolyte-webp.mjs` reproduisent les exports. Les échelles par identité validées dans le cinéma vivent dans `src/assets/acolyteCdi153CombatPoses.ts`.
+
+Contrôles du 25 septembre 2026 : 73 tests ciblés réussis ; les cinq pages Playwright chargent les vingt WebP ; `check:dungeon-visuals`, `typecheck`, `lint -- --quiet`, `build`, `check:bundle` et `board:validate` réussis. Les vingt WebP totalisent 2 400 718 octets ; les quatre plus lourds 602 990 octets sur 2 097 152 ; mémoire RGBA décodée des quatre plus larges : 13 645 440 octets. Les PNG normalisés ont un alpha et des coins transparents ; leurs pieds visibles sont à `y=900` dans un cadre de 920 px.
+
+Mesure locale des quatre WebP les plus lourds avec en-têtes de cache immuable : 604 190 octets transférés à froid, 0 après rechargement. Cette mesure ne vérifie pas les en-têtes du CDN déployé.
+
+Les vingt paires neutre/garde ont été examinées côte à côte, puis comparées aux gabarits Mage M06/M08 et F06/F08 ; aucun écart de proportions nécessitant une reprise n'a été relevé à cette échelle. Les échelles finales ont été réglées par identité dans le cinéma et validées par l'utilisateur. Le workflow commun ne requiert plus le catalogue historique à quatorze repères pour cette série. Les prompts et références ImageGen historiques ne sont pas archivés ; une nouvelle génération devra fournir trois références et recevoir un nouveau verdict visuel avant de remplacer un fichier validé.

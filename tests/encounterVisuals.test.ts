@@ -25,6 +25,10 @@ import { CDI150_ROGUE_COMBAT_IDLE_VARIANT_COUNT } from "../src/assets/rogueCdi15
 import { CDI151_ARCHER_COMBAT_IDLE_VARIANT_COUNT } from "../src/assets/archerCdi151CombatPoses";
 import { CDI152_MAGE_COMBAT_IDLE_VARIANT_COUNT } from "../src/assets/mageCdi152CombatPoses";
 import {
+  CDI153_ACOLYTE_COMBAT_IDLE_VARIANT_COUNT,
+  getCdi153AcolyteCombatIdleScale,
+} from "../src/assets/acolyteCdi153CombatPoses";
+import {
   getUndercityEnemyVisualKey,
   UNDERCITY_ZONE_VISUAL_PACKS,
 } from "../src/assets/undercityVisualManifest";
@@ -92,7 +96,7 @@ describe("encounter visual catalog", () => {
     expect(wrappedWarrior.url).toContain("warrior-female-10-combat-idle-v1");
     expect(wrappedWarrior.descriptor.pivotX).toBe(314.5 / 776);
 
-    const otherClass = resolveEncounterVisualDescriptor("Acolyte_Female_7@combat_idle");
+    const otherClass = resolveEncounterVisualDescriptor("Aède_Female_7@combat_idle");
     expect(otherClass).toMatchObject({
       provenance: "CDIdle explicit neutral hero-pose fallback",
       kind: "hero",
@@ -235,6 +239,38 @@ describe("encounter visual catalog", () => {
     }
     const wrapped = await loadEncounterVisualAsset("Mage_Female_19@combat_idle");
     expect(wrapped.url).toContain("mage-female-10-combat-idle-v1");
+  });
+
+  it("loads all twenty CDI-153 Acolyte combat-idle identities and keeps neutral portraits separate", async () => {
+    const identities = (["Male", "Female"] as const).flatMap((gender) => (
+      Array.from({ length: CDI153_ACOLYTE_COMBAT_IDLE_VARIANT_COUNT }, (_, variant) => ({ gender, variant }))
+    ));
+    const assets = await Promise.all(identities.map(({ gender, variant }) => (
+      loadEncounterVisualAsset(`Acolyte_${gender}_${variant}@combat_idle`)
+    )));
+    for (const [index, asset] of assets.entries()) {
+      const { gender, variant } = identities[index];
+      expect(asset).toMatchObject({
+        status: "ready",
+        descriptor: {
+          provenance: "CDI-153 validated Acolyte combat-idle alpha sprites",
+          anchor: { x: 0.5, y: 900 / 920 },
+          pivotX: 0.5,
+          scale: 920 / 692 * getCdi153AcolyteCombatIdleScale(gender, variant),
+          fit: "height",
+        },
+      });
+      expect(asset.url).toContain(
+        `acolyte-${gender.toLowerCase()}-${String(variant + 1).padStart(2, "0")}-combat-idle-v1`,
+      );
+      expect(resolveEncounterVisualDescriptor(`Acolyte_${gender}_${variant}`)).toMatchObject({
+        provenance: "CDI-141 validated Acolyte alpha sprites",
+        anchor: { x: 0.5, y: 0.93 },
+        scale: 1,
+      });
+    }
+    const wrapped = await loadEncounterVisualAsset("Acolyte_Female_19@combat_idle");
+    expect(wrapped.url).toContain("acolyte-female-10-combat-idle-v1");
   });
 
   it("loads CDI-137 Warrior neutral sprites through stable legacy identity keys", async () => {

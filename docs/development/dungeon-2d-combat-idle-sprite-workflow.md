@@ -47,8 +47,8 @@ couleurs, les accessoires, la lumière et le style graphique.
   n'autorise ni une autre variante ni une modification artistique silencieuse.
 - Après validation, Codex archive et normalise ce fichier, met le suivi à jour,
   puis passe automatiquement au sprite suivant, sauf ordre d'arrêt.
-- Codex ne génère pas plusieurs sprites non validés d'avance et ne saute jamais
-  le contrôle de proportions entre génération et verdict utilisateur.
+- Codex ne génère pas plusieurs sprites non validés d'avance ; après chaque
+  verdict positif, il contrôle les proportions avant l'intégration.
 - Chaque sortie ImageGen est inspectée, contrôlée et rapportée avant tout nouvel
   appel de génération. Une variante techniquement rejetée ne déclenche donc pas
   une chaîne silencieuse de nouvelles tentatives.
@@ -288,187 +288,27 @@ contrôle ne constitue pas une preuve de conformité de l'arme.
 Ne jamais affirmer qu'un défaut est absent sans cette inspection. Toute limite
 de lecture ou tout doute doit être indiqué.
 
-## 6. Contrôle obligatoire des proportions
+## 6. Contrôle des proportions après validation visuelle
 
-Chaque image générée reçoit un contrôle de proportions avant toute décision,
-présentation ou nouvelle tentative. La base neutre exacte est la référence
-principale pour préserver l'identité. La comparaison avec les gabarits Mage
-M06/M08 pour un homme ou F06/F08 pour une femme est également obligatoire à
-chaque génération ; elle n'est pas réservée aux seuls cas de doute. Les
-proportions du corps doivent correspondre à ces gabarits même si la garde ou
-l'arme élargit la composition.
+Après le verdict visuel sur le candidat exact, comparer sa garde à la base
+neutre de la même identité et aux deux gabarits Mage du même genre (M06/M08 ou
+F06/F08). Examiner côte à côte le visage, la tête, les épaules, le tronc, les
+bras, les hanches et les jambes, en tenant compte de la perspective et de la
+flexion de la pose. L'arme et la largeur du canevas ne mesurent pas le corps.
 
-Gabarits autoritaires :
+Vérifier aussi les pieds, le pivot et l'échelle dans le cinéma. Signaler tout
+écart visible ou toute incertitude avant intégration ; ne pas présenter une
+comparaison approximative ou une détection automatique non vérifiée comme une
+mesure fiable. Un écart artistique appelle un nouveau verdict utilisateur.
 
-- `assets/design/hero-sprites/cdi-140/validated-male-v1/mage-male-06-v1.png` ;
-- `assets/design/hero-sprites/cdi-140/validated-male-v1/mage-male-08-v1.png` ;
-- `assets/design/hero-sprites/cdi-140/validated-female-v1/mage-female-06-v1.png` ;
-- `assets/design/hero-sprites/cdi-140/validated-female-v1/mage-female-08-v1.png`.
-
-Les mesures réutilisables vivent dans
-`assets/design/hero-sprites/combat-idle-proportion-references.json`. Le candidat,
-le neutre et les deux gabarits doivent tous y posséder une entrée. Chaque entrée
-contient le chemin de l'export alpha, son SHA-256, ses dimensions, sa boîte
-corporelle, sa boîte faciale, quatorze repères anatomiques et les deux preuves
-visuelles de revue. Le script refuse une clé absente, un cadre facial ou des
-repères encore `pending`, une preuve manquante, un fichier modifié ou des
-dimensions différentes. Il n'existe aucun argument de ligne de commande pour
-injecter un cadre candidat brut et contourner cette revue.
-
-Avant d'ajouter une image au catalogue, produire sa planche faciale avec
-`scripts/new-combat-idle-face-frame-review.ps1`. Elle montre simultanément le
-corps entier, un gros plan du visage, le cadre cyan et la croix centrale jaune.
-Ajouter ensuite ses repères au catalogue en statut `pending`, puis produire leur
-planche avec `scripts/new-combat-idle-anatomy-review.ps1`. L'image ne devient
-réutilisable qu'après inspection réelle des deux planches et passage explicite
-des deux statuts à `reviewed`. Produire une planche ne la valide jamais.
-
-Comparer explicitement :
-
-- largeur et hauteur du visage ainsi que sommet de tête–menton ;
-- largeur des épaules ;
-- longueur du tronc ;
-- longueurs bras et avant-bras, côté par côté ;
-- largeur des hanches ;
-- longueurs cuisse et tibia, côté par côté.
-
-### Méthode reproductible
-
-Le comparatif normalisé est produit avec le script générique
-`scripts/new-combat-idle-proportion-check.ps1`. Il ne connaît aucune classe ni
-aucun ticket : il reçoit uniquement quatre clés de catalogue — candidat, neutre
-et deux gabarits. Les cadres et repères ne sont jamais fournis à la volée.
-
-Chaque distance anatomique est divisée par le diamètre facial revu
-`sqrt(largeur × hauteur)` d'une boîte serrée autour du visage, hors cheveux,
-oreilles, couvre-chef et accessoires. Cette mesure suit la normalisation par
-boîte faciale employée lorsque la distance interoculaire devient instable en
-vue de profil ou de trois-quarts. La boîte corporelle sert uniquement à cadrer
-la planche. Sa hauteur, la boîte alpha, l'arme et le canevas ne deviennent
-jamais une mesure de proportion ni un critère de rejet.
-
-La planche superpose les repères colorés et affiche séparément six familles :
-tête, épaules, tronc, bras, hanches et jambes. Un repère masqué peut être `null`
-seulement si `notVerifiable` en donne la raison ; chaque mesure dépendante est
-alors affichée `NV`. Tout repère renseigné doit rester dans la boîte corporelle
-revue. La flexion, la perspective et le raccourcissement restent à interpréter
-lors de l'inspection humaine.
-
-Fondements techniques consultés pour cette méthode :
-
-- MPII Human Pose normalise les erreurs de points articulaires par la taille de
-  tête et traite séparément pose, visibilité, tronc et raccourcissement :
-  https://openaccess.thecvf.com/content_cvpr_2014/html/Andriluka_2D_Human_Pose_2014_CVPR_paper.html ;
-- PCK, PCKh et OKS confirment qu'une comparaison de pose repose sur des points
-  anatomiques et une échelle locale, pas sur la hauteur de la boîte visible :
-  https://openaccess.thecvf.com/content_ECCV_2018/papers/Xiao_Sun_Integral_Human_Pose_ECCV_2018_paper.pdf et
-  https://presentations.cocodataset.org/ECCV18/COCO18-Keypoints-Overview.pdf ;
-- la normalisation globale puis locale des membres sépare l'échelle du corps
-  des configurations articulaires :
-  https://openaccess.thecvf.com/content_iccv_2017/html/Sun_Human_Pose_Estimation_ICCV_2017_paper.html ;
-- en alignement facial, la distance interoculaire est signalée comme biaisée
-  pour les profils ; la boîte faciale et `sqrt(largeur × hauteur)` sont des
-  normalisations publiées :
-  https://openaccess.thecvf.com/content_ICCV_2017/papers/Bulat_How_Far_Are_ICCV_2017_paper.pdf et
-  https://openaccess.thecvf.com/content_CVPR_2020/papers/Kumar_LUVLi_Face_Alignment_Estimating_Landmarks_Location_Uncertainty_and_Visibility_Likelihood_CVPR_2020_paper.pdf ;
-- les protocoles anthropométriques du NIST imposent des repères définis et
-  distinguent largeur du visage, hauteur faciale et mesures corporelles :
-  https://math.nist.gov/~SRessler/anthrokids/data1977/descrip.htm et
-  https://www.nist.gov/publications/shape-and-size-analysis-and-standards ;
-- les travaux sur la cohérence géométrique comparent les longueurs des os entre
-  articulations et signalent explicitement les ambiguïtés de profondeur :
-  https://openaccess.thecvf.com/content/WACV2024/papers/Matsune_A_Geometry_Loss_Combination_for_3D_Human_Pose_Estimation_WACV_2024_paper.pdf et
-  https://openaccess.thecvf.com/content/ACCV2024/papers/Hsu_Enhancing_3D_Human_Pose_Estimation_with_Bone_Length_Adjustment_ACCV_2024_paper.pdf.
-
-Exemple PowerShell :
-
-```powershell
-& .\scripts\new-combat-idle-proportion-check.ps1 `
-  -CandidateKey 'rogue-male-07-candidate-v1' `
-  -NeutralKey 'rogue-male-07-neutral' `
-  -TemplateAKey 'mage-male-06' `
-  -TemplateBKey 'mage-male-08' `
-  -CandidateLabel 'M07 candidat' `
-  -NeutralLabel 'M07 neutre' `
-  -TemplateALabel 'Mage M06' `
-  -TemplateBLabel 'Mage M08' `
-  -OutputPath '.tmp\m07-proportion-check.png'
-```
-
-Exemple de calibration d'une nouvelle référence avant mise en cache :
-
-```powershell
-& .\scripts\new-combat-idle-face-frame-review.ps1 `
-  -ImagePath 'C:\chemin\nouveau-neutre-alpha.png' `
-  -BodyRect 43,51,254,623 `
-  -FaceRect 140,91,71,72 `
-  -ReferenceKey 'classe-male-07-neutral' `
-  -OutputPath '.tmp\classe-male-07-face-frame-review.png'
-
-& .\scripts\new-combat-idle-anatomy-review.ps1 `
-  -ReferenceKey 'classe-male-07-neutral' `
-  -OutputPath '.tmp\classe-male-07-anatomy-review.png'
-```
-
-Le script automatise la validation du catalogue, la normalisation locale, les
-distances entre repères et la planche comparative. Il ne détecte pas lui-même
-les articulations : il consomme uniquement des repères déjà revus. Il ne
-retourne aucune hauteur corporelle, aucun seuil, aucune tolérance et aucun
-champ `pass/fail`. Son rapport JSON dit explicitement qu'il ne peut ni accepter
-ni rejeter un sprite.
-
-Pour chaque sortie :
-
-1. conserver les images à leur résolution originale ; ne jamais redimensionner
-   le candidat pour le faire artificiellement correspondre ;
-2. produire une comparaison côte à côte avec la base neutre et les deux
-   gabarits du genre concerné ;
-3. vérifier que les quatre cadres faciaux et les quatre jeux de repères portent
-   bien le statut `reviewed` et correspondent au SHA-256 courant ;
-4. relever les repères tête, épaules, base du tronc, hanches, coudes, poignets,
-   genoux et pieds ;
-5. normaliser les distances par le diamètre facial, puis consigner les écarts
-   pour largeur des épaules et des hanches, longueur du tronc et longueurs des
-   segments épaule–coude, coude–poignet, hanche–genou et genou–cheville ;
-6. distinguer un véritable changement de proportions d'un raccourcissement dû
-   à la perspective ou à la flexion de la pose ;
-7. marquer `non vérifiable` tout segment masqué ou trop raccourci. En cas de
-   doute résiduel, rejeter le candidat ou demander le verdict utilisateur au
-   lieu d'inventer une mesure.
-
-La cible générale est la conservation des mêmes proportions. Aucun seuil
-automatique — notamment 5 % — ne transforme un écart en conformité. Tout écart
-est rapporté. Une variation propre à une classe ou à une pose, par exemple une
-silhouette volontairement plus fine, doit être explicitement décidée par
-l'utilisateur et inscrite dans le registre avant de pouvoir qualifier le
-candidat d'acceptable.
-
-La garde ou l'arme peut élargir la boîte visible. Elle ne doit pas agrandir,
-rétrécir ou tasser artificiellement le corps. Les seules dimensions du canevas
-ne prouvent donc pas la conformité des proportions.
-
-Le compte rendu classe le candidat comme :
-
-- conforme ;
-- acceptable avec un écart expliqué ;
-- rejeté avec le défaut précis.
-
-Le résultat du contrôle est communiqué avant toute nouvelle génération. Un
-candidat rejeté est présenté comme rejeté avec son défaut précis, jamais comme
-s'il était conforme. Un candidat conforme ou acceptable attend ensuite le
-verdict visuel utilisateur avant tout passage à l'identité suivante.
-
+Le catalogue historique à quatorze repères et ses scripts restent disponibles
+pour une analyse ciblée, sans être requis pour chaque sprite ni pour la clôture
+des tickets CDI-148–157.
 ## 7. Présentation et verdict utilisateur
 
-Présenter un seul candidat à la fois avec :
-
-- son nom de fichier exact, notamment l'identifiant `exec-…png` ;
-- le résultat du contrôle de proportions ;
-- les défauts ou incertitudes observés ;
-- ses dimensions ;
-- son poids en octets, Ko (`10³`) et Mo (`10⁶`) ;
-  les valeurs binaires Kio/Mio peuvent être ajoutées, mais restent explicitement
-  étiquetées et ne remplacent pas les unités demandées.
+Présenter aussitôt un seul candidat à la fois, avec son nom de fichier exact,
+notamment l'identifiant `exec-…png`. Réserver les mesures et le suivi détaillé
+à l'étape après verdict.
 
 Attendre ensuite un verdict explicite. Les formulations ambiguës ne sont pas
 transformées en validation. Après `stop`, aucune normalisation, nouvelle
@@ -508,22 +348,6 @@ Après validation explicite :
 8. enregistrer la correspondance neutre/garde, le prompt exact, le fichier
    validé, son chemin d'archive, son SHA-256 et le verdict utilisateur dans le
    suivi du ticket.
-
-Le script générique `scripts/prepare-combat-idle-sprite.ps1` reçoit le candidat,
-ses boîtes corporelle et faciale, son pivot entre les pieds et la clé du neutre
-déjà revue dans le catalogue. Il vérifie le SHA-256 et les dimensions du neutre
-avant de calculer l'échelle. Il doit refuser les clés absentes ou non revues,
-les coins opaques, les dépassements de cadre et toute référence modifiée.
-
-```powershell
-& .\scripts\prepare-combat-idle-sprite.ps1 `
-  -SourcePath 'C:\chemin\candidat-alpha.png' `
-  -SourceBodyRect 220,14,780,969 `
-  -SourceFaceRect 506,97,128,118 `
-  -SourceFeetMidpointX 641 `
-  -NeutralKey 'rogue-male-07-neutral' `
-  -OutputPath '.tmp\rogue-male-07-combat-idle.png'
-```
 
 ## 10. Série, planches et cinéma
 

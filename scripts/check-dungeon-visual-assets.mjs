@@ -86,6 +86,12 @@ const mageCombatSprites = ["female", "male"].flatMap((gender) => (
     `mage-${gender}-${String(index + 1).padStart(2, "0")}-combat-idle-v1.png`,
   ))
 ));
+const acolyteCombatSprites = ["female", "male"].flatMap((gender) => (
+  Array.from({ length: 10 }, (_, index) => join(
+    gender,
+    `acolyte-${gender}-${String(index + 1).padStart(2, "0")}-combat-idle-v1.png`,
+  ))
+));
 const warriorSprites = ["female", "male"].flatMap((gender) => (
   Array.from({ length: 10 }, (_, index) => join(
     gender,
@@ -1224,6 +1230,85 @@ for (const entry of mageManifest.entries) {
   }
 }
 
+const acolyteCombatRoot = join(projectRoot, "assets", "design", "hero-sprites", "cdi-153");
+const acolyteCombatImageDirectory = join(acolyteCombatRoot, "normalized-alpha-v1");
+const acolyteCombatRuntimeDirectory = join(acolyteCombatRoot, "runtime-webp-v1");
+for (const gender of ["female", "male"]) {
+  const expectedPng = acolyteCombatSprites
+    .filter((relativePath) => dirname(relativePath) === gender)
+    .map((relativePath) => basename(relativePath)).sort();
+  const actualPng = readdirSync(join(acolyteCombatImageDirectory, gender))
+    .filter((file) => file.endsWith(".png")).sort();
+  assert.deepEqual(actualPng, expectedPng, `CDI-153 ${gender} must contain ten normalized sprites`);
+  const expectedWebp = expectedPng.map((file) => file.replace(/\.png$/, ".webp"));
+  const actualWebp = readdirSync(join(acolyteCombatRuntimeDirectory, gender))
+    .filter((file) => file.endsWith(".webp")).sort();
+  assert.deepEqual(actualWebp, expectedWebp, `CDI-153 ${gender} must contain ten runtime sprites`);
+}
+const measuredAcolyteCombatSprites = acolyteCombatSprites.map((relativePath) => {
+  const pngPath = join(acolyteCombatImageDirectory, relativePath);
+  const dimensions = readImageInfo(pngPath);
+  assert.equal(dimensions.height, 920, `${relativePath} must remain 920 px high`);
+  assert.equal(dimensions.alpha, true, `${relativePath} must remain an alpha sprite`);
+  assert(Math.max(...dimensions.cornerAlphas) <= 2, `${relativePath} must have transparent corners`);
+  assert(dimensions.visibleBounds, `${relativePath} must contain visible pixels`);
+  assert(Math.abs(dimensions.visibleBounds.maxY - 900) <= 5,
+    `${relativePath} visible bottom ${dimensions.visibleBounds.maxY} must stay near y=900`);
+  const webpPath = join(acolyteCombatRuntimeDirectory, relativePath.replace(/\.png$/, ".webp"));
+  const webp = readFileSync(webpPath);
+  assert.equal(webp.toString("ascii", 0, 4), "RIFF", `${webpPath} must be RIFF`);
+  assert.equal(webp.toString("ascii", 8, 12), "WEBP", `${webpPath} must be WebP`);
+  assert.equal(webp.toString("ascii", 12, 16), "VP8X", `${webpPath} must expose dimensions and alpha`);
+  assert((webp[20] & 0x10) !== 0, `${webpPath} must preserve alpha`);
+  assert.equal(1 + webp.readUIntLE(24, 3), dimensions.width);
+  assert.equal(1 + webp.readUIntLE(27, 3), dimensions.height);
+  return {
+    file: relativePath,
+    bytes: webp.length,
+    width: dimensions.width,
+    visibleBottomY: dimensions.visibleBounds.maxY,
+    decodedBytes: dimensions.width * dimensions.height * 4,
+  };
+});
+const acolyteCombatTotalBytes = measuredAcolyteCombatSprites.reduce((total, entry) => total + entry.bytes, 0);
+const acolyteCombatSceneBytes = measuredAcolyteCombatSprites
+  .map((entry) => entry.bytes).sort((left, right) => right - left)
+  .slice(0, combatHeroLimit).reduce((total, bytes) => total + bytes, 0);
+const acolyteCombatDecodedSceneBytes = measuredAcolyteCombatSprites
+  .map((entry) => entry.decodedBytes).sort((left, right) => right - left)
+  .slice(0, combatHeroLimit).reduce((total, bytes) => total + bytes, 0);
+assert(acolyteCombatSceneBytes <= sceneBudgetBytes, `Four-hero CDI-153 scene exceeds ${sceneBudgetBytes} bytes`);
+const acolyteManifest = JSON.parse(readFileSync(join(acolyteCombatRoot, "manifest.json"), "utf8").replace(/^\uFEFF/, ""));
+assert.equal(acolyteManifest.entries.length, 20, "CDI-153 manifest must map twenty identities");
+assert.equal(new Set(acolyteManifest.entries.map((entry) => entry.key)).size, 20);
+for (const entry of acolyteManifest.entries) {
+  const match = /^Acolyte_(Male|Female)_(\d)@combat_idle$/.exec(entry.key);
+  assert(match, `CDI-153 invalid identity key ${entry.key}`);
+  const gender = match[1].toLowerCase();
+  const number = String(Number(match[2]) + 1).padStart(2, "0");
+  assert.equal(entry.neutral,
+    `assets/design/hero-sprites/cdi-141/normalized-alpha-v1/${gender}/acolyte-${gender}-${number}-v1.png`);
+  assert.equal(entry.approvedSource,
+    `assets/design/hero-sprites/cdi-153/validated-${gender}-v1/acolyte-${gender}-${number}-combat-idle-v1.png`);
+  assert.equal(entry.normalized,
+    `assets/design/hero-sprites/cdi-153/normalized-alpha-v1/${gender}/acolyte-${gender}-${number}-combat-idle-v1.png`);
+  assert.equal(entry.runtime,
+    `assets/design/hero-sprites/cdi-153/runtime-webp-v1/${gender}/acolyte-${gender}-${number}-combat-idle-v1.webp`);
+  readFileSync(join(projectRoot, entry.neutral));
+  const dimensions = readImageInfo(join(projectRoot, entry.normalized));
+  assert.deepEqual(entry.frame, [dimensions.width, dimensions.height]);
+  assert.equal(entry.runtimeBytes, statSync(join(projectRoot, entry.runtime)).size);
+  for (const [pathField, hashField] of [
+    ["approvedSource", "sourceSha256"],
+    ["normalized", "normalizedSha256"],
+    ["runtime", "runtimeSha256"],
+  ]) {
+    const file = readFileSync(join(projectRoot, entry[pathField]));
+    assert.equal(createHash("sha256").update(file).digest("hex"), entry[hashField],
+      `CDI-153 ${entry.key} ${pathField} changed after validation`);
+  }
+}
+
 console.log(JSON.stringify({
   heroSheets: heroSheets.length,
   noviceSprites: noviceSprites.length,
@@ -1344,6 +1429,19 @@ console.log(JSON.stringify({
     visibleBottomYRange: [
       Math.min(...measuredMageCombatSprites.map((entry) => entry.visibleBottomY)),
       Math.max(...measuredMageCombatSprites.map((entry) => entry.visibleBottomY)),
+    ],
+  },
+  acolyteCombatSprites: acolyteCombatSprites.length,
+  acolyteCombatMetrics: {
+    totalBytes: acolyteCombatTotalBytes,
+    largestFourSceneBytes: acolyteCombatSceneBytes,
+    decodedLargestFourSceneBytes: acolyteCombatDecodedSceneBytes,
+    minimumWidth: Math.min(...measuredAcolyteCombatSprites.map((entry) => entry.width)),
+    maximumWidth: Math.max(...measuredAcolyteCombatSprites.map((entry) => entry.width)),
+    height: 920,
+    visibleBottomYRange: [
+      Math.min(...measuredAcolyteCombatSprites.map((entry) => entry.visibleBottomY)),
+      Math.max(...measuredAcolyteCombatSprites.map((entry) => entry.visibleBottomY)),
     ],
   },
   heroIdentities: heroSheets.length * 20

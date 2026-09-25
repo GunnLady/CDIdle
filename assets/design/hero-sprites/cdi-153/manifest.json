@@ -1,0 +1,306 @@
+{
+  "schemaVersion": 1,
+  "ticket": "CDI-153",
+  "entries": [
+    {
+      "key": "Acolyte_Male_0@combat_idle",
+      "neutral": "assets/design/hero-sprites/cdi-141/normalized-alpha-v1/male/acolyte-male-01-v1.png",
+      "approvedSource": "assets/design/hero-sprites/cdi-153/validated-male-v1/acolyte-male-01-combat-idle-v1.png",
+      "normalized": "assets/design/hero-sprites/cdi-153/normalized-alpha-v1/male/acolyte-male-01-combat-idle-v1.png",
+      "runtime": "assets/design/hero-sprites/cdi-153/runtime-webp-v1/male/acolyte-male-01-combat-idle-v1.webp",
+      "sourceSha256": "5a6a772e0ad630e84851a65ef57af0fd4ce2c47a33e7d65289fde661bd64bb24",
+      "normalizedSha256": "e858a0c38474aee6be22dd3ce86d11f51046136fe49956469758a0ef9291c3cc",
+      "runtimeSha256": "74acc1cdee3e0cf80e7d7cdb5ab02a50b7b130f08cfb2e13fbc177c916c6a24c",
+      "runtimeBytes": 138968,
+      "frame": [
+        798,
+        920
+      ]
+    },
+    {
+      "key": "Acolyte_Male_1@combat_idle",
+      "neutral": "assets/design/hero-sprites/cdi-141/normalized-alpha-v1/male/acolyte-male-02-v1.png",
+      "approvedSource": "assets/design/hero-sprites/cdi-153/validated-male-v1/acolyte-male-02-combat-idle-v1.png",
+      "normalized": "assets/design/hero-sprites/cdi-153/normalized-alpha-v1/male/acolyte-male-02-combat-idle-v1.png",
+      "runtime": "assets/design/hero-sprites/cdi-153/runtime-webp-v1/male/acolyte-male-02-combat-idle-v1.webp",
+      "sourceSha256": "fe65470560b9ec61f226ab8af8eda0c84fec2f778d93e2493ee7f9c85059df5f",
+      "normalizedSha256": "899ec853a0caf7f13b869c5b2f8da802af38b9668e6947d767414d9974ca931e",
+      "runtimeSha256": "06896d2dcefdab2709396a803631bc6c8c484e26b3134f46b82f9fb6f3cbe969",
+      "runtimeBytes": 119914,
+      "frame": [
+        746,
+        920
+      ]
+    },
+    {
+      "key": "Acolyte_Male_2@combat_idle",
+      "neutral": "assets/design/hero-sprites/cdi-141/normalized-alpha-v1/male/acolyte-male-03-v1.png",
+      "approvedSource": "assets/design/hero-sprites/cdi-153/validated-male-v1/acolyte-male-03-combat-idle-v1.png",
+      "normalized": "assets/design/hero-sprites/cdi-153/normalized-alpha-v1/male/acolyte-male-03-combat-idle-v1.png",
+      "runtime": "assets/design/hero-sprites/cdi-153/runtime-webp-v1/male/acolyte-male-03-combat-idle-v1.webp",
+      "sourceSha256": "cf55416af7d7046657af2b80e3a587469a7fe11b04dd3d980c786f4d2aa5ed0a",
+      "normalizedSha256": "e6cd7ba24c4ba9f0a38e0e617706a89299a8e4514b4b132ea24e7c165f1409c8",
+      "runtimeSha256": "d98d092ac8af063d3e81834e6cdbf8cf9d6e3e4d02361a4554d3d656ce5d518d",
+      "runtimeBytes": 102334,
+      "frame": [
+        640,
+        920
+      ]
+    },
+    {
+      "key": "Acolyte_Male_3@combat_idle",
+      "neutral": "assets/design/hero-sprites/cdi-141/normalized-alpha-v1/male/acolyte-male-04-v1.png",
+      "approvedSource": "assets/design/hero-sprites/cdi-153/validated-male-v1/acolyte-male-04-combat-idle-v1.png",
+      "normalized": "assets/design/hero-sprites/cdi-153/normalized-alpha-v1/male/acolyte-male-04-combat-idle-v1.png",
+      "runtime": "assets/design/hero-sprites/cdi-153/runtime-webp-v1/male/acolyte-male-04-combat-idle-v1.webp",
+      "sourceSha256": "914b806a7630de34b1df8b1981f5a5cd0b9db7062731cc34d56910524ded96f7",
+      "normalizedSha256": "d476c66c04641e59df2a848eb13584ea16690bd5776dc7be223fdac1d94cd992",
+      "runtimeSha256": "39b3eb35969af14738e2debda39c3dd89840ce873a853c763b3d97175d22d9e1",
+      "runtimeBytes": 85902,
+      "frame": [
+        648,
+        920
+      ]
+    },
+    {
+      "key": "Acolyte_Male_4@combat_idle",
+      "neutral": "assets/design/hero-sprites/cdi-141/normalized-alpha-v1/male/acolyte-male-05-v1.png",
+      "approvedSource": "assets/design/hero-sprites/cdi-153/validated-male-v1/acolyte-male-05-combat-idle-v1.png",
+      "normalized": "assets/design/hero-sprites/cdi-153/normalized-alpha-v1/male/acolyte-male-05-combat-idle-v1.png",
+      "runtime": "assets/design/hero-sprites/cdi-153/runtime-webp-v1/male/acolyte-male-05-combat-idle-v1.webp",
+      "sourceSha256": "c9369361a7c567968a9e5378487276671cdfa80f2c91ca1ff44b8fab748f2a0c",
+      "normalizedSha256": "28b8ed80e78a898f2319f4fdcdd9095695e087d4970dedf16f98fb883af778bc",
+      "runtimeSha256": "b0b8846fb1ba13c5cef5ba0b833b1968c79ba5287dcfe49bbee3bec578a8e26f",
+      "runtimeBytes": 118126,
+      "frame": [
+        634,
+        920
+      ]
+    },
+    {
+      "key": "Acolyte_Male_5@combat_idle",
+      "neutral": "assets/design/hero-sprites/cdi-141/normalized-alpha-v1/male/acolyte-male-06-v1.png",
+      "approvedSource": "assets/design/hero-sprites/cdi-153/validated-male-v1/acolyte-male-06-combat-idle-v1.png",
+      "normalized": "assets/design/hero-sprites/cdi-153/normalized-alpha-v1/male/acolyte-male-06-combat-idle-v1.png",
+      "runtime": "assets/design/hero-sprites/cdi-153/runtime-webp-v1/male/acolyte-male-06-combat-idle-v1.webp",
+      "sourceSha256": "9741dfcce1f6902674e7333a8455b4564ed6d4c59fe7a66d1dcbd3675feb0a89",
+      "normalizedSha256": "1864e9ecb6854f3c81c59955a89ee38384e26baebae52760ae04b117c77aaed4",
+      "runtimeSha256": "49687e88c4ce52d9418e90984663c5e024d5f393e9303552750b019c6357b3f1",
+      "runtimeBytes": 91662,
+      "frame": [
+        554,
+        920
+      ]
+    },
+    {
+      "key": "Acolyte_Male_6@combat_idle",
+      "neutral": "assets/design/hero-sprites/cdi-141/normalized-alpha-v1/male/acolyte-male-07-v1.png",
+      "approvedSource": "assets/design/hero-sprites/cdi-153/validated-male-v1/acolyte-male-07-combat-idle-v1.png",
+      "normalized": "assets/design/hero-sprites/cdi-153/normalized-alpha-v1/male/acolyte-male-07-combat-idle-v1.png",
+      "runtime": "assets/design/hero-sprites/cdi-153/runtime-webp-v1/male/acolyte-male-07-combat-idle-v1.webp",
+      "sourceSha256": "64ab9355ec992404e2b2d0db66048a5365f8ee3f3bd3bd9788a07e8bd63ed2c1",
+      "normalizedSha256": "7dd0cc02b7d87fc950be09de4182496798f13488fecefe858127406518102e49",
+      "runtimeSha256": "148662b390ae0cbd0bfc57bfb59868ec94448d5eb3cba2045fe4eb0d1dab3810",
+      "runtimeBytes": 91954,
+      "frame": [
+        572,
+        920
+      ]
+    },
+    {
+      "key": "Acolyte_Male_7@combat_idle",
+      "neutral": "assets/design/hero-sprites/cdi-141/normalized-alpha-v1/male/acolyte-male-08-v1.png",
+      "approvedSource": "assets/design/hero-sprites/cdi-153/validated-male-v1/acolyte-male-08-combat-idle-v1.png",
+      "normalized": "assets/design/hero-sprites/cdi-153/normalized-alpha-v1/male/acolyte-male-08-combat-idle-v1.png",
+      "runtime": "assets/design/hero-sprites/cdi-153/runtime-webp-v1/male/acolyte-male-08-combat-idle-v1.webp",
+      "sourceSha256": "d2a9fcef3a828b6e14d29f7dd1e833b7391a30b6eadaf744f43f17cdeca364c5",
+      "normalizedSha256": "3805ab5afd1800f53d12e3f5dbe76359dc9df3e2f9c1d2a35b1ee8d149bb1fc9",
+      "runtimeSha256": "ce346dcb292d23d90c7a5d9af1a1976290c1aace38b46fd8a63ee8cebad71250",
+      "runtimeBytes": 133504,
+      "frame": [
+        878,
+        920
+      ]
+    },
+    {
+      "key": "Acolyte_Male_8@combat_idle",
+      "neutral": "assets/design/hero-sprites/cdi-141/normalized-alpha-v1/male/acolyte-male-09-v1.png",
+      "approvedSource": "assets/design/hero-sprites/cdi-153/validated-male-v1/acolyte-male-09-combat-idle-v1.png",
+      "normalized": "assets/design/hero-sprites/cdi-153/normalized-alpha-v1/male/acolyte-male-09-combat-idle-v1.png",
+      "runtime": "assets/design/hero-sprites/cdi-153/runtime-webp-v1/male/acolyte-male-09-combat-idle-v1.webp",
+      "sourceSha256": "124e69273886d8177d5fcb349c2a8fa031793f4c43757fe0091c7ff8e8b91d06",
+      "normalizedSha256": "ac4592a4bdd1cacf1bbaa6f734dc82c54a83b461211aae574eaa19d59d99e6f1",
+      "runtimeSha256": "bfc67448f7a610953488ef4df977408ac1059980f07afac4fc77322c19e0b46f",
+      "runtimeBytes": 96122,
+      "frame": [
+        742,
+        920
+      ]
+    },
+    {
+      "key": "Acolyte_Male_9@combat_idle",
+      "neutral": "assets/design/hero-sprites/cdi-141/normalized-alpha-v1/male/acolyte-male-10-v1.png",
+      "approvedSource": "assets/design/hero-sprites/cdi-153/validated-male-v1/acolyte-male-10-combat-idle-v1.png",
+      "normalized": "assets/design/hero-sprites/cdi-153/normalized-alpha-v1/male/acolyte-male-10-combat-idle-v1.png",
+      "runtime": "assets/design/hero-sprites/cdi-153/runtime-webp-v1/male/acolyte-male-10-combat-idle-v1.webp",
+      "sourceSha256": "c9d876add774f188ff0219684a65bca2f0625c5d66c7720d53f9cf832ad38725",
+      "normalizedSha256": "99707b977bb5b3e19d4fb92bbcfde450635c93393d8c95b0849a2e3d6716a82b",
+      "runtimeSha256": "9fe2f1aee87dd93715603e6091756aaf5b1913fa2d26db69093c9c721e2eed2e",
+      "runtimeBytes": 113488,
+      "frame": [
+        794,
+        920
+      ]
+    },
+    {
+      "key": "Acolyte_Female_0@combat_idle",
+      "neutral": "assets/design/hero-sprites/cdi-141/normalized-alpha-v1/female/acolyte-female-01-v1.png",
+      "approvedSource": "assets/design/hero-sprites/cdi-153/validated-female-v1/acolyte-female-01-combat-idle-v1.png",
+      "normalized": "assets/design/hero-sprites/cdi-153/normalized-alpha-v1/female/acolyte-female-01-combat-idle-v1.png",
+      "runtime": "assets/design/hero-sprites/cdi-153/runtime-webp-v1/female/acolyte-female-01-combat-idle-v1.webp",
+      "sourceSha256": "7c858ccbd35a41e0e3be6a736a62a55388db14c55ef82b2ba52eb49e1c8c6702",
+      "normalizedSha256": "79db69907d7dd966e36233d0f9c9cef2ccc50ca7eac3b2406e90ba26d159894f",
+      "runtimeSha256": "559cc1142cff0775d75bca93c54b7cdb326c4bbba295963e201b1936596bc9fb",
+      "runtimeBytes": 145634,
+      "frame": [
+        846,
+        920
+      ]
+    },
+    {
+      "key": "Acolyte_Female_1@combat_idle",
+      "neutral": "assets/design/hero-sprites/cdi-141/normalized-alpha-v1/female/acolyte-female-02-v1.png",
+      "approvedSource": "assets/design/hero-sprites/cdi-153/validated-female-v1/acolyte-female-02-combat-idle-v1.png",
+      "normalized": "assets/design/hero-sprites/cdi-153/normalized-alpha-v1/female/acolyte-female-02-combat-idle-v1.png",
+      "runtime": "assets/design/hero-sprites/cdi-153/runtime-webp-v1/female/acolyte-female-02-combat-idle-v1.webp",
+      "sourceSha256": "2cbc6a0c13679dff61a8e6b69873fbd4ba8ffac6716934c440321f6b44d000e0",
+      "normalizedSha256": "9e02b39c42c69a00bcd69ab364d65504356739765a2e3cdd39619e6d594cf21e",
+      "runtimeSha256": "c1496aa1470b131bcd3c0c338122b97c73a23c94c5c5e908b2c3a06243e76e39",
+      "runtimeBytes": 169774,
+      "frame": [
+        1040,
+        920
+      ]
+    },
+    {
+      "key": "Acolyte_Female_2@combat_idle",
+      "neutral": "assets/design/hero-sprites/cdi-141/normalized-alpha-v1/female/acolyte-female-03-v1.png",
+      "approvedSource": "assets/design/hero-sprites/cdi-153/validated-female-v1/acolyte-female-03-combat-idle-v1.png",
+      "normalized": "assets/design/hero-sprites/cdi-153/normalized-alpha-v1/female/acolyte-female-03-combat-idle-v1.png",
+      "runtime": "assets/design/hero-sprites/cdi-153/runtime-webp-v1/female/acolyte-female-03-combat-idle-v1.webp",
+      "sourceSha256": "89b22f422b1ef76ffae79bb5cb899d27fae6e83e847f88849312c8e7ef96cd14",
+      "normalizedSha256": "e36251d7574d2493b93f23a1dfb534e39c6bdd9eac46d9aa04a38f6a414ac6d1",
+      "runtimeSha256": "6ce2c3bf0244db0057a9cc9213f5f79f4efd7be08010ad0b7d117b28fa5541db",
+      "runtimeBytes": 109908,
+      "frame": [
+        624,
+        920
+      ]
+    },
+    {
+      "key": "Acolyte_Female_3@combat_idle",
+      "neutral": "assets/design/hero-sprites/cdi-141/normalized-alpha-v1/female/acolyte-female-04-v1.png",
+      "approvedSource": "assets/design/hero-sprites/cdi-153/validated-female-v1/acolyte-female-04-combat-idle-v1.png",
+      "normalized": "assets/design/hero-sprites/cdi-153/normalized-alpha-v1/female/acolyte-female-04-combat-idle-v1.png",
+      "runtime": "assets/design/hero-sprites/cdi-153/runtime-webp-v1/female/acolyte-female-04-combat-idle-v1.webp",
+      "sourceSha256": "81418950346b187ab611f83370cf7e342ecf4cd197f02a937bb7aa21da64514c",
+      "normalizedSha256": "5b16bd989c3d2ad9113edf18ea30c191c46a0112649475bc310f5de667f48e4b",
+      "runtimeSha256": "6484588623c04c4e712ff700dfa59ef0686d810eb69d474ef0c8dd3bae5c9f05",
+      "runtimeBytes": 139074,
+      "frame": [
+        734,
+        920
+      ]
+    },
+    {
+      "key": "Acolyte_Female_4@combat_idle",
+      "neutral": "assets/design/hero-sprites/cdi-141/normalized-alpha-v1/female/acolyte-female-05-v1.png",
+      "approvedSource": "assets/design/hero-sprites/cdi-153/validated-female-v1/acolyte-female-05-combat-idle-v1.png",
+      "normalized": "assets/design/hero-sprites/cdi-153/normalized-alpha-v1/female/acolyte-female-05-combat-idle-v1.png",
+      "runtime": "assets/design/hero-sprites/cdi-153/runtime-webp-v1/female/acolyte-female-05-combat-idle-v1.webp",
+      "sourceSha256": "cdaae4d3dcf6a3dc8d5593d2e5123c2eadd10d1cb97eb26744e5ad22f8f3f6f3",
+      "normalizedSha256": "9a533def932540f83210270af3a08ff0064575a7d5b79361d7f79fe50058ff5c",
+      "runtimeSha256": "dbbd5e5a7c6abaf397d1dab4de0ebf617628ea3e9ec350dad8ba26a9e7169cc6",
+      "runtimeBytes": 144446,
+      "frame": [
+        706,
+        920
+      ]
+    },
+    {
+      "key": "Acolyte_Female_5@combat_idle",
+      "neutral": "assets/design/hero-sprites/cdi-141/normalized-alpha-v1/female/acolyte-female-06-v1.png",
+      "approvedSource": "assets/design/hero-sprites/cdi-153/validated-female-v1/acolyte-female-06-combat-idle-v1.png",
+      "normalized": "assets/design/hero-sprites/cdi-153/normalized-alpha-v1/female/acolyte-female-06-combat-idle-v1.png",
+      "runtime": "assets/design/hero-sprites/cdi-153/runtime-webp-v1/female/acolyte-female-06-combat-idle-v1.webp",
+      "sourceSha256": "555078e2b06d00020a6be5e008289437de8da770b1e1005dfae09522613e0c40",
+      "normalizedSha256": "ef10a177d4c093014f544dd1ec858ffb96b82d979f021b61820cecf47cbcffe1",
+      "runtimeSha256": "096622a6769a2705e61d02b66089f78fb0045b26129bedef1b3b32174781e9a2",
+      "runtimeBytes": 83086,
+      "frame": [
+        480,
+        920
+      ]
+    },
+    {
+      "key": "Acolyte_Female_6@combat_idle",
+      "neutral": "assets/design/hero-sprites/cdi-141/normalized-alpha-v1/female/acolyte-female-07-v1.png",
+      "approvedSource": "assets/design/hero-sprites/cdi-153/validated-female-v1/acolyte-female-07-combat-idle-v1.png",
+      "normalized": "assets/design/hero-sprites/cdi-153/normalized-alpha-v1/female/acolyte-female-07-combat-idle-v1.png",
+      "runtime": "assets/design/hero-sprites/cdi-153/runtime-webp-v1/female/acolyte-female-07-combat-idle-v1.webp",
+      "sourceSha256": "b67678d672c9521fc284ff8a4ed60fcd875b5a53077b24296841cf0ebc5b8e00",
+      "normalizedSha256": "094ca9eda237a605a80279218f1114d1e593594d50ff7cb25aa0811be0615713",
+      "runtimeSha256": "81a2d1d4257ce063fce2d69f4b6b4b0026402214f198ac3ae874e75e9e4b4d15",
+      "runtimeBytes": 132922,
+      "frame": [
+        750,
+        920
+      ]
+    },
+    {
+      "key": "Acolyte_Female_7@combat_idle",
+      "neutral": "assets/design/hero-sprites/cdi-141/normalized-alpha-v1/female/acolyte-female-08-v1.png",
+      "approvedSource": "assets/design/hero-sprites/cdi-153/validated-female-v1/acolyte-female-08-combat-idle-v1.png",
+      "normalized": "assets/design/hero-sprites/cdi-153/normalized-alpha-v1/female/acolyte-female-08-combat-idle-v1.png",
+      "runtime": "assets/design/hero-sprites/cdi-153/runtime-webp-v1/female/acolyte-female-08-combat-idle-v1.webp",
+      "sourceSha256": "e13f87f597a15f2aca889fd54dfcd22bffc5e40a398e4ad0b7650537bd24871f",
+      "normalizedSha256": "3485bd1da132a9f0e6099325ec5feff169341fddfa0937999f8d6d12261689a2",
+      "runtimeSha256": "6b2712f1c50c454c9bad248e33697436781585a65f07a2afeeb1a072834c1898",
+      "runtimeBytes": 134442,
+      "frame": [
+        944,
+        920
+      ]
+    },
+    {
+      "key": "Acolyte_Female_8@combat_idle",
+      "neutral": "assets/design/hero-sprites/cdi-141/normalized-alpha-v1/female/acolyte-female-09-v1.png",
+      "approvedSource": "assets/design/hero-sprites/cdi-153/validated-female-v1/acolyte-female-09-combat-idle-v1.png",
+      "normalized": "assets/design/hero-sprites/cdi-153/normalized-alpha-v1/female/acolyte-female-09-combat-idle-v1.png",
+      "runtime": "assets/design/hero-sprites/cdi-153/runtime-webp-v1/female/acolyte-female-09-combat-idle-v1.webp",
+      "sourceSha256": "a3ec63267414edfcc7b0ad8731ffa327f2862d1211509fab04d2ca855a530488",
+      "normalizedSha256": "c9e2e00deae0dfc48da2f7d3be8fcc98505eb89964290a64714105b85101b2ba",
+      "runtimeSha256": "1923f284d116cd2d6bf6018ab58f2b836bc5153d1938ceda665829e49a0b02f4",
+      "runtimeBytes": 106322,
+      "frame": [
+        678,
+        920
+      ]
+    },
+    {
+      "key": "Acolyte_Female_9@combat_idle",
+      "neutral": "assets/design/hero-sprites/cdi-141/normalized-alpha-v1/female/acolyte-female-10-v1.png",
+      "approvedSource": "assets/design/hero-sprites/cdi-153/validated-female-v1/acolyte-female-10-combat-idle-v1.png",
+      "normalized": "assets/design/hero-sprites/cdi-153/normalized-alpha-v1/female/acolyte-female-10-combat-idle-v1.png",
+      "runtime": "assets/design/hero-sprites/cdi-153/runtime-webp-v1/female/acolyte-female-10-combat-idle-v1.webp",
+      "sourceSha256": "a5ed8d7246577644d2c9301189ea8f630470e589d5aabbf23ff3b18d82fb0c49",
+      "normalizedSha256": "df958f4c3798e8a80b65fba991a49a7ac84ded3a5da44c5556647b82954da69a",
+      "runtimeSha256": "51d7074154a7f8fd9be918f4707532d6f78fde163197a5bb12155982f15899be",
+      "runtimeBytes": 143136,
+      "frame": [
+        822,
+        920
+      ]
+    }
+  ]
+}

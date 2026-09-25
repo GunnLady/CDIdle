@@ -429,7 +429,8 @@ annulation et ressources bornées, mode sans animation complet, texte accessible
 Après l’accord visuel du lot, exécuter les tests ciblés et la régression
 proportionnée ; seuls leurs résultats réels sont consignés comme preuves.
 
-Budgets existants conservés : JS gzip total ≤ 250 KiB, fichier ≤ 300 KiB,
+Budget JS gzip total fixé à ≤ 256 KiB par décision utilisateur du 25 septembre 2026
+(en cohérence avec `check:bundle`) ; fichier ≤ 300 KiB,
 16 effets temporaires, historique ≤ 15 rencontres, campagne de 100 rencontres,
 PC 1024/1280/1440 et zoom 200 %. Les 2 MiB artistiques par scène doivent
 désormais comptabiliser les **nouvelles poses**, même si elles représentent un
