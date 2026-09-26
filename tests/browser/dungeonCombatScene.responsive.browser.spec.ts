@@ -1,3 +1,4 @@
+import { writeFile } from "node:fs/promises";
 import { expect, test, type Page } from "@playwright/test";
 
 async function expectCombatSceneContained(page: Page) {
@@ -353,7 +354,8 @@ test("loads all twenty CDI-153 Acolyte combat poses across the five PC cinema re
   }
 });
 
-test("loads all twenty CDI-142 Aede sprites across the five PC cinema review pages", async ({ page }) => {
+test("loads all twenty CDI-154 Aede combat poses across the five PC cinema review pages", async ({ page }, testInfo) => {
+  await page.addInitScript(() => performance.setResourceTimingBufferSize(3000));
   await page.setViewportSize({ width: 1440, height: 1000 });
 
   for (let reviewPage = 1; reviewPage <= 5; reviewPage += 1) {
@@ -377,21 +379,53 @@ test("loads all twenty CDI-142 Aede sprites across the five PC cinema review pag
     const firstVariant = (reviewPage - 1) * 2 + 1;
     const expectedNames = (["female", "male"] as const).flatMap((gender) => (
       [firstVariant, firstVariant + 1].map((variant) => (
-        `aede-${gender}-${String(variant).padStart(2, "0")}-v1`
+        `aede-${gender}-${String(variant).padStart(2, "0")}-combat-idle-v1`
       ))
     ));
     expect(sources).toHaveLength(4);
     expect(sources.every(({ naturalWidth, naturalHeight }) => (
-      naturalWidth === 341 && naturalHeight === 692
+      naturalWidth >= 341 && naturalHeight === 920
     ))).toBe(true);
     for (const expectedName of expectedNames) {
       expect(sources.some(({ source }) => source.includes(expectedName))).toBe(true);
     }
-    await expectCombatSceneContained(page);
+    const loadedAedeFiles = await page.evaluate(() => performance.getEntriesByType("resource")
+      .filter((entry) => (entry as PerformanceResourceTiming).initiatorType === "img")
+      .map((entry) => entry.name).filter((name) => name.includes("/cdi-154/")));
+    expect(new Set(loadedAedeFiles).size).toBe(4);
+    for (const width of [1440, 1280, 1024, 512]) {
+      await page.setViewportSize({ width, height: 1000 });
+      await expectCombatSceneContained(page);
+      const clippedSprites = await heroes.locator("img").evaluateAll((images) => images.filter((image) => {
+        const stage = image.closest("[data-testid='dungeon-combat-stage']")!.getBoundingClientRect();
+        const box = image.getBoundingClientRect();
+        return box.left < stage.left - 1 || box.right > stage.right + 1
+          || box.top < stage.top - 1 || box.bottom > stage.bottom + 1;
+      }).length);
+      expect(clippedSprites).toBe(0);
+    }
+    await page.setViewportSize({ width: 1440, height: 1000 });
+    await scene.screenshot({ path: testInfo.outputPath(`aede-page-${reviewPage}.png`) });
+    const cold = await page.evaluate(() => performance.getEntriesByType("resource")
+      .filter((entry) => entry.name.includes("/cdi-154/") && (entry as PerformanceResourceTiming).initiatorType === "img")
+      .map((entry) => ({ url: entry.name, transfer: (entry as PerformanceResourceTiming).transferSize,
+        encoded: (entry as PerformanceResourceTiming).encodedBodySize })));
+    await page.reload();
+    await expect(heroes.locator("[data-testid='dungeon-combat-visual'][data-asset-status='ready']")).toHaveCount(4);
+    const warm = await page.evaluate(() => performance.getEntriesByType("resource")
+      .filter((entry) => entry.name.includes("/cdi-154/") && (entry as PerformanceResourceTiming).initiatorType === "img")
+      .map((entry) => ({ url: entry.name, transfer: (entry as PerformanceResourceTiming).transferSize,
+        encoded: (entry as PerformanceResourceTiming).encodedBodySize })));
+    const metricsPath = testInfo.outputPath(`aede-page-${reviewPage}-network.json`);
+    await writeFile(metricsPath, JSON.stringify({ cold, warm,
+      decodedBytes: sources.reduce((sum, sprite) => sum + sprite.naturalWidth * sprite.naturalHeight * 4, 0),
+    }, null, 2));
+    await testInfo.attach(`aede-page-${reviewPage}-network`, { path: metricsPath, contentType: "application/json" });
   }
 });
 
-test("loads all twenty CDI-143 Druid sprites across the five PC cinema review pages", async ({ page }) => {
+test("loads all twenty CDI-155 Druid combat poses across the five PC cinema review pages", async ({ page }, testInfo) => {
+  await page.addInitScript(() => performance.setResourceTimingBufferSize(3000));
   await page.setViewportSize({ width: 1440, height: 1000 });
 
   for (let reviewPage = 1; reviewPage <= 5; reviewPage += 1) {
@@ -415,17 +449,48 @@ test("loads all twenty CDI-143 Druid sprites across the five PC cinema review pa
     const firstVariant = (reviewPage - 1) * 2 + 1;
     const expectedNames = (["female", "male"] as const).flatMap((gender) => (
       [firstVariant, firstVariant + 1].map((variant) => (
-        `druid-${gender}-${String(variant).padStart(2, "0")}-v1`
+        `druid-${gender}-${String(variant).padStart(2, "0")}-combat-idle-v${gender === "male" && variant === 3 ? 2 : 1}`
       ))
     ));
     expect(sources).toHaveLength(4);
     expect(sources.every(({ naturalWidth, naturalHeight }) => (
-      naturalWidth === 341 && naturalHeight === 692
+      naturalWidth >= 341 && naturalHeight === 920
     ))).toBe(true);
     for (const expectedName of expectedNames) {
       expect(sources.some(({ source }) => source.includes(expectedName))).toBe(true);
     }
-    await expectCombatSceneContained(page);
+    const loadedDruidFiles = await page.evaluate(() => performance.getEntriesByType("resource")
+      .filter((entry) => (entry as PerformanceResourceTiming).initiatorType === "img")
+      .map((entry) => entry.name).filter((name) => name.includes("/cdi-155/")));
+    expect(new Set(loadedDruidFiles).size).toBe(4);
+    for (const width of [1440, 1280, 1024, 512]) {
+      await page.setViewportSize({ width, height: 1000 });
+      await expectCombatSceneContained(page);
+      const clippedSprites = await heroes.locator("img").evaluateAll((images) => images.filter((image) => {
+        const stage = image.closest("[data-testid='dungeon-combat-stage']")!.getBoundingClientRect();
+        const box = image.getBoundingClientRect();
+        return box.left < stage.left - 1 || box.right > stage.right + 1
+          || box.top < stage.top - 1 || box.bottom > stage.bottom + 1;
+      }).length);
+      expect(clippedSprites).toBe(0);
+    }
+    await page.setViewportSize({ width: 1440, height: 1000 });
+    await scene.screenshot({ path: testInfo.outputPath(`druid-page-${reviewPage}.png`) });
+    const cold = await page.evaluate(() => performance.getEntriesByType("resource")
+      .filter((entry) => entry.name.includes("/cdi-155/") && (entry as PerformanceResourceTiming).initiatorType === "img")
+      .map((entry) => ({ url: entry.name, transfer: (entry as PerformanceResourceTiming).transferSize,
+        encoded: (entry as PerformanceResourceTiming).encodedBodySize })));
+    await page.reload();
+    await expect(heroes.locator("[data-testid='dungeon-combat-visual'][data-asset-status='ready']")).toHaveCount(4);
+    const warm = await page.evaluate(() => performance.getEntriesByType("resource")
+      .filter((entry) => entry.name.includes("/cdi-155/") && (entry as PerformanceResourceTiming).initiatorType === "img")
+      .map((entry) => ({ url: entry.name, transfer: (entry as PerformanceResourceTiming).transferSize,
+        encoded: (entry as PerformanceResourceTiming).encodedBodySize })));
+    const metricsPath = testInfo.outputPath(`druid-page-${reviewPage}-network.json`);
+    await writeFile(metricsPath, JSON.stringify({ cold, warm,
+      decodedBytes: sources.reduce((sum, sprite) => sum + sprite.naturalWidth * sprite.naturalHeight * 4, 0),
+    }, null, 2));
+    await testInfo.attach(`druid-page-${reviewPage}-network`, { path: metricsPath, contentType: "application/json" });
   }
 });
 

@@ -1,0 +1,306 @@
+{
+  "schemaVersion": 1,
+  "ticket": "CDI-155",
+  "entries": [
+    {
+      "key": "Druide_Male_0@combat_idle",
+      "neutral": "assets/design/hero-sprites/cdi-143/normalized-alpha-v1/male/druid-male-01-v1.png",
+      "approvedSource": "assets/design/hero-sprites/cdi-155/validated-male-v1/druid-male-01-combat-idle-v1.png",
+      "normalized": "assets/design/hero-sprites/cdi-155/normalized-alpha-v1/male/druid-male-01-combat-idle-v1.png",
+      "runtime": "assets/design/hero-sprites/cdi-155/runtime-webp-v1/male/druid-male-01-combat-idle-v1.webp",
+      "sourceSha256": "4eb0f507faceeeaeb45dabce46440a03f83088e56a1128dae74d82143088237d",
+      "normalizedSha256": "f36e78e8faec2c29822cb1978cf16079cad1ec8f5e426f5c016939c1c71dc3ca",
+      "runtimeSha256": "36bdc537eb4f29945a9d1f60fe65e26115ecbf2d475c1bed0b4c834b05faec1d",
+      "runtimeBytes": 104512,
+      "frame": [
+        584,
+        920
+      ]
+    },
+    {
+      "key": "Druide_Male_1@combat_idle",
+      "neutral": "assets/design/hero-sprites/cdi-143/normalized-alpha-v1/male/druid-male-02-v1.png",
+      "approvedSource": "assets/design/hero-sprites/cdi-155/validated-male-v1/druid-male-02-combat-idle-v1.png",
+      "normalized": "assets/design/hero-sprites/cdi-155/normalized-alpha-v1/male/druid-male-02-combat-idle-v1.png",
+      "runtime": "assets/design/hero-sprites/cdi-155/runtime-webp-v1/male/druid-male-02-combat-idle-v1.webp",
+      "sourceSha256": "c7d684fa00e0269a7ee61b233f4e530dc62c1217e715d46e41ca6463944fbbe4",
+      "normalizedSha256": "a24a1655610614296d053003aadc2aae884f7a14a7e71504414a41e359d5cb02",
+      "runtimeSha256": "57a589951fc5477eb7ba8b179fc7f4c0bbc40bcc4703efd8da4228c0f8caf7a1",
+      "runtimeBytes": 103496,
+      "frame": [
+        592,
+        920
+      ]
+    },
+    {
+      "key": "Druide_Male_2@combat_idle",
+      "neutral": "assets/design/hero-sprites/cdi-143/normalized-alpha-v1/male/druid-male-03-v1.png",
+      "approvedSource": "assets/design/hero-sprites/cdi-155/validated-male-v1/druid-male-03-combat-idle-v2.png",
+      "normalized": "assets/design/hero-sprites/cdi-155/normalized-alpha-v1/male/druid-male-03-combat-idle-v2.png",
+      "runtime": "assets/design/hero-sprites/cdi-155/runtime-webp-v1/male/druid-male-03-combat-idle-v2.webp",
+      "sourceSha256": "9e7d9360a91c6495964a287c747b3b9a8d9e549ef8ad125f3ccfa80304c356ad",
+      "normalizedSha256": "691e6826cb51804e2e72e22ead7905408b442a64defa07ffb2b75196d9ad2191",
+      "runtimeSha256": "03483bda8cfb070ac3eb1040d655e5d5a4966bf906386f35d224629f4482a3c6",
+      "runtimeBytes": 91648,
+      "frame": [
+        634,
+        920
+      ]
+    },
+    {
+      "key": "Druide_Male_3@combat_idle",
+      "neutral": "assets/design/hero-sprites/cdi-143/normalized-alpha-v1/male/druid-male-04-v1.png",
+      "approvedSource": "assets/design/hero-sprites/cdi-155/validated-male-v1/druid-male-04-combat-idle-v1.png",
+      "normalized": "assets/design/hero-sprites/cdi-155/normalized-alpha-v1/male/druid-male-04-combat-idle-v1.png",
+      "runtime": "assets/design/hero-sprites/cdi-155/runtime-webp-v1/male/druid-male-04-combat-idle-v1.webp",
+      "sourceSha256": "b294f63b2b331c55b0688ab30aef90d22d61f3139eef3665ac1eaa35b2540b3f",
+      "normalizedSha256": "b848326e9545d60e4c12e1b4ab49fee7f6fa69b3a471b4548c53b88012c67df3",
+      "runtimeSha256": "bfa18ed4d972624064552180d8d3ec6cc8fd135d30f1743bc65f169acbaebeb2",
+      "runtimeBytes": 99468,
+      "frame": [
+        578,
+        920
+      ]
+    },
+    {
+      "key": "Druide_Male_4@combat_idle",
+      "neutral": "assets/design/hero-sprites/cdi-143/normalized-alpha-v1/male/druid-male-05-v1.png",
+      "approvedSource": "assets/design/hero-sprites/cdi-155/validated-male-v1/druid-male-05-combat-idle-v1.png",
+      "normalized": "assets/design/hero-sprites/cdi-155/normalized-alpha-v1/male/druid-male-05-combat-idle-v1.png",
+      "runtime": "assets/design/hero-sprites/cdi-155/runtime-webp-v1/male/druid-male-05-combat-idle-v1.webp",
+      "sourceSha256": "a52b6c87cfb0e4e2318661293fd7c723456d4ad3c7a0879cfa6299ae99e89628",
+      "normalizedSha256": "f8e0c72303c1f383807b4f94c26d66222280df8d1e81468788f10c23e149e2b9",
+      "runtimeSha256": "ad071d43e45807b862da595c0333239198271993769e134e0e51c9fbcc556cc8",
+      "runtimeBytes": 115472,
+      "frame": [
+        626,
+        920
+      ]
+    },
+    {
+      "key": "Druide_Male_5@combat_idle",
+      "neutral": "assets/design/hero-sprites/cdi-143/normalized-alpha-v1/male/druid-male-06-v1.png",
+      "approvedSource": "assets/design/hero-sprites/cdi-155/validated-male-v1/druid-male-06-combat-idle-v1.png",
+      "normalized": "assets/design/hero-sprites/cdi-155/normalized-alpha-v1/male/druid-male-06-combat-idle-v1.png",
+      "runtime": "assets/design/hero-sprites/cdi-155/runtime-webp-v1/male/druid-male-06-combat-idle-v1.webp",
+      "sourceSha256": "1b5562a86005987cafc9407fcc7eebfc048486f68bc9708163c1435349ec9925",
+      "normalizedSha256": "7976ef770e88889148cf6bf0525f41cd4dc9bdcd3df16148aab6ebe2f04ce34a",
+      "runtimeSha256": "6676438f646e2bcf539ddf890b76c59f5fca196fee7205f7e134321aac793f01",
+      "runtimeBytes": 96114,
+      "frame": [
+        558,
+        920
+      ]
+    },
+    {
+      "key": "Druide_Male_6@combat_idle",
+      "neutral": "assets/design/hero-sprites/cdi-143/normalized-alpha-v1/male/druid-male-07-v1.png",
+      "approvedSource": "assets/design/hero-sprites/cdi-155/validated-male-v1/druid-male-07-combat-idle-v1.png",
+      "normalized": "assets/design/hero-sprites/cdi-155/normalized-alpha-v1/male/druid-male-07-combat-idle-v1.png",
+      "runtime": "assets/design/hero-sprites/cdi-155/runtime-webp-v1/male/druid-male-07-combat-idle-v1.webp",
+      "sourceSha256": "9e9ad7a1c5d5b85003164a0b35f6ec9d34b1700b3cd80a9b12fb9955aa410b50",
+      "normalizedSha256": "260f0ee84da67bc4cc92efa759057f5d203eca67b4c789ea60e79f90fc0a8f91",
+      "runtimeSha256": "9488f37fef30124e0f21ed291f4eb4db69481988f4e5a7e3db4ee229eee9aa93",
+      "runtimeBytes": 100718,
+      "frame": [
+        566,
+        920
+      ]
+    },
+    {
+      "key": "Druide_Male_7@combat_idle",
+      "neutral": "assets/design/hero-sprites/cdi-143/normalized-alpha-v1/male/druid-male-08-v1.png",
+      "approvedSource": "assets/design/hero-sprites/cdi-155/validated-male-v1/druid-male-08-combat-idle-v1.png",
+      "normalized": "assets/design/hero-sprites/cdi-155/normalized-alpha-v1/male/druid-male-08-combat-idle-v1.png",
+      "runtime": "assets/design/hero-sprites/cdi-155/runtime-webp-v1/male/druid-male-08-combat-idle-v1.webp",
+      "sourceSha256": "68d14ab11e5b53a8f355992fb64e40dc7e70e1437e03af76084749b622314fc6",
+      "normalizedSha256": "e7d303a017aa11ea92062d595b9829d00298b9e41d95d4171e29e45fc725f60e",
+      "runtimeSha256": "3b0b0a75aba0d885ae81a80981d87151c1fa6182bf2cb618b6afe2c4e62f76fd",
+      "runtimeBytes": 171780,
+      "frame": [
+        1094,
+        920
+      ]
+    },
+    {
+      "key": "Druide_Male_8@combat_idle",
+      "neutral": "assets/design/hero-sprites/cdi-143/normalized-alpha-v1/male/druid-male-09-v1.png",
+      "approvedSource": "assets/design/hero-sprites/cdi-155/validated-male-v1/druid-male-09-combat-idle-v1.png",
+      "normalized": "assets/design/hero-sprites/cdi-155/normalized-alpha-v1/male/druid-male-09-combat-idle-v1.png",
+      "runtime": "assets/design/hero-sprites/cdi-155/runtime-webp-v1/male/druid-male-09-combat-idle-v1.webp",
+      "sourceSha256": "ebc74d88320fef492428aed55c3a738ddc530e6d95696aa0fa123615d8a0c273",
+      "normalizedSha256": "0cd9bc5d0de1af61fa8e9d4bd5f91deeafa161103aa12b081b9cd8304ecc1a46",
+      "runtimeSha256": "42c5fa7e8fa0e29fceb811c48df369b316f6f85fc149f1a567db2b76a2dfe897",
+      "runtimeBytes": 160280,
+      "frame": [
+        826,
+        920
+      ]
+    },
+    {
+      "key": "Druide_Male_9@combat_idle",
+      "neutral": "assets/design/hero-sprites/cdi-143/normalized-alpha-v1/male/druid-male-10-v1.png",
+      "approvedSource": "assets/design/hero-sprites/cdi-155/validated-male-v1/druid-male-10-combat-idle-v1.png",
+      "normalized": "assets/design/hero-sprites/cdi-155/normalized-alpha-v1/male/druid-male-10-combat-idle-v1.png",
+      "runtime": "assets/design/hero-sprites/cdi-155/runtime-webp-v1/male/druid-male-10-combat-idle-v1.webp",
+      "sourceSha256": "7e69097c4e22b31b1e69795ca6578363c9f66ddbb51ae2c2636c00fc58c2a731",
+      "normalizedSha256": "038ba5951150ed5a5c310ff0889d5c262d1ed86fcc7ae75da8641e6b117ceaa0",
+      "runtimeSha256": "0bb83237de75f6c457e1a35f1e91e3224b6fc1a084d863739f2db7e42092a650",
+      "runtimeBytes": 112594,
+      "frame": [
+        592,
+        920
+      ]
+    },
+    {
+      "key": "Druide_Female_0@combat_idle",
+      "neutral": "assets/design/hero-sprites/cdi-143/normalized-alpha-v1/female/druid-female-01-v1.png",
+      "approvedSource": "assets/design/hero-sprites/cdi-155/validated-female-v1/druid-female-01-combat-idle-v1.png",
+      "normalized": "assets/design/hero-sprites/cdi-155/normalized-alpha-v1/female/druid-female-01-combat-idle-v1.png",
+      "runtime": "assets/design/hero-sprites/cdi-155/runtime-webp-v1/female/druid-female-01-combat-idle-v1.webp",
+      "sourceSha256": "1c611dde3e5930b6c88a1ff23ea5f7157edb15675427aa98e537365198068146",
+      "normalizedSha256": "b5347cbe68629a32646e962d251b95a42e286a631d76a90246b06b3ac4809c4c",
+      "runtimeSha256": "f7c94bc805a2c9a165b5f225d1aa16cf005597e936d97a2ff67630a3f2356407",
+      "runtimeBytes": 122352,
+      "frame": [
+        646,
+        920
+      ]
+    },
+    {
+      "key": "Druide_Female_1@combat_idle",
+      "neutral": "assets/design/hero-sprites/cdi-143/normalized-alpha-v1/female/druid-female-02-v1.png",
+      "approvedSource": "assets/design/hero-sprites/cdi-155/validated-female-v1/druid-female-02-combat-idle-v1.png",
+      "normalized": "assets/design/hero-sprites/cdi-155/normalized-alpha-v1/female/druid-female-02-combat-idle-v1.png",
+      "runtime": "assets/design/hero-sprites/cdi-155/runtime-webp-v1/female/druid-female-02-combat-idle-v1.webp",
+      "sourceSha256": "3a45f7167df92085f329c3e0b63ee9e2aaf22d8ba3c3259e7bd4961cfd5c1e8a",
+      "normalizedSha256": "15660a4d46fde874575977e1cb3d96ed81d1dbe3fc20c7f1d89891795ab95c12",
+      "runtimeSha256": "e07fbebe503d62978e5240d8f6064be7069889824975cbec1b7a2944a563a191",
+      "runtimeBytes": 106258,
+      "frame": [
+        606,
+        920
+      ]
+    },
+    {
+      "key": "Druide_Female_2@combat_idle",
+      "neutral": "assets/design/hero-sprites/cdi-143/normalized-alpha-v1/female/druid-female-03-v1.png",
+      "approvedSource": "assets/design/hero-sprites/cdi-155/validated-female-v1/druid-female-03-combat-idle-v1.png",
+      "normalized": "assets/design/hero-sprites/cdi-155/normalized-alpha-v1/female/druid-female-03-combat-idle-v1.png",
+      "runtime": "assets/design/hero-sprites/cdi-155/runtime-webp-v1/female/druid-female-03-combat-idle-v1.webp",
+      "sourceSha256": "afd3a93e33d81eca7870d11393e7c368b62408194e3f3992814ab6abd03407ba",
+      "normalizedSha256": "71a9954948f4d187508a68a42120368237fa9d7dd84bc565ecd476101f7e9397",
+      "runtimeSha256": "15b0af319895011abd804bbf6455a4640cee46a5f97803308c9c5c0872beb1d1",
+      "runtimeBytes": 110182,
+      "frame": [
+        620,
+        920
+      ]
+    },
+    {
+      "key": "Druide_Female_3@combat_idle",
+      "neutral": "assets/design/hero-sprites/cdi-143/normalized-alpha-v1/female/druid-female-04-v1.png",
+      "approvedSource": "assets/design/hero-sprites/cdi-155/validated-female-v1/druid-female-04-combat-idle-v1.png",
+      "normalized": "assets/design/hero-sprites/cdi-155/normalized-alpha-v1/female/druid-female-04-combat-idle-v1.png",
+      "runtime": "assets/design/hero-sprites/cdi-155/runtime-webp-v1/female/druid-female-04-combat-idle-v1.webp",
+      "sourceSha256": "716957757b38adf2434419db7dfe1644ca090b2cfffe77dccbd3e456db579c1d",
+      "normalizedSha256": "80c7edc8ed9922be7bb503e3b876e434f7449b1c3a51eeb99876fd1c8875f975",
+      "runtimeSha256": "5be28e47f74612c423029630c281d7ac02d2f5cbd9287e0e5b13760fcb61d882",
+      "runtimeBytes": 156646,
+      "frame": [
+        1280,
+        920
+      ]
+    },
+    {
+      "key": "Druide_Female_4@combat_idle",
+      "neutral": "assets/design/hero-sprites/cdi-143/normalized-alpha-v1/female/druid-female-05-v1.png",
+      "approvedSource": "assets/design/hero-sprites/cdi-155/validated-female-v1/druid-female-05-combat-idle-v1.png",
+      "normalized": "assets/design/hero-sprites/cdi-155/normalized-alpha-v1/female/druid-female-05-combat-idle-v1.png",
+      "runtime": "assets/design/hero-sprites/cdi-155/runtime-webp-v1/female/druid-female-05-combat-idle-v1.webp",
+      "sourceSha256": "bcb187f62ba27677823a35af07122f60bd70a24c902cc1e875793f91daba0b6e",
+      "normalizedSha256": "3b7845cee32f482badeb78e2cde913d36ec0ecc9c190a04788ed11695acc8b20",
+      "runtimeSha256": "543b837a732b1f1d2ee097b5aab76b9cd55f4dafc009ab2161a4c56140125907",
+      "runtimeBytes": 86658,
+      "frame": [
+        438,
+        920
+      ]
+    },
+    {
+      "key": "Druide_Female_5@combat_idle",
+      "neutral": "assets/design/hero-sprites/cdi-143/normalized-alpha-v1/female/druid-female-06-v1.png",
+      "approvedSource": "assets/design/hero-sprites/cdi-155/validated-female-v1/druid-female-06-combat-idle-v1.png",
+      "normalized": "assets/design/hero-sprites/cdi-155/normalized-alpha-v1/female/druid-female-06-combat-idle-v1.png",
+      "runtime": "assets/design/hero-sprites/cdi-155/runtime-webp-v1/female/druid-female-06-combat-idle-v1.webp",
+      "sourceSha256": "7c8304e6155a1a194eea1ce8ae4aa0daa01bf3c49ef578c37d6593e0155ab853",
+      "normalizedSha256": "058329458ad90685f3670dd80afc9048d6bf39422abda6d3ee2b6c090cf7e1d7",
+      "runtimeSha256": "9857e709c860afd62c3a78236d9a68d8bcc2e84ba0f5aa75bed79ae77ca332eb",
+      "runtimeBytes": 153804,
+      "frame": [
+        1380,
+        920
+      ]
+    },
+    {
+      "key": "Druide_Female_6@combat_idle",
+      "neutral": "assets/design/hero-sprites/cdi-143/normalized-alpha-v1/female/druid-female-07-v1.png",
+      "approvedSource": "assets/design/hero-sprites/cdi-155/validated-female-v1/druid-female-07-combat-idle-v1.png",
+      "normalized": "assets/design/hero-sprites/cdi-155/normalized-alpha-v1/female/druid-female-07-combat-idle-v1.png",
+      "runtime": "assets/design/hero-sprites/cdi-155/runtime-webp-v1/female/druid-female-07-combat-idle-v1.webp",
+      "sourceSha256": "c47d81869e83495bf0e38d0005ac07df95c65c2c555ab6809087e9f56840c7c8",
+      "normalizedSha256": "3e2967c7891163601248065a130f8f7e410fa1e1847e0b743079112f613dd65c",
+      "runtimeSha256": "9b910b95426c677dc752984eebc7bcc09263ad1c00b184ee26ea58e00baf1411",
+      "runtimeBytes": 134328,
+      "frame": [
+        586,
+        920
+      ]
+    },
+    {
+      "key": "Druide_Female_7@combat_idle",
+      "neutral": "assets/design/hero-sprites/cdi-143/normalized-alpha-v1/female/druid-female-08-v1.png",
+      "approvedSource": "assets/design/hero-sprites/cdi-155/validated-female-v1/druid-female-08-combat-idle-v1.png",
+      "normalized": "assets/design/hero-sprites/cdi-155/normalized-alpha-v1/female/druid-female-08-combat-idle-v1.png",
+      "runtime": "assets/design/hero-sprites/cdi-155/runtime-webp-v1/female/druid-female-08-combat-idle-v1.webp",
+      "sourceSha256": "d1adc0f6b803e324803ea853195332352d01a181b1ca1bdb5c8d8ee034e84785",
+      "normalizedSha256": "e0786e9717f551d5d4a3e31dd7ccd85234d305a25eb62768c539d3ced3906487",
+      "runtimeSha256": "8d27043a162fd0bda8a240ab210bc95888f686340899e23389568f5f79d27a26",
+      "runtimeBytes": 123580,
+      "frame": [
+        596,
+        920
+      ]
+    },
+    {
+      "key": "Druide_Female_8@combat_idle",
+      "neutral": "assets/design/hero-sprites/cdi-143/normalized-alpha-v1/female/druid-female-09-v1.png",
+      "approvedSource": "assets/design/hero-sprites/cdi-155/validated-female-v1/druid-female-09-combat-idle-v1.png",
+      "normalized": "assets/design/hero-sprites/cdi-155/normalized-alpha-v1/female/druid-female-09-combat-idle-v1.png",
+      "runtime": "assets/design/hero-sprites/cdi-155/runtime-webp-v1/female/druid-female-09-combat-idle-v1.webp",
+      "sourceSha256": "18fd9dddde8e8c9327ffa90652124d96f26497b7e8c5b0bc4284aaa2c9fd58a3",
+      "normalizedSha256": "7a96f48b89d53c7eed1c5efeef2d1f03796431d999ae196c0c4969b2c0ca359d",
+      "runtimeSha256": "8ae63428965eb6b221514e73da0bb8f0ecd6a14768ab7d1caf74eefc65cecacb",
+      "runtimeBytes": 120630,
+      "frame": [
+        622,
+        920
+      ]
+    },
+    {
+      "key": "Druide_Female_9@combat_idle",
+      "neutral": "assets/design/hero-sprites/cdi-143/normalized-alpha-v1/female/druid-female-10-v1.png",
+      "approvedSource": "assets/design/hero-sprites/cdi-155/validated-female-v1/druid-female-10-combat-idle-v1.png",
+      "normalized": "assets/design/hero-sprites/cdi-155/normalized-alpha-v1/female/druid-female-10-combat-idle-v1.png",
+      "runtime": "assets/design/hero-sprites/cdi-155/runtime-webp-v1/female/druid-female-10-combat-idle-v1.webp",
+      "sourceSha256": "0332c28f3a7bcfd0b5af7b364ff5ce25209aa707baf6b93fcde003f30d54a170",
+      "normalizedSha256": "c92c786d73adee7b685d350e445debccecad8ed32f213aed74a3bdff0d3c8a2c",
+      "runtimeSha256": "5a9321c43574db93a1ca408454cbdcf9ad20e0158f390e3111c0d273daebfef9",
+      "runtimeBytes": 140210,
+      "frame": [
+        844,
+        920
+      ]
+    }
+  ]
+}

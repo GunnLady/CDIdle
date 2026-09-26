@@ -1,0 +1,306 @@
+{
+  "schemaVersion": 1,
+  "ticket": "CDI-154",
+  "entries": [
+    {
+      "key": "Aède_Male_0@combat_idle",
+      "neutral": "assets/design/hero-sprites/cdi-142/normalized-alpha-v1/male/aede-male-01-v1.png",
+      "approvedSource": "assets/design/hero-sprites/cdi-154/validated-male-v1/aede-male-01-combat-idle-v1.png",
+      "normalized": "assets/design/hero-sprites/cdi-154/normalized-alpha-v1/male/aede-male-01-combat-idle-v1.png",
+      "runtime": "assets/design/hero-sprites/cdi-154/runtime-webp-v1/male/aede-male-01-combat-idle-v1.webp",
+      "sourceSha256": "b47355219540431102c0f01cf467bc3644766c101fb7b1189875bb7823e4322e",
+      "normalizedSha256": "f68006053c7bbed98f26e0b55dbf2bca5c05b946bfdb682cebefc9bf1a375029",
+      "runtimeSha256": "819025759bf9a2e123d1ad781e00a25dbf571dcf5597c79fd98c23c9f76521a9",
+      "runtimeBytes": 104142,
+      "frame": [
+        654,
+        920
+      ]
+    },
+    {
+      "key": "Aède_Male_1@combat_idle",
+      "neutral": "assets/design/hero-sprites/cdi-142/normalized-alpha-v1/male/aede-male-02-v1.png",
+      "approvedSource": "assets/design/hero-sprites/cdi-154/validated-male-v1/aede-male-02-combat-idle-v1.png",
+      "normalized": "assets/design/hero-sprites/cdi-154/normalized-alpha-v1/male/aede-male-02-combat-idle-v1.png",
+      "runtime": "assets/design/hero-sprites/cdi-154/runtime-webp-v1/male/aede-male-02-combat-idle-v1.webp",
+      "sourceSha256": "e49897d6b99fdf9e3f116e1a38830e5b95b0481cd35b6bea9ab3ab8011921b19",
+      "normalizedSha256": "ed876d3d19bf5c36c277aa3ae7dc04724dbd275bb5d15cb305f6ecc82b0d8c92",
+      "runtimeSha256": "e4eb8766f0c0f22441d132e6b0b1e560661bc3547005a4b304239cea1e921601",
+      "runtimeBytes": 111856,
+      "frame": [
+        686,
+        920
+      ]
+    },
+    {
+      "key": "Aède_Male_2@combat_idle",
+      "neutral": "assets/design/hero-sprites/cdi-142/normalized-alpha-v1/male/aede-male-03-v1.png",
+      "approvedSource": "assets/design/hero-sprites/cdi-154/validated-male-v1/aede-male-03-combat-idle-v1.png",
+      "normalized": "assets/design/hero-sprites/cdi-154/normalized-alpha-v1/male/aede-male-03-combat-idle-v1.png",
+      "runtime": "assets/design/hero-sprites/cdi-154/runtime-webp-v1/male/aede-male-03-combat-idle-v1.webp",
+      "sourceSha256": "042c780f58ebad5246d4846dcb7da2cac2ad2f3316031fad7db3288e77932855",
+      "normalizedSha256": "cf01058200c9f6fe7b6094c6ea34745bc8cb02d2d88431ea2898478e1bda64ee",
+      "runtimeSha256": "945e00d95953ef014823cbdaa2a99affb3655de0213972e94412231d558f1fb1",
+      "runtimeBytes": 101038,
+      "frame": [
+        628,
+        920
+      ]
+    },
+    {
+      "key": "Aède_Male_3@combat_idle",
+      "neutral": "assets/design/hero-sprites/cdi-142/normalized-alpha-v1/male/aede-male-04-v1.png",
+      "approvedSource": "assets/design/hero-sprites/cdi-154/validated-male-v1/aede-male-04-combat-idle-v1.png",
+      "normalized": "assets/design/hero-sprites/cdi-154/normalized-alpha-v1/male/aede-male-04-combat-idle-v1.png",
+      "runtime": "assets/design/hero-sprites/cdi-154/runtime-webp-v1/male/aede-male-04-combat-idle-v1.webp",
+      "sourceSha256": "285727881a0d48da420cbc43ec30b231ba13a99ba37d1004b09b81db0f6bf3fe",
+      "normalizedSha256": "a682a0f19c0195e9f056d6beff7989738692163577512497e4d62117e3727870",
+      "runtimeSha256": "d5e64339a34d7bb1c22572c2269da1c17902979f3a5d6f2bf4121bc1335bceeb",
+      "runtimeBytes": 79986,
+      "frame": [
+        592,
+        920
+      ]
+    },
+    {
+      "key": "Aède_Male_4@combat_idle",
+      "neutral": "assets/design/hero-sprites/cdi-142/normalized-alpha-v1/male/aede-male-05-v1.png",
+      "approvedSource": "assets/design/hero-sprites/cdi-154/validated-male-v1/aede-male-05-combat-idle-v1.png",
+      "normalized": "assets/design/hero-sprites/cdi-154/normalized-alpha-v1/male/aede-male-05-combat-idle-v1.png",
+      "runtime": "assets/design/hero-sprites/cdi-154/runtime-webp-v1/male/aede-male-05-combat-idle-v1.webp",
+      "sourceSha256": "c53f2653f247d9536ff4c67b712d746c7625ad95df036d7eeae51c28ef2bb747",
+      "normalizedSha256": "b6aec0b11bd379209c4ad5b363109b99a0b91be4a87ec479a9c8e21c8d552f96",
+      "runtimeSha256": "f84e2b0ca32eeceff0bc17657c604a634a2b8b6cb27d09a10df3f3819cba6634",
+      "runtimeBytes": 126152,
+      "frame": [
+        738,
+        920
+      ]
+    },
+    {
+      "key": "Aède_Male_5@combat_idle",
+      "neutral": "assets/design/hero-sprites/cdi-142/normalized-alpha-v1/male/aede-male-06-v1.png",
+      "approvedSource": "assets/design/hero-sprites/cdi-154/validated-male-v1/aede-male-06-combat-idle-v1.png",
+      "normalized": "assets/design/hero-sprites/cdi-154/normalized-alpha-v1/male/aede-male-06-combat-idle-v1.png",
+      "runtime": "assets/design/hero-sprites/cdi-154/runtime-webp-v1/male/aede-male-06-combat-idle-v1.webp",
+      "sourceSha256": "7b96c8cc27d9f25b1b78b071b6e35b75b329727d15bb587e78efd9e4c1e8e9c0",
+      "normalizedSha256": "9ad6be36f68d0614ae93b1f773b9b00c34d048cf625da7c7a796956f11414282",
+      "runtimeSha256": "27e51d45e41fb87d65fab81a8382f5445d2127af8d6b9e546e0fe187318dbfcd",
+      "runtimeBytes": 97546,
+      "frame": [
+        638,
+        920
+      ]
+    },
+    {
+      "key": "Aède_Male_6@combat_idle",
+      "neutral": "assets/design/hero-sprites/cdi-142/normalized-alpha-v1/male/aede-male-07-v1.png",
+      "approvedSource": "assets/design/hero-sprites/cdi-154/validated-male-v1/aede-male-07-combat-idle-v1.png",
+      "normalized": "assets/design/hero-sprites/cdi-154/normalized-alpha-v1/male/aede-male-07-combat-idle-v1.png",
+      "runtime": "assets/design/hero-sprites/cdi-154/runtime-webp-v1/male/aede-male-07-combat-idle-v1.webp",
+      "sourceSha256": "a6d23adf1529029558b56df35839146d932c3ca4e7f1cf319305ff4490845f27",
+      "normalizedSha256": "cc4a7b6c21597f89cff14eddadc07de6ad4308d302dfdf8a9afa6fcd8d0cfa1e",
+      "runtimeSha256": "906594199353a1ec61948ad0639a362b23ad757a5317938c07df351bbb007c06",
+      "runtimeBytes": 88822,
+      "frame": [
+        556,
+        920
+      ]
+    },
+    {
+      "key": "Aède_Male_7@combat_idle",
+      "neutral": "assets/design/hero-sprites/cdi-142/normalized-alpha-v1/male/aede-male-08-v1.png",
+      "approvedSource": "assets/design/hero-sprites/cdi-154/validated-male-v1/aede-male-08-combat-idle-v1.png",
+      "normalized": "assets/design/hero-sprites/cdi-154/normalized-alpha-v1/male/aede-male-08-combat-idle-v1.png",
+      "runtime": "assets/design/hero-sprites/cdi-154/runtime-webp-v1/male/aede-male-08-combat-idle-v1.webp",
+      "sourceSha256": "4a48a245661adc5198f43776c6b6734935843db7154de356bb18a19c5549f26e",
+      "normalizedSha256": "4094422c5f71206238c8f436fd851d34eecc497a283e1d4b18c14ba502e26293",
+      "runtimeSha256": "ea367735658a54d15d1fbb48d037d55013bb566165566b01e6908ce6f716ee39",
+      "runtimeBytes": 96888,
+      "frame": [
+        610,
+        920
+      ]
+    },
+    {
+      "key": "Aède_Male_8@combat_idle",
+      "neutral": "assets/design/hero-sprites/cdi-142/normalized-alpha-v1/male/aede-male-09-v1.png",
+      "approvedSource": "assets/design/hero-sprites/cdi-154/validated-male-v1/aede-male-09-combat-idle-v1.png",
+      "normalized": "assets/design/hero-sprites/cdi-154/normalized-alpha-v1/male/aede-male-09-combat-idle-v1.png",
+      "runtime": "assets/design/hero-sprites/cdi-154/runtime-webp-v1/male/aede-male-09-combat-idle-v1.webp",
+      "sourceSha256": "9c3e72a2641effdd308e711e2bea4b843077bc51f55faaec4013c2e559d34e24",
+      "normalizedSha256": "35398733a09c476495ac4d2345953ecfaeb23a3ab1867eac906918056f31185d",
+      "runtimeSha256": "751e7b1808c8780f34187e00e3d7c7216ae6b72ef318642eaa869fae82943474",
+      "runtimeBytes": 81130,
+      "frame": [
+        618,
+        920
+      ]
+    },
+    {
+      "key": "Aède_Male_9@combat_idle",
+      "neutral": "assets/design/hero-sprites/cdi-142/normalized-alpha-v1/male/aede-male-10-v1.png",
+      "approvedSource": "assets/design/hero-sprites/cdi-154/validated-male-v1/aede-male-10-combat-idle-v1.png",
+      "normalized": "assets/design/hero-sprites/cdi-154/normalized-alpha-v1/male/aede-male-10-combat-idle-v1.png",
+      "runtime": "assets/design/hero-sprites/cdi-154/runtime-webp-v1/male/aede-male-10-combat-idle-v1.webp",
+      "sourceSha256": "bcc324828646f689ddcbd5c2b70aec78ed54c99fb3fc24cfbed2706083adbb48",
+      "normalizedSha256": "281dc8e5862c2dd44884fd905e9d6b98755a97c14fdfa9e81e02c34334334111",
+      "runtimeSha256": "0c52b304d42556113f99fab6f9c3021499226ca369bd6a3e67769a70011f3669",
+      "runtimeBytes": 92050,
+      "frame": [
+        652,
+        920
+      ]
+    },
+    {
+      "key": "Aède_Female_0@combat_idle",
+      "neutral": "assets/design/hero-sprites/cdi-142/normalized-alpha-v1/female/aede-female-01-v1.png",
+      "approvedSource": "assets/design/hero-sprites/cdi-154/validated-female-v1/aede-female-01-combat-idle-v1.png",
+      "normalized": "assets/design/hero-sprites/cdi-154/normalized-alpha-v1/female/aede-female-01-combat-idle-v1.png",
+      "runtime": "assets/design/hero-sprites/cdi-154/runtime-webp-v1/female/aede-female-01-combat-idle-v1.webp",
+      "sourceSha256": "f7f4683818cd628d36629d38aeeb875a1cdeeea2e5b79e6b648423b622029e74",
+      "normalizedSha256": "a08b30517b85bbd9bae11b0900a720e59f13dbc97f8520488e57b66ce98d3397",
+      "runtimeSha256": "00cc266d7c4bf361aa672095ef123b708e858719780e06a181254fc00c31c559",
+      "runtimeBytes": 104122,
+      "frame": [
+        586,
+        920
+      ]
+    },
+    {
+      "key": "Aède_Female_1@combat_idle",
+      "neutral": "assets/design/hero-sprites/cdi-142/normalized-alpha-v1/female/aede-female-02-v1.png",
+      "approvedSource": "assets/design/hero-sprites/cdi-154/validated-female-v1/aede-female-02-combat-idle-v1.png",
+      "normalized": "assets/design/hero-sprites/cdi-154/normalized-alpha-v1/female/aede-female-02-combat-idle-v1.png",
+      "runtime": "assets/design/hero-sprites/cdi-154/runtime-webp-v1/female/aede-female-02-combat-idle-v1.webp",
+      "sourceSha256": "874e6bdfd135116be58712523ab5dad88d2bd8ad6e13f449526062c8308e8f32",
+      "normalizedSha256": "a35772afd4dbdd4f472e787de2fe4a5a319c002cec8345e724f405c21f115483",
+      "runtimeSha256": "e3870aadc8fdd72b9a7bbfbd6b7fc15093824a29aee52069d2eb58fb0ce54a22",
+      "runtimeBytes": 101994,
+      "frame": [
+        482,
+        920
+      ]
+    },
+    {
+      "key": "Aède_Female_2@combat_idle",
+      "neutral": "assets/design/hero-sprites/cdi-142/normalized-alpha-v1/female/aede-female-03-v1.png",
+      "approvedSource": "assets/design/hero-sprites/cdi-154/validated-female-v1/aede-female-03-combat-idle-v1.png",
+      "normalized": "assets/design/hero-sprites/cdi-154/normalized-alpha-v1/female/aede-female-03-combat-idle-v1.png",
+      "runtime": "assets/design/hero-sprites/cdi-154/runtime-webp-v1/female/aede-female-03-combat-idle-v1.webp",
+      "sourceSha256": "d2cbdcf16b2cd73a3285e181c39e027f674ada07f96b213dc07f542aa66f4c3f",
+      "normalizedSha256": "5f03a5355c0b82f34739004ae85823348f8cafdeb0721de0b453a2fb2db19453",
+      "runtimeSha256": "9b32f0f8220cd1155511c503e60d2064613e822e9fb83d471f76e6d51e1ff614",
+      "runtimeBytes": 127522,
+      "frame": [
+        818,
+        920
+      ]
+    },
+    {
+      "key": "Aède_Female_3@combat_idle",
+      "neutral": "assets/design/hero-sprites/cdi-142/normalized-alpha-v1/female/aede-female-04-v1.png",
+      "approvedSource": "assets/design/hero-sprites/cdi-154/validated-female-v1/aede-female-04-combat-idle-v1.png",
+      "normalized": "assets/design/hero-sprites/cdi-154/normalized-alpha-v1/female/aede-female-04-combat-idle-v1.png",
+      "runtime": "assets/design/hero-sprites/cdi-154/runtime-webp-v1/female/aede-female-04-combat-idle-v1.webp",
+      "sourceSha256": "17a138c6f7ed75f2dc7a84cd648bb280ba443ba10cfa819cf14bbd8866e41aec",
+      "normalizedSha256": "460fc3a86bbb203daff83aaeb2b809c9302ecaf13bc577b98e9539de907f8529",
+      "runtimeSha256": "ba8f9b8e66e20b74dbdd1e2770e124c307cc1c08221dee111be719bd602857de",
+      "runtimeBytes": 118762,
+      "frame": [
+        598,
+        920
+      ]
+    },
+    {
+      "key": "Aède_Female_4@combat_idle",
+      "neutral": "assets/design/hero-sprites/cdi-142/normalized-alpha-v1/female/aede-female-05-v1.png",
+      "approvedSource": "assets/design/hero-sprites/cdi-154/validated-female-v1/aede-female-05-combat-idle-v1.png",
+      "normalized": "assets/design/hero-sprites/cdi-154/normalized-alpha-v1/female/aede-female-05-combat-idle-v1.png",
+      "runtime": "assets/design/hero-sprites/cdi-154/runtime-webp-v1/female/aede-female-05-combat-idle-v1.webp",
+      "sourceSha256": "dd89e9d9b09195f6ea3ca09b48bb7ed3450516beac2deacbe3c84f7ee1ac843b",
+      "normalizedSha256": "5dd7dee64afea6fd63142b8b825c3350868adcd7a6024838fec091fb57d514aa",
+      "runtimeSha256": "c6dbf2365f9579acb3186e5b44c4f3757f02551da3ea3393d863da3c0a675e3f",
+      "runtimeBytes": 175080,
+      "frame": [
+        1090,
+        920
+      ]
+    },
+    {
+      "key": "Aède_Female_5@combat_idle",
+      "neutral": "assets/design/hero-sprites/cdi-142/normalized-alpha-v1/female/aede-female-06-v1.png",
+      "approvedSource": "assets/design/hero-sprites/cdi-154/validated-female-v1/aede-female-06-combat-idle-v1.png",
+      "normalized": "assets/design/hero-sprites/cdi-154/normalized-alpha-v1/female/aede-female-06-combat-idle-v1.png",
+      "runtime": "assets/design/hero-sprites/cdi-154/runtime-webp-v1/female/aede-female-06-combat-idle-v1.webp",
+      "sourceSha256": "d5667475952fb87dd8c9a22bed800e0ecdbd902897a1ae2646992543852dfa80",
+      "normalizedSha256": "745cc89479db20b85246c73e19517f463897f1597adcfaca83236bbbc3353ecb",
+      "runtimeSha256": "8ca7a2abacdb3a344e70aa39f493e4d4f6cbcbbbf10caae1a1579b07f227b145",
+      "runtimeBytes": 90012,
+      "frame": [
+        474,
+        920
+      ]
+    },
+    {
+      "key": "Aède_Female_6@combat_idle",
+      "neutral": "assets/design/hero-sprites/cdi-142/normalized-alpha-v1/female/aede-female-07-v1.png",
+      "approvedSource": "assets/design/hero-sprites/cdi-154/validated-female-v1/aede-female-07-combat-idle-v1.png",
+      "normalized": "assets/design/hero-sprites/cdi-154/normalized-alpha-v1/female/aede-female-07-combat-idle-v1.png",
+      "runtime": "assets/design/hero-sprites/cdi-154/runtime-webp-v1/female/aede-female-07-combat-idle-v1.webp",
+      "sourceSha256": "f6e0ac4d9e03105c4180a56ddebc0e456ce553de4b4a730161bfebe9a6e9536c",
+      "normalizedSha256": "e11eae3ccb971e8ba7b2dd2e62a718581589b7b2ee35c4a21a69b5a1fa3d4b8e",
+      "runtimeSha256": "7c373ba8ddbbf0b1e406d91333c6122a9668cb1ecc3674e3a1f9a109776aa2e8",
+      "runtimeBytes": 104308,
+      "frame": [
+        636,
+        920
+      ]
+    },
+    {
+      "key": "Aède_Female_7@combat_idle",
+      "neutral": "assets/design/hero-sprites/cdi-142/normalized-alpha-v1/female/aede-female-08-v1.png",
+      "approvedSource": "assets/design/hero-sprites/cdi-154/validated-female-v1/aede-female-08-combat-idle-v1.png",
+      "normalized": "assets/design/hero-sprites/cdi-154/normalized-alpha-v1/female/aede-female-08-combat-idle-v1.png",
+      "runtime": "assets/design/hero-sprites/cdi-154/runtime-webp-v1/female/aede-female-08-combat-idle-v1.webp",
+      "sourceSha256": "4d929be9d373596472f3b1568c1bb205ff839af7285c26c1b5b99eea53d80784",
+      "normalizedSha256": "8096d983b5cb850288977dd5ebbd79b2749e24e0205e1032ea81ffc1f04e9c26",
+      "runtimeSha256": "63c3759a3fcc121d334071320b442ba00f902fc1e1e6102e31c44cee0b214e8d",
+      "runtimeBytes": 82588,
+      "frame": [
+        454,
+        920
+      ]
+    },
+    {
+      "key": "Aède_Female_8@combat_idle",
+      "neutral": "assets/design/hero-sprites/cdi-142/normalized-alpha-v1/female/aede-female-09-v1.png",
+      "approvedSource": "assets/design/hero-sprites/cdi-154/validated-female-v1/aede-female-09-combat-idle-v1.png",
+      "normalized": "assets/design/hero-sprites/cdi-154/normalized-alpha-v1/female/aede-female-09-combat-idle-v1.png",
+      "runtime": "assets/design/hero-sprites/cdi-154/runtime-webp-v1/female/aede-female-09-combat-idle-v1.webp",
+      "sourceSha256": "ae53d5b2779fae378d22240781d1bb275ea830357342a2d8d6ebfebd8cbb8b83",
+      "normalizedSha256": "62d34052db7be95fa512202e7ea031c02ee36df73d264402c86217a62bcf898f",
+      "runtimeSha256": "203106e249f9200f44ac8c3a5baa38bc5d30cbe653e57fdded47b1eb26d41924",
+      "runtimeBytes": 87000,
+      "frame": [
+        504,
+        920
+      ]
+    },
+    {
+      "key": "Aède_Female_9@combat_idle",
+      "neutral": "assets/design/hero-sprites/cdi-142/normalized-alpha-v1/female/aede-female-10-v1.png",
+      "approvedSource": "assets/design/hero-sprites/cdi-154/validated-female-v1/aede-female-10-combat-idle-v1.png",
+      "normalized": "assets/design/hero-sprites/cdi-154/normalized-alpha-v1/female/aede-female-10-combat-idle-v1.png",
+      "runtime": "assets/design/hero-sprites/cdi-154/runtime-webp-v1/female/aede-female-10-combat-idle-v1.webp",
+      "sourceSha256": "627400628dd5b6ea7eaa08fce6bbe76b5de8fd7c557f5e41b41dd151ed542941",
+      "normalizedSha256": "febe8414119508681726423b7165e79a988e97e1a7ee52b1edb0d4a2882a75c2",
+      "runtimeSha256": "be3b9713eab25b92d10a3faeead28e6eae7c5d21cff7b5dbbc3f93842431db8d",
+      "runtimeBytes": 103364,
+      "frame": [
+        966,
+        920
+      ]
+    }
+  ]
+}

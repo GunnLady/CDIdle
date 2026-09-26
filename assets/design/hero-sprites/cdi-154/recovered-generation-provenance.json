@@ -1,0 +1,20 @@
+[
+  {
+    "session": "rollout-2026-09-26T13-42-15-01a0dd85-e926-7350-9ee3-e03849ef52f2.jsonl",
+    "timestamp": "2026-09-26T12:34:45.041Z",
+    "id": "exec-64ebcf16-a560-4e9e-9c1d-a4f8542cc1b1",
+    "status": "completed",
+    "savedPath": "C:\\Users\\mathr\\.codex\\generated_images\\01a0dd85-e926-7350-9ee3-e03849ef52f2\\exec-64ebcf16-a560-4e9e-9c1d-a4f8542cc1b1.png",
+    "prompt": "Refais cette image au propre sur fond transparent. Conserve exactement le personnage, sa tenue, son expression et cette pose, surtout le bras armé bas avec le coude fléchi et la position de la main. Dessine l'épée bien droite dans le prolongement de sa poignée. Personnage et pointe entièrement visibles. Aucun autre changement.",
+    "submittedCall": "// @exec: {\"yield_time_ms\": 120000, \"max_output_tokens\": 200}\nconst r=await tools.image_gen__imagegen({referenced_image_paths:[\"C:/Users/mathr/.codex/generated_images/01a0dd85-e926-7350-9ee3-e03849ef52f2/exec-6e7de86c-1c6d-469c-b73a-349bb9d11f22.png\"],prompt:\"Refais cette image au propre sur fond transparent. Conserve exactement le personnage, sa tenue, son expression et cette pose, surtout le bras armé bas avec le coude fléchi et la position de la main. Dessine l'épée bien droite dans le prolongement de sa poignée. Personnage et pointe entièrement visibles. Aucun autre changement.\"});generatedImage(r);\n"
+  },
+  {
+    "session": "rollout-2026-09-25T13-18-53-01a0d84a-2598-7bc0-ac00-f4ee8c3ce76e.jsonl",
+    "timestamp": "2026-09-26T11:33:38.611Z",
+    "id": "exec-9e938c63-0234-433f-a3d6-5d4d259865a7",
+    "status": "completed",
+    "savedPath": "C:\\Users\\mathr\\.codex\\generated_images\\01a0d84a-2598-7bc0-ac00-f4ee8c3ce76e\\exec-9e938c63-0234-433f-a3d6-5d4d259865a7.png",
+    "prompt": "Edit image 1 with just one small change: direct both eyes toward an opponent off-screen to the RIGHT of the image, following the gaze direction of the exact neutral identity in image 2. Keep the determined combat expression. Preserve the head angle and every other detail of image 1: face identity, hair, pose, hands, legs, feet, clothing, hourglass, staff, composition and style. Image 3 confirms the wooden staff. Full-body transparent-background sprite. No other changes.",
+    "submittedCall": "// @exec: {\"yield_time_ms\": 120000, \"max_output_tokens\": 1000}\nconst r = await tools.image_gen__imagegen({referenced_image_paths:[\"C:\\\\Users\\\\mathr\\\\.codex\\\\generated_images\\\\01a0d84a-2598-7bc0-ac00-f4ee8c3ce76e\\\\exec-8f9bfae0-b4b9-4f52-98dd-82fbe7ee19bd.png\",\"D:\\\\codex\\\\CDIdle\\\\assets\\\\design\\\\hero-sprites\\\\cdi-142\\\\validated-male-v1\\\\aede-male-09-v1.png\",\"D:\\\\codex\\\\CDIdle\\\\.tmp\\\\cdi-154\\\\m03\\\\bo-red-oak.jpg\"],prompt:\"Edit image 1 with just one small change: direct both eyes toward an opponent off-screen to the RIGHT of the image, following the gaze direction of the exact neutral identity in image 2. Keep the determined combat expression. Preserve the head angle and every other detail of image 1: face identity, hair, pose, hands, legs, feet, clothing, hourglass, staff, composition and style. Image 3 confirms the wooden staff. Full-body transparent-background sprite. No other changes.\"});generatedImage(r);\n"
+  }
+]

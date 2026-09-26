@@ -1,3 +1,5 @@
+import { CDI155_DRUID_COMBAT_IDLE_VARIANT_COUNT, getCdi155DruidCombatIdlePivotX, getCdi155DruidCombatIdleScale } from "../src/assets/druidCdi155CombatPoses";
+import { CDI154_AEDE_COMBAT_IDLE_VARIANT_COUNT, getCdi154AedeCombatIdlePivotX, getCdi154AedeCombatIdleScale } from "../src/assets/aedeCdi154CombatPoses";
 import { describe, expect, it, vi } from "vitest";
 import { CANONICAL_HERO_CLASSES } from "../shared/domain/hero-classes";
 import {
@@ -96,7 +98,7 @@ describe("encounter visual catalog", () => {
     expect(wrappedWarrior.url).toContain("warrior-female-10-combat-idle-v1");
     expect(wrappedWarrior.descriptor.pivotX).toBe(314.5 / 776);
 
-    const otherClass = resolveEncounterVisualDescriptor("Aède_Female_7@combat_idle");
+    const otherClass = resolveEncounterVisualDescriptor("Artificier_Female_7@combat_idle");
     expect(otherClass).toMatchObject({
       provenance: "CDIdle explicit neutral hero-pose fallback",
       kind: "hero",
@@ -271,6 +273,74 @@ describe("encounter visual catalog", () => {
     }
     const wrapped = await loadEncounterVisualAsset("Acolyte_Female_19@combat_idle");
     expect(wrapped.url).toContain("acolyte-female-10-combat-idle-v1");
+  });
+
+  it("loads all twenty CDI-154 Aede combat-idle identities and keeps neutral portraits separate", async () => {
+    const identities = (["Male", "Female"] as const).flatMap((gender) => (
+      Array.from({ length: CDI154_AEDE_COMBAT_IDLE_VARIANT_COUNT }, (_, variant) => ({ gender, variant }))
+    ));
+    const assets = await Promise.all(identities.map(({ gender, variant }) => (
+      loadEncounterVisualAsset(`A\u00e8de_${gender}_${variant}@combat_idle`)
+    )));
+    for (const [index, asset] of assets.entries()) {
+      const { gender, variant } = identities[index];
+      expect(asset).toMatchObject({
+        status: "ready",
+        descriptor: {
+          provenance: "CDI-154 validated Aede combat-idle alpha sprites",
+          anchor: { x: 0.5, y: 900 / 920 },
+          pivotX: getCdi154AedeCombatIdlePivotX(gender, variant),
+          scale: 920 / 692 * getCdi154AedeCombatIdleScale(gender, variant),
+          fit: "height",
+        },
+      });
+      expect(asset.url).toContain(
+        `aede-${gender.toLowerCase()}-${String(variant + 1).padStart(2, "0")}-combat-idle-v1`,
+      );
+      const neutral = await loadEncounterVisualAsset(`A\u00e8de_${gender}_${variant}`);
+      expect(neutral.url).toContain(`aede-${gender.toLowerCase()}-${String(variant + 1).padStart(2, "0")}-v1.png`);
+      expect(resolveEncounterVisualDescriptor(`A\u00e8de_${gender}_${variant}`)).toMatchObject({
+        provenance: "CDI-142 validated Aede alpha sprites",
+        anchor: { x: 0.5, y: 0.93 },
+        scale: 1,
+      });
+    }
+    const wrapped = await loadEncounterVisualAsset("A\u00e8de_Female_19@combat_idle");
+    expect(wrapped.url).toContain("aede-female-10-combat-idle-v1");
+  });
+
+  it("loads all twenty CDI-155 Druid combat-idle identities and keeps neutral portraits separate", async () => {
+    const identities = (["Male", "Female"] as const).flatMap((gender) => (
+      Array.from({ length: CDI155_DRUID_COMBAT_IDLE_VARIANT_COUNT }, (_, variant) => ({ gender, variant }))
+    ));
+    const assets = await Promise.all(identities.map(({ gender, variant }) => (
+      loadEncounterVisualAsset(`Druide_${gender}_${variant}@combat_idle`)
+    )));
+    for (const [index, asset] of assets.entries()) {
+      const { gender, variant } = identities[index];
+      expect(asset).toMatchObject({
+        status: "ready",
+        descriptor: {
+          provenance: "CDI-155 validated Druid combat-idle alpha sprites",
+          anchor: { x: 0.5, y: 900 / 920 },
+          pivotX: getCdi155DruidCombatIdlePivotX(gender, variant),
+          scale: 920 / 692 * getCdi155DruidCombatIdleScale(gender, variant),
+          fit: "height",
+        },
+      });
+      expect(asset.url).toContain(
+        `druid-${gender.toLowerCase()}-${String(variant + 1).padStart(2, "0")}-combat-idle-v${gender === "Male" && variant === 2 ? 2 : 1}`,
+      );
+      const neutral = await loadEncounterVisualAsset(`Druide_${gender}_${variant}`);
+      expect(neutral.url).toContain(`druid-${gender.toLowerCase()}-${String(variant + 1).padStart(2, "0")}-v1.png`);
+      expect(resolveEncounterVisualDescriptor(`Druide_${gender}_${variant}`)).toMatchObject({
+        provenance: "CDI-143 validated Druid alpha sprites",
+        anchor: { x: 0.5, y: 0.93 },
+        scale: 1,
+      });
+    }
+    const wrapped = await loadEncounterVisualAsset("Druide_Female_19@combat_idle");
+    expect(wrapped.url).toContain("druid-female-10-combat-idle-v1");
   });
 
   it("loads CDI-137 Warrior neutral sprites through stable legacy identity keys", async () => {

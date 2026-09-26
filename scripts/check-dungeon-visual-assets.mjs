@@ -92,6 +92,18 @@ const acolyteCombatSprites = ["female", "male"].flatMap((gender) => (
     `acolyte-${gender}-${String(index + 1).padStart(2, "0")}-combat-idle-v1.png`,
   ))
 ));
+const aedeCombatSprites = ["female", "male"].flatMap((gender) => (
+  Array.from({ length: 10 }, (_, index) => join(
+    gender,
+    `aede-${gender}-${String(index + 1).padStart(2, "0")}-combat-idle-v1.png`,
+  ))
+));
+const druidCombatSprites = ["female", "male"].flatMap((gender) => (
+  Array.from({ length: 10 }, (_, index) => join(
+    gender,
+    `druid-${gender}-${String(index + 1).padStart(2, "0")}-combat-idle-v${gender === "male" && index === 2 ? 2 : 1}.png`,
+  ))
+));
 const warriorSprites = ["female", "male"].flatMap((gender) => (
   Array.from({ length: 10 }, (_, index) => join(
     gender,
@@ -1309,6 +1321,168 @@ for (const entry of acolyteManifest.entries) {
   }
 }
 
+const aedeCombatRoot = join(projectRoot, "assets", "design", "hero-sprites", "cdi-154");
+const aedeCombatImageDirectory = join(aedeCombatRoot, "normalized-alpha-v1");
+const aedeCombatRuntimeDirectory = join(aedeCombatRoot, "runtime-webp-v1");
+for (const gender of ["female", "male"]) {
+  const expectedPng = aedeCombatSprites
+    .filter((relativePath) => dirname(relativePath) === gender)
+    .map((relativePath) => basename(relativePath)).sort();
+  const actualPng = readdirSync(join(aedeCombatImageDirectory, gender))
+    .filter((file) => file.endsWith(".png")).sort();
+  assert.deepEqual(actualPng, expectedPng, `CDI-154 ${gender} must contain ten normalized sprites`);
+  const expectedWebp = expectedPng.map((file) => file.replace(/\.png$/, ".webp"));
+  const actualWebp = readdirSync(join(aedeCombatRuntimeDirectory, gender))
+    .filter((file) => file.endsWith(".webp")).sort();
+  assert.deepEqual(actualWebp, expectedWebp, `CDI-154 ${gender} must contain ten runtime sprites`);
+}
+const measuredAedeCombatSprites = aedeCombatSprites.map((relativePath) => {
+  const pngPath = join(aedeCombatImageDirectory, relativePath);
+  const dimensions = readImageInfo(pngPath);
+  assert.equal(dimensions.height, 920, `${relativePath} must remain 920 px high`);
+  assert.equal(dimensions.alpha, true, `${relativePath} must remain an alpha sprite`);
+  assert(Math.max(...dimensions.cornerAlphas) <= 2, `${relativePath} must have transparent corners`);
+  assert(dimensions.visibleBounds, `${relativePath} must contain visible pixels`);
+  assert(Math.abs(dimensions.visibleBounds.maxY - 900) <= 5,
+    `${relativePath} visible bottom ${dimensions.visibleBounds.maxY} must stay near y=900`);
+  const webpPath = join(aedeCombatRuntimeDirectory, relativePath.replace(/\.png$/, ".webp"));
+  const webp = readFileSync(webpPath);
+  assert.equal(webp.toString("ascii", 0, 4), "RIFF", `${webpPath} must be RIFF`);
+  assert.equal(webp.toString("ascii", 8, 12), "WEBP", `${webpPath} must be WebP`);
+  assert.equal(webp.toString("ascii", 12, 16), "VP8X", `${webpPath} must expose dimensions and alpha`);
+  assert((webp[20] & 0x10) !== 0, `${webpPath} must preserve alpha`);
+  assert.equal(1 + webp.readUIntLE(24, 3), dimensions.width);
+  assert.equal(1 + webp.readUIntLE(27, 3), dimensions.height);
+  assert(webp.length <= 300 * 1024, `${relativePath} exceeds the 300 KiB file budget`);
+  return {
+    file: relativePath,
+    bytes: webp.length,
+    width: dimensions.width,
+    visibleBottomY: dimensions.visibleBounds.maxY,
+    decodedBytes: dimensions.width * dimensions.height * 4,
+  };
+});
+const aedeCombatTotalBytes = measuredAedeCombatSprites.reduce((total, entry) => total + entry.bytes, 0);
+const aedeCombatSceneBytes = measuredAedeCombatSprites
+  .map((entry) => entry.bytes).sort((left, right) => right - left)
+  .slice(0, combatHeroLimit).reduce((total, bytes) => total + bytes, 0);
+const aedeCombatDecodedSceneBytes = measuredAedeCombatSprites
+  .map((entry) => entry.decodedBytes).sort((left, right) => right - left)
+  .slice(0, combatHeroLimit).reduce((total, bytes) => total + bytes, 0);
+assert(aedeCombatSceneBytes <= sceneBudgetBytes, `Four-hero CDI-154 scene exceeds ${sceneBudgetBytes} bytes`);
+const aedeManifest = JSON.parse(readFileSync(join(aedeCombatRoot, "manifest.json"), "utf8").replace(/^\uFEFF/, ""));
+assert.equal(aedeManifest.entries.length, 20, "CDI-154 manifest must map twenty identities");
+assert.equal(new Set(aedeManifest.entries.map((entry) => entry.key)).size, 20);
+for (const entry of aedeManifest.entries) {
+  const match = /^A\u00e8de_(Male|Female)_(\d)@combat_idle$/.exec(entry.key);
+  assert(match, `CDI-154 invalid identity key ${entry.key}`);
+  const gender = match[1].toLowerCase();
+  const number = String(Number(match[2]) + 1).padStart(2, "0");
+  assert.equal(entry.neutral,
+    `assets/design/hero-sprites/cdi-142/normalized-alpha-v1/${gender}/aede-${gender}-${number}-v1.png`);
+  assert.equal(entry.approvedSource,
+    `assets/design/hero-sprites/cdi-154/validated-${gender}-v1/aede-${gender}-${number}-combat-idle-v1.png`);
+  assert.equal(entry.normalized,
+    `assets/design/hero-sprites/cdi-154/normalized-alpha-v1/${gender}/aede-${gender}-${number}-combat-idle-v1.png`);
+  assert.equal(entry.runtime,
+    `assets/design/hero-sprites/cdi-154/runtime-webp-v1/${gender}/aede-${gender}-${number}-combat-idle-v1.webp`);
+  readFileSync(join(projectRoot, entry.neutral));
+  const dimensions = readImageInfo(join(projectRoot, entry.normalized));
+  assert.deepEqual(entry.frame, [dimensions.width, dimensions.height]);
+  assert.equal(entry.runtimeBytes, statSync(join(projectRoot, entry.runtime)).size);
+  for (const [pathField, hashField] of [
+    ["approvedSource", "sourceSha256"],
+    ["normalized", "normalizedSha256"],
+    ["runtime", "runtimeSha256"],
+  ]) {
+    const file = readFileSync(join(projectRoot, entry[pathField]));
+    assert.equal(createHash("sha256").update(file).digest("hex"), entry[hashField],
+      `CDI-154 ${entry.key} ${pathField} changed after validation`);
+  }
+}
+
+const druidCombatRoot = join(projectRoot, "assets", "design", "hero-sprites", "cdi-155");
+const druidCombatImageDirectory = join(druidCombatRoot, "normalized-alpha-v1");
+const druidCombatRuntimeDirectory = join(druidCombatRoot, "runtime-webp-v1");
+for (const gender of ["female", "male"]) {
+  const expectedPng = druidCombatSprites
+    .filter((relativePath) => dirname(relativePath) === gender)
+    .map((relativePath) => basename(relativePath)).sort();
+  const actualPng = readdirSync(join(druidCombatImageDirectory, gender))
+    // M03 v1 is retained as history; only its approved v2 belongs to this lot.
+    .filter((file) => file.endsWith(".png") && file !== "druid-male-03-combat-idle-v1.png").sort();
+  assert.deepEqual(actualPng, expectedPng, `CDI-155 ${gender} must contain ten normalized sprites`);
+  const expectedWebp = expectedPng.map((file) => file.replace(/\.png$/, ".webp"));
+  const actualWebp = readdirSync(join(druidCombatRuntimeDirectory, gender))
+    .filter((file) => file.endsWith(".webp")).sort();
+  assert.deepEqual(actualWebp, expectedWebp, `CDI-155 ${gender} must contain ten runtime sprites`);
+}
+const measuredDruidCombatSprites = druidCombatSprites.map((relativePath) => {
+  const pngPath = join(druidCombatImageDirectory, relativePath);
+  const dimensions = readImageInfo(pngPath);
+  assert.equal(dimensions.height, 920, `${relativePath} must remain 920 px high`);
+  assert.equal(dimensions.alpha, true, `${relativePath} must remain an alpha sprite`);
+  assert(Math.max(...dimensions.cornerAlphas) <= 2, `${relativePath} must have transparent corners`);
+  assert(dimensions.visibleBounds, `${relativePath} must contain visible pixels`);
+  assert(Math.abs(dimensions.visibleBounds.maxY - 900) <= 5,
+    `${relativePath} visible bottom ${dimensions.visibleBounds.maxY} must stay near y=900`);
+  const webpPath = join(druidCombatRuntimeDirectory, relativePath.replace(/\.png$/, ".webp"));
+  const webp = readFileSync(webpPath);
+  assert.equal(webp.toString("ascii", 0, 4), "RIFF", `${webpPath} must be RIFF`);
+  assert.equal(webp.toString("ascii", 8, 12), "WEBP", `${webpPath} must be WebP`);
+  assert.equal(webp.toString("ascii", 12, 16), "VP8X", `${webpPath} must expose dimensions and alpha`);
+  assert((webp[20] & 0x10) !== 0, `${webpPath} must preserve alpha`);
+  assert.equal(1 + webp.readUIntLE(24, 3), dimensions.width);
+  assert.equal(1 + webp.readUIntLE(27, 3), dimensions.height);
+  assert(webp.length <= 300 * 1024, `${relativePath} exceeds the 300 KiB file budget`);
+  return {
+    file: relativePath,
+    bytes: webp.length,
+    width: dimensions.width,
+    visibleBottomY: dimensions.visibleBounds.maxY,
+    decodedBytes: dimensions.width * dimensions.height * 4,
+  };
+});
+const druidCombatTotalBytes = measuredDruidCombatSprites.reduce((total, entry) => total + entry.bytes, 0);
+const druidCombatSceneBytes = measuredDruidCombatSprites
+  .map((entry) => entry.bytes).sort((left, right) => right - left)
+  .slice(0, combatHeroLimit).reduce((total, bytes) => total + bytes, 0);
+const druidCombatDecodedSceneBytes = measuredDruidCombatSprites
+  .map((entry) => entry.decodedBytes).sort((left, right) => right - left)
+  .slice(0, combatHeroLimit).reduce((total, bytes) => total + bytes, 0);
+assert(druidCombatSceneBytes <= sceneBudgetBytes, `Four-hero CDI-155 scene exceeds ${sceneBudgetBytes} bytes`);
+const druidManifest = JSON.parse(readFileSync(join(druidCombatRoot, "manifest.json"), "utf8").replace(/^\uFEFF/, ""));
+assert.equal(druidManifest.entries.length, 20, "CDI-155 manifest must map twenty identities");
+assert.equal(new Set(druidManifest.entries.map((entry) => entry.key)).size, 20);
+for (const entry of druidManifest.entries) {
+  const match = /^Druide_(Male|Female)_(\d)@combat_idle$/.exec(entry.key);
+  assert(match, `CDI-155 invalid identity key ${entry.key}`);
+  const gender = match[1].toLowerCase();
+  const number = String(Number(match[2]) + 1).padStart(2, "0");
+  const version = gender === "male" && number === "03" ? 2 : 1;
+  assert.equal(entry.neutral,
+    `assets/design/hero-sprites/cdi-143/normalized-alpha-v1/${gender}/druid-${gender}-${number}-v1.png`);
+  assert.equal(entry.approvedSource,
+    `assets/design/hero-sprites/cdi-155/validated-${gender}-v1/druid-${gender}-${number}-combat-idle-v${version}.png`);
+  assert.equal(entry.normalized,
+    `assets/design/hero-sprites/cdi-155/normalized-alpha-v1/${gender}/druid-${gender}-${number}-combat-idle-v${version}.png`);
+  assert.equal(entry.runtime,
+    `assets/design/hero-sprites/cdi-155/runtime-webp-v1/${gender}/druid-${gender}-${number}-combat-idle-v${version}.webp`);
+  readFileSync(join(projectRoot, entry.neutral));
+  const dimensions = readImageInfo(join(projectRoot, entry.normalized));
+  assert.deepEqual(entry.frame, [dimensions.width, dimensions.height]);
+  assert.equal(entry.runtimeBytes, statSync(join(projectRoot, entry.runtime)).size);
+  for (const [pathField, hashField] of [
+    ["approvedSource", "sourceSha256"],
+    ["normalized", "normalizedSha256"],
+    ["runtime", "runtimeSha256"],
+  ]) {
+    const file = readFileSync(join(projectRoot, entry[pathField]));
+    assert.equal(createHash("sha256").update(file).digest("hex"), entry[hashField],
+      `CDI-155 ${entry.key} ${pathField} changed after validation`);
+  }
+}
+
 console.log(JSON.stringify({
   heroSheets: heroSheets.length,
   noviceSprites: noviceSprites.length,
@@ -1442,6 +1616,32 @@ console.log(JSON.stringify({
     visibleBottomYRange: [
       Math.min(...measuredAcolyteCombatSprites.map((entry) => entry.visibleBottomY)),
       Math.max(...measuredAcolyteCombatSprites.map((entry) => entry.visibleBottomY)),
+    ],
+  },
+  aedeCombatSprites: aedeCombatSprites.length,
+  aedeCombatMetrics: {
+    totalBytes: aedeCombatTotalBytes,
+    largestFourSceneBytes: aedeCombatSceneBytes,
+    decodedLargestFourSceneBytes: aedeCombatDecodedSceneBytes,
+    minimumWidth: Math.min(...measuredAedeCombatSprites.map((entry) => entry.width)),
+    maximumWidth: Math.max(...measuredAedeCombatSprites.map((entry) => entry.width)),
+    height: 920,
+    visibleBottomYRange: [
+      Math.min(...measuredAedeCombatSprites.map((entry) => entry.visibleBottomY)),
+      Math.max(...measuredAedeCombatSprites.map((entry) => entry.visibleBottomY)),
+    ],
+  },
+  druidCombatSprites: druidCombatSprites.length,
+  druidCombatMetrics: {
+    totalBytes: druidCombatTotalBytes,
+    largestFourSceneBytes: druidCombatSceneBytes,
+    decodedLargestFourSceneBytes: druidCombatDecodedSceneBytes,
+    minimumWidth: Math.min(...measuredDruidCombatSprites.map((entry) => entry.width)),
+    maximumWidth: Math.max(...measuredDruidCombatSprites.map((entry) => entry.width)),
+    height: 920,
+    visibleBottomYRange: [
+      Math.min(...measuredDruidCombatSprites.map((entry) => entry.visibleBottomY)),
+      Math.max(...measuredDruidCombatSprites.map((entry) => entry.visibleBottomY)),
     ],
   },
   heroIdentities: heroSheets.length * 20
