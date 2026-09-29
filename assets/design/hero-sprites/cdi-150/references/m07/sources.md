@@ -69,7 +69,7 @@ main, pas une rapière.
 ## Génération v3 et contrôle V4 validés
 
 - Fichier ImageGen exact : `exec-e534b80b-97ed-4909-9298-11ce587fb9ea.png`.
-- Candidat : `../../candidates/male/rogue-male-07-combat-idle-v3.png`.
+- Candidat : `../../validated-male-v1/rogue-male-07-combat-idle-v1.png`.
 - Dimensions : `1536 × 1024 px`.
 - Poids : `2 132 257 octets`, `2 132,257 Ko`, `2,132257 Mo`.
 - SHA-256 :
@@ -80,7 +80,7 @@ main, pas une rapière.
 - Contrôle corrigé : comparaison à diamètre facial équivalent commun, sans
   égalisation de la hauteur corporelle. La garde fléchie conserve sa hauteur
   naturelle. Comparatif :
-  `../../candidates/male/rogue-male-07-combat-idle-v3-proportion-check-v4.png`.
+  `../../references/calibration/rogue-male-07-combat-idle-v3-proportion-check-v4.png`.
   Les V2 et V3 du comparatif sont rejetées : V2 redimensionnait à tort chaque
   gabarit d'après son propre cadre facial ; V3 conservait le cadrage commun,
   mais ses cadres faciaux restaient décentrés vers l'oreille, surtout sur M08.

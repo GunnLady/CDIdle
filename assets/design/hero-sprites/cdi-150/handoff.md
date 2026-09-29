@@ -2,6 +2,11 @@
 
 Dernière mise à jour de session : 23 septembre 2026.
 
+Nettoyage du 29 septembre 2026 : les anciens candidats et contrôles intermédiaires
+ont été retirés ; les sources approuvées restent dans `validated-*-v1/`.
+Les cinq fichiers encore utilisés pour la calibration sont rangés dans
+`references/calibration/`. Les mentions d’essais rejetés ci-dessous sont historiques.
+
 Les vingt sources et exports Voleur sont livrés dans le cinéma. L'utilisateur a
 validé les cinq écrans du harness après réglage individuel de la taille :
 
@@ -106,7 +111,7 @@ le seuil et la traçabilité du workflow commun.
 ## Validation et livraison — M06 v2
 
 - Fichier candidat :
-  `assets/design/hero-sprites/cdi-150/candidates/male/rogue-male-06-combat-idle-v2.png`.
+  `assets/design/hero-sprites/cdi-150/validated-male-v1/rogue-male-06-combat-idle-v1.png`.
 - Fichier ImageGen exact :
   `exec-7c0a7b1b-c2eb-4b8d-ab22-29111eb21315.png`.
 - SHA-256 :
@@ -152,7 +157,7 @@ le script est une mesure descriptive et non une tolérance automatique.
 
 ### M08 V11 — validation du 22 septembre 2026
 
-- Source exacte : `candidates/male/rogue-male-08-combat-idle-v11.png`, copiée
+- Source exacte : `validated-male-v1/rogue-male-08-combat-idle-v1.png`, copiée
   sans modification dans `validated-male-v1/rogue-male-08-combat-idle-v1.png`.
   SHA-256 : `0710e9fbe687bb61c417c44830fa4bac9aaff2628118f3a108f514f5af77353a`.
 - Verdict utilisateur : « perso ça me va » sur V11, après demande d'allonger
@@ -203,7 +208,7 @@ La validation artistique des sources est conservée.
   haute/basse de M08. La pose en X de V9 a été validée, puis l'utilisateur a
   validé explicitement la dernière image V11 et demandé l'arrêt des générations.
 - V11 : `exec-dfd13249-81ef-438a-b5ba-41db00cdefd1.png`,
-  `candidates/male/rogue-male-09-combat-idle-v11.png`, 1024×1536,
+  `validated-male-v1/rogue-male-09-combat-idle-v1.png`, 1024×1536,
   SHA-256 `ddf0d576c9e8a2c1ce518f77ad82f264f4c20b7e8da46d7a917963d5f22b8707`.
   Les quatre bords ont zéro pixel opaque. Le halo visible dans `view_image` est
   composé de valeurs RGB avec alpha nul ; le compositing sur fond quadrillé
@@ -232,7 +237,7 @@ La validation artistique des sources est conservée.
   a validé explicitement V12 (« je valide tu arrivera pas à mieux »). Aucune
   génération supplémentaire de M10 n'est nécessaire. L'image exacte est
   `exec-ad89fb89-952c-4c97-9cc7-7b7a328c9549.png`, copiée dans
-  `candidates/male/rogue-male-10-combat-idle-v12.png`.
+  `validated-male-v1/rogue-male-10-combat-idle-v1.png`.
 - Le neutre validé, la pose V2 et le panneau du manhwa *Solo Leveling* ont été
   transmis ensemble à ImageGen pour V12. La provenance, les rejets et le prompt
   exact sont dans `references/m10/sources.md` et `prompt-v12.md`.

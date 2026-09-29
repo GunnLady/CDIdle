@@ -9,6 +9,7 @@ test-results/
 .eslintcache
 *.tsbuildinfo
 /tmp/
+/.tmp/
 
 # Operating-system files and logs
 .DS_Store

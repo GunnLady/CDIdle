@@ -4,7 +4,7 @@ ImageGen a produit `exec-2a22be94-908f-49c0-a46f-a538ad171a8a.png`.
 
 Images transmises, dans l'ordre :
 
-1. `assets/design/hero-sprites/cdi-150/candidates/male/rogue-male-09-combat-idle-v1.png` — cible de correction de la pose ; armes rejetées.
+1. `assets/design/hero-sprites/cdi-150/references/calibration/rogue-male-09-combat-idle-v1.png` — cible de correction de la pose ; armes rejetées.
 2. `assets/design/hero-sprites/cdi-138/validated-male-v1/rogue-male-09-v1.png` — identité et tenue autoritaires.
 3. `assets/design/hero-sprites/cdi-150/references/m07/di-grassi-sword-dagger-guard.jpg` — distinction défensive des deux mains.
 4. `assets/design/hero-sprites/cdi-150/references/m08/ffxiv-viper-01.jpg` — séparation visuelle de deux épées.

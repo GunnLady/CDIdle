@@ -2,10 +2,9 @@
 
 Date d'arrêt : 9 septembre 2026.
 
-> **Handoff historique, remplacé pour Guerrier, Voleur et Archer.** Leurs six
-> anciennes planches ont été retirées du workspace après livraison de CDI-137,
-> CDI-138 et CDI-139. Les classes restantes conservent leurs planches dans
-> `assets/design/hero-sprites/approved/` jusqu'à leur remplacement.
+> **Handoff historique, remplacé pour toutes les classes T1.** Les anciennes
+> planches et leurs copies ont été retirées du workspace après livraison des
+> sprites individuels CDI-137 à CDI-145. Elles restent dans l’historique Git.
 
 ## Objectif et règle validée
 

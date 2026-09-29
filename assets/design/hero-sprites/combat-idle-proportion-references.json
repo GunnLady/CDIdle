@@ -48,7 +48,7 @@
       "bodyRect": [36, 51, 269, 623],
       "faceRect": [143, 102, 69, 68],
       "reviewStatus": "reviewed",
-      "reviewEvidence": "assets/design/hero-sprites/cdi-150/candidates/male/rogue-male-07-combat-idle-v3-proportion-check-v4.png",
+      "reviewEvidence": "assets/design/hero-sprites/cdi-150/references/calibration/rogue-male-07-combat-idle-v3-proportion-check-v4.png",
       "anatomy": {
         "reviewStatus": "reviewed",
         "reviewEvidence": "assets/design/hero-sprites/proportion-reviews/mage-male-06-anatomy-review.png",
@@ -71,7 +71,7 @@
       "bodyRect": [35, 51, 271, 623],
       "faceRect": [149, 90, 68, 69],
       "reviewStatus": "reviewed",
-      "reviewEvidence": "assets/design/hero-sprites/cdi-150/candidates/male/rogue-male-07-combat-idle-v3-proportion-check-v4.png",
+      "reviewEvidence": "assets/design/hero-sprites/cdi-150/references/calibration/rogue-male-07-combat-idle-v3-proportion-check-v4.png",
       "anatomy": {
         "reviewStatus": "reviewed",
         "reviewEvidence": "assets/design/hero-sprites/proportion-reviews/mage-male-08-anatomy-review.png",
@@ -94,7 +94,7 @@
       "bodyRect": [43, 51, 254, 623],
       "faceRect": [140, 91, 71, 72],
       "reviewStatus": "reviewed",
-      "reviewEvidence": "assets/design/hero-sprites/cdi-150/candidates/male/rogue-male-07-combat-idle-v3-proportion-check-v4.png",
+      "reviewEvidence": "assets/design/hero-sprites/cdi-150/references/calibration/rogue-male-07-combat-idle-v3-proportion-check-v4.png",
       "anatomy": {
         "reviewStatus": "reviewed",
         "reviewEvidence": "assets/design/hero-sprites/proportion-reviews/rogue-male-07-neutral-anatomy-review.png",
@@ -134,7 +134,7 @@
       }
     },
     "rogue-male-08-candidate-v4": {
-      "path": "assets/design/hero-sprites/cdi-150/candidates/male/rogue-male-08-combat-idle-v4.png",
+      "path": "assets/design/hero-sprites/cdi-150/references/calibration/rogue-male-08-combat-idle-v4.png",
       "sha256": "0a2b57d2dcbf4075052b3b7fa89e53eacace274d31d149c5fdbfd3663e70a8fe",
       "imageSize": [1536, 1024],
       "bodyRect": [288, 20, 795, 965],
@@ -157,7 +157,7 @@
       }
     },
     "rogue-male-08-candidate-v5": {
-      "path": "assets/design/hero-sprites/cdi-150/candidates/male/rogue-male-08-combat-idle-v5.png",
+      "path": "assets/design/hero-sprites/cdi-150/references/calibration/rogue-male-08-combat-idle-v5.png",
       "sha256": "04cf0258b5d575c92719e368e838f19717e53db135e64403a466d9eaa6333427",
       "imageSize": [1536, 1024],
       "bodyRect": [217, 46, 935, 938],
@@ -180,7 +180,7 @@
       }
     },
     "rogue-male-08-candidate-v8": {
-      "path": "assets/design/hero-sprites/cdi-150/candidates/male/rogue-male-08-combat-idle-v8.png",
+      "path": "assets/design/hero-sprites/cdi-150/references/calibration/rogue-male-08-combat-idle-v8.png",
       "sha256": "9a6d9d27035a7ca857ea008b78b6c27c8af55c509cc58739a1ee78d86a572db1",
       "imageSize": [1122, 1402],
       "bodyRect": [40, 99, 982, 1198],
@@ -203,7 +203,7 @@
       }
     },
     "rogue-male-08-candidate-v11": {
-      "path": "assets/design/hero-sprites/cdi-150/candidates/male/rogue-male-08-combat-idle-v11.png",
+      "path": "assets/design/hero-sprites/cdi-150/validated-male-v1/rogue-male-08-combat-idle-v1.png",
       "sha256": "0710e9fbe687bb61c417c44830fa4bac9aaff2628118f3a108f514f5af77353a",
       "imageSize": [1100, 1430],
       "bodyRect": [28, 104, 1041, 1279],
@@ -249,7 +249,7 @@
       }
     },
     "rogue-male-09-candidate-v1": {
-      "path": "assets/design/hero-sprites/cdi-150/candidates/male/rogue-male-09-combat-idle-v1.png",
+      "path": "assets/design/hero-sprites/cdi-150/references/calibration/rogue-male-09-combat-idle-v1.png",
       "sha256": "d6239b59b750eed7057db76de84bf2c64e3eec0b5cec8549cc5286a7e6a58717",
       "imageSize": [880, 1788],
       "bodyRect": [27, 190, 825, 1410],
@@ -272,7 +272,7 @@
       }
     },
     "rogue-male-09-candidate-v11": {
-      "path": "assets/design/hero-sprites/cdi-150/candidates/male/rogue-male-09-combat-idle-v11.png",
+      "path": "assets/design/hero-sprites/cdi-150/validated-male-v1/rogue-male-09-combat-idle-v1.png",
       "sha256": "ddf0d576c9e8a2c1ce518f77ad82f264f4c20b7e8da46d7a917963d5f22b8707",
       "imageSize": [1024, 1536],
       "bodyRect": [100, 105, 860, 1375],
@@ -304,7 +304,7 @@
       "reviewEvidence": "assets/design/hero-sprites/cdi-150/references/m10/rogue-male-10-neutral-face-frame-review.png"
     },
     "rogue-male-10-candidate-v12": {
-      "path": "assets/design/hero-sprites/cdi-150/candidates/male/rogue-male-10-combat-idle-v12.png",
+      "path": "assets/design/hero-sprites/cdi-150/validated-male-v1/rogue-male-10-combat-idle-v1.png",
       "sha256": "4e6e954caeb4e621dc1f8ae837684b3ef89cf35c6f89d340fa3928d08c8d0d26",
       "imageSize": [1083, 1453],
       "bodyRect": [51, 83, 1026, 1321],

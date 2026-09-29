@@ -94,7 +94,7 @@ L’utilisateur a validé le pilote, les vingt correspondances neutral/combat et
 
 ## Handoff
 
-Au 24 septembre 2026, l’utilisateur a validé individuellement les vingt images, puis les cinq écrans du cinéma dans le harness `archer-cinema=1..5` après réglage des échelles par variante. Les vingt sources approuvées sont dans `assets/design/hero-sprites/cdi-151/candidates/` et les vingt exports alpha dans `normalized-alpha-v1/` ; les bases neutres CDI-139 restent indépendantes. Le catalogue sélectionne `Archer_<Gender>_<index>@combat_idle` en combat et la clé neutre hors combat.
+Au 24 septembre 2026, l’utilisateur a validé individuellement les vingt images, puis les cinq écrans du cinéma dans le harness `archer-cinema=1..5` après réglage des échelles par variante. Les vingt sources approuvées sont dans `assets/design/hero-sprites/cdi-151/validated-female-v1/` et `validated-male-v1/` et les vingt exports alpha dans `normalized-alpha-v1/` ; les bases neutres CDI-139 restent indépendantes. Le catalogue sélectionne `Archer_<Gender>_<index>@combat_idle` en combat et la clé neutre hors combat.
 
 Preuves finales : 71 tests ciblés du lecteur et du catalogue ; test Playwright des cinq vues PC ; `check:dungeon-visuals`, `typecheck`, `lint -- --quiet`, `build` et `check:bundle` réussis. Les vingt PNG totalisent 6 688 246 octets ; les quatre plus lourds totalisent 1 694 587 octets sous le budget de 2 097 152 octets, et 9 082 240 octets RGBA décodés. La mesure locale sur les fichiers hashés du build donne 6 694 246 octets transférés à froid et 0 au rechargement avec cache immuable. Le Workboard est validé à la clôture.
 

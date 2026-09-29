@@ -1409,8 +1409,7 @@ for (const gender of ["female", "male"]) {
     .filter((relativePath) => dirname(relativePath) === gender)
     .map((relativePath) => basename(relativePath)).sort();
   const actualPng = readdirSync(join(druidCombatImageDirectory, gender))
-    // M03 v1 is retained as history; only its approved v2 belongs to this lot.
-    .filter((file) => file.endsWith(".png") && file !== "druid-male-03-combat-idle-v1.png").sort();
+    .filter((file) => file.endsWith(".png")).sort();
   assert.deepEqual(actualPng, expectedPng, `CDI-155 ${gender} must contain ten normalized sprites`);
   const expectedWebp = expectedPng.map((file) => file.replace(/\.png$/, ".webp"));
   const actualWebp = readdirSync(join(druidCombatRuntimeDirectory, gender))
