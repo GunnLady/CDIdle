@@ -1,0 +1,306 @@
+{
+  "schemaVersion": 1,
+  "ticket": "CDI-156",
+  "entries": [
+    {
+      "key": "Artificier_Male_0@combat_idle",
+      "neutral": "assets/design/hero-sprites/cdi-144/normalized-alpha-v1/male/artificer-male-01-v1.png",
+      "approvedSource": "assets/design/hero-sprites/cdi-156/validated-male-v1/artificer-male-01-combat-idle-v1.png",
+      "normalized": "assets/design/hero-sprites/cdi-156/normalized-alpha-v1/male/artificer-male-01-combat-idle-v1.png",
+      "runtime": "assets/design/hero-sprites/cdi-156/runtime-webp-v1/male/artificer-male-01-combat-idle-v1.webp",
+      "sourceSha256": "5fc8f734f0751a2305cb58a3f9b67a9819aea48bfeea71321d6e23aed943ca00",
+      "normalizedSha256": "04a4f3f908d8e59d110ea0832125792b9883f56e72515504deb667cf4082c92c",
+      "runtimeSha256": "3e51594c46e6b2e73d94cb36845614733cfc3b4855756c25c9a3f4e1c8adb93a",
+      "runtimeBytes": 88058,
+      "frame": [
+        598,
+        920
+      ]
+    },
+    {
+      "key": "Artificier_Male_1@combat_idle",
+      "neutral": "assets/design/hero-sprites/cdi-144/normalized-alpha-v1/male/artificer-male-02-v1.png",
+      "approvedSource": "assets/design/hero-sprites/cdi-156/validated-male-v1/artificer-male-02-combat-idle-v1.png",
+      "normalized": "assets/design/hero-sprites/cdi-156/normalized-alpha-v1/male/artificer-male-02-combat-idle-v1.png",
+      "runtime": "assets/design/hero-sprites/cdi-156/runtime-webp-v1/male/artificer-male-02-combat-idle-v1.webp",
+      "sourceSha256": "92eb07a74e51e359d2d12fc87bde63620351a4d4ee229701944cff00eef3b951",
+      "normalizedSha256": "f198adfee75f34dc208f8430cbc11c997a3f50aced319b9aa2b21076cb9bc013",
+      "runtimeSha256": "164f22b1d626835d6a9c3b551349dfa886ec5debb5cea14d3c9ada6595e4670d",
+      "runtimeBytes": 117864,
+      "frame": [
+        1156,
+        920
+      ]
+    },
+    {
+      "key": "Artificier_Male_2@combat_idle",
+      "neutral": "assets/design/hero-sprites/cdi-144/normalized-alpha-v1/male/artificer-male-03-v1.png",
+      "approvedSource": "assets/design/hero-sprites/cdi-156/validated-male-v1/artificer-male-03-combat-idle-v1.png",
+      "normalized": "assets/design/hero-sprites/cdi-156/normalized-alpha-v1/male/artificer-male-03-combat-idle-v1.png",
+      "runtime": "assets/design/hero-sprites/cdi-156/runtime-webp-v1/male/artificer-male-03-combat-idle-v1.webp",
+      "sourceSha256": "43e0cc113641cdae9a97dc8ccb5a222998259b1ed897571e7e4606de7a2864b8",
+      "normalizedSha256": "3e7648c929d66c9d62b89f37cb399285a44316f34e676658a7939b9028715d89",
+      "runtimeSha256": "7990c5daff208e6f8f4ee3813c3a3f1c00a32d8293c35eeb8c9778189e5e6e60",
+      "runtimeBytes": 104972,
+      "frame": [
+        810,
+        920
+      ]
+    },
+    {
+      "key": "Artificier_Male_3@combat_idle",
+      "neutral": "assets/design/hero-sprites/cdi-144/normalized-alpha-v1/male/artificer-male-04-v1.png",
+      "approvedSource": "assets/design/hero-sprites/cdi-156/validated-male-v1/artificer-male-04-combat-idle-v1.png",
+      "normalized": "assets/design/hero-sprites/cdi-156/normalized-alpha-v1/male/artificer-male-04-combat-idle-v1.png",
+      "runtime": "assets/design/hero-sprites/cdi-156/runtime-webp-v1/male/artificer-male-04-combat-idle-v1.webp",
+      "sourceSha256": "1b387f446a0d8d3b1a48d0031d63eb38124eae9083f0e8423def7ca19127c5de",
+      "normalizedSha256": "8425840d6e848efaf114fff703d9d4025798dd2baff97a52614954534ff52664",
+      "runtimeSha256": "f91973fd06d3aa863ae0b8cb73251b41c0fb8d92b6455b82b6158424a24e5573",
+      "runtimeBytes": 84394,
+      "frame": [
+        636,
+        920
+      ]
+    },
+    {
+      "key": "Artificier_Male_4@combat_idle",
+      "neutral": "assets/design/hero-sprites/cdi-144/normalized-alpha-v1/male/artificer-male-05-v1.png",
+      "approvedSource": "assets/design/hero-sprites/cdi-156/validated-male-v1/artificer-male-05-combat-idle-v1.png",
+      "normalized": "assets/design/hero-sprites/cdi-156/normalized-alpha-v1/male/artificer-male-05-combat-idle-v1.png",
+      "runtime": "assets/design/hero-sprites/cdi-156/runtime-webp-v1/male/artificer-male-05-combat-idle-v1.webp",
+      "sourceSha256": "dbbfff40dbaab245cdd66f84213f0c3b9fcb2cee3f4686f6647e14539a16f45a",
+      "normalizedSha256": "cbd5f4863d1ac5001318e574f5267cd73e9188ec2c06cb6066df734818890bac",
+      "runtimeSha256": "7f4b681c6515b21c25809e6ee98769e9143fc090bc35bed41c9d13c86d491e04",
+      "runtimeBytes": 95948,
+      "frame": [
+        686,
+        920
+      ]
+    },
+    {
+      "key": "Artificier_Male_5@combat_idle",
+      "neutral": "assets/design/hero-sprites/cdi-144/normalized-alpha-v1/male/artificer-male-06-v1.png",
+      "approvedSource": "assets/design/hero-sprites/cdi-156/validated-male-v1/artificer-male-06-combat-idle-v1.png",
+      "normalized": "assets/design/hero-sprites/cdi-156/normalized-alpha-v1/male/artificer-male-06-combat-idle-v1.png",
+      "runtime": "assets/design/hero-sprites/cdi-156/runtime-webp-v1/male/artificer-male-06-combat-idle-v1.webp",
+      "sourceSha256": "0d0f5b3dc0e745d629ec3c4230c2cbc8e3103e6e8fb6e2e75620319a0e570d65",
+      "normalizedSha256": "b3344feff30ecd214fe134e115c3d3421d8b3d7a7f065baabb679243c4d5f59c",
+      "runtimeSha256": "71ea028b83810e54524e034c4c0ee6fa9d267cf7db9faec59916e7c125bd99fe",
+      "runtimeBytes": 83754,
+      "frame": [
+        530,
+        920
+      ]
+    },
+    {
+      "key": "Artificier_Male_6@combat_idle",
+      "neutral": "assets/design/hero-sprites/cdi-144/normalized-alpha-v1/male/artificer-male-07-v1.png",
+      "approvedSource": "assets/design/hero-sprites/cdi-156/validated-male-v1/artificer-male-07-combat-idle-v1.png",
+      "normalized": "assets/design/hero-sprites/cdi-156/normalized-alpha-v1/male/artificer-male-07-combat-idle-v1.png",
+      "runtime": "assets/design/hero-sprites/cdi-156/runtime-webp-v1/male/artificer-male-07-combat-idle-v1.webp",
+      "sourceSha256": "1c8d18d8c6dd593863fc24eb6b2c7d20ed9b624318bd56f3d9479eb50d05bc77",
+      "normalizedSha256": "7a1ce0bd5e57911052faeb74dea5c3a95ed95b26dd7c4d2a8521dfd9c0c390ab",
+      "runtimeSha256": "961b57be450f1811c19301e58f32f1b0900fed458411776126246e18297ddc65",
+      "runtimeBytes": 81810,
+      "frame": [
+        604,
+        920
+      ]
+    },
+    {
+      "key": "Artificier_Male_7@combat_idle",
+      "neutral": "assets/design/hero-sprites/cdi-144/normalized-alpha-v1/male/artificer-male-08-v1.png",
+      "approvedSource": "assets/design/hero-sprites/cdi-156/validated-male-v1/artificer-male-08-combat-idle-v1.png",
+      "normalized": "assets/design/hero-sprites/cdi-156/normalized-alpha-v1/male/artificer-male-08-combat-idle-v1.png",
+      "runtime": "assets/design/hero-sprites/cdi-156/runtime-webp-v1/male/artificer-male-08-combat-idle-v1.webp",
+      "sourceSha256": "8b1f0ba6a0a1365e29f1c192d780804163b85da97f5d56e62d8782512f6331bd",
+      "normalizedSha256": "5db15e49354af6fa1c7cef6d169eb4dd6b07354e570b2a6d3c062c2bf1d2eb0f",
+      "runtimeSha256": "c46a84b356513e06141ce3e3cc26455ca1fc0922a88ccce13b8027da9cd2032e",
+      "runtimeBytes": 95854,
+      "frame": [
+        696,
+        920
+      ]
+    },
+    {
+      "key": "Artificier_Male_8@combat_idle",
+      "neutral": "assets/design/hero-sprites/cdi-144/normalized-alpha-v1/male/artificer-male-09-v1.png",
+      "approvedSource": "assets/design/hero-sprites/cdi-156/validated-male-v1/artificer-male-09-combat-idle-v1.png",
+      "normalized": "assets/design/hero-sprites/cdi-156/normalized-alpha-v1/male/artificer-male-09-combat-idle-v1.png",
+      "runtime": "assets/design/hero-sprites/cdi-156/runtime-webp-v1/male/artificer-male-09-combat-idle-v1.webp",
+      "sourceSha256": "944bb3bd685a6f9c98223690a7df805d926ed4f150a254ffca65b3a5d73af8c3",
+      "normalizedSha256": "6128f108d40232853c73a440d2ade3ba8b39255d110547c3f156dda413b86b83",
+      "runtimeSha256": "be5d806e16c0b1833df90c55f050c25e6ed176495fac9dfd6c9ab434cbd2f2ab",
+      "runtimeBytes": 116094,
+      "frame": [
+        842,
+        920
+      ]
+    },
+    {
+      "key": "Artificier_Male_9@combat_idle",
+      "neutral": "assets/design/hero-sprites/cdi-144/normalized-alpha-v1/male/artificer-male-10-v1.png",
+      "approvedSource": "assets/design/hero-sprites/cdi-156/validated-male-v1/artificer-male-10-combat-idle-v1.png",
+      "normalized": "assets/design/hero-sprites/cdi-156/normalized-alpha-v1/male/artificer-male-10-combat-idle-v1.png",
+      "runtime": "assets/design/hero-sprites/cdi-156/runtime-webp-v1/male/artificer-male-10-combat-idle-v1.webp",
+      "sourceSha256": "99a6fc3636c2ccf6edcf5053cad2f904bbdec5783cfe381193ee05ace6f49c17",
+      "normalizedSha256": "e954615c393c1fea08b5e9e6062a60fd3797ab16a61595679a82998e6615c8c9",
+      "runtimeSha256": "aa6da5e5b467f01497caa7ec4cf2f1f3a86cb0ce3e028d4cb2bcffd4c8a90b84",
+      "runtimeBytes": 80700,
+      "frame": [
+        528,
+        920
+      ]
+    },
+    {
+      "key": "Artificier_Female_0@combat_idle",
+      "neutral": "assets/design/hero-sprites/cdi-144/normalized-alpha-v1/female/artificer-female-01-v1.png",
+      "approvedSource": "assets/design/hero-sprites/cdi-156/validated-female-v1/artificer-female-01-combat-idle-v1.png",
+      "normalized": "assets/design/hero-sprites/cdi-156/normalized-alpha-v1/female/artificer-female-01-combat-idle-v1.png",
+      "runtime": "assets/design/hero-sprites/cdi-156/runtime-webp-v1/female/artificer-female-01-combat-idle-v1.webp",
+      "sourceSha256": "6cd1df922a7d21be5074681f63a9de81817af4501bd65aae61aebb6220dc07bb",
+      "normalizedSha256": "984d32ba1966acff66614599345d405f8a9e34824b0bfe5f12f0264ab7668763",
+      "runtimeSha256": "ea8e5b0fd99d0ad7253a061a47a6c6345d3de517985b6f5064e139e9b9356ce8",
+      "runtimeBytes": 96780,
+      "frame": [
+        600,
+        920
+      ]
+    },
+    {
+      "key": "Artificier_Female_1@combat_idle",
+      "neutral": "assets/design/hero-sprites/cdi-144/normalized-alpha-v1/female/artificer-female-02-v1.png",
+      "approvedSource": "assets/design/hero-sprites/cdi-156/validated-female-v1/artificer-female-02-combat-idle-v1.png",
+      "normalized": "assets/design/hero-sprites/cdi-156/normalized-alpha-v1/female/artificer-female-02-combat-idle-v1.png",
+      "runtime": "assets/design/hero-sprites/cdi-156/runtime-webp-v1/female/artificer-female-02-combat-idle-v1.webp",
+      "sourceSha256": "eac5bf31ffa06bbfd48b792ac61f0eccd7abe458b95ca172f180d88f748bf85c",
+      "normalizedSha256": "096277f125db2efea5718c44efc9b0110e816ad1fb5e34a3c37f3ec8d713124a",
+      "runtimeSha256": "bbdb56cbb2f74b7455067211310e5411c4ac52624823185d3617e0c46d571125",
+      "runtimeBytes": 94376,
+      "frame": [
+        620,
+        920
+      ]
+    },
+    {
+      "key": "Artificier_Female_2@combat_idle",
+      "neutral": "assets/design/hero-sprites/cdi-144/normalized-alpha-v1/female/artificer-female-03-v1.png",
+      "approvedSource": "assets/design/hero-sprites/cdi-156/validated-female-v1/artificer-female-03-combat-idle-v1.png",
+      "normalized": "assets/design/hero-sprites/cdi-156/normalized-alpha-v1/female/artificer-female-03-combat-idle-v1.png",
+      "runtime": "assets/design/hero-sprites/cdi-156/runtime-webp-v1/female/artificer-female-03-combat-idle-v1.webp",
+      "sourceSha256": "a3b952e9b5866e9a41d8e0a85a912f7c7b9ca26b856c2bd34a013a97f6c0db8d",
+      "normalizedSha256": "0502399d5ac89df2a0d5c6d948328ea9a28897f657cbf6b54d0f7141f4dc8615",
+      "runtimeSha256": "e983175b4e25522bf5ea1fc9fb82a7ec597109db5116b130138fd61c05cc32cc",
+      "runtimeBytes": 105434,
+      "frame": [
+        804,
+        920
+      ]
+    },
+    {
+      "key": "Artificier_Female_3@combat_idle",
+      "neutral": "assets/design/hero-sprites/cdi-144/normalized-alpha-v1/female/artificer-female-04-v1.png",
+      "approvedSource": "assets/design/hero-sprites/cdi-156/validated-female-v1/artificer-female-04-combat-idle-v1.png",
+      "normalized": "assets/design/hero-sprites/cdi-156/normalized-alpha-v1/female/artificer-female-04-combat-idle-v1.png",
+      "runtime": "assets/design/hero-sprites/cdi-156/runtime-webp-v1/female/artificer-female-04-combat-idle-v1.webp",
+      "sourceSha256": "e9ddc1904ec1ef97f8d99d020be42c6fb41f126236132c171afb89b90eb915b0",
+      "normalizedSha256": "49d14d486bed4b9fbb6d2bf795bd0e1d78705a12b0b214bfbfcdfd5ccff139d3",
+      "runtimeSha256": "197c944101daa3918e2ac13e4ee5e6764c600cf5a5096734193bdb1f5da638f8",
+      "runtimeBytes": 101986,
+      "frame": [
+        580,
+        920
+      ]
+    },
+    {
+      "key": "Artificier_Female_4@combat_idle",
+      "neutral": "assets/design/hero-sprites/cdi-144/normalized-alpha-v1/female/artificer-female-05-v1.png",
+      "approvedSource": "assets/design/hero-sprites/cdi-156/validated-female-v1/artificer-female-05-combat-idle-v1.png",
+      "normalized": "assets/design/hero-sprites/cdi-156/normalized-alpha-v1/female/artificer-female-05-combat-idle-v1.png",
+      "runtime": "assets/design/hero-sprites/cdi-156/runtime-webp-v1/female/artificer-female-05-combat-idle-v1.webp",
+      "sourceSha256": "9f29b459a4b96e651b1d10ddafba71dff7d3755dbec75c825582a3b6c635e23c",
+      "normalizedSha256": "85e07ead4dd2293fdfcb1142f127aac432a6df858184f39ba22c6f94e97cdcb7",
+      "runtimeSha256": "3625978b11f7a78d082fdbff5fa66fbe55ad0d26f458a06e929c61abd7ea8175",
+      "runtimeBytes": 104908,
+      "frame": [
+        666,
+        920
+      ]
+    },
+    {
+      "key": "Artificier_Female_5@combat_idle",
+      "neutral": "assets/design/hero-sprites/cdi-144/normalized-alpha-v1/female/artificer-female-06-v1.png",
+      "approvedSource": "assets/design/hero-sprites/cdi-156/validated-female-v1/artificer-female-06-combat-idle-v1.png",
+      "normalized": "assets/design/hero-sprites/cdi-156/normalized-alpha-v1/female/artificer-female-06-combat-idle-v1.png",
+      "runtime": "assets/design/hero-sprites/cdi-156/runtime-webp-v1/female/artificer-female-06-combat-idle-v1.webp",
+      "sourceSha256": "bc0ad1401ea8320927d86fd712d52a630d3c558a29bc35a6ffc3a26fe5f91af2",
+      "normalizedSha256": "109e5ac5a91ba30e4eea225482e0a6415c246dbd3e7b3aaaf4dbdb1375f3fc01",
+      "runtimeSha256": "b38b2d76cd9e8d6ae03b726dfcb9aed39eca56cedbb314962a89dea7f8cb8dd8",
+      "runtimeBytes": 81810,
+      "frame": [
+        506,
+        920
+      ]
+    },
+    {
+      "key": "Artificier_Female_6@combat_idle",
+      "neutral": "assets/design/hero-sprites/cdi-144/normalized-alpha-v1/female/artificer-female-07-v1.png",
+      "approvedSource": "assets/design/hero-sprites/cdi-156/validated-female-v1/artificer-female-07-combat-idle-v1.png",
+      "normalized": "assets/design/hero-sprites/cdi-156/normalized-alpha-v1/female/artificer-female-07-combat-idle-v1.png",
+      "runtime": "assets/design/hero-sprites/cdi-156/runtime-webp-v1/female/artificer-female-07-combat-idle-v1.webp",
+      "sourceSha256": "fcb578bbef793dc91120740be2bd85db551134716d581b2c312a6d13d45e7fb9",
+      "normalizedSha256": "d2dab15b8a250280b3efed7fd262cd1333cae505b67263d655e22beb4379d56d",
+      "runtimeSha256": "3be13cc8d59f11dfe39c4edc1d368bde1284ff3ecb125569c55be6f2d2f6b4f4",
+      "runtimeBytes": 97856,
+      "frame": [
+        574,
+        920
+      ]
+    },
+    {
+      "key": "Artificier_Female_7@combat_idle",
+      "neutral": "assets/design/hero-sprites/cdi-144/normalized-alpha-v1/female/artificer-female-08-v1.png",
+      "approvedSource": "assets/design/hero-sprites/cdi-156/validated-female-v1/artificer-female-08-combat-idle-v1.png",
+      "normalized": "assets/design/hero-sprites/cdi-156/normalized-alpha-v1/female/artificer-female-08-combat-idle-v1.png",
+      "runtime": "assets/design/hero-sprites/cdi-156/runtime-webp-v1/female/artificer-female-08-combat-idle-v1.webp",
+      "sourceSha256": "3d456510f82f2c95ce99f2028cfa0216cb9141e980af37a8ff5ffecae78b27b2",
+      "normalizedSha256": "c8a432b31a8d24bf74423d2c7554f9a7ef85d2966316f08e0ee3203b5c9fc591",
+      "runtimeSha256": "433fa0fef5ed5376745c4b49f19989fba516d2df9e2a9efd0d47587148db90e4",
+      "runtimeBytes": 165448,
+      "frame": [
+        996,
+        920
+      ]
+    },
+    {
+      "key": "Artificier_Female_8@combat_idle",
+      "neutral": "assets/design/hero-sprites/cdi-144/normalized-alpha-v1/female/artificer-female-09-v1.png",
+      "approvedSource": "assets/design/hero-sprites/cdi-156/validated-female-v1/artificer-female-09-combat-idle-v1.png",
+      "normalized": "assets/design/hero-sprites/cdi-156/normalized-alpha-v1/female/artificer-female-09-combat-idle-v1.png",
+      "runtime": "assets/design/hero-sprites/cdi-156/runtime-webp-v1/female/artificer-female-09-combat-idle-v1.webp",
+      "sourceSha256": "47cfb7060184fe442450dea44fd7bce1b3fdd605e19446584edf74559b651f3f",
+      "normalizedSha256": "1cb0bfabf93483e5556e7920205e423f5821c66a2b674d74e13202cf50233397",
+      "runtimeSha256": "845090e82f97e99a61e60f131359309630f72c6cc3a09f57f51eabe3edae063e",
+      "runtimeBytes": 87028,
+      "frame": [
+        470,
+        920
+      ]
+    },
+    {
+      "key": "Artificier_Female_9@combat_idle",
+      "neutral": "assets/design/hero-sprites/cdi-144/normalized-alpha-v1/female/artificer-female-10-v1.png",
+      "approvedSource": "assets/design/hero-sprites/cdi-156/validated-female-v1/artificer-female-10-combat-idle-v1.png",
+      "normalized": "assets/design/hero-sprites/cdi-156/normalized-alpha-v1/female/artificer-female-10-combat-idle-v1.png",
+      "runtime": "assets/design/hero-sprites/cdi-156/runtime-webp-v1/female/artificer-female-10-combat-idle-v1.webp",
+      "sourceSha256": "8623c271b7adbe7ac524a3f0188b1b9cc716d9199744e6b544ff636c6e6545ef",
+      "normalizedSha256": "37e50dd5379b9776106a79c861dd4111a4c29ff370f0d553ba2bff1334dfd850",
+      "runtimeSha256": "e7d4c28c285501a8447c9e04b346812f5c74d3ca74a9a15c86646250255e5009",
+      "runtimeBytes": 88280,
+      "frame": [
+        506,
+        920
+      ]
+    }
+  ]
+}

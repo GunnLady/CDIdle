@@ -457,7 +457,12 @@ export function createDungeonCombatSceneView(
       ),
       actor.contentKey,
     );
-    const zoomed = applyActorPositionOffset(zoomedSlot, actor.contentKey);
+    let zoomed = applyActorPositionOffset(zoomedSlot, actor.contentKey);
+    // M02's long rifle needs room at the right edge of the PC 200% zoom layout.
+    // Both persisted indices refer to the same portrait; preserve other slots and scales.
+    if (actor.visualKey === "Artificier_Male_1" || actor.visualKey === "Artificier_Male_11") {
+      zoomed = { ...zoomed, xPercent: Math.min(zoomed.xPercent, 81) };
+    }
     const active = actor.id === activeActor?.id;
     const visualPose = actor.team === "heroes" ? heroVisualPose(mode) : null;
     return [{

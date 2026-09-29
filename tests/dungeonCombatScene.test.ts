@@ -175,9 +175,10 @@ describe("dungeon combat scene presentation", () => {
     expect(view.environment).toBe("sewers");
   });
 
-  it("uses explicit neutral and combat-idle pose keys without changing hero identity", () => {
+  it.each(["Novice_Male_0", "Artificier_Male_9", "Artificier_Female_0"])(
+    "uses explicit neutral and combat-idle pose keys without changing %s identity", (visualKey) => {
     const actors = [
-      actor("novice", "heroes", 0, { visualKey: "Novice_Male_0" }),
+      actor("hero-0", "heroes", 0, { visualKey }),
       actor("enemy-0", "enemies", 0),
     ];
     const entry = createDungeonCombatSceneView(scene({
@@ -194,19 +195,35 @@ describe("dungeon combat scene presentation", () => {
     }));
 
     expect(entry.actors[0]).toMatchObject({
-      visualKey: "Novice_Male_0@combat_idle",
+      visualKey: `${visualKey}@combat_idle`,
       visualPose: "combat_idle",
     });
     expect(idle.actors[0]).toMatchObject({
-      visualKey: "Novice_Male_0@combat_idle",
+      visualKey: `${visualKey}@combat_idle`,
       visualPose: "combat_idle",
     });
     expect(action.actors[0]).toMatchObject({
-      visualKey: "Novice_Male_0@combat_idle",
+      visualKey: `${visualKey}@combat_idle`,
       visualPose: "combat_idle",
     });
-    expect(result.actors[0]).toMatchObject({ visualKey: "Novice_Male_0", visualPose: "neutral" });
+    expect(result.actors[0]).toMatchObject({ visualKey, visualPose: "neutral" });
   });
+
+  it.each(["Artificier_Male_1", "Artificier_Male_11"])(
+    "keeps %s's rifle inside the zoom layout without changing scale or desktop positions", (visualKey) => {
+      const ordinary = createDungeonCombatSceneView(scene());
+      const artificers = createDungeonCombatSceneView(scene({
+        actors: scene().actors.map((entry) => entry.team === "heroes" ? { ...entry, visualKey } : entry),
+      }));
+      for (let index = 0; index < 4; index += 1) {
+        expect(artificers.actors[index].standard).toEqual(ordinary.actors[index].standard);
+        expect(artificers.actors[index].zoomed).toEqual({
+          ...ordinary.actors[index].zoomed,
+          xPercent: index === 3 ? 81 : ordinary.actors[index].zoomed.xPercent,
+        });
+      }
+    },
+  );
 
   it("selects the canonical environment for every UnderCity blueprint", () => {
     for (const zone of UNDERCITY_ZONES) {

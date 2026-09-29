@@ -19,7 +19,8 @@ export default defineConfig({
   webServer: {
     command: "npm run dev:layout-browser",
     url: "http://127.0.0.1:3001/tests/browser/fixtures/city-harness.html",
-    reuseExistingServer: false,
+    // Explicit local opt-in keeps CI isolated while preserving a manual review harness.
+    reuseExistingServer: !process.env.CI && process.env.CDIDLE_REUSE_LAYOUT_SERVER === "1",
     timeout: 30_000,
   },
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],

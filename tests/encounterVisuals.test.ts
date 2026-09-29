@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { CDI156_ARTIFICER_COMBAT_IDLE_VARIANT_COUNT, getCdi156ArtificerCombatIdlePivotX } from "../src/assets/artificerCdi156CombatPoses";
 import { CDI155_DRUID_COMBAT_IDLE_VARIANT_COUNT, getCdi155DruidCombatIdlePivotX, getCdi155DruidCombatIdleScale } from "../src/assets/druidCdi155CombatPoses";
 import { CDI154_AEDE_COMBAT_IDLE_VARIANT_COUNT, getCdi154AedeCombatIdlePivotX, getCdi154AedeCombatIdleScale } from "../src/assets/aedeCdi154CombatPoses";
 import { describe, expect, it, vi } from "vitest";
@@ -98,7 +100,7 @@ describe("encounter visual catalog", () => {
     expect(wrappedWarrior.url).toContain("warrior-female-10-combat-idle-v1");
     expect(wrappedWarrior.descriptor.pivotX).toBe(314.5 / 776);
 
-    const otherClass = resolveEncounterVisualDescriptor("Artificier_Female_7@combat_idle");
+    const otherClass = resolveEncounterVisualDescriptor("Pugiliste_Female_7@combat_idle");
     expect(otherClass).toMatchObject({
       provenance: "CDIdle explicit neutral hero-pose fallback",
       kind: "hero",
@@ -343,6 +345,47 @@ describe("encounter visual catalog", () => {
     expect(wrapped.url).toContain("druid-female-10-combat-idle-v1");
   });
 
+  it("loads all twenty CDI-156 Artificer combat-idle identities and keeps neutral portraits separate", async () => {
+    const calibration = JSON.parse(readFileSync(
+      "assets/design/hero-sprites/cdi-156/face-calibration.json", "utf8",
+    )) as { entries: { gender: "male" | "female"; variant: number; scale: number }[] };
+    expect(CDI156_ARTIFICER_COMBAT_IDLE_VARIANT_COUNT).toBe(10);
+    expect(calibration.entries).toHaveLength(20);
+    const identities = calibration.entries.map((entry) => ({
+      gender: entry.gender === "female" ? "Female" as const : "Male" as const,
+      variant: entry.variant,
+      approvedScale: entry.scale,
+    }));
+    const assets = await Promise.all(identities.map(({ gender, variant }) => (
+      loadEncounterVisualAsset(`Artificier_${gender}_${variant}@combat_idle`)
+    )));
+    for (const [index, asset] of assets.entries()) {
+      const { gender, variant, approvedScale } = identities[index];
+      expect(asset).toMatchObject({
+        status: "ready",
+        descriptor: {
+          provenance: "CDI-156 validated Artificer combat-idle alpha sprites",
+          anchor: { x: 0.5, y: 900 / 920 },
+          pivotX: getCdi156ArtificerCombatIdlePivotX(gender, variant),
+          scale: 920 / 692 * approvedScale,
+          fit: "height",
+        },
+      });
+      expect(asset.url).toContain(
+        `artificer-${gender.toLowerCase()}-${String(variant + 1).padStart(2, "0")}-combat-idle-v1`,
+      );
+      const neutral = await loadEncounterVisualAsset(`Artificier_${gender}_${variant}`);
+      expect(neutral.url).toContain(`artificer-${gender.toLowerCase()}-${String(variant + 1).padStart(2, "0")}-v1.png`);
+      expect(resolveEncounterVisualDescriptor(`Artificier_${gender}_${variant}`)).toMatchObject({
+        provenance: "CDI-144 validated Artificer alpha sprites",
+        anchor: { x: 0.5, y: 0.93 },
+        scale: 1,
+      });
+    }
+    const wrapped = await loadEncounterVisualAsset("Artificier_Female_19@combat_idle");
+    expect(wrapped.url).toContain("artificer-female-10-combat-idle-v1");
+  });
+
   it("loads CDI-137 Warrior neutral sprites through stable legacy identity keys", async () => {
     const first = await loadEncounterVisualAsset("Guerrier_Male_0");
     const wrapped = await loadEncounterVisualAsset("Guerrier_Female_19");
@@ -440,6 +483,13 @@ describe("encounter visual catalog", () => {
   });
 
   it("loads CDI-145 Pugilist neutral sprites through stable legacy identity keys", async () => {
+    for (const gender of ["Male", "Female"] as const) {
+      for (let variant = 0; variant < 20; variant += 1) {
+        const asset = await loadEncounterVisualAsset(`Pugiliste_${gender}_${variant}`);
+        expect(asset.status).toBe("ready");
+        expect(asset.url).toContain(`pugilist-${gender.toLowerCase()}-${String(variant % 10 + 1).padStart(2, "0")}-v1.png`);
+      }
+    }
     const first = await loadEncounterVisualAsset("Pugiliste_Male_0");
     const wrapped = await loadEncounterVisualAsset("Pugiliste_Female_19");
 

@@ -1,3 +1,4 @@
+import { getCdi156ArtificerCombatIdlePivotX, getCdi156ArtificerCombatIdleScale, getCdi156ArtificerCombatIdleUrl } from "./artificerCdi156CombatPoses";
 import { getCdi155DruidCombatIdlePivotX, getCdi155DruidCombatIdleScale, getCdi155DruidCombatIdleUrl } from "./druidCdi155CombatPoses";
 import { getCdi154AedeCombatIdlePivotX, getCdi154AedeCombatIdleScale, getCdi154AedeCombatIdleUrl } from "./aedeCdi154CombatPoses";
 import { CANONICAL_HERO_CLASSES, type CanonicalHeroClass } from "../../shared/domain/hero-classes";
@@ -282,21 +283,25 @@ export function resolveEncounterVisualDescriptor(key: string): EncounterVisualDe
     const druidCombatIdleUrl = heroPoseIdentity.classType === "Druide"
       ? getCdi155DruidCombatIdleUrl(heroPoseIdentity.gender, heroPoseIdentity.variant)
       : null;
+    const artificerCombatIdleUrl = heroPoseIdentity.classType === "Artificier"
+      ? getCdi156ArtificerCombatIdleUrl(heroPoseIdentity.gender, heroPoseIdentity.variant)
+      : null;
+    const artificerCombatIdle = artificerCombatIdleUrl !== null;
     const druidCombatIdle = druidCombatIdleUrl !== null;
     const aedeCombatIdle = aedeCombatIdleUrl !== null;
-    const combatIdleUrl = noviceCombatIdleUrl ?? warriorCombatIdleUrl ?? rogueCombatIdleUrl ?? archerCombatIdleUrl ?? mageCombatIdleUrl ?? acolyteCombatIdleUrl ?? aedeCombatIdleUrl ?? druidCombatIdleUrl;
+    const combatIdleUrl = noviceCombatIdleUrl ?? warriorCombatIdleUrl ?? rogueCombatIdleUrl ?? archerCombatIdleUrl ?? mageCombatIdleUrl ?? acolyteCombatIdleUrl ?? aedeCombatIdleUrl ?? druidCombatIdleUrl ?? artificerCombatIdleUrl;
     const warriorCombatIdle = warriorCombatIdleUrl !== null;
     const rogueCombatIdle = rogueCombatIdleUrl !== null;
     const archerCombatIdle = archerCombatIdleUrl !== null;
     const mageCombatIdle = mageCombatIdleUrl !== null;
     const acolyteCombatIdle = acolyteCombatIdleUrl !== null;
-    const standardHeightCombatIdle = archerCombatIdle || mageCombatIdle || acolyteCombatIdle || aedeCombatIdle || druidCombatIdle;
+    const standardHeightCombatIdle = archerCombatIdle || mageCombatIdle || acolyteCombatIdle || aedeCombatIdle || druidCombatIdle || artificerCombatIdle;
     return {
       key,
       kind: "hero",
       version: ENCOUNTER_VISUAL_CATALOG_VERSION,
       provenance: combatIdleUrl
-        ? `CDI-${noviceCombatIdleUrl ? 148 : warriorCombatIdleUrl ? 149 : rogueCombatIdleUrl ? 150 : archerCombatIdleUrl ? 151 : mageCombatIdleUrl ? 152 : acolyteCombatIdleUrl ? 153 : aedeCombatIdleUrl ? 154 : 155} validated ${validatedHeroSpriteMetadata[heroPoseIdentity.classType]?.[1]} combat-idle alpha sprites`
+        ? `CDI-${noviceCombatIdleUrl ? 148 : warriorCombatIdleUrl ? 149 : rogueCombatIdleUrl ? 150 : archerCombatIdleUrl ? 151 : mageCombatIdleUrl ? 152 : acolyteCombatIdleUrl ? 153 : aedeCombatIdleUrl ? 154 : druidCombatIdleUrl ? 155 : 156} validated ${validatedHeroSpriteMetadata[heroPoseIdentity.classType]?.[1]} combat-idle alpha sprites`
         : "CDIdle explicit neutral hero-pose fallback",
       anchor: warriorCombatIdle
         ? { x: 0.5, y: CDI149_WARRIOR_COMBAT_IDLE_VISIBLE_BOTTOM / CDI149_WARRIOR_COMBAT_IDLE_FRAME_HEIGHT }
@@ -305,7 +310,9 @@ export function resolveEncounterVisualDescriptor(key: string): EncounterVisualDe
         : standardHeightCombatIdle
           ? { x: 0.5, y: CDI151_ARCHER_COMBAT_IDLE_VISIBLE_BOTTOM / CDI151_ARCHER_COMBAT_IDLE_FRAME_HEIGHT }
         : { x: 0.5, y: 0.93 },
-      pivotX: druidCombatIdle
+      pivotX: artificerCombatIdle
+        ? getCdi156ArtificerCombatIdlePivotX(heroPoseIdentity.gender, heroPoseIdentity.variant)
+        : druidCombatIdle
         ? getCdi155DruidCombatIdlePivotX(heroPoseIdentity.gender, heroPoseIdentity.variant)
         : aedeCombatIdle
         ? getCdi154AedeCombatIdlePivotX(heroPoseIdentity.gender, heroPoseIdentity.variant)
@@ -331,7 +338,9 @@ export function resolveEncounterVisualDescriptor(key: string): EncounterVisualDe
                   ? getCdi153AcolyteCombatIdleScale(heroPoseIdentity.gender, heroPoseIdentity.variant)
                   : aedeCombatIdle
                     ? getCdi154AedeCombatIdleScale(heroPoseIdentity.gender, heroPoseIdentity.variant)
-                    : getCdi155DruidCombatIdleScale(heroPoseIdentity.gender, heroPoseIdentity.variant))
+                    : druidCombatIdle
+                      ? getCdi155DruidCombatIdleScale(heroPoseIdentity.gender, heroPoseIdentity.variant)
+                      : getCdi156ArtificerCombatIdleScale(heroPoseIdentity.gender, heroPoseIdentity.variant))
         : 1,
       fit: warriorCombatIdle || rogueCombatIdle || standardHeightCombatIdle ? "height" : "contain",
       fallbackGlyph: "◆",

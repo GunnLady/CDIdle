@@ -494,7 +494,8 @@ test("loads all twenty CDI-155 Druid combat poses across the five PC cinema revi
   }
 });
 
-test("loads all twenty CDI-144 Artificer sprites across the five PC cinema review pages", async ({ page }) => {
+test("loads all twenty CDI-156 Artificer combat poses across the five PC cinema review pages", async ({ page }, testInfo) => {
+  await page.addInitScript(() => performance.setResourceTimingBufferSize(3000));
   await page.setViewportSize({ width: 1440, height: 1000 });
 
   for (let reviewPage = 1; reviewPage <= 5; reviewPage += 1) {
@@ -502,15 +503,35 @@ test("loads all twenty CDI-144 Artificer sprites across the five PC cinema revie
     const scene = page.getByTestId("dungeon-combat-scene");
     const heroes = scene.locator("[data-testid='dungeon-combat-actor'][data-team='heroes']");
     await expect(scene).toBeVisible();
-    await expect(scene).toHaveAttribute("data-animations", "disabled");
     await expect(heroes).toHaveCount(4);
     await expect(heroes.locator("[data-testid='dungeon-combat-visual'][data-asset-status='ready']"))
       .toHaveCount(4);
     await expect(scene.locator("[data-team='heroes'][data-visual-pose='combat_idle']")).toHaveCount(4);
 
+    await expect(heroes.locator("img")).toHaveCount(4);
+    await heroes.locator("img").evaluateAll(async (images) => {
+      await Promise.all(images.map((image) => (image as HTMLImageElement).decode()));
+    });
     const sources = await heroes.locator("img").evaluateAll((images) => images.map((image) => {
       const sprite = image as HTMLImageElement;
+      const canvas = document.createElement("canvas");
+      canvas.width = sprite.naturalWidth;
+      canvas.height = sprite.naturalHeight;
+      const context = canvas.getContext("2d")!;
+      context.drawImage(sprite, 0, 0);
+      const pixels = context.getImageData(0, 0, canvas.width, canvas.height).data;
+      const visible = { left: canvas.width, top: canvas.height, right: -1, bottom: -1 };
+      for (let y = 0; y < canvas.height; y += 1) {
+        for (let x = 0; x < canvas.width; x += 1) {
+          if (pixels[(y * canvas.width + x) * 4 + 3] <= 32) continue;
+          visible.left = Math.min(visible.left, x);
+          visible.top = Math.min(visible.top, y);
+          visible.right = Math.max(visible.right, x + 1);
+          visible.bottom = Math.max(visible.bottom, y + 1);
+        }
+      }
       return {
+        visible,
         naturalWidth: sprite.naturalWidth,
         naturalHeight: sprite.naturalHeight,
         source: sprite.currentSrc,
@@ -519,17 +540,77 @@ test("loads all twenty CDI-144 Artificer sprites across the five PC cinema revie
     const firstVariant = (reviewPage - 1) * 2 + 1;
     const expectedNames = (["female", "male"] as const).flatMap((gender) => (
       [firstVariant, firstVariant + 1].map((variant) => (
-        `artificer-${gender}-${String(variant).padStart(2, "0")}-v1`
+        `artificer-${gender}-${String(variant).padStart(2, "0")}-combat-idle-v1`
       ))
     ));
     expect(sources).toHaveLength(4);
     expect(sources.every(({ naturalWidth, naturalHeight }) => (
-      naturalWidth === 341 && naturalHeight === 692
+      naturalWidth >= 341 && naturalHeight === 920
     ))).toBe(true);
     for (const expectedName of expectedNames) {
       expect(sources.some(({ source }) => source.includes(expectedName))).toBe(true);
     }
-    await expectCombatSceneContained(page);
+    const loadedArtificerFiles = await page.evaluate(() => performance.getEntriesByType("resource")
+      .filter((entry) => (entry as PerformanceResourceTiming).initiatorType === "img")
+      .map((entry) => entry.name).filter((name) => name.includes("/hero-sprites/")));
+    expect([...new Set(loadedArtificerFiles)].sort()).toEqual(sources.map(({ source }) => source).sort());
+    const layouts = [];
+    for (const width of [1440, 1280, 1024, 512]) {
+      await page.setViewportSize({ width, height: 1000 });
+      await expectCombatSceneContained(page);
+      const spriteBounds = await heroes.locator("img").evaluateAll((images, sourceImages) => images.map((image) => {
+        const sprite = image as HTMLImageElement;
+        const source = sourceImages.find((entry) => entry.source === sprite.currentSrc)!;
+        const stage = image.closest("[data-testid='dungeon-combat-stage']")!.getBoundingClientRect();
+        const box = image.getBoundingClientRect();
+        // Transparent padding may extend outside the stage; test the visible pixels.
+        const visible = {
+          left: box.left + source.visible.left / source.naturalWidth * box.width,
+          right: box.left + source.visible.right / source.naturalWidth * box.width,
+          top: box.top + source.visible.top / source.naturalHeight * box.height,
+          bottom: box.top + source.visible.bottom / source.naturalHeight * box.height,
+        };
+        return {
+          source: source.source,
+          imageBox: { left: box.left, right: box.right, top: box.top, bottom: box.bottom },
+          visible,
+          stage: { left: stage.left, right: stage.right, top: stage.top, bottom: stage.bottom },
+          clipped: visible.left < stage.left - 1 || visible.right > stage.right + 1
+            || visible.top < stage.top - 1 || visible.bottom > stage.bottom + 1,
+        };
+      }), sources);
+      layouts.push({ width, sprites: spriteBounds });
+      expect.soft(spriteBounds.filter(({ clipped }) => clipped),
+        `Artificer page ${reviewPage}, viewport ${width}px`).toEqual([]);
+    }
+    await page.setViewportSize({ width: 1440, height: 1000 });
+    await scene.screenshot({ path: testInfo.outputPath(`artificer-page-${reviewPage}.png`) });
+    const cold = await page.evaluate(() => performance.getEntriesByType("resource")
+      .filter((entry) => entry.name.includes("/cdi-156/") && (entry as PerformanceResourceTiming).initiatorType === "img")
+      .map((entry) => ({ url: entry.name, transfer: (entry as PerformanceResourceTiming).transferSize,
+        encoded: (entry as PerformanceResourceTiming).encodedBodySize })));
+    expect(cold).toHaveLength(4);
+    expect(cold.map(({ url }) => url).sort()).toEqual(sources.map(({ source }) => source).sort());
+    expect(cold.every(({ encoded, transfer }) => encoded > 0 && transfer > 0)).toBe(true);
+    expect(cold.reduce((sum, entry) => sum + entry.encoded, 0)).toBeLessThanOrEqual(2 * 1024 * 1024);
+    await page.reload();
+    await expect(heroes.locator("[data-testid='dungeon-combat-visual'][data-asset-status='ready']")).toHaveCount(4);
+    await expect(heroes.locator("img")).toHaveCount(4);
+    await heroes.locator("img").evaluateAll(async (images) => {
+      await Promise.all(images.map((image) => (image as HTMLImageElement).decode()));
+    });
+    const warm = await page.evaluate(() => performance.getEntriesByType("resource")
+      .filter((entry) => entry.name.includes("/cdi-156/") && (entry as PerformanceResourceTiming).initiatorType === "img")
+      .map((entry) => ({ url: entry.name, transfer: (entry as PerformanceResourceTiming).transferSize,
+        encoded: (entry as PerformanceResourceTiming).encodedBodySize })));
+    expect(warm.map(({ url }) => url).sort()).toEqual(cold.map(({ url }) => url).sort());
+    expect(warm.reduce((sum, entry) => sum + entry.transfer, 0))
+      .toBeLessThan(cold.reduce((sum, entry) => sum + entry.transfer, 0));
+    const metricsPath = testInfo.outputPath(`artificer-page-${reviewPage}-network.json`);
+    await writeFile(metricsPath, JSON.stringify({ cold, warm, layouts,
+      decodedBytes: sources.reduce((sum, sprite) => sum + sprite.naturalWidth * sprite.naturalHeight * 4, 0),
+    }, null, 2));
+    await testInfo.attach(`artificer-page-${reviewPage}-network`, { path: metricsPath, contentType: "application/json" });
   }
 });
 
