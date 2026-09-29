@@ -91,6 +91,20 @@ Ressources historiques : `src/assets/images/hero-sprites/tier1/human-tier1-pugil
 - Bundle JavaScript gzip : `258 773 octets` ; plus gros chunk
   `118 347 octets`, sous les plafonds configurés.
 
+## Correction M06 — 29 septembre 2026
+
+- Neutre corrigé validé par l’utilisateur : superposition de la chemise rouge
+  et des pans ivoire, sans faux raccord entre les couches du torse.
+- Source stable remplacée par `exec-402661b3-067b-4a1e-bb21-843f52f776e2.png` ;
+  export M06 et trois planches masculines régénérés avec le script existant.
+  Les 19 autres exports restent identiques par SHA-256.
+- Format `341 × 692`, pieds et pivot contrôlés ; clés `Pugiliste_Male_5` et
+  `Pugiliste_Male_15` conservées. Aucun code métier ni résolveur modifié.
+- Contrôle d’assets et 48 tests portraits/visuels réussis. Total des vingt
+  exports : `5 398 267 octets` ; quatre plus lourds : `1 180 161 octets`.
+- Build réussi ; JavaScript gzip `262 098 / 262 144 octets`.
+- La garde M06 reste à corriger et valider dans CDI-157.
+
 ## Tests
 
 - Étendre les contrôles de manifeste/extraction sur les deux ressources, vingt variantes et la compatibilité des anciens index.

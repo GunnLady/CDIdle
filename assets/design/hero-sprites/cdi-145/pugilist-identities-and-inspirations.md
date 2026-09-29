@@ -355,16 +355,20 @@ occidental, trop loin du vocabulaire asiatique demandé.
 
 ### Male 06 — validé
 
-- Source ImageGen : `exec-873abaf4-d2a7-4a38-b4ba-c16de0073348.png`.
+- Source ImageGen corrigée et validée le 29 septembre 2026 :
+  `exec-402661b3-067b-4a1e-bb21-843f52f776e2.png`.
 - Asset stable : `validated-male-v1/pugilist-male-06-v1.png`.
 - SHA-256 source et archive :
-  `668C75767AE5C0843A46B3C5D05D3E02202523EDDACFCF7A6E47E271B6D31FDB`.
-- Poids source : `1 547 115 octets` (`1 510,9 Ko`, `1,48 Mo`).
+  `7E83F5F709FA14C08578E67C2E825C5F84F10725B06D1115AE8E7B24A891F249`.
+- Poids source : `1 439 864 octets`.
+- Correction validée : chemise rouge sous deux pans ivoire distincts,
+  suppression du faux raccord entre les couches au torse. Export et planches
+  masculines actualisés ; clés historiques `5 / 15` conservées.
 - Décision : combattant wuxia indépendant, long gilet ivoire à col droit et
   attaches textiles, sous-veste vermillon, renfort matelassé asymétrique,
   quatre pans courts noirs et ivoire, pantalon gris clair ample, bandes de
   frappe, guêtres et chaussons fins.
-- Contrôle avant verdict : la source brute occupait `96,87 %` du cadre et a
+- Contrôle initial du 18 septembre, avant correction : la source brute occupait `96,87 %` du cadre et a
   été normalisée dans `normalized-alpha-v1/male/pugilist-male-06-v1.png`. L'aperçu
   mesure `341 × 692 px`, silhouette `260 × 623 px`, soit exactement `90,03 %`
   comme Mage M06/M08. Largeur relative `0,417` ; tête, bras, hanches, jambes

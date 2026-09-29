@@ -1,0 +1,740 @@
+{
+  "schemaVersion": 1,
+  "ticket": "CDI-157",
+  "visualValidation": {
+    "status": "approved",
+    "by": "user",
+    "evidence": "validé tu peux reprendre",
+    "scope": "All five cinema screens with final per-identity scales, including M09 at 0.73. Technical browser checks are separate."
+  },
+  "entries": [
+    {
+      "id": "M01",
+      "key": "Pugiliste_Male_0@combat_idle",
+      "gender": "male",
+      "variant": 0,
+      "version": 2,
+      "neutral": "assets/design/hero-sprites/cdi-145/normalized-alpha-v1/male/pugilist-male-01-v1.png",
+      "approvedSource": "assets/design/hero-sprites/cdi-157/validated-male-v1/pugilist-male-01-combat-idle-v2.png",
+      "normalized": "assets/design/hero-sprites/cdi-157/normalized-alpha-v1/male/pugilist-male-01-combat-idle-v2.png",
+      "runtime": "assets/design/hero-sprites/cdi-157/runtime-webp-v1/male/pugilist-male-01-combat-idle-v2.webp",
+      "calibration": {
+        "neutralHead": [
+          55,
+          139,
+          179
+        ],
+        "combatHead": [
+          45,
+          161,
+          215
+        ],
+        "landmarkScale": 0.74,
+        "visualAdjustment": "User requested M01 at 0.80 during cinema page 1 review; final cinema composition approved by user.",
+        "scale": 0.8,
+        "pivotX": 0.5
+      },
+      "sourceSha256": "0c6b833370db2fb82d62c53f01c6ddd6260f9b7edb059f11e349cbaacbbe47a7",
+      "neutralSha256": "187fb924fc6a4bafd070dcf4926d37990ce7eae5faccc041172867575f508db3",
+      "normalizedSha256": "e3823ffafedd8fd277bcbf41a274384715d8300407c15507cd7084665c31802a",
+      "runtimeSha256": "7a12a10be46ab475c3d81db315c9799f8c8792629231288866ff3c4a6e55c2a0",
+      "runtimeBytes": 83524,
+      "frame": [
+        576,
+        920
+      ]
+    },
+    {
+      "id": "M02",
+      "key": "Pugiliste_Male_1@combat_idle",
+      "gender": "male",
+      "variant": 1,
+      "version": 1,
+      "neutral": "assets/design/hero-sprites/cdi-145/normalized-alpha-v1/male/pugilist-male-02-v1.png",
+      "approvedSource": "assets/design/hero-sprites/cdi-157/validated-male-v1/pugilist-male-02-combat-idle-v1.png",
+      "normalized": "assets/design/hero-sprites/cdi-157/normalized-alpha-v1/male/pugilist-male-02-combat-idle-v1.png",
+      "runtime": "assets/design/hero-sprites/cdi-157/runtime-webp-v1/male/pugilist-male-02-combat-idle-v1.webp",
+      "calibration": {
+        "neutralHead": [
+          55,
+          137,
+          180
+        ],
+        "combatHead": [
+          45,
+          178,
+          228
+        ],
+        "scale": 0.81,
+        "pivotX": 0.5
+      },
+      "sourceSha256": "75e57610ddf85f606f38dca9fe0ed58554c9dd0d1009f082d87df598a69cdc24",
+      "neutralSha256": "f3e857932cb860e6ff5dca7895bc860e88030762e2b48b9a28fb71bea408aa33",
+      "normalizedSha256": "228e59adb437cda0e266498f2fcb37a814443c2c7bbcb1abb5ff19ad9efbf939",
+      "runtimeSha256": "c320270b174a3c940a45058c65e3d22d5b83fe2ba6a99102c34c494202c4db77",
+      "runtimeBytes": 93220,
+      "frame": [
+        608,
+        920
+      ]
+    },
+    {
+      "id": "M03",
+      "key": "Pugiliste_Male_2@combat_idle",
+      "gender": "male",
+      "variant": 2,
+      "version": 3,
+      "neutral": "assets/design/hero-sprites/cdi-145/normalized-alpha-v1/male/pugilist-male-03-v1.png",
+      "approvedSource": "assets/design/hero-sprites/cdi-157/validated-male-v1/pugilist-male-03-combat-idle-v3.png",
+      "normalized": "assets/design/hero-sprites/cdi-157/normalized-alpha-v1/male/pugilist-male-03-combat-idle-v3.png",
+      "runtime": "assets/design/hero-sprites/cdi-157/runtime-webp-v1/male/pugilist-male-03-combat-idle-v3.webp",
+      "calibration": {
+        "neutralHead": [
+          53,
+          122,
+          156
+        ],
+        "combatHead": [
+          44,
+          144,
+          196
+        ],
+        "landmarkScale": 0.66,
+        "visualAdjustment": "User requested M03 at 0.76 during cinema page 2 review; final cinema composition approved by user.",
+        "scale": 0.76,
+        "pivotX": 0.5
+      },
+      "sourceSha256": "bcab988738980a15892d42426c0ed051628d519ed3159f0b5b1f2bc2dd0b4df0",
+      "neutralSha256": "bc452eb3e6fd42f916029fabae72c5019851b200360b35d349664a18717a78d3",
+      "normalizedSha256": "d12fd0e713e9734895ca03907720fe7fa6a9eaf781d0f4ec12737490bd8d3ea5",
+      "runtimeSha256": "97ec2bfcfe479e75712ce336fa2e63d11b3904d1ab77958e012170eeae92436d",
+      "runtimeBytes": 92180,
+      "frame": [
+        600,
+        920
+      ]
+    },
+    {
+      "id": "M04",
+      "key": "Pugiliste_Male_3@combat_idle",
+      "gender": "male",
+      "variant": 3,
+      "version": 2,
+      "neutral": "assets/design/hero-sprites/cdi-145/normalized-alpha-v1/male/pugilist-male-04-v1.png",
+      "approvedSource": "assets/design/hero-sprites/cdi-157/validated-male-v1/pugilist-male-04-combat-idle-v2.png",
+      "normalized": "assets/design/hero-sprites/cdi-157/normalized-alpha-v1/male/pugilist-male-04-combat-idle-v2.png",
+      "runtime": "assets/design/hero-sprites/cdi-157/runtime-webp-v1/male/pugilist-male-04-combat-idle-v2.webp",
+      "calibration": {
+        "neutralHead": [
+          55,
+          116,
+          155
+        ],
+        "combatHead": [
+          108,
+          188,
+          239
+        ],
+        "landmarkScale": 0.76,
+        "visualAdjustment": "User requested M04 at 0.83 during cinema page 2 review; final cinema composition approved by user.",
+        "scale": 0.83,
+        "pivotX": 0.5
+      },
+      "sourceSha256": "807417a1073f182d1a2ac0a69b75e258ea444120385719a40a6512ab71788c06",
+      "neutralSha256": "999fcb5f67d7506b0c4ce70e180cb1dea79340dc5ededb054d5444e60c7e66cd",
+      "normalizedSha256": "e0a599325f7c9e0f4c4377df3770c329bd45203bf000bf19a7e5736e7300e969",
+      "runtimeSha256": "2bf6440dba9ad88f331314e8e5121af9f5d87c976867ff36c7181b8fab8435df",
+      "runtimeBytes": 81176,
+      "frame": [
+        600,
+        920
+      ]
+    },
+    {
+      "id": "M05",
+      "key": "Pugiliste_Male_4@combat_idle",
+      "gender": "male",
+      "variant": 4,
+      "version": 2,
+      "neutral": "assets/design/hero-sprites/cdi-145/normalized-alpha-v1/male/pugilist-male-05-v1.png",
+      "approvedSource": "assets/design/hero-sprites/cdi-157/validated-male-v1/pugilist-male-05-combat-idle-v2.png",
+      "normalized": "assets/design/hero-sprites/cdi-157/normalized-alpha-v1/male/pugilist-male-05-combat-idle-v2.png",
+      "runtime": "assets/design/hero-sprites/cdi-157/runtime-webp-v1/male/pugilist-male-05-combat-idle-v2.webp",
+      "calibration": {
+        "neutralHead": [
+          58,
+          127,
+          169
+        ],
+        "combatHead": [
+          45,
+          153,
+          213
+        ],
+        "landmarkScale": 0.69,
+        "visualAdjustment": "User requested M05 at 0.74 during cinema page 3 review; final cinema composition approved by user.",
+        "scale": 0.74,
+        "pivotX": 0.5
+      },
+      "sourceSha256": "165797380f536d5c2a09759db138ff41439fb92a3185994901a866cc6288bdbe",
+      "neutralSha256": "d33c5be1b14e955dfea3b648fcf06505c280016393590736e596dc9e01c5c926",
+      "normalizedSha256": "faeb1843737310bd1317be1897e1c33d3d51520e4b026293581c26f71bfe88f2",
+      "runtimeSha256": "00cdfefe02f6c9a7f9f399ccd1050268b0a84124b258c83d4cd9f71b9dfe8723",
+      "runtimeBytes": 91018,
+      "frame": [
+        600,
+        920
+      ]
+    },
+    {
+      "id": "M06",
+      "key": "Pugiliste_Male_5@combat_idle",
+      "gender": "male",
+      "variant": 5,
+      "version": 1,
+      "neutral": "assets/design/hero-sprites/cdi-145/normalized-alpha-v1/male/pugilist-male-06-v1.png",
+      "approvedSource": "assets/design/hero-sprites/cdi-157/validated-male-v1/pugilist-male-06-combat-idle-v1.png",
+      "generatedSource": "C:/Users/mathr/.codex/generated_images/01a0ee08-d3c1-7b53-b9b2-8c23dfe2efa0/exec-3dd2c22e-7bc4-4dd6-80cc-5518345a829e.png",
+      "normalized": "assets/design/hero-sprites/cdi-157/normalized-alpha-v1/male/pugilist-male-06-combat-idle-v1.png",
+      "runtime": "assets/design/hero-sprites/cdi-157/runtime-webp-v1/male/pugilist-male-06-combat-idle-v1.webp",
+      "calibration": {
+        "neutralHead": [
+          53,
+          130,
+          167
+        ],
+        "combatHead": [
+          44,
+          172,
+          225
+        ],
+        "landmarkScale": 0.68,
+        "visualAdjustment": "User requested M06 at 0.77 during cinema page 3 review; final cinema composition approved by user.",
+        "scale": 0.77,
+        "pivotX": 0.5
+      },
+      "sourceSha256": "3f16045a880021aac41feadffd4b69407dfd5bfe27bda8b7d34298ad6cd4b766",
+      "neutralSha256": "12ff7b442ae2cce8b9ab89e6af00935b7d671791b7da681d7faf83d06bb88734",
+      "normalizedSha256": "40a2a15942b23a7224b2b35c4fbe7a474573b2efe024454edc6b327e1a2d04d8",
+      "runtimeSha256": "6396dfaef8f67fbeaa2d4b8bcbb02412edeb5b22a9cf1aa84a834bae74953a5e",
+      "runtimeBytes": 88404,
+      "frame": [
+        602,
+        920
+      ]
+    },
+    {
+      "id": "M07",
+      "key": "Pugiliste_Male_6@combat_idle",
+      "gender": "male",
+      "variant": 6,
+      "version": 1,
+      "neutral": "assets/design/hero-sprites/cdi-145/normalized-alpha-v1/male/pugilist-male-07-v1.png",
+      "approvedSource": "assets/design/hero-sprites/cdi-157/validated-male-v1/pugilist-male-07-combat-idle-v1.png",
+      "generatedSource": "C:/Users/mathr/.codex/generated_images/01a0ee08-d3c1-7b53-b9b2-8c23dfe2efa0/exec-648c185a-c181-4323-b3fc-4dfedb7b6e27.png",
+      "normalized": "assets/design/hero-sprites/cdi-157/normalized-alpha-v1/male/pugilist-male-07-combat-idle-v1.png",
+      "runtime": "assets/design/hero-sprites/cdi-157/runtime-webp-v1/male/pugilist-male-07-combat-idle-v1.webp",
+      "calibration": {
+        "neutralHead": [
+          57,
+          123,
+          159
+        ],
+        "combatHead": [
+          48,
+          170,
+          230
+        ],
+        "landmarkScale": 0.59,
+        "visualAdjustment": "User requested M07 at 0.67 during cinema page 4 review; final cinema composition approved by user.",
+        "scale": 0.67,
+        "pivotX": 0.5
+      },
+      "sourceSha256": "7db5203d4d47916a0010e83105463cf2edd77c6206040642d011387739d50cd7",
+      "neutralSha256": "81563064cdd9f5f66704f1fd3bb6b3941a085ebc4a1b1cc9720408989e7e5df3",
+      "normalizedSha256": "9b82d649647568bd88347fd87ed61d6af55be562a0a65b00c4bfcbe74e179233",
+      "runtimeSha256": "a5b6a4610de8131d858da2b0c2d5539e138801c49f84ec133933467120bdff6a",
+      "runtimeBytes": 140982,
+      "frame": [
+        952,
+        920
+      ]
+    },
+    {
+      "id": "M08",
+      "key": "Pugiliste_Male_7@combat_idle",
+      "gender": "male",
+      "variant": 7,
+      "version": 1,
+      "neutral": "assets/design/hero-sprites/cdi-145/normalized-alpha-v1/male/pugilist-male-08-v1.png",
+      "approvedSource": "assets/design/hero-sprites/cdi-157/validated-male-v1/pugilist-male-08-combat-idle-v1.png",
+      "generatedSource": "C:/Users/mathr/.codex/generated_images/01a0ee08-d3c1-7b53-b9b2-8c23dfe2efa0/exec-9500d2db-5d2f-43d4-a2a7-9360cd6056c8.png",
+      "normalized": "assets/design/hero-sprites/cdi-157/normalized-alpha-v1/male/pugilist-male-08-combat-idle-v1.png",
+      "runtime": "assets/design/hero-sprites/cdi-157/runtime-webp-v1/male/pugilist-male-08-combat-idle-v1.webp",
+      "calibration": {
+        "neutralHead": [
+          57,
+          125,
+          167
+        ],
+        "combatHead": [
+          48,
+          150,
+          208
+        ],
+        "landmarkScale": 0.71,
+        "visualAdjustment": "User requested M08 at 0.79 during cinema page 4 review; final cinema composition approved by user.",
+        "scale": 0.79,
+        "pivotX": 0.5
+      },
+      "sourceSha256": "d6921786591dcf975b773839f0e357a1b786538d89f4e6e7adefe094c1eb895d",
+      "neutralSha256": "c42574f432d6008b620b9bc2feb16efdf8541317dfbe8c62f2c5db1460a917e3",
+      "normalizedSha256": "d68673ea096263c9d546f34e0c2580d6a00e7a7b6b4c319707078e7c010f66b0",
+      "runtimeSha256": "888709bde4b9ba2557703f7b4d556f0420ffd8833de8b86fc45d4b3a25ba6e15",
+      "runtimeBytes": 94684,
+      "frame": [
+        576,
+        920
+      ]
+    },
+    {
+      "id": "M09",
+      "key": "Pugiliste_Male_8@combat_idle",
+      "gender": "male",
+      "variant": 8,
+      "version": 1,
+      "neutral": "assets/design/hero-sprites/cdi-145/normalized-alpha-v1/male/pugilist-male-09-v1.png",
+      "approvedSource": "assets/design/hero-sprites/cdi-157/validated-male-v1/pugilist-male-09-combat-idle-v1.png",
+      "generatedSource": "C:/Users/mathr/.codex/generated_images/01a0ee08-d3c1-7b53-b9b2-8c23dfe2efa0/exec-35ee7b9d-09ed-45c7-8379-80af0fc489c7.png",
+      "normalized": "assets/design/hero-sprites/cdi-157/normalized-alpha-v1/male/pugilist-male-09-combat-idle-v1.png",
+      "runtime": "assets/design/hero-sprites/cdi-157/runtime-webp-v1/male/pugilist-male-09-combat-idle-v1.webp",
+      "calibration": {
+        "neutralHead": [
+          61,
+          125,
+          161
+        ],
+        "combatHead": [
+          46,
+          150,
+          211
+        ],
+        "landmarkScale": 0.59,
+        "visualAdjustment": "User requested M09 at 0.73 during cinema page 5 review; final cinema composition approved by user.",
+        "scale": 0.73,
+        "pivotX": 0.5
+      },
+      "sourceSha256": "a75425d1f650aa43804ba58fd57fda0275852eb7b0a10691f6d3d6fd5c913c52",
+      "neutralSha256": "301fa34b478acb4633eea8094f66534957adad9b15326b8a38ca251579afd14d",
+      "normalizedSha256": "60a88d051c278b4b234cd608e3f17e0a51f237b478453c11f502dd7b1ebe1fab",
+      "runtimeSha256": "f72656ece8500bedb6a8c28f25da6412407652cdf2ee26b2f94f9d5f2c64ad00",
+      "runtimeBytes": 94620,
+      "frame": [
+        682,
+        920
+      ]
+    },
+    {
+      "id": "M10",
+      "key": "Pugiliste_Male_9@combat_idle",
+      "gender": "male",
+      "variant": 9,
+      "version": 1,
+      "neutral": "assets/design/hero-sprites/cdi-145/normalized-alpha-v1/male/pugilist-male-10-v1.png",
+      "approvedSource": "assets/design/hero-sprites/cdi-157/validated-male-v1/pugilist-male-10-combat-idle-v1.png",
+      "generatedSource": "C:/Users/mathr/.codex/generated_images/01a0ee08-d3c1-7b53-b9b2-8c23dfe2efa0/exec-16d214e0-72a2-4e9d-a4a2-273747a61ee8.png",
+      "normalized": "assets/design/hero-sprites/cdi-157/normalized-alpha-v1/male/pugilist-male-10-combat-idle-v1.png",
+      "runtime": "assets/design/hero-sprites/cdi-157/runtime-webp-v1/male/pugilist-male-10-combat-idle-v1.webp",
+      "calibration": {
+        "neutralHead": [
+          53,
+          120,
+          156
+        ],
+        "combatHead": [
+          42,
+          164,
+          230
+        ],
+        "landmarkScale": 0.55,
+        "visualAdjustment": "User requested M10 at 0.70 during cinema page 5 review; final cinema composition approved by user.",
+        "scale": 0.7,
+        "pivotX": 0.38
+      },
+      "sourceSha256": "a9c5a93b43582d63509520e3c563428234c9891cd4da47c7a6cd83c9c7403db7",
+      "neutralSha256": "e704e96c6bebf2fc5df0b09c7bd3a497cec4a97b18cbbd790597ebc1c38a56be",
+      "normalizedSha256": "b18efd31f648db3397de0fb7d6a2575461554cf3763ac123689e04f09eaac7ca",
+      "runtimeSha256": "87ce29b0c343b2777d4e7200efbcaab232b735e098e273c8390d568b3903566c",
+      "runtimeBytes": 162946,
+      "frame": [
+        1288,
+        920
+      ]
+    },
+    {
+      "id": "F01",
+      "key": "Pugiliste_Female_0@combat_idle",
+      "gender": "female",
+      "variant": 0,
+      "version": 2,
+      "neutral": "assets/design/hero-sprites/cdi-145/normalized-alpha-v1/female/pugilist-female-01-v1.png",
+      "approvedSource": "assets/design/hero-sprites/cdi-157/validated-female-v1/pugilist-female-01-combat-idle-v2.png",
+      "normalized": "assets/design/hero-sprites/cdi-157/normalized-alpha-v1/female/pugilist-female-01-combat-idle-v2.png",
+      "runtime": "assets/design/hero-sprites/cdi-157/runtime-webp-v1/female/pugilist-female-01-combat-idle-v2.webp",
+      "calibration": {
+        "neutralHead": [
+          82,
+          149,
+          187
+        ],
+        "combatHead": [
+          44,
+          150,
+          200
+        ],
+        "scale": 0.74,
+        "pivotX": 0.5
+      },
+      "sourceSha256": "8d8cac691ef5a8b6707b1dd04cd2e66d9b4ae473605042450d5c9b8d747a258d",
+      "neutralSha256": "f1e3cfab18d9171b923f7b8f50a5dd30e0d891de59d437b2529a5823b205bbf6",
+      "normalizedSha256": "8749d0863a51d4f13d86951f3fb4b96ca20edc35f734268426ebf6bee0322b23",
+      "runtimeSha256": "d8d5a6140c84071af8b8aa55f58ebab57f370211ba9160a889330da817e969ce",
+      "runtimeBytes": 87150,
+      "frame": [
+        616,
+        920
+      ]
+    },
+    {
+      "id": "F02",
+      "key": "Pugiliste_Female_1@combat_idle",
+      "gender": "female",
+      "variant": 1,
+      "version": 1,
+      "neutral": "assets/design/hero-sprites/cdi-145/normalized-alpha-v1/female/pugilist-female-02-v1.png",
+      "approvedSource": "assets/design/hero-sprites/cdi-157/validated-female-v1/pugilist-female-02-combat-idle-v1.png",
+      "normalized": "assets/design/hero-sprites/cdi-157/normalized-alpha-v1/female/pugilist-female-02-combat-idle-v1.png",
+      "runtime": "assets/design/hero-sprites/cdi-157/runtime-webp-v1/female/pugilist-female-02-combat-idle-v1.webp",
+      "calibration": {
+        "neutralHead": [
+          83,
+          150,
+          189
+        ],
+        "combatHead": [
+          62,
+          177,
+          233
+        ],
+        "landmarkScale": 0.68,
+        "visualAdjustment": "User requested F02 at 0.72 during cinema page 1 review; final cinema composition approved by user.",
+        "scale": 0.72,
+        "pivotX": 0.5
+      },
+      "sourceSha256": "70cd065b42fc3215de7a6fb5275fba877c3020569e74367f09fca964cdecafec",
+      "neutralSha256": "7c73a4bca2f0cc00ed11a03bce1a51a9fc697267cd67caaba7c9be9da3217641",
+      "normalizedSha256": "bac5a34250c01447b6b31fed5e9a29af93e512d27a85f0b44e982ff32b0ec846",
+      "runtimeSha256": "241f339dabdbdd6a9f7aa8ce9891e838c0519df166f8e0a9e2657ae27df4a754",
+      "runtimeBytes": 149242,
+      "frame": [
+        868,
+        920
+      ]
+    },
+    {
+      "id": "F03",
+      "key": "Pugiliste_Female_2@combat_idle",
+      "gender": "female",
+      "variant": 2,
+      "version": 1,
+      "neutral": "assets/design/hero-sprites/cdi-145/normalized-alpha-v1/female/pugilist-female-03-v1.png",
+      "approvedSource": "assets/design/hero-sprites/cdi-157/validated-female-v1/pugilist-female-03-combat-idle-v1.png",
+      "normalized": "assets/design/hero-sprites/cdi-157/normalized-alpha-v1/female/pugilist-female-03-combat-idle-v1.png",
+      "runtime": "assets/design/hero-sprites/cdi-157/runtime-webp-v1/female/pugilist-female-03-combat-idle-v1.webp",
+      "calibration": {
+        "neutralHead": [
+          83,
+          148,
+          187
+        ],
+        "combatHead": [
+          46,
+          148,
+          199
+        ],
+        "landmarkScale": 0.74,
+        "visualAdjustment": "User requested F03 at 0.78 during cinema page 2 review; final cinema composition approved by user.",
+        "scale": 0.78,
+        "pivotX": 0.5
+      },
+      "sourceSha256": "14c2d3e239b236a17c6b363ba82b0653ced60d7a97d8a54d9f0011b6d505465f",
+      "neutralSha256": "cf4bbfd84d8abd5803ed3c3881d8728f3abe72a2c1d735db5bc4beaad7206128",
+      "normalizedSha256": "1e8fecb751c6079c9ecfd6d4d9dfb6eaf5c7936d239b265244ea7ba04d8fc2b8",
+      "runtimeSha256": "45b2a1ee21ee26ee13ac008ee5ad860d000337b0a30aaf836db6def3a3ae52e7",
+      "runtimeBytes": 93056,
+      "frame": [
+        554,
+        920
+      ]
+    },
+    {
+      "id": "F04",
+      "key": "Pugiliste_Female_3@combat_idle",
+      "gender": "female",
+      "variant": 3,
+      "version": 1,
+      "neutral": "assets/design/hero-sprites/cdi-145/normalized-alpha-v1/female/pugilist-female-04-v1.png",
+      "approvedSource": "assets/design/hero-sprites/cdi-157/validated-female-v1/pugilist-female-04-combat-idle-v1.png",
+      "normalized": "assets/design/hero-sprites/cdi-157/normalized-alpha-v1/female/pugilist-female-04-combat-idle-v1.png",
+      "runtime": "assets/design/hero-sprites/cdi-157/runtime-webp-v1/female/pugilist-female-04-combat-idle-v1.webp",
+      "calibration": {
+        "neutralHead": [
+          83,
+          141,
+          181
+        ],
+        "combatHead": [
+          46,
+          145,
+          196
+        ],
+        "landmarkScale": 0.75,
+        "visualAdjustment": "User requested F04 at 0.78 during cinema page 2 review; final cinema composition approved by user.",
+        "scale": 0.78,
+        "pivotX": 0.5
+      },
+      "sourceSha256": "b8652f10c4189d8df98fd4932472d6842c3c43c19b26826c7302f1adaae76114",
+      "neutralSha256": "550655076cddd75ec86eecdd2a21bc97f75ef2bdda1198dadf92271316af008a",
+      "normalizedSha256": "35af5ffb07eb38af12be50dbb24330f3fa26172b44eb3d5da522e15b70c2e578",
+      "runtimeSha256": "01c9a472a97f66634f5bf8c9d7b573769c36a21e70dcbda04ea66fdca80bbcf6",
+      "runtimeBytes": 105540,
+      "frame": [
+        622,
+        920
+      ]
+    },
+    {
+      "id": "F05",
+      "key": "Pugiliste_Female_4@combat_idle",
+      "gender": "female",
+      "variant": 4,
+      "version": 1,
+      "neutral": "assets/design/hero-sprites/cdi-145/normalized-alpha-v1/female/pugilist-female-05-v1.png",
+      "approvedSource": "assets/design/hero-sprites/cdi-157/validated-female-v1/pugilist-female-05-combat-idle-v1.png",
+      "generatedSource": "C:/Users/mathr/.codex/generated_images/01a0ee08-d3c1-7b53-b9b2-8c23dfe2efa0/exec-1e0914e3-d911-4776-802d-a4059fa7903c.png",
+      "normalized": "assets/design/hero-sprites/cdi-157/normalized-alpha-v1/female/pugilist-female-05-combat-idle-v1.png",
+      "runtime": "assets/design/hero-sprites/cdi-157/runtime-webp-v1/female/pugilist-female-05-combat-idle-v1.webp",
+      "calibration": {
+        "neutralHead": [
+          83,
+          145,
+          180
+        ],
+        "combatHead": [
+          91,
+          178,
+          225
+        ],
+        "landmarkScale": 0.74,
+        "visualAdjustment": "User requested F05 at 0.79 during cinema page 3 review; final cinema composition approved by user.",
+        "scale": 0.79,
+        "pivotX": 0.5
+      },
+      "sourceSha256": "7fcfeef57caffe935484b25314a021f0d4ec4e8c14123611350fad656ce8d895",
+      "neutralSha256": "eb2e500b34d95288cc7936235bcb58f62f94c0fedacdc8692d8ad650821c3ffb",
+      "normalizedSha256": "8495c30ddc4fbfaa22393c4dc62ce1b1e4bd1bc136f1c8050934d00193baa855",
+      "runtimeSha256": "c1c760368c1aac8d77a8a4460c49c1521b9c630513a581bd9c4fc6e822b61ed5",
+      "runtimeBytes": 91358,
+      "frame": [
+        596,
+        920
+      ]
+    },
+    {
+      "id": "F06",
+      "key": "Pugiliste_Female_5@combat_idle",
+      "gender": "female",
+      "variant": 5,
+      "version": 1,
+      "neutral": "assets/design/hero-sprites/cdi-145/normalized-alpha-v1/female/pugilist-female-06-v1.png",
+      "approvedSource": "assets/design/hero-sprites/cdi-157/validated-female-v1/pugilist-female-06-combat-idle-v1.png",
+      "generatedSource": "C:/Users/mathr/.codex/generated_images/01a0ee08-d3c1-7b53-b9b2-8c23dfe2efa0/exec-bf3d9baf-bd1c-4bba-a1d7-28b8a74ab7a3.png",
+      "normalized": "assets/design/hero-sprites/cdi-157/normalized-alpha-v1/female/pugilist-female-06-combat-idle-v1.png",
+      "runtime": "assets/design/hero-sprites/cdi-157/runtime-webp-v1/female/pugilist-female-06-combat-idle-v1.webp",
+      "calibration": {
+        "neutralHead": [
+          84,
+          148,
+          181
+        ],
+        "combatHead": [
+          47,
+          142,
+          192
+        ],
+        "landmarkScale": 0.66,
+        "visualAdjustment": "User requested F06 at 0.77 during cinema page 3 review; final cinema composition approved by user.",
+        "scale": 0.77,
+        "pivotX": 0.5
+      },
+      "sourceSha256": "7584d313633a40448017b92234cfdd01acd004134391bbddce24e467abe28793",
+      "neutralSha256": "2e0d7721caff6dc890f28e40e5290e6aa88739198c83079c62e5472973103208",
+      "normalizedSha256": "64138de708844c0cc302eb07dd6579212773d88defe87a69baf78085b012f539",
+      "runtimeSha256": "d1d94afe5df5c52901f6528dbfac2f999a0c95b21af5ec7bd4e4eb794fe74c45",
+      "runtimeBytes": 95938,
+      "frame": [
+        536,
+        920
+      ]
+    },
+    {
+      "id": "F07",
+      "key": "Pugiliste_Female_6@combat_idle",
+      "gender": "female",
+      "variant": 6,
+      "version": 1,
+      "neutral": "assets/design/hero-sprites/cdi-145/normalized-alpha-v1/female/pugilist-female-07-v1.png",
+      "approvedSource": "assets/design/hero-sprites/cdi-157/validated-female-v1/pugilist-female-07-combat-idle-v1.png",
+      "generatedSource": "C:/Users/mathr/.codex/generated_images/01a0ee08-d3c1-7b53-b9b2-8c23dfe2efa0/exec-556562fe-cde5-429b-a7f2-e54db7c4c99c.png",
+      "normalized": "assets/design/hero-sprites/cdi-157/normalized-alpha-v1/female/pugilist-female-07-combat-idle-v1.png",
+      "runtime": "assets/design/hero-sprites/cdi-157/runtime-webp-v1/female/pugilist-female-07-combat-idle-v1.webp",
+      "calibration": {
+        "neutralHead": [
+          83,
+          149,
+          189
+        ],
+        "combatHead": [
+          45,
+          143,
+          195
+        ],
+        "landmarkScale": 0.75,
+        "visualAdjustment": "User requested F07 at 0.77 during cinema page 4 review; final cinema composition approved by user.",
+        "scale": 0.77,
+        "pivotX": 0.5
+      },
+      "sourceSha256": "7a4cc0fb92cc7cb862a106c80e149922a292cd6680271af882da587feda528c4",
+      "neutralSha256": "11840aca3c24f084fc26c96f4227a1ecb9fd5b9ee46c9e9578fb1b32de89cb32",
+      "normalizedSha256": "fae4e32d1cc3339da0a1e59622103208c9cdae55ada8d35f637d0fc4f33642ad",
+      "runtimeSha256": "34a6b53c38f731d726567b59b3a0b2c166c17c19a6cfc7da37a142eb49943446",
+      "runtimeBytes": 121650,
+      "frame": [
+        566,
+        920
+      ]
+    },
+    {
+      "id": "F08",
+      "key": "Pugiliste_Female_7@combat_idle",
+      "gender": "female",
+      "variant": 7,
+      "version": 1,
+      "neutral": "assets/design/hero-sprites/cdi-145/normalized-alpha-v1/female/pugilist-female-08-v1.png",
+      "approvedSource": "assets/design/hero-sprites/cdi-157/validated-female-v1/pugilist-female-08-combat-idle-v1.png",
+      "generatedSource": "C:/Users/mathr/.codex/generated_images/01a0ee08-d3c1-7b53-b9b2-8c23dfe2efa0/exec-6fb39de1-65b6-4a77-8401-643f4c93728b.png",
+      "normalized": "assets/design/hero-sprites/cdi-157/normalized-alpha-v1/female/pugilist-female-08-combat-idle-v1.png",
+      "runtime": "assets/design/hero-sprites/cdi-157/runtime-webp-v1/female/pugilist-female-08-combat-idle-v1.webp",
+      "calibration": {
+        "neutralHead": [
+          110,
+          155,
+          196
+        ],
+        "combatHead": [
+          118,
+          200,
+          266
+        ],
+        "landmarkScale": 0.61,
+        "visualAdjustment": "User requested F08 at 0.69 during cinema page 4 review; final cinema composition approved by user.",
+        "scale": 0.69,
+        "pivotX": 0.55
+      },
+      "sourceSha256": "47306e28d3d8b87fd976e500aca5b5660cd3b41d4608bd6027dcdff5f95b6a1f",
+      "neutralSha256": "accb6be13936f0348d7117fb7176b4c5ef4ae742bd2be3b0fe0b500ae60bbb63",
+      "normalizedSha256": "99c328b5214bf87238b0ed0ab96d7e7933e9f93b6abd9810d27219de5656f8c2",
+      "runtimeSha256": "c14a0a4cf8561fdcdf4a4c751221c71338d808d582234453c6c824af178a68b4",
+      "runtimeBytes": 156282,
+      "frame": [
+        1050,
+        920
+      ]
+    },
+    {
+      "id": "F09",
+      "key": "Pugiliste_Female_8@combat_idle",
+      "gender": "female",
+      "variant": 8,
+      "version": 1,
+      "neutral": "assets/design/hero-sprites/cdi-145/normalized-alpha-v1/female/pugilist-female-09-v1.png",
+      "approvedSource": "assets/design/hero-sprites/cdi-157/validated-female-v1/pugilist-female-09-combat-idle-v1.png",
+      "generatedSource": "C:/Users/mathr/.codex/generated_images/01a0ee08-d3c1-7b53-b9b2-8c23dfe2efa0/exec-b2ff5873-bbeb-4026-8fdb-abc4ecff14e1.png",
+      "normalized": "assets/design/hero-sprites/cdi-157/normalized-alpha-v1/female/pugilist-female-09-combat-idle-v1.png",
+      "runtime": "assets/design/hero-sprites/cdi-157/runtime-webp-v1/female/pugilist-female-09-combat-idle-v1.webp",
+      "calibration": {
+        "neutralHead": [
+          83,
+          145,
+          187
+        ],
+        "combatHead": [
+          47,
+          149,
+          202
+        ],
+        "landmarkScale": 0.76,
+        "visualAdjustment": "User requested F09 at 0.74 during cinema page 5 review; final cinema composition approved by user.",
+        "scale": 0.74,
+        "pivotX": 0.5
+      },
+      "sourceSha256": "59aae3795319d7241b23ecb4dac0d962ce19b802b5751a32a803573debba7a85",
+      "neutralSha256": "351af668d58b47dae815bf68576ab7dd3e5c940ee40ed49c95546a9c7cef9100",
+      "normalizedSha256": "b1195090f3c3ddaf8f88d376909404457d844c6a8dfc9a2bc5772e8b62395437",
+      "runtimeSha256": "0d54252c6b59eafaf4a5744a5c1a65a96eced47abd06b0857c1fff1acbd81dee",
+      "runtimeBytes": 92056,
+      "frame": [
+        596,
+        920
+      ]
+    },
+    {
+      "id": "F10",
+      "key": "Pugiliste_Female_9@combat_idle",
+      "gender": "female",
+      "variant": 9,
+      "version": 1,
+      "neutral": "assets/design/hero-sprites/cdi-145/normalized-alpha-v1/female/pugilist-female-10-v1.png",
+      "approvedSource": "assets/design/hero-sprites/cdi-157/validated-female-v1/pugilist-female-10-combat-idle-v1.png",
+      "generatedSource": "C:/Users/mathr/.codex/generated_images/01a0ee08-d3c1-7b53-b9b2-8c23dfe2efa0/exec-61b0970d-0dc0-43c4-8c05-2eac35773587.png",
+      "normalized": "assets/design/hero-sprites/cdi-157/normalized-alpha-v1/female/pugilist-female-10-combat-idle-v1.png",
+      "runtime": "assets/design/hero-sprites/cdi-157/runtime-webp-v1/female/pugilist-female-10-combat-idle-v1.webp",
+      "calibration": {
+        "neutralHead": [
+          83,
+          140,
+          180
+        ],
+        "combatHead": [
+          46,
+          144,
+          201
+        ],
+        "landmarkScale": 0.68,
+        "visualAdjustment": "User requested F10 at 0.68 during cinema page 5 review; final cinema composition approved by user.",
+        "scale": 0.68,
+        "pivotX": 0.5
+      },
+      "sourceSha256": "a4ef8d00b5979f0bf222edb7712397cc1ace8027c87a8f48d9e5c90a1e6e5991",
+      "neutralSha256": "880d501700b4cba518ff46fa2e8a960d9da544e79cff0a3a9bd16774afad291a",
+      "normalizedSha256": "b8929f60e8065646af039fa843fe6ef8fa4ddc364e451cc76911d34bff064adb",
+      "runtimeSha256": "111366dc5117f55c32c85a2a9650e667ba50d36e5eceb1b95602159bf0df2db6",
+      "runtimeBytes": 116994,
+      "frame": [
+        710,
+        920
+      ]
+    }
+  ],
+  "calibrationMethod": "Manual eye-to-chin height (75%) and cranial height (25%) ratios against each exact neutral; rounded to 0.01. Estimates pending user cinema review. Pivots centered between foot supports, independent of weapon extent."
+}

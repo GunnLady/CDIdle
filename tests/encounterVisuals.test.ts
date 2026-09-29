@@ -100,13 +100,6 @@ describe("encounter visual catalog", () => {
     expect(wrappedWarrior.url).toContain("warrior-female-10-combat-idle-v1");
     expect(wrappedWarrior.descriptor.pivotX).toBe(314.5 / 776);
 
-    const otherClass = resolveEncounterVisualDescriptor("Pugiliste_Female_7@combat_idle");
-    expect(otherClass).toMatchObject({
-      provenance: "CDIdle explicit neutral hero-pose fallback",
-      kind: "hero",
-      fallback: false,
-    });
-    expect(otherClass.load).toBeTypeOf("function");
   });
 
   it("loads all twenty CDI-150 Rogue combat-idle identities with their neutral variant", async () => {
@@ -384,6 +377,32 @@ describe("encounter visual catalog", () => {
     }
     const wrapped = await loadEncounterVisualAsset("Artificier_Female_19@combat_idle");
     expect(wrapped.url).toContain("artificer-female-10-combat-idle-v1");
+  });
+
+  it("loads only the twenty approved CDI-157 guards, preserving their exact neutral identity", async () => {
+    const manifest = JSON.parse(readFileSync("assets/design/hero-sprites/cdi-157/manifest.json", "utf8")) as {
+      entries: { key: string; runtime: string; neutral: string; calibration: { scale: number; pivotX: number } }[];
+    };
+    expect(manifest.entries).toHaveLength(20);
+    const urls = new Set<string>();
+    for (const entry of manifest.entries) {
+      const asset = await loadEncounterVisualAsset(entry.key);
+      expect(asset).toMatchObject({ status: "ready", descriptor: {
+        provenance: "CDI-157 validated Pugilist combat-idle alpha sprites",
+        anchor: { x: 0.5, y: 900 / 920 }, fit: "height",
+        scale: 920 / 692 * entry.calibration.scale, pivotX: entry.calibration.pivotX,
+      } });
+      expect(asset.url).toContain(entry.runtime);
+      urls.add(asset.url!);
+      const neutral = await loadEncounterVisualAsset(entry.key.replace("@combat_idle", ""));
+      expect(neutral.url).toContain(entry.neutral);
+      expect(neutral.descriptor).toMatchObject({ scale: 1, anchor: { x: 0.5, y: 0.93 } });
+    }
+    expect(urls.size).toBe(20);
+    const wrapped = await loadEncounterVisualAsset("Pugiliste_Male_10@combat_idle");
+    expect(wrapped.url).toContain("pugilist-male-01-combat-idle-v2.webp");
+    const last = await loadEncounterVisualAsset("Pugiliste_Female_19@combat_idle");
+    expect(last.url).toContain("pugilist-female-10-combat-idle-v1.webp");
   });
 
   it("loads CDI-137 Warrior neutral sprites through stable legacy identity keys", async () => {

@@ -175,7 +175,7 @@ describe("dungeon combat scene presentation", () => {
     expect(view.environment).toBe("sewers");
   });
 
-  it.each(["Novice_Male_0", "Artificier_Male_9", "Artificier_Female_0"])(
+  it.each(["Novice_Male_0", "Artificier_Male_9", "Artificier_Female_0", "Pugiliste_Male_9", "Pugiliste_Female_7"])(
     "uses explicit neutral and combat-idle pose keys without changing %s identity", (visualKey) => {
     const actors = [
       actor("hero-0", "heroes", 0, { visualKey }),
@@ -209,19 +209,31 @@ describe("dungeon combat scene presentation", () => {
     expect(result.actors[0]).toMatchObject({ visualKey, visualPose: "neutral" });
   });
 
-  it.each(["Artificier_Male_1", "Artificier_Male_11"])(
-    "keeps %s's rifle inside the zoom layout without changing scale or desktop positions", (visualKey) => {
+  it.each(["Artificier_Male_1", "Artificier_Male_11", "Pugiliste_Male_9", "Pugiliste_Male_19"])(
+    "keeps %s's long weapon inside the zoom layout without changing scale or desktop positions", (visualKey) => {
       const ordinary = createDungeonCombatSceneView(scene());
-      const artificers = createDungeonCombatSceneView(scene({
+      const armedHeroes = createDungeonCombatSceneView(scene({
         actors: scene().actors.map((entry) => entry.team === "heroes" ? { ...entry, visualKey } : entry),
       }));
       for (let index = 0; index < 4; index += 1) {
-        expect(artificers.actors[index].standard).toEqual(ordinary.actors[index].standard);
-        expect(artificers.actors[index].zoomed).toEqual({
+        expect(armedHeroes.actors[index].standard).toEqual(ordinary.actors[index].standard);
+        expect(armedHeroes.actors[index].zoomed).toEqual({
           ...ordinary.actors[index].zoomed,
           xPercent: index === 3 ? 81 : ordinary.actors[index].zoomed.xPercent,
         });
       }
+    },
+  );
+
+  it.each(["Pugiliste_Male_9", "Pugiliste_Male_19"])(
+    "restores %s's ordinary zoom placement when combat ends", (visualKey) => {
+      const ordinary = createDungeonCombatSceneView(scene({ complete: true, activeStep: null }));
+      const completed = createDungeonCombatSceneView(scene({
+        complete: true,
+        activeStep: null,
+        actors: scene().actors.map((entry) => entry.team === "heroes" ? { ...entry, visualKey } : entry),
+      }));
+      expect(completed.actors.map(({ zoomed }) => zoomed)).toEqual(ordinary.actors.map(({ zoomed }) => zoomed));
     },
   );
 

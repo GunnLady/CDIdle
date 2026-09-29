@@ -1568,7 +1568,102 @@ for (const entry of artificerManifest.entries) {
   }
 }
 
+const pugilistCombatSprites = ["female", "male"].flatMap((gender) => (
+  Array.from({ length: 10 }, (_, index) => join(gender,
+    `pugilist-${gender}-${String(index + 1).padStart(2, "0")}-combat-idle-v${gender === "male" ? ({ 1: 2, 3: 3, 4: 2, 5: 2 })[index + 1] ?? 1 : index === 0 ? 2 : 1}.png`))
+));
+const pugilistCombatRoot = join(projectRoot, "assets", "design", "hero-sprites", "cdi-157");
+const pugilistCombatImageDirectory = join(pugilistCombatRoot, "normalized-alpha-v1");
+const pugilistCombatRuntimeDirectory = join(pugilistCombatRoot, "runtime-webp-v1");
+for (const gender of ["female", "male"]) {
+  const expectedPng = pugilistCombatSprites
+    .filter((relativePath) => dirname(relativePath) === gender)
+    .map((relativePath) => basename(relativePath)).sort();
+  const actualPng = readdirSync(join(pugilistCombatImageDirectory, gender))
+    .filter((file) => file.endsWith(".png")).sort();
+  assert.deepEqual(actualPng, expectedPng, `CDI-157 ${gender} must contain ten normalized sprites`);
+  const expectedWebp = expectedPng.map((file) => file.replace(/\.png$/, ".webp"));
+  const actualWebp = readdirSync(join(pugilistCombatRuntimeDirectory, gender))
+    .filter((file) => file.endsWith(".webp")).sort();
+  assert.deepEqual(actualWebp, expectedWebp, `CDI-157 ${gender} must contain ten runtime sprites`);
+}
+const measuredPugilistCombatSprites = pugilistCombatSprites.map((relativePath) => {
+  const pngPath = join(pugilistCombatImageDirectory, relativePath);
+  const dimensions = readImageInfo(pngPath);
+  assert.equal(dimensions.height, 920, `${relativePath} must remain 920 px high`);
+  assert.equal(dimensions.alpha, true, `${relativePath} must remain an alpha sprite`);
+  assert(Math.max(...dimensions.cornerAlphas) <= 2, `${relativePath} must have transparent corners`);
+  assert(dimensions.visibleBounds, `${relativePath} must contain visible pixels`);
+  assert(Math.abs(dimensions.visibleBounds.maxY - 900) <= 5,
+    `${relativePath} visible bottom ${dimensions.visibleBounds.maxY} must stay near y=900`);
+  const webpPath = join(pugilistCombatRuntimeDirectory, relativePath.replace(/\.png$/, ".webp"));
+  const webp = readFileSync(webpPath);
+  assert.equal(webp.toString("ascii", 0, 4), "RIFF", `${webpPath} must be RIFF`);
+  assert.equal(webp.toString("ascii", 8, 12), "WEBP", `${webpPath} must be WebP`);
+  assert.equal(webp.toString("ascii", 12, 16), "VP8X", `${webpPath} must expose dimensions and alpha`);
+  assert((webp[20] & 0x10) !== 0, `${webpPath} must preserve alpha`);
+  assert.equal(1 + webp.readUIntLE(24, 3), dimensions.width);
+  assert.equal(1 + webp.readUIntLE(27, 3), dimensions.height);
+  assert(webp.length <= 300 * 1024, `${relativePath} exceeds the 300 KiB file budget`);
+  return {
+    file: relativePath,
+    bytes: webp.length,
+    width: dimensions.width,
+    visibleBottomY: dimensions.visibleBounds.maxY,
+    decodedBytes: dimensions.width * dimensions.height * 4,
+  };
+});
+const pugilistCombatTotalBytes = measuredPugilistCombatSprites.reduce((total, entry) => total + entry.bytes, 0);
+const pugilistCombatSceneBytes = measuredPugilistCombatSprites
+  .map((entry) => entry.bytes).sort((left, right) => right - left)
+  .slice(0, combatHeroLimit).reduce((total, bytes) => total + bytes, 0);
+const pugilistCombatDecodedSceneBytes = measuredPugilistCombatSprites
+  .map((entry) => entry.decodedBytes).sort((left, right) => right - left)
+  .slice(0, combatHeroLimit).reduce((total, bytes) => total + bytes, 0);
+assert(pugilistCombatSceneBytes <= sceneBudgetBytes, `Four-hero CDI-157 scene exceeds ${sceneBudgetBytes} bytes`);
+const pugilistManifest = JSON.parse(readFileSync(join(pugilistCombatRoot, "manifest.json"), "utf8").replace(/^\uFEFF/, ""));
+assert.equal(pugilistManifest.entries.length, 20, "CDI-157 manifest must map twenty identities");
+assert.equal(new Set(pugilistManifest.entries.map((entry) => entry.key)).size, 20);
+for (const entry of pugilistManifest.entries) {
+  const match = /^Pugiliste_(Male|Female)_(\d)@combat_idle$/.exec(entry.key);
+  assert(match, `CDI-157 invalid identity key ${entry.key}`);
+  const gender = match[1].toLowerCase();
+  const number = String(Number(match[2]) + 1).padStart(2, "0");
+  const version = gender === "male" ? ({ 1: 2, 3: 3, 4: 2, 5: 2 })[Number(number)] ?? 1 : number === "01" ? 2 : 1;
+  assert.equal(entry.neutral,
+    `assets/design/hero-sprites/cdi-145/normalized-alpha-v1/${gender}/pugilist-${gender}-${number}-v1.png`);
+  assert.equal(entry.approvedSource,
+    `assets/design/hero-sprites/cdi-157/validated-${gender}-v1/pugilist-${gender}-${number}-combat-idle-v${version}.png`);
+  assert.equal(entry.normalized,
+    `assets/design/hero-sprites/cdi-157/normalized-alpha-v1/${gender}/pugilist-${gender}-${number}-combat-idle-v${version}.png`);
+  assert.equal(entry.runtime,
+    `assets/design/hero-sprites/cdi-157/runtime-webp-v1/${gender}/pugilist-${gender}-${number}-combat-idle-v${version}.webp`);
+  const { neutralHead: n, combatHead: c, scale, pivotX } = entry.calibration;
+  const measuredScale = Math.round(100 * ((n[2] - n[1]) / (c[2] - c[1])) ** 0.75
+    * ((n[2] - n[0]) / (c[2] - c[0])) ** 0.25) / 100;
+  assert.equal(entry.calibration.landmarkScale ?? scale, measuredScale, entry.key + " anatomical scale mismatch");
+  if (scale !== measuredScale) {
+    assert(entry.calibration.visualAdjustment?.trim(), entry.key + " missing user scaling adjustment");
+  }
+  assert(scale > 0.4 && scale < 1 && pivotX > 0 && pivotX < 1);
+  const dimensions = readImageInfo(join(projectRoot, entry.normalized));
+  assert.deepEqual(entry.frame, [dimensions.width, dimensions.height]);
+  assert.equal(entry.runtimeBytes, statSync(join(projectRoot, entry.runtime)).size);
+  for (const [pathField, hashField] of [
+    ["approvedSource", "sourceSha256"],
+    ["neutral", "neutralSha256"],
+    ["normalized", "normalizedSha256"],
+    ["runtime", "runtimeSha256"],
+  ]) {
+    const file = readFileSync(join(projectRoot, entry[pathField]));
+    assert.equal(createHash("sha256").update(file).digest("hex"), entry[hashField],
+      `CDI-157 ${entry.key} ${pathField} changed after validation`);
+  }
+}
+
 console.log(JSON.stringify({
+  pugilistCombatSprites: pugilistCombatSprites.length,
+  pugilistCombatMetrics: { totalBytes: pugilistCombatTotalBytes, largestFourSceneBytes: pugilistCombatSceneBytes, decodedLargestFourSceneBytes: pugilistCombatDecodedSceneBytes, largestFileBytes: Math.max(...measuredPugilistCombatSprites.map((entry) => entry.bytes)) },
   artificerCombatSprites: artificerCombatSprites.length,
   artificerCombatMetrics: {
     totalBytes: artificerCombatTotalBytes,

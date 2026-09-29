@@ -575,7 +575,7 @@ Nouveaux tickets du plan amélioré :
 | [CDI-154](../../workboard/data/Done/CDI-154/ticket.md) | A1b : Produire et intégrer les poses de combat Aède | Done | L / medium | CDI-142, CDI-148 |
 | [CDI-155](../../workboard/data/Done/CDI-155/ticket.md) | A1b : Produire et intégrer les poses de combat Druide | Done | L / medium | CDI-143, CDI-148 |
 | [CDI-156](../../workboard/data/Done/CDI-156/ticket.md) | A1b : Produire et intégrer les poses de combat Artificier | Done | L / medium | CDI-144, CDI-148 |
-| [CDI-157](../../workboard/data/Later/CDI-157/ticket.md) | A1b : Produire et intégrer les poses de combat Pugiliste | Later | L / medium | CDI-145, CDI-148 |
+| [CDI-157](../../workboard/data/Done/CDI-157/ticket.md) | A1b : Produire et intégrer les poses de combat Pugiliste | Done | L / medium | CDI-145, CDI-148 |
 
 Les tailles sont relatives et incluent tests, documentation et revue, hors
 attente utilisateur. Le chantier compte désormais 61 tickets : 1 S, 32 M et
@@ -588,14 +588,15 @@ globale arbitraire pour les 400 identités.
 
 Priorité : P1 pour les 61 tickets actuels du chantier ; ce rang ne signifie pas
 incident de production généralisé. Au 29 septembre 2026, CDI-097–103,
-CDI-105–113, CDI-117, CDI-136–145 et CDI-148–156 sont `Done` (36 tickets).
-CDI-115 est `Paused` sur le piège ; les 24 autres sont `Later`. Les clôtures
+CDI-105–113, CDI-117, CDI-136–145 et CDI-148–157 sont `Done` (37 tickets).
+CDI-115 est `Paused` sur le piège ; les 23 autres sont `Later`. Les clôtures
 Aède CDI-154 et Druide CDI-155 sont dans le commit publié `c807ded`.
 CDI-156 est clos sur décision explicite de l’utilisateur le 29 septembre,
 après intégration locale et validations consignées dans son ticket ; aucun
 commit, push ou déploiement n’est inclus dans cette clôture.
-CDI-157 reste `Later` : neuf gardes validées selon son suivi, onze restantes,
-reprise à F05 ; normalisation et intégration restent à faire.
+CDI-157 est clos après intégration des vingt gardes, validation des cinq
+écrans cinéma et contrôles techniques réussis. La correction du neutre M06
+est incluse ; publication Git autorisée par l’utilisateur.
 Les tickets Done
 ne changent que de liens blocks si nécessaire, pas de périmètre ni de verdict.
 Les acquis CDI-076, CDI-078, CDI-080, CDI-083, CDI-094 et CDI-095 restent des

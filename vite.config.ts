@@ -20,6 +20,8 @@ export default defineConfig(({mode}) => {
       // target and the current PC browser scope.
       target: "es2022",
       minify: "terser",
+      // Fold opportunities exposed by the first pass as the sprite catalog grows.
+      terserOptions: { compress: { passes: 2 } },
       rollupOptions: {
         output: {
           // Limit wrapper/compression overhead without collapsing substantive route chunks.
