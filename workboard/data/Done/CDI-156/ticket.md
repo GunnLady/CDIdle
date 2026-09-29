@@ -1,7 +1,7 @@
 ---
 id: CDI-156
 title: Produire et intégrer les poses de combat Artificier
-status: Later
+status: Done
 area: ui
 priority: P1
 size: L
@@ -59,13 +59,13 @@ La base neutre reste destinée au recrutement, au catalogue, au stockage et aux 
 
 ## Criteres d'acceptation
 
-- [ ] Un pilote contrasté est validé visuellement avant la production en série.
-- [ ] Les vingt poses de combat correspondent une à une aux vingt bases neutres par genre et index 0–9.
-- [ ] Identité, équipement visuel, proportions, direction, lumière, pieds et pivot restent cohérents entre les deux poses.
-- [ ] Le cinéma affiche la garde pendant l’affrontement, revient en garde après chaque action et n’utilise la pose neutre qu’hors combat.
-- [ ] Recrutement, catalogue, stockage et autres scènes hors combat conservent la pose neutre.
-- [ ] La pose de combat ne remplace aucune pose d’action et ne modifie aucun résultat métier.
-- [ ] Alpha, chargement, cache, mémoire et budget de scène sont vérifiés ; le rendu est validé dans les écrans cinéma représentatifs.
+- [x] Un pilote contrasté est validé visuellement avant la production en série.
+- [x] Les vingt poses de combat correspondent une à une aux vingt bases neutres par genre et index 0–9.
+- [x] Identité, équipement visuel, proportions, direction, lumière, pieds et pivot restent cohérents entre les deux poses.
+- [x] Le cinéma affiche la garde pendant l’affrontement, revient en garde après chaque action et n’utilise la pose neutre qu’hors combat.
+- [x] Recrutement, catalogue, stockage et autres scènes hors combat conservent la pose neutre.
+- [x] La pose de combat ne remplace aucune pose d’action et ne modifie aucun résultat métier.
+- [x] Alpha, chargement, cache, mémoire et budget de scène sont vérifiés ; le rendu est validé dans les écrans cinéma représentatifs.
 
 ## Tests
 
@@ -91,6 +91,76 @@ L’utilisateur valide d’abord le pilote, puis les vingt correspondances neutr
 - Saut visible de pivot ou d’échelle lors du changement de pose.
 - Chargement des quarante images neutral/combat d’une classe alors que seules les identités présentes sont nécessaires.
 - Confusion entre garde persistante, compétence guard_stance et vraie pose d’action.
+
+## Validation locale — 27 septembre 2026
+
+- Verdict utilisateur : « écran validé », après ajustement des tailles dans
+  les cinq pages du harness cinéma Artificier. Il s'agit d'une validation
+  visuelle utilisateur, pas d'une mesure réseau réalisée par Codex.
+- Les vingt sources approuvées, PNG normalisés et WebP runtime sont reliés
+  par genre/index et SHA-256 dans
+  `assets/design/hero-sprites/cdi-156/manifest.json`.
+- Les coefficients finaux sont dans `src/assets/artificerCdi156CombatPoses.ts`,
+  avec les mêmes tableaux et accesseurs que les autres classes. Le relevé
+  `assets/design/hero-sprites/cdi-156/face-calibration.json` distingue les
+  estimations anatomiques initiales des corrections visuelles utilisateur.
+- `scripts/review-cdi156-face-calibration.ps1` contrôle la concordance entre
+  ce relevé, les coefficients runtime et les empreintes des images.
+- Contrôles déterministes des assets réussis : vingt identités, alpha,
+  dimensions, pieds à y=900 et hashes. WebP total : 1 973 354 octets ; quatre
+  plus gros fichiers : 504 840 octets ; borne RGBA des quatre plus grandes
+  images : 13 998 720 octets. Cette borne n'est pas la mémoire navigateur mesurée.
+- Tests ciblés : 102 réussis dans `encounterVisuals`, `dungeonCombatScene`,
+  `heroPortrait`, `heroPortraitFraming` et le contrôle de compatibilité inclus.
+  Les vingt échelles attendues viennent du relevé approuvé, pas de la fonction
+  testée. Le scénario existant entrée/garde/action/repli/sortie couvre aussi
+  `Artificier_Male_9` et `Artificier_Female_0`.
+- Typecheck, lint et build réussis. Budget JavaScript : 262 100 / 262 144 octets
+  gzip, plus gros chunk 118 347 octets. Les imports explicites des neutres
+  Artificier et Pugiliste remplacent les tables de chemins ; les mêmes images
+  et leurs correspondances sont conservées et testées. Le résolveur partagé
+  et le plafond du budget sont inchangés.
+- Revue du test navigateur CDI-156 : attente du décodage réel, contrôle des
+  quatre images utiles sans neutres parasites, budget froid et comparaison
+  des transferts chaud/froid. Les limites visibles sont calculées depuis
+  l'alpha (>32), sans confondre contenu et marges transparentes du fichier.
+
+### Contrôle navigateur autorisé et exécuté
+
+Autorisation utilisateur : « bas vas y », après explication du contrôle.
+Chromium Playwright : un test réussi, couvrant les cinq pages, les vingt
+identités et 1440/1280/1024/512 px (512 représente ici le contrôle étroit du
+zoom PC 200 %, pas une promesse de support mobile).
+
+Le premier passage a détecté 21,87 px de fusil M02 rognés à 512 px. Correction
+dans le modèle de présentation : position horizontale plafonnée à 81 % dans
+la disposition zoomée pour M02, indices persistés 1 et 11. Les trois autres
+slots, l'échelle et les positions PC standard restent identiques, vérifiés
+par deux cas unitaires. Le passage final ne détecte aucun contenu visible
+hors scène sur les vingt combinaisons page/largeur.
+
+| Page | Transfert froid, octets | Transfert chaud, octets | Surface RGBA calculée, octets |
+| --- | ---: | ---: | ---: |
+| 1 | 398 278 | 1 200 | 10 944 320 |
+| 2 | 397 986 | 1 200 | 10 414 400 |
+| 3 | 367 620 | 1 200 | 8 787 840 |
+| 4 | 442 168 | 1 200 | 10 561 600 |
+| 5 | 373 302 | 1 200 | 8 633 280 |
+
+Mesures Resource Timing réelles sur le serveur Vite local ; la surface RGBA
+est calculée depuis les dimensions effectivement décodées, pas une mesure
+de mémoire totale Chromium/GPU. Ces résultats ne démontrent pas le cache
+HTTP de production. Captures et relevés détaillés : `.tmp/cdi156-browser-final/`.
+La configuration Playwright permet de conserver le harness par opt-in local
+`CDIDLE_REUSE_LAYOUT_SERVER=1` ; la CI conserve son serveur isolé.
+
+Aucun commit, push ou déploiement n'est inclus dans cette validation locale.
+
+## Clôture — 29 septembre 2026
+
+Ticket clos et tous les critères cochés sur décision explicite de l’utilisateur.
+La reconstitution des traces documentaires du pilote n’est pas requise pour
+cette clôture. Les validations locales ci-dessus conservent leur portée.
 
 ## Handoff
 

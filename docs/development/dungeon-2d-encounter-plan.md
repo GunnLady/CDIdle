@@ -1,10 +1,12 @@
 # Donjon — scène 2D des combats et rencontres
 
-Date de recherche initiale : 10 septembre 2026. Révision : 13 septembre 2026.
+Date de recherche initiale : 10 septembre 2026. Révision de portée : 13 septembre 2026.
+État actualisé le 29 septembre 2026 ; budgets actualisés le 27 septembre 2026.
 Statut : socles et premiers packs livrés ; suite du plan révisée après retour
 utilisateur sur les animations. Le découpage amélioré est appliqué au Workboard :
-31 nouveaux tickets CDI-117–147, cinq recadrés et dépendances actualisées.
-Périmètre de cette révision : recherche et plan, sans modification applicative.
+31 nouveaux tickets CDI-117–147, cinq recadrés, puis dix tickets de gardes
+CDI-148–157 ajoutés le 15 septembre. Les statuts et dépendances ci-dessous
+reflètent les tickets Markdown au 29 septembre 2026.
 
 **Référence directrice pour la suite : [production des sprites et animations
 d’action](dungeon-2d-action-production-plan.md).** Elle précise les 36 compétences,
@@ -436,8 +438,9 @@ acteurs visibles, avec cache borné et nettoyage en sortie de session.
 Garde-fous proposés à contrôler dans les tickets, à mesurer sur le produit
 complet dans CDI-116 puis à consolider lors de CDI-104 :
 
-- Budget JS existant inchangé : somme gzip des fichiers JS ≤ 250 KiB et plus
-  gros fichier ≤ 300 KiB (`check:bundle` contrôle la somme, pas uniquement l'entrée).
+- Budget JS : somme gzip des fichiers JS ≤ 256 KiB et plus gros fichier
+  ≤ 300 KiB, selon la décision utilisateur du 25 septembre 2026 confirmée
+  le 27 septembre (`check:bundle` contrôle la somme, pas uniquement l'entrée).
 - Budget artistique initial proposé : ≤ 2 MiB de téléchargements supplémentaires
   à froid pour une scène de zone et son groupe affiché ; mesurer séparément le
   trafic déjà nécessaire aux portraits. Les nouvelles poses héros comptent dans
@@ -522,9 +525,9 @@ pas leur contenu actuel.
 | [CDI-110](../../workboard/data/Done/CDI-110/ticket.md) | Produire les assets des Citernes oubliées | Done | M / medium | CDI-099 |
 | [CDI-111](../../workboard/data/Done/CDI-111/ticket.md) | Produire les assets du Bastion des Exclus | Done | M / medium | CDI-099 |
 | [CDI-112](../../workboard/data/Done/CDI-112/ticket.md) | Produire les assets de la Cour du Roi des Rats | Done | M / medium | CDI-099 |
-| [CDI-113](../../workboard/data/Paused/CDI-113/ticket.md) | Fiabiliser la chronologie et le pilote de contact | Paused | M / high | CDI-103, CDI-106, CDI-117, CDI-136 |
+| [CDI-113](../../workboard/data/Done/CDI-113/ticket.md) | Fiabiliser la chronologie et le pilote de contact | Done | M / high | CDI-103, CDI-106, CDI-117, CDI-136, CDI-148 |
 | [CDI-114](../../workboard/data/Later/CDI-114/ticket.md) | Tracer et représenter le cycle des buffs et debuffs | Later | M / high | CDI-113 |
-| [CDI-115](../../workboard/data/Doing/CDI-115/ticket.md) | Mettre en scène le piège et le socle des épreuves | Doing | M / medium | CDI-102 |
+| [CDI-115](../../workboard/data/Paused/CDI-115/ticket.md) | Mettre en scène le piège et le socle des épreuves | Paused | M / medium | CDI-102 |
 | [CDI-116](../../workboard/data/Later/CDI-116/ticket.md) | Mesurer et stabiliser les performances des scènes complètes | Later | M / high | CDI-108, CDI-109, CDI-110, CDI-111, CDI-112, CDI-114, CDI-115, CDI-129, CDI-130, CDI-131, CDI-132, CDI-133, CDI-134, CDI-135 |
 
 
@@ -533,24 +536,24 @@ Nouveaux tickets du plan amélioré :
 | Ticket | Lot / livrable | Statut | Taille / risque | Dépendances |
 | --- | --- | --- | --- | --- |
 | [CDI-117](../../workboard/data/Done/CDI-117/ticket.md) | A0 — Caler la DA et sélectionner les retouches utiles | Done | M / medium | CDI-099, CDI-108, CDI-109, CDI-110, CDI-111, CDI-112 |
-| [CDI-118](../../workboard/data/Later/CDI-118/ticket.md) | C1 — Différencier les frappes de contact simples et jumelles | Later | M / medium | CDI-113, CDI-136, CDI-137, CDI-138, CDI-146, CDI-147 |
-| [CDI-119](../../workboard/data/Later/CDI-119/ticket.md) | C2 — Animer le balayage et les combos de pugilat | Later | M / high | CDI-118, CDI-137, CDI-145 |
+| [CDI-118](../../workboard/data/Later/CDI-118/ticket.md) | C1 — Différencier les frappes de contact simples et jumelles | Later | M / medium | CDI-113, CDI-136, CDI-137, CDI-138, CDI-146, CDI-147, CDI-148, CDI-149, CDI-150 |
+| [CDI-119](../../workboard/data/Later/CDI-119/ticket.md) | C2 — Animer le balayage et les combos de pugilat | Later | M / high | CDI-118, CDI-137, CDI-145, CDI-149, CDI-157 |
 | [CDI-120](../../workboard/data/Later/CDI-120/ticket.md) | C3 — Donner aux créatures des attaques adaptées à leur corps | Later | M / medium | CDI-113 |
-| [CDI-121](../../workboard/data/Later/CDI-121/ticket.md) | D1 — Animer les tirs à l’arc et à l’arbalète | Later | M / medium | CDI-113, CDI-114, CDI-139, CDI-146, CDI-147 |
-| [CDI-122](../../workboard/data/Later/CDI-122/ticket.md) | M1 — Distinguer les projectiles de feu, glace et foudre | Later | M / medium | CDI-113, CDI-140 |
-| [CDI-123](../../workboard/data/Later/CDI-123/ticket.md) | M2 — Décliner les jets élémentaires et les appareils | Later | L / medium | CDI-114, CDI-122, CDI-140, CDI-144, CDI-146 |
-| [CDI-124](../../workboard/data/Later/CDI-124/ticket.md) | S1 — Mettre en scène les soins et les effets sacrés ou naturels | Later | L / medium | CDI-113, CDI-114, CDI-141, CDI-143, CDI-146 |
-| [CDI-125](../../workboard/data/Later/CDI-125/ticket.md) | S2 — Animer chants, cris, poudre et renforcements | Later | M / medium | CDI-113, CDI-114, CDI-136, CDI-137, CDI-138, CDI-142, CDI-145, CDI-146 |
+| [CDI-121](../../workboard/data/Later/CDI-121/ticket.md) | D1 — Animer les tirs à l’arc et à l’arbalète | Later | M / medium | CDI-113, CDI-114, CDI-139, CDI-146, CDI-147, CDI-151 |
+| [CDI-122](../../workboard/data/Later/CDI-122/ticket.md) | M1 — Distinguer les projectiles de feu, glace et foudre | Later | M / medium | CDI-113, CDI-140, CDI-152 |
+| [CDI-123](../../workboard/data/Later/CDI-123/ticket.md) | M2 — Décliner les jets élémentaires et les appareils | Later | L / medium | CDI-114, CDI-122, CDI-140, CDI-144, CDI-146, CDI-152, CDI-156 |
+| [CDI-124](../../workboard/data/Later/CDI-124/ticket.md) | S1 — Mettre en scène les soins et les effets sacrés ou naturels | Later | L / medium | CDI-113, CDI-114, CDI-141, CDI-143, CDI-146, CDI-153, CDI-155 |
+| [CDI-125](../../workboard/data/Later/CDI-125/ticket.md) | S2 — Animer chants, cris, poudre et renforcements | Later | M / medium | CDI-113, CDI-114, CDI-136, CDI-137, CDI-138, CDI-142, CDI-145, CDI-146, CDI-148, CDI-149, CDI-150, CDI-154, CDI-157 |
 | [CDI-126](../../workboard/data/Later/CDI-126/ticket.md) | E1 — Tracer et montrer les intentions et protections ennemies | Later | M / high | CDI-106, CDI-113, CDI-147 |
 | [CDI-127](../../workboard/data/Later/CDI-127/ticket.md) | E2 — Coordonner les gardes et les deux formes du Roi | Later | M / high | CDI-112, CDI-126 |
-| [CDI-128](../../workboard/data/Later/CDI-128/ticket.md) | R1 — Stabiliser réactions, KO et relèvement | Later | M / medium | CDI-102, CDI-113 |
+| [CDI-128](../../workboard/data/Later/CDI-128/ticket.md) | R1 — Stabiliser réactions, KO et relèvement | Later | M / medium | CDI-102, CDI-113, CDI-148, CDI-149, CDI-150, CDI-151, CDI-152, CDI-153, CDI-154, CDI-155, CDI-156, CDI-157 |
 | [CDI-129](../../workboard/data/Later/CDI-129/ticket.md) | N1 — Mettre en scène l’énigme et son contrecoup | Later | M / medium | CDI-115, CDI-117 |
 | [CDI-130](../../workboard/data/Later/CDI-130/ticket.md) | N2 — Mettre en scène l’alerte d’embuscade | Later | M / medium | CDI-115, CDI-117 |
 | [CDI-131](../../workboard/data/Later/CDI-131/ticket.md) | N3 — Mettre en scène l’activation du rituel | Later | M / medium | CDI-115, CDI-117 |
 | [CDI-132](../../workboard/data/Later/CDI-132/ticket.md) | N4 — Mettre en scène l’effort face à un obstacle | Later | M / medium | CDI-115, CDI-117 |
 | [CDI-133](../../workboard/data/Later/CDI-133/ticket.md) | N5 — Mettre en scène l’échange de négociation | Later | M / medium | CDI-115, CDI-117 |
-| [CDI-134](../../workboard/data/Later/CDI-134/ticket.md) | N6 — Préserver trésor et repos avec les héros retouchés | Later | M / medium | CDI-102, CDI-117, CDI-128, CDI-136–145 |
-| [CDI-135](../../workboard/data/Later/CDI-135/ticket.md) | Q1 — Vérifier le combat continu et la couverture des actions | Later | M / high | CDI-114, CDI-117–147 |
+| [CDI-134](../../workboard/data/Later/CDI-134/ticket.md) | N6 — Préserver trésor et repos avec les héros retouchés | Later | M / medium | CDI-102, CDI-117, CDI-128, CDI-136, CDI-137, CDI-138, CDI-139, CDI-140, CDI-141, CDI-142, CDI-143, CDI-144, CDI-145 |
+| [CDI-135](../../workboard/data/Later/CDI-135/ticket.md) | Q1 — Vérifier le combat continu et la couverture des actions | Later | M / high | CDI-114, CDI-117, CDI-118, CDI-119, CDI-120, CDI-121, CDI-122, CDI-123, CDI-124, CDI-125, CDI-126, CDI-127, CDI-128, CDI-136, CDI-137, CDI-138, CDI-139, CDI-140, CDI-141, CDI-142, CDI-143, CDI-144, CDI-145, CDI-146, CDI-147, CDI-148, CDI-149, CDI-150, CDI-151, CDI-152, CDI-153, CDI-154, CDI-155, CDI-156, CDI-157 |
 | [CDI-136](../../workboard/data/Done/CDI-136/ticket.md) | A1 — Refaire les bases visuelles des Novices | Done | L / medium | CDI-117 |
 | [CDI-137](../../workboard/data/Done/CDI-137/ticket.md) | A1 — Refaire les bases visuelles des Guerriers | Done | L / medium | CDI-117, CDI-136 |
 | [CDI-138](../../workboard/data/Done/CDI-138/ticket.md) | A1 — Refaire les bases visuelles des Voleurs | Done | L / medium | CDI-117, CDI-136 |
@@ -563,21 +566,37 @@ Nouveaux tickets du plan amélioré :
 | [CDI-145](../../workboard/data/Done/CDI-145/ticket.md) | A1 — Refaire les bases visuelles des Pugilistes | Done | L / medium | CDI-117, CDI-136 |
 | [CDI-146](../../workboard/data/Later/CDI-146/ticket.md) | A2 — Refaire les onze humanoïdes des Galeries | Later | L / medium | CDI-117 |
 | [CDI-147](../../workboard/data/Later/CDI-147/ticket.md) | A2 — Refaire la sentinelle et la patrouille du Bastion | Later | M / medium | CDI-117 |
+| [CDI-148](../../workboard/data/Done/CDI-148/ticket.md) | A1b : Produire et intégrer les poses de combat Novice | Done | L / medium | CDI-136 |
+| [CDI-149](../../workboard/data/Done/CDI-149/ticket.md) | A1b : Produire et intégrer les poses de combat Guerrier | Done | L / medium | CDI-137, CDI-148 |
+| [CDI-150](../../workboard/data/Done/CDI-150/ticket.md) | A1b : Produire et intégrer les poses de combat Voleur | Done | L / medium | CDI-138, CDI-148 |
+| [CDI-151](../../workboard/data/Done/CDI-151/ticket.md) | A1b : Produire et intégrer les poses de combat Archer | Done | L / medium | CDI-139, CDI-148 |
+| [CDI-152](../../workboard/data/Done/CDI-152/ticket.md) | A1b : Produire et intégrer les poses de combat Mage | Done | L / medium | CDI-140, CDI-148 |
+| [CDI-153](../../workboard/data/Done/CDI-153/ticket.md) | A1b : Produire et intégrer les poses de combat Acolyte | Done | L / medium | CDI-141, CDI-148 |
+| [CDI-154](../../workboard/data/Done/CDI-154/ticket.md) | A1b : Produire et intégrer les poses de combat Aède | Done | L / medium | CDI-142, CDI-148 |
+| [CDI-155](../../workboard/data/Done/CDI-155/ticket.md) | A1b : Produire et intégrer les poses de combat Druide | Done | L / medium | CDI-143, CDI-148 |
+| [CDI-156](../../workboard/data/Done/CDI-156/ticket.md) | A1b : Produire et intégrer les poses de combat Artificier | Done | L / medium | CDI-144, CDI-148 |
+| [CDI-157](../../workboard/data/Later/CDI-157/ticket.md) | A1b : Produire et intégrer les poses de combat Pugiliste | Later | L / medium | CDI-145, CDI-148 |
 
 Les tailles sont relatives et incluent tests, documentation et revue, hors
-attente utilisateur. Le chantier compte désormais 51 tickets : 1 S, 32 M et
-18 L. Les lots L réutilisent des recettes communes mais couvrent
+attente utilisateur. Le chantier compte désormais 61 tickets : 1 S, 32 M et
+28 L. Les lots L réutilisent des recettes communes mais couvrent
 plusieurs signatures ; leur limite et le critère de subdivision sont explicites.
 Les retouches A1/A2 ne sont pas estimées comme un lot global de 400 sprites.
 Les poses ciblées confirmées le 13 septembre nécessitent désormais de mesurer
 le pilote et de borner les seuls lots artistiques utiles, sans estimation
 globale arbitraire pour les 400 identités.
 
-Priorité : P1 pour les 51 tickets actuels du chantier ; ce rang ne signifie pas
-incident de production généralisé. CDI-097, CDI-098, CDI-099, CDI-100, CDI-101,
-CDI-102, CDI-103, CDI-105, CDI-106, CDI-107, CDI-108, CDI-109, CDI-110,
-CDI-111, CDI-112 et CDI-117 sont Done. CDI-113 est Paused en attente de
-136, CDI-115 Doing sur le piège ; les autres restent Later. Les tickets Done
+Priorité : P1 pour les 61 tickets actuels du chantier ; ce rang ne signifie pas
+incident de production généralisé. Au 29 septembre 2026, CDI-097–103,
+CDI-105–113, CDI-117, CDI-136–145 et CDI-148–156 sont `Done` (36 tickets).
+CDI-115 est `Paused` sur le piège ; les 24 autres sont `Later`. Les clôtures
+Aède CDI-154 et Druide CDI-155 sont dans le commit publié `c807ded`.
+CDI-156 est clos sur décision explicite de l’utilisateur le 29 septembre,
+après intégration locale et validations consignées dans son ticket ; aucun
+commit, push ou déploiement n’est inclus dans cette clôture.
+CDI-157 reste `Later` : neuf gardes validées selon son suivi, onze restantes,
+reprise à F05 ; normalisation et intégration restent à faire.
+Les tickets Done
 ne changent que de liens blocks si nécessaire, pas de périmètre ni de verdict.
 Les acquis CDI-076, CDI-078, CDI-080, CDI-083, CDI-094 et CDI-095 restent des
 références livrées sans modification de leurs tickets. L'ancien modèle de

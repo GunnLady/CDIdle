@@ -32,7 +32,7 @@ Périmètre révisé le 13 septembre selon dungeon-2d-action-production-plan.md 
 ## Perimetre autorise
 
 Avec toutes les scènes et tous les packs disponibles, mesurer le scénario
-représentatif et le maximal réel : JS gzip total/fichier 250/300 KiB, assets
+représentatif et le maximal réel : JS gzip total/fichier 256/300 KiB, assets
 supplémentaires à froid proposés à 2 MiB par scène/zone, egress et quinze
 traces enrichies longues, charge hors vue, ressources sur cent rencontres.
 Mesurer réellement la cible 60 FPS sur le poste PC de référence et consigner
@@ -53,7 +53,7 @@ mesures progressivement ajoutés, sans bâtir un second moteur de test général
 ## Contrat d'implementation
 
 - Mesurer scénario représentatif et maximal réel, jusqu'à quatre héros/trois ennemis et 16 effets ; consigner matériel, navigateur, viewport, durée et environnement.
-- JS : somme gzip ≤ 250 KiB, fichier ≤ 300 KiB ; assets supplémentaires à froid proposés ≤ 2 MiB par scène de zone et groupe, portraits préexistants mesurés séparément. Les nouvelles poses héros comptent dans les 2 MiB supplémentaires ; mesurer aussi la mémoire décodée, chargement utile et changements de groupe.
+- JS : somme gzip ≤ 256 KiB, fichier ≤ 300 KiB, selon la décision utilisateur du 25 septembre 2026 confirmée le 27 septembre et les seuils de `check:bundle` ; assets supplémentaires à froid proposés ≤ 2 MiB par scène de zone et groupe, portraits préexistants mesurés séparément. Les nouvelles poses héros comptent dans les 2 MiB supplémentaires ; mesurer aussi la mémoire décodée, chargement utile et changements de groupe.
 - Mesurer la cible réelle de 60 FPS sur PC, sans l'annoncer acquise avant preuve.
 - Cent rencontres : pas de croissance de nœuds/timers/écouteurs, aucune boucle de scène hors vue, aucune commande supplémentaire.
 - Historique ≤ quinze ; mesurer octets des traces longues et projection du budget egress. CDI-096 inventaire reste distinct.

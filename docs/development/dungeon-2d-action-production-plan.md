@@ -1,6 +1,6 @@
 # Donjon 2D — production des sprites et animations d’action
 
-Révision du 15 septembre 2026. Complément directeur du
+Révision de portée du 15 septembre 2026 ; état actualisé le 29 septembre 2026. Complément directeur du
 [plan des rencontres](dungeon-2d-encounter-plan.md).
 **Plan de production, pas constat de livraison ni validation visuelle.**
 
@@ -18,7 +18,9 @@ Révision du 15 septembre 2026. Complément directeur du
   conservés individuellement.
 - Trois lots artistiques sont distincts : **base neutre → pose de combat →
   poses d’action**. Chaque identité reçoit une pose de combat en garde, avec le
-  même visage et le même équipement dessiné. Les poses d’action restent
+  même visage et le même équipement dessiné, sauf variation des armes des
+  gardes Pugiliste autorisée dans CDI-157 ; leurs neutres restent inchangés.
+  Les poses d’action restent
   ciblées par famille de geste : pas d’animation complexe ni de cycle de marche
   complet produit systématiquement.
 - L’arme visible appartient au sprite. Elle ne suit **pas** l’arme équipée.
@@ -238,6 +240,9 @@ Après chaque base validée, produire une garde pour les vingt mêmes identités
 Visage, carnation, coiffure, tenue, arme ou accessoire, direction, lumière,
 échelle, pieds et pivot restent cohérents avec la base neutre. CDI-148 fixe le
 standard sur les Novices ; CDI-149 à CDI-157 l’appliquent aux neuf classes T1.
+Pour CDI-157, la décision utilisateur du 27 septembre autorise un mélange
+de mains nues, gantelets renforcés assortis aux tenues et bô dans les gardes,
+sans modifier les bases neutres ni l’équipement métier.
 La recherche, la génération unitaire, le contrôle obligatoire des proportions,
 le verdict utilisateur, la reprise de zéro, l'archivage et la validation cinéma
 suivent le [workflow commun des sprites de garde](dungeon-2d-combat-idle-sprite-workflow.md).
@@ -359,7 +364,7 @@ ne sont plus annoncés prêts à la seule validation visuelle.
 | --- | --- | --- | --- |
 | A0 — [CDI-117](../../workboard/data/Done/CDI-117/ticket.md) | Étalon DA, tri des ressources conservées et création des seules reprises utiles | Acquis 099, 108–112 | Référence et cinq zones validées ; tickets A1/A2 bornés, aucune animation produite |
 | A1 — [CDI-136](../../workboard/data/Done/CDI-136/ticket.md) à [CDI-145](../../workboard/data/Done/CDI-145/ticket.md) | Refaire les bases neutres des dix classes, vingt identités par classe : dix hommes et dix femmes | 117 ; 137–145 dépendent aussi du Novice 136 validé | Une classe par ticket ; réattribution stable 0–19 → 0–9, aucune pose de combat ou d’action incluse |
-| A1b — [CDI-148](../../workboard/data/Done/CDI-148/ticket.md) à [CDI-157](../../workboard/data/Later/CDI-157/ticket.md) | Produire et intégrer la garde des vingt identités de chaque classe | Base neutre de la classe ; 149–157 réutilisent le standard Novice 148 | Même identité et équipement ; garde dans le cinéma, retour après action, neutre hors combat |
+| A1b — [CDI-148](../../workboard/data/Done/CDI-148/ticket.md) à [CDI-157](../../workboard/data/Later/CDI-157/ticket.md) | Produire et intégrer la garde des vingt identités de chaque classe | Base neutre de la classe ; 149–157 réutilisent le standard Novice 148 | Même identité et équipement, sauf armes des gardes Pugiliste selon CDI-157 ; garde dans le cinéma, retour après action, neutre hors combat |
 | A2 — [CDI-146](../../workboard/data/Later/CDI-146/ticket.md), [CDI-147](../../workboard/data/Later/CDI-147/ticket.md), puis lots restants | CDI-146 regroupe les cinq écrans humains des Galeries ; CDI-147 les trois reprises de deux écrans du Bastion | A0 et geste concerné | Chaque écran validé, usages partagés revérifiés ; images conservées explicitement listées |
 | C1 — [CDI-118](../../workboard/data/Later/CDI-118/ticket.md) | Contact léger, lourd, estoc et armes jumelles à partir du pilote | 113 + gardes Novice/Guerrier/Voleur | `heavy_blow`, `quick_shiv`, `double_cut` ; gestes et accents adaptés, retour en garde |
 | C2 — [CDI-119](../../workboard/data/Later/CDI-119/ticket.md) | Balayage et pugilat / combo | 113 + C1 | `cleaving_strike`, poing, pied, cinq impacts reçus ; pose ciblée seulement pour geste impossible à lire |
@@ -401,9 +406,12 @@ consommateur et de CDI-135, ainsi que de CDI-134 pour les héros, avant clôture
 du tri ou du pilote concerné. Les liens réciproques sont vérifiés ; WIP ≤ 3
 et GitHub sync off conservés.
 
-CDI-113, CDI-117, CDI-136–142 et CDI-148 sont `Done`. CDI-115 reste
-`Paused` sur le piège, sans déclarer les autres épreuves terminées. Les bases
-CDI-143–145 et les autres nouveaux tickets sont `Later`.
+Au 29 septembre 2026, CDI-113, CDI-117, les dix bases CDI-136–145 et les
+neuf gardes CDI-148–156 sont `Done`. CDI-115 reste `Paused` sur le piège,
+sans déclarer les autres épreuves terminées. Les gardes Pugiliste CDI-157,
+les retouches CDI-146/147 et les familles d’action restent `Later`.
+Le chantier CDI-097–157 compte 36 `Done`, 24 `Later` et
+1 `Paused`. Les tickets Markdown font foi pour les dépendances détaillées.
 Les lots avec états
 persistants (121, 123, 124, 125) dépendent de 114 : le pilote de tir/soin se
 clôture après cette preuve, même si sa préparation visuelle peut être étudiée avant.
@@ -455,6 +463,17 @@ code applicatif changé par cette révision documentaire. Le Workboard ajoute
 CDI-148–157 et relie les gardes aux consommateurs. Les preuves antérieures de
 113/115 restent identifiées comme telles ; aucune nouvelle preuve applicative
 n’est revendiquée.
-Depuis cette révision documentaire, CDI-113, CDI-136–142 et CDI-148 ont été
-validés et déplacés en `Done`. La prochaine base neutre de la chaîne est
-CDI-143, consacrée aux Druides.
+Depuis cette révision documentaire, CDI-113, les dix bases CDI-136–145 et
+les gardes CDI-148–155 ont été validés et déplacés en `Done`. Le commit
+`c807ded1c0cc29f1f43f7f55aaab5b422692eab1`, du 27 septembre 2026 à 00 h 06
+(Europe/Paris), contient les clôtures Aède CDI-154 et Druide CDI-155 ; sa
+présence sur `main` distant a été vérifiée le 27 septembre. Cette preuve Git
+ne constitue ni un contrôle CI ni un déploiement.
+CDI-156 est clos le 29 septembre sur décision explicite de l’utilisateur,
+après intégration locale des vingt gardes Artificier et validations consignées
+dans le [ticket](../../workboard/data/Done/CDI-156/ticket.md).
+Cette clôture n’inclut aucun commit, push ou déploiement.
+La reprise de production concerne CDI-157 : neuf gardes Pugiliste validées
+selon son suivi, onze restantes ; prochaine identité F05 après l’arrêt demandé
+à M05. Normalisation et intégration restent à faire. Les poses d’action
+restent dans leurs tickets dédiés.
