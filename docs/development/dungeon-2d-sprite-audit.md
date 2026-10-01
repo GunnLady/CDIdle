@@ -110,6 +110,14 @@ des cinq écrans. Chaque écran conserve son propre jalon de validation afin que
 ce regroupement ne masque aucun rendu incomplet. L’écran des gobelins ne
 nécessite aucune reprise.
 
+Mise à jour du 1er octobre 2026 : [CDI-146 est livré](../../workboard/data/Done/CDI-146/ticket.md).
+Le tableau ci-dessus conserve le tri initial du 13 septembre ; les onze humains
+listés ont maintenant été remplacés et les cinq écrans validés séparément.
+Les deux gobelins, le molosse et le décor sont vérifiés inchangés par Git.
+Alpha natif, exports 384 × 384, pieds alignés aux originaux, seules les échelles
+de l’Escorte réduites de 0,05 après verdict utilisateur. Sources et prompts dans
+`assets/design/dungeon-2d/cdi-146/`, mesures et preuves techniques dans le ticket.
+
 ### Citernes oubliées — ressources conservées
 
 Verdict utilisateur : « citernes tous les sprites sont validés ». Les neuf PNG
@@ -168,6 +176,6 @@ du verdict. Aucun ticket A2 Cour n’est nécessaire.
 - Les dix classes sont confirmées à refaire ; CDI-136–145 sont créés. Les bases CDI-136–142 sont produites, intégrées et validées.
 - Les bases Novice validées ont rejoint les cinq références pour CDI-137–145 ; CDI-143–145 restent à produire.
 - Le tri des cinq zones est terminé : Égouts, Citernes et Cour sont conservés intégralement ; Galeries et Bastion ont leurs tickets A2 bornés.
-- CDI-146 porte les onze humains des Galeries et bloque leurs consommateurs jusqu’aux cinq validations d’écran.
+- CDI-146 est clos : onze humains des Galeries livrés et cinq écrans validés ; ses consommateurs restent soumis à leurs autres prérequis.
 - CDI-147 porte les trois reprises ciblées du Bastion et bloque leurs consommateurs jusqu’aux deux validations d’écran.
 - Les livraisons postérieures au relevé sont tracées dans leurs tickets ; ce document conserve le verdict initial et reflète désormais les bases clôturées.

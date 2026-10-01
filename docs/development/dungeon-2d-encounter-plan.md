@@ -1,13 +1,13 @@
 # Donjon — scène 2D des combats et rencontres
 
 Date de recherche initiale : 10 septembre 2026. Révision de portée : 13 septembre 2026.
-État actualisé le 29 septembre 2026 ; budgets actualisés le 27 septembre 2026.
+État actualisé le 1er octobre 2026 ; plafonds budgétaires inchangés depuis le 27 septembre 2026.
 Attributions du contrat de données corrigées le 1er octobre 2026 selon les tickets CDI-114/126/127.
 Statut : socles et premiers packs livrés ; suite du plan révisée après retour
 utilisateur sur les animations. Le découpage amélioré est appliqué au Workboard :
 31 nouveaux tickets CDI-117–147, cinq recadrés, puis dix tickets de gardes
 CDI-148–157 ajoutés le 15 septembre. Les statuts et dépendances ci-dessous
-reflètent les tickets Markdown au 29 septembre 2026.
+reflètent les tickets Markdown au 1er octobre 2026.
 
 **Référence directrice pour la suite : [production des sprites et animations
 d’action](dungeon-2d-action-production-plan.md).** Elle précise les 36 compétences,
@@ -581,7 +581,7 @@ Nouveaux tickets du plan amélioré :
 | [CDI-143](../../workboard/data/Done/CDI-143/ticket.md) | A1 — Refaire les bases visuelles des Druides | Done | L / medium | CDI-117, CDI-136 |
 | [CDI-144](../../workboard/data/Done/CDI-144/ticket.md) | A1 — Refaire les bases visuelles des Artificiers | Done | L / medium | CDI-117, CDI-136 |
 | [CDI-145](../../workboard/data/Done/CDI-145/ticket.md) | A1 — Refaire les bases visuelles des Pugilistes | Done | L / medium | CDI-117, CDI-136 |
-| [CDI-146](../../workboard/data/Later/CDI-146/ticket.md) | A2 — Refaire les onze humanoïdes des Galeries | Later | L / medium | CDI-117 |
+| [CDI-146](../../workboard/data/Done/CDI-146/ticket.md) | A2 — Refaire les onze humanoïdes des Galeries | Done | L / medium | CDI-117 |
 | [CDI-147](../../workboard/data/Later/CDI-147/ticket.md) | A2 — Refaire la sentinelle et la patrouille du Bastion | Later | M / medium | CDI-117 |
 | [CDI-148](../../workboard/data/Done/CDI-148/ticket.md) | A1b : Produire et intégrer les poses de combat Novice | Done | L / medium | CDI-136 |
 | [CDI-149](../../workboard/data/Done/CDI-149/ticket.md) | A1b : Produire et intégrer les poses de combat Guerrier | Done | L / medium | CDI-137, CDI-148 |
@@ -604,9 +604,9 @@ le pilote et de borner les seuls lots artistiques utiles, sans estimation
 globale arbitraire pour les 400 identités.
 
 Priorité : P1 pour les 61 tickets actuels du chantier ; ce rang ne signifie pas
-incident de production généralisé. Au 29 septembre 2026, CDI-097–103,
-CDI-105–113, CDI-117, CDI-136–145 et CDI-148–157 sont `Done` (37 tickets).
-CDI-115 est `Paused` sur le piège ; les 23 autres sont `Later`. Les clôtures
+incident de production généralisé. Au 1er octobre 2026, CDI-097–103,
+CDI-105–113, CDI-117, CDI-136–146 et CDI-148–157 sont `Done` (38 tickets).
+CDI-115 est `Paused` sur le piège ; les 22 autres sont `Later`. Les clôtures
 Aède CDI-154 et Druide CDI-155 sont dans le commit publié `c807ded`.
 CDI-156 est clos sur décision explicite de l’utilisateur le 29 septembre,
 après intégration locale et validations consignées dans son ticket ; aucun
@@ -614,6 +614,11 @@ commit, push ou déploiement n’est inclus dans cette clôture.
 CDI-157 est clos après intégration des vingt gardes, validation des cinq
 écrans cinéma et contrôles techniques réussis. La correction du neutre M06
 est incluse ; publication Git autorisée par l’utilisateur.
+CDI-146 est clos après validation individuelle des onze humains et des cinq
+écrans des Galeries, contrôles d’alpha/placement, 97 tests ciblés, 18 tests
+navigateur, TypeScript, lint, build et budgets réussis. Les deux gobelins,
+le molosse et le décor sont conservés. Les mesures détaillées et les sources
+finales sont dans le ticket ; la prochaine reprise artistique est CDI-147.
 Les tickets Done
 ne changent que de liens blocks si nécessaire, pas de périmètre ni de verdict.
 Les acquis CDI-076, CDI-078, CDI-080, CDI-083, CDI-094 et CDI-095 restent des

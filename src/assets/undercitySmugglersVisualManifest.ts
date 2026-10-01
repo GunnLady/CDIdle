@@ -1,4 +1,5 @@
 const DEFAULT_ENEMY_PROVENANCE = "CDIdle ImageGen smugglers enemies v1";
+const ESCORT_ENEMY_PROVENANCE = "CDIdle ImageGen CDI-146 escort approved 2026-10-01";
 
 export const UNDERCITY_SMUGGLERS_BACKGROUND_VISUAL = {
   key: "undercity:smugglers:background",
@@ -10,20 +11,20 @@ export const UNDERCITY_SMUGGLERS_BACKGROUND_VISUAL = {
 } as const;
 
 const enemyVisualTuples = [
-  ["smuggler-escort", "a", "smuggler-guard-v1.png", 0.93, 1.44, "G"],
-  ["smuggler-escort", "b", "smuggler-crossbowman-v1.png", 0.93, 1.52, "A"],
-  ["smuggler-escort", "c", "tunnel-medic-v2.png", 0.93, 1.41, "M", "CDIdle ImageGen smugglers diverse humans v2"],
+  ["smuggler-escort", "a", "smuggler-guard-v1.png", 0.93, 1.39, "G", ESCORT_ENEMY_PROVENANCE],
+  ["smuggler-escort", "b", "smuggler-crossbowman-v1.png", 0.93, 1.47, "A", ESCORT_ENEMY_PROVENANCE],
+  ["smuggler-escort", "c", "tunnel-medic-v2.png", 0.93, 1.36, "M", ESCORT_ENEMY_PROVENANCE],
   ["goblin-scavengers", "a", "goblin-copper-scavenger-v1.png", 0.91, 1.24, "G"],
   ["goblin-scavengers", "b", "goblin-lookout-v1.png", 0.92, 1.2, "G"],
   ["hound-handler", "a", "chainbreaker-hound-v1.png", 0.9, 1.35, "M"],
-  ["hound-handler", "b", "gallery-chainmaster-v1.png", 0.93, 1.32, "M"],
-  ["tribute-cutthroat", "a", "tribute-cutthroat-v2.png", 0.93, 1.5, "C", "CDIdle ImageGen smugglers diverse humans v2"],
-  ["smuggler-captain", "a", "smuggler-sworn-blade-v2.png", 0.93, 1.36, "L", "CDIdle ImageGen smugglers diverse humans v2"],
-  ["smuggler-captain", "b", "smuggler-captain-v1.png", 0.94, 1.42, "C"],
-  ["smuggler-captain", "c", "smuggler-alchemist-v1.png", 0.93, 1.36, "A"],
-  ["tribute-collector", "a", "tribute-guard-v1.png", 0.93, 1.44, "G", "CDIdle ImageGen tribute retinue v1"],
-  ["tribute-collector", "b", "tribute-collector-v1.png", 0.95, 1.45, "C"],
-  ["tribute-collector", "c", "tribute-apothecary-v1.png", 0.93, 1.36, "A", "CDIdle ImageGen tribute retinue v1"],
+  ["hound-handler", "b", "gallery-chainmaster-v1.png", 0.93, 1.32, "M", "CDIdle ImageGen CDI-146 chainmaster approved 2026-10-01"],
+  ["tribute-cutthroat", "a", "tribute-cutthroat-v2.png", 0.93, 1.5, "C", "CDIdle ImageGen CDI-146 cutthroat approved 2026-10-01"],
+  ["smuggler-captain", "a", "smuggler-sworn-blade-v2.png", 0.93, 1.36, "L", "CDIdle ImageGen CDI-146 sworn blade approved 2026-10-01"],
+  ["smuggler-captain", "b", "smuggler-captain-v1.png", 0.94, 1.42, "C", "CDIdle ImageGen CDI-146 captain approved 2026-10-01"],
+  ["smuggler-captain", "c", "smuggler-alchemist-v1.png", 0.93, 1.36, "A", "CDIdle ImageGen CDI-146 alchemist approved 2026-10-01"],
+  ["tribute-collector", "a", "tribute-guard-v1.png", 0.93, 1.44, "G", "CDIdle ImageGen CDI-146 tribute guard approved 2026-10-01"],
+  ["tribute-collector", "b", "tribute-collector-v1.png", 0.95, 1.45, "C", "CDIdle ImageGen CDI-146 collector approved 2026-10-01"],
+  ["tribute-collector", "c", "tribute-apothecary-v1.png", 0.93, 1.36, "A", "CDIdle ImageGen CDI-146 apothecary approved 2026-10-01"],
 ] as const;
 
 export const UNDERCITY_SMUGGLERS_ENEMY_VISUALS = enemyVisualTuples.map(([
