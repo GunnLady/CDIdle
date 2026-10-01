@@ -2,6 +2,7 @@
 
 Date de recherche initiale : 10 septembre 2026. Révision de portée : 13 septembre 2026.
 État actualisé le 29 septembre 2026 ; budgets actualisés le 27 septembre 2026.
+Attributions du contrat de données corrigées le 1er octobre 2026 selon les tickets CDI-114/126/127.
 Statut : socles et premiers packs livrés ; suite du plan révisée après retour
 utilisateur sur les animations. Le découpage amélioré est appliqué au Workboard :
 31 nouveaux tickets CDI-117–147, cinq recadrés, puis dix tickets de gardes
@@ -109,9 +110,9 @@ Ce sont des constats de recherche, pas des corrections réalisées.
 | --- | --- | --- |
 | P1 | Dans la branche de compétence offensive monocible, `damageUndercityEnemy` peut tuer la cible ; `primaryUndercityEnemy` est ensuite réaffecté avant de remplir `monsterId` et `enemyHp` du log (`authoritative-dungeon.ts`, autour des lignes 663–680) | CDI-105 : reproduire le cas puis conserver la cible de l'impact dans la trace. Très rentable : évite d'animer le coup sur le survivant suivant. Le constat est statique, pas encore reproduit par un test dédié |
 | P1 | Le record terminé ne capture pas tous les héros et leurs PV/PM initiaux ; le snapshot vivant contient déjà les valeurs finales et peut ensuite changer | CDI-098 : capture compacte des acteurs au début ; ne pas reconstruire les PV antérieurs depuis les héros actuels |
-| P1 | Mana consommé non systématiquement tracé, cibles de debuffs collectifs incomplètes, `effects` finaux vides ; intentions actuellement filtrées | CDI-098 définit la matrice ; CDI-106 complète ressources/cibles ; CDI-114 trace et représente statuts/intentions. Afficher seulement les effets réellement prouvés |
+| P1 | Mana consommé non systématiquement tracé, cibles de debuffs collectifs incomplètes, `effects` finaux vides ; intentions actuellement filtrées | CDI-098 définit la matrice ; CDI-106 complète ressources/cibles ; CDI-114 couvre les buffs/debuffs, CDI-126 les intentions/protections ennemies et CDI-127 les gardes et phases du Roi. Afficher seulement les effets réellement prouvés |
 | P1 | La cadence des futures commandes dépend de la durée de lecture | CDI-107/CDI-103 : animation et calendrier de jeu séparés explicitement ; aucune accélération involontaire de progression ou d'egress |
-| P1 | Les nouveaux détails seront conservés dans jusqu'à quinze rencontres et renvoyés dans les snapshots | CDI-098/CDI-106/CDI-114 puis CDI-116/CDI-104 : données bornées, mesure des octets et budget CDI-095 ; pas de snapshot complet du héros à chaque événement |
+| P1 | Les nouveaux détails seront conservés dans jusqu'à quinze rencontres et renvoyés dans les snapshots | CDI-098/CDI-106/CDI-114/CDI-126 puis CDI-116/CDI-104 : données bornées, mesure des octets et budget CDI-095 ; pas de snapshot complet du héros à chaque événement |
 | P2 | Portraits non animés et ressources ennemies/décors à produire | CDI-099 : catalogue/héros/kit pilote ; CDI-108 à CDI-112 : packs de zone ; CDI-102/CDI-115 : accessoires hors combat. Travail artistique nécessaire, pas un simple branchement CSS |
 
 ## 3. Expérience et périmètre visuel
@@ -252,11 +253,13 @@ flowchart LR
 La scène ne renvoie aucune mutation au domaine. Les commandes existantes
 restent portées par les contrôles et l'orchestration applicative.
 
-### Contrat de données : CDI-098, CDI-106 et CDI-114
+### Contrat de données : CDI-098, CDI-106, CDI-114 et CDI-126 ; phases du Roi : CDI-127
 
 CDI-098 livre les acteurs initiaux et la compatibilité du record ; CDI-105
 corrige la cible létale ; CDI-106 complète ressources, cibles et conséquences ;
-CDI-114 couvre les statuts/intentions de la trace jusqu'au rendu. La projection
+CDI-114 couvre le cycle des buffs/debuffs et CDI-126 les intentions et protections
+ennemies, de la trace jusqu'au rendu. CDI-127 coordonne les gardes et les phases
+du Roi à partir de ce socle. La projection
 pure de base est portée par CDI-100 et le lecteur temporel par CDI-107.
 
 CDI-100 livre `encounterSceneProjection.ts` comme adaptateur pur unique : il
@@ -265,8 +268,9 @@ des impacts identifiés de manière stable et calcule l'état directement ou pas
 à pas avec le même résultat. Une valeur absente reste `null` et le panneau
 historique l'annonce au lieu de la reconstruire depuis l'état final. Le filtre
 `enemy.intent` reste partagé avec le lecteur existant et n'ajoute aucun pas au
-calendrier. CDI-106, CDI-107 et CDI-114 conservent respectivement les
-enrichissements de trace, l'horloge annulable et les statuts/intentions.
+calendrier. CDI-106 conserve les enrichissements de ressources/cibles et
+CDI-107 l'horloge annulable ; CDI-114 porte le cycle des buffs/debuffs,
+CDI-126 les intentions/protections ennemies et CDI-127 les phases du Roi.
 
 CDI-106 complète cette matrice sans second transcript ni parsing du message :
 
@@ -281,8 +285,9 @@ CDI-106 complète cette matrice sans second transcript ni parsing du message :
 | Six épreuves | héros sélectionné, `heroChanges`, `goldGained`/`goldLost` et récompenses | conséquences d'acteurs et variation d'or sans texte français |
 
 Les champs sont additifs et facultatifs. Les records antérieurs conservent un
-résumé honnête lorsque l'état avant manque. Débuts/fins de statuts, intentions,
-protection et phase du Roi restent volontairement à CDI-114.
+résumé honnête lorsque l'état avant manque. Début, renouvellement et expiration
+des buffs/debuffs restent à CDI-114 ; intentions et protections ennemies à
+CDI-126 ; coordination des gardes et phases du Roi à CDI-127.
 
 - Conserver un unique transcript autoritaire ; ne pas créer un second moteur
   ni un deuxième journal persistant concurrent.
@@ -356,7 +361,7 @@ il transporte son `encounterId`, et le client lit le record déjà présent dans
 
 | Type | Acteurs initiaux disponibles après CDI-098 | Ressources et cibles livrées par CDI-106 | Reste attribué |
 |---|---|---|---|
-| `fight` | Héros du segment, KO inclus ; groupe ennemi, clés de contenu et PV initiaux | Cible létale, coûts de PM, soins alliés/ennemis, multi-frappes, multicibles et valeurs appliquées projetés sans parsing | Statuts et intentions : CDI-114 |
+| `fight` | Héros du segment, KO inclus ; groupe ennemi, clés de contenu et PV initiaux | Cible létale, coûts de PM, soins alliés/ennemis, multi-frappes, multicibles et valeurs appliquées projetés sans parsing | Buffs/debuffs : CDI-114 ; intentions/protections ennemies : CDI-126 ; gardes et phases du Roi : CDI-127 |
 | `trap` | Héros du segment, PV/PM/KO initiaux ; aucun ennemi inventé | Cibles et pertes appliquées projetées depuis `heroChanges` | Aucun |
 | `enigma` | Même capture, avant sélection et restauration/consommation | Gain de PM et héros sélectionné projetés | Aucun |
 | `ambush` | Même capture, avant la conséquence collective | Cibles multiples et pertes de PV projetées | Aucun |
@@ -366,9 +371,10 @@ il transporte son `encounterId`, et le client lit le record déjà présent dans
 | `treasure` | Même capture ; aucun ennemi inventé | Résultat du coffre et récompenses exactes projetés | Mise en scène : CDI-102 |
 | `rest` | Héros du segment et KO capturés avant réanimation | PV/PM avant-après, plafonds et réanimation projetés | Mise en scène : CDI-102 |
 
-Pour tous les types, la durée et l'expiration des effets ainsi que la
-représentation fiable des intentions restent la responsabilité de CDI-114.
-La matrice ne déclare donc pas ces champs livrés par CDI-098.
+Le cycle des buffs/debuffs, dont leur renouvellement et leur expiration, relève
+de CDI-114. Les intentions et protections ennemies relèvent de CDI-126 ; les
+gardes et phases du Roi de CDI-127. La matrice ne déclare donc pas ces champs
+livrés par CDI-098.
 
 Fichiers pressentis : contrats et producteur partagé existants ; modules de
 présentation `src/domain/encounterScene.ts`, `encounterTimeline.ts` et catalogue
@@ -466,6 +472,17 @@ complet dans CDI-116 puis à consolider lors de CDI-104 :
   ajoutés sur petits, moyens et grands profils et sur des traces réelles longues.
 - Préserver la projection et les seuils du [budget egress](supabase-egress-budget.md).
   Le problème d'inventaire suivi par CDI-096 reste distinct de ce chantier.
+
+Décision utilisateur du 1er octobre 2026 : ne pas lancer une optimisation
+mineure pour la seule proximité du plafond JS. Le build local et
+`check:bundle` passent à 261 365 octets gzip au total (marge : 779 octets),
+avec un plus gros fichier de 118 106 octets. Cette mesure de fichiers ne
+prouve ni un ralentissement ni le coût du chargement initial : le contrôle
+additionne aussi les fichiers chargés à la demande. Le plafond reste inchangé.
+CDI-116 évaluera sa pertinence avec les transferts froid/cache et les mesures
+réelles de chargement/rendu du produit complet ; toute révision nécessitera
+une décision explicite. Un dépassement avant ce lot reste bloquant et devra
+être traité dans le ticket qui l'introduit.
 
 ## 6. Accessibilité et comportement dégradé
 
