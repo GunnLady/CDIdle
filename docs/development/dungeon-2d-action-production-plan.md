@@ -365,7 +365,7 @@ ne sont plus annoncés prêts à la seule validation visuelle.
 | A0 — [CDI-117](../../workboard/data/Done/CDI-117/ticket.md) | Étalon DA, tri des ressources conservées et création des seules reprises utiles | Acquis 099, 108–112 | Référence et cinq zones validées ; tickets A1/A2 bornés, aucune animation produite |
 | A1 — [CDI-136](../../workboard/data/Done/CDI-136/ticket.md) à [CDI-145](../../workboard/data/Done/CDI-145/ticket.md) | Refaire les bases neutres des dix classes, vingt identités par classe : dix hommes et dix femmes | 117 ; 137–145 dépendent aussi du Novice 136 validé | Une classe par ticket ; réattribution stable 0–19 → 0–9, aucune pose de combat ou d’action incluse |
 | A1b — [CDI-148](../../workboard/data/Done/CDI-148/ticket.md) à [CDI-157](../../workboard/data/Done/CDI-157/ticket.md) | Produire et intégrer la garde des vingt identités de chaque classe | Base neutre de la classe ; 149–157 réutilisent le standard Novice 148 | Même identité et équipement, sauf armes des gardes Pugiliste selon CDI-157 ; garde dans le cinéma, retour après action, neutre hors combat |
-| A2 — [CDI-146](../../workboard/data/Done/CDI-146/ticket.md), [CDI-147](../../workboard/data/Later/CDI-147/ticket.md), puis lots restants | CDI-146 livré : onze humains et cinq écrans des Galeries validés ; CDI-147 reste à faire pour les trois reprises de deux écrans du Bastion | A0 et geste concerné | Chaque écran validé, usages partagés revérifiés ; images conservées explicitement listées |
+| A2 — [CDI-146](../../workboard/data/Done/CDI-146/ticket.md), [CDI-147](../../workboard/data/Done/CDI-147/ticket.md) | Livrés : onze humains et cinq écrans des Galeries ; trois humanoïdes et deux écrans du Bastion | A0 et geste concerné | Chaque écran validé, usages partagés revérifiés ; images conservées explicitement listées |
 | C1 — [CDI-118](../../workboard/data/Later/CDI-118/ticket.md) | Contact léger, lourd, estoc et armes jumelles à partir du pilote | 113 + gardes Novice/Guerrier/Voleur | `heavy_blow`, `quick_shiv`, `double_cut` ; gestes et accents adaptés, retour en garde |
 | C2 — [CDI-119](../../workboard/data/Later/CDI-119/ticket.md) | Balayage et pugilat / combo | 113 + C1 | `cleaving_strike`, poing, pied, cinq impacts reçus ; pose ciblée seulement pour geste impossible à lire |
 | C3 — [CDI-120](../../workboard/data/Later/CDI-120/ticket.md) | Créatures : morsure/pince et corps souple | 113 + pilotes A2 | Deux recettes simples sur rat/crabe et slime ; exceptions explicites, pas tout le bestiaire redessiné |
@@ -407,10 +407,10 @@ du tri ou du pilote concerné. Les liens réciproques sont vérifiés ; WIP ≤ 
 et GitHub sync off conservés.
 
 Au 1er octobre 2026, CDI-113, CDI-117, les dix bases CDI-136–145,
-CDI-146 et les dix gardes CDI-148–157 sont `Done`. CDI-115 reste `Paused`
-sur le piège, sans déclarer les autres épreuves terminées. CDI-147 et
-les familles d’action restent `Later`.
-Le chantier CDI-097–157 compte 38 `Done`, 22 `Later` et
+CDI-146–147 et les dix gardes CDI-148–157 sont `Done`. CDI-115 reste `Paused`
+sur le piège, sans déclarer les autres épreuves terminées ; les familles
+d’action restent `Later`.
+Le chantier CDI-097–157 compte 39 `Done`, aucun `Doing`, 21 `Later` et
 1 `Paused`. Les tickets Markdown font foi pour les dépendances détaillées.
 Les lots avec états
 persistants (121, 123, 124, 125) dépendent de 114 : le pilote de tir/soin se
@@ -481,5 +481,10 @@ humains, cinq validations d’écran, 97 tests ciblés et 18 tests navigateur r�
 Les trois créatures et le décor sont inchangés. Les cinq scènes du harness,
 quatre gardes héros et décor inclus, pèsent de 1 182 903 à 1 492 864 octets ;
 le pack Galeries complet pèse 1 928 907 octets. Mesures et limites dans le ticket.
-La suite artistique commence par CDI-147, prérequis des familles d’action.
+CDI-147 est clos après les trois remplacements ciblés du Bastion et les
+validations séparées du Veilleur et de la Patrouille. Les sept autres sprites
+et le décor restent inchangés. Les deux scènes complètes du harness pèsent
+1 231 296 et 1 341 529 octets ; 97 tests ciblés et 18 tests navigateur réussis.
+Les prérequis artistiques de CDI-118 sont désormais livrés ; les lots avec
+états persistants restent soumis à CDI-114.
 La clôture locale de CDI-146 ne constitue pas un déploiement.

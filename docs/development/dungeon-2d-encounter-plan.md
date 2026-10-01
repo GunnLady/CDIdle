@@ -582,7 +582,7 @@ Nouveaux tickets du plan amélioré :
 | [CDI-144](../../workboard/data/Done/CDI-144/ticket.md) | A1 — Refaire les bases visuelles des Artificiers | Done | L / medium | CDI-117, CDI-136 |
 | [CDI-145](../../workboard/data/Done/CDI-145/ticket.md) | A1 — Refaire les bases visuelles des Pugilistes | Done | L / medium | CDI-117, CDI-136 |
 | [CDI-146](../../workboard/data/Done/CDI-146/ticket.md) | A2 — Refaire les onze humanoïdes des Galeries | Done | L / medium | CDI-117 |
-| [CDI-147](../../workboard/data/Later/CDI-147/ticket.md) | A2 — Refaire la sentinelle et la patrouille du Bastion | Later | M / medium | CDI-117 |
+| [CDI-147](../../workboard/data/Done/CDI-147/ticket.md) | A2 — Refaire la sentinelle et la patrouille du Bastion | Done | M / medium | CDI-117 |
 | [CDI-148](../../workboard/data/Done/CDI-148/ticket.md) | A1b : Produire et intégrer les poses de combat Novice | Done | L / medium | CDI-136 |
 | [CDI-149](../../workboard/data/Done/CDI-149/ticket.md) | A1b : Produire et intégrer les poses de combat Guerrier | Done | L / medium | CDI-137, CDI-148 |
 | [CDI-150](../../workboard/data/Done/CDI-150/ticket.md) | A1b : Produire et intégrer les poses de combat Voleur | Done | L / medium | CDI-138, CDI-148 |
@@ -605,8 +605,8 @@ globale arbitraire pour les 400 identités.
 
 Priorité : P1 pour les 61 tickets actuels du chantier ; ce rang ne signifie pas
 incident de production généralisé. Au 1er octobre 2026, CDI-097–103,
-CDI-105–113, CDI-117, CDI-136–146 et CDI-148–157 sont `Done` (38 tickets).
-CDI-115 est `Paused` sur le piège ; les 22 autres sont `Later`. Les clôtures
+CDI-105–113, CDI-117 et CDI-136–157 sont `Done` (39 tickets).
+CDI-115 est `Paused` sur le piège ; aucun ticket n’est `Doing` et les 21 autres sont `Later`. Les clôtures
 Aède CDI-154 et Druide CDI-155 sont dans le commit publié `c807ded`.
 CDI-156 est clos sur décision explicite de l’utilisateur le 29 septembre,
 après intégration locale et validations consignées dans son ticket ; aucun
@@ -618,7 +618,10 @@ CDI-146 est clos après validation individuelle des onze humains et des cinq
 écrans des Galeries, contrôles d’alpha/placement, 97 tests ciblés, 18 tests
 navigateur, TypeScript, lint, build et budgets réussis. Les deux gobelins,
 le molosse et le décor sont conservés. Les mesures détaillées et les sources
-finales sont dans le ticket ; la prochaine reprise artistique est CDI-147.
+finales sont dans le ticket. CDI-147 est également clos après ses trois
+remplacements et les validations séparées du Veilleur et de la Patrouille,
+97 tests ciblés et 18 tests navigateur réussis ; les sept autres sprites et
+le décor du Bastion sont préservés. CDI-118 dispose de ses prérequis artistiques.
 Les tickets Done
 ne changent que de liens blocks si nécessaire, pas de périmètre ni de verdict.
 Les acquis CDI-076, CDI-078, CDI-080, CDI-083, CDI-094 et CDI-095 restent des

@@ -68,7 +68,7 @@ automatiquement tous leurs écrans ni les autres sprites déjà livrés.
 | Égouts infestés | Validé intégralement par l’utilisateur le 13 septembre 2026 ; conserver les onze sprites existants, aucun ticket A2 |
 | Galeries des contrebandiers | Tri terminé le 13 septembre 2026 : refaire les onze humains ; conserver les deux gobelins et le molosse |
 | Citernes oubliées | Validé intégralement par l’utilisateur le 13 septembre 2026 ; conserver les neuf sprites distincts et leurs dix usages, aucun ticket A2 |
-| Bastion des Exclus | Tri terminé le 13 septembre 2026 : trois sprites à refaire dans CDI-147 ; conserver les sept autres |
+| Bastion des Exclus | CDI-147 terminé le 1er octobre 2026 : trois sprites refaits, deux écrans validés ; sept autres sprites conservés |
 | Cour du Roi des Rats | Validé intégralement par l’utilisateur le 13 septembre 2026 ; conserver les quinze sprites distincts et leurs seize usages, aucun ticket A2 |
 
 ### Égouts infestés — ressources conservées
@@ -136,12 +136,21 @@ Le crabe des vannes est partagé entre `water-parasites:b` et
 `forgotten-cisterns-stage-v1.jpg` n’est pas un sprite et ne fait pas partie du
 verdict. Aucun ticket A2 Citernes n’est nécessaire.
 
-### Bastion des Exclus — tri terminé
+### Bastion des Exclus — trois reprises livrées
 
-Verdict utilisateur : reprendre `exile-blackshot-v1.png`,
+Verdict initial utilisateur : reprendre `exile-blackshot-v1.png`,
 `palisade-lookout-v1.png` et `banished-sentinel-v1.png`. CDI-147 regroupe les
 deux écrans concernés : Veilleur sans-bannière et Patrouille des exilés, avec
 une validation distincte pour chacun.
+
+Les trois remplacements sont livrés et leurs deux écrans validés séparément
+le 1er octobre 2026. Sources, prompts et preuves dans
+[CDI-147](../../workboard/data/Done/CDI-147/ticket.md) et
+`assets/design/dungeon-2d/cdi-147/`. Guetteur retenu en prise classique basse,
+variantes de lancer abandonnées ; Trait-noir régénéré depuis l’original avec
+un foulard continu autour du visage et de la nuque. Exports alpha 384 × 384,
+clés, pivots et échelles conservés. Pack Bastion : 1 270 281 octets ; scènes
+complètes du harness : 1 231 296 et 1 341 529 octets, sous 2 Mio chacune.
 
 Les sept autres PNG distincts sont conservés : `banished-bulwark-v1.png`,
 `barricade-blade-v1.png`, `barricade-colossus-v1.png`,
@@ -173,9 +182,9 @@ du verdict. Aucun ticket A2 Cour n’est nécessaire.
 
 ## Limites actuelles
 
-- Les dix classes sont confirmées à refaire ; CDI-136–145 sont créés. Les bases CDI-136–142 sont produites, intégrées et validées.
-- Les bases Novice validées ont rejoint les cinq références pour CDI-137–145 ; CDI-143–145 restent à produire.
+- Les dix bases CDI-136–145 et les dix gardes CDI-148–157 sont produites, intégrées et validées ; preuves dans leurs tickets.
+- Les bases Novice validées ont rejoint les cinq références pour CDI-137–145 ; les poses d’action restent dans leurs lots dédiés.
 - Le tri des cinq zones est terminé : Égouts, Citernes et Cour sont conservés intégralement ; Galeries et Bastion ont leurs tickets A2 bornés.
 - CDI-146 est clos : onze humains des Galeries livrés et cinq écrans validés ; ses consommateurs restent soumis à leurs autres prérequis.
-- CDI-147 porte les trois reprises ciblées du Bastion et bloque leurs consommateurs jusqu’aux deux validations d’écran.
+- CDI-147 est clos : trois reprises ciblées du Bastion et deux validations d’écran acquises ; les consommateurs restent soumis à leurs autres prérequis.
 - Les livraisons postérieures au relevé sont tracées dans leurs tickets ; ce document conserve le verdict initial et reflète désormais les bases clôturées.

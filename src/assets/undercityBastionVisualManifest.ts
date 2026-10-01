@@ -10,9 +10,9 @@ export const UNDERCITY_BASTION_BACKGROUND_VISUAL = {
 } as const;
 
 const enemyVisualTuples = [
-  ["banished-sentinel", "a", "banished-sentinel-v1.png", 0.93, 1.584, "V"],
-  ["exile-patrol", "a", "palisade-lookout-v1.png", 0.93, 1.42, "G"],
-  ["exile-patrol", "b", "exile-blackshot-v1.png", 0.93, 1.48, "T"],
+  ["banished-sentinel", "a", "banished-sentinel-v1.png", 0.93, 1.584, "V", "CDIdle ImageGen CDI-147 sentinel approved 2026-10-01"],
+  ["exile-patrol", "a", "palisade-lookout-v1.png", 0.93, 1.42, "G", "CDIdle ImageGen CDI-147 lookout approved 2026-10-01"],
+  ["exile-patrol", "b", "exile-blackshot-v1.png", 0.93, 1.48, "T", "CDIdle ImageGen CDI-147 blackshot approved 2026-10-01"],
   ["bastion-defenders", "a", "banished-bulwark-v1.png", 0.93, 1.48, "R"],
   ["bastion-defenders", "b", "rampart-eye-v1.png", 0.93, 1.46, "O"],
   ["bastion-defenders", "c", "outcast-surgeon-v1.png", 0.93, 1.4, "C"],

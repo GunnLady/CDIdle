@@ -34,7 +34,10 @@ herse centrale `exec-45d6a53d-994f-43a1-83e7-aaebb5df5126.png`. Normalisé en
 
 ## Sprites retenus
 
-- `banished-sentinel-v1.png` — Veilleur sans-bannière, capuche, lance courte et
+- Reprise CDI-147 du Veilleur : source `exec-57415a15-4563-484e-9a76-16be23e8d91d.png`
+  validée le 1er octobre 2026, proportions moins chibi ; garde, bouclier et
+  lance conservés. Prompts et export : `cdi-147/sentinel.prompt.md`.
+- Historique initial de `banished-sentinel-v1.png` — Veilleur sans-bannière, capuche, lance courte et
   bouclier réparé, en garde latérale avec bouclier avancé, longue lance à
   douille alignée prête à l'estoc et appuis décalés. Sources de conception
   `exec-6ffca5d2-17dc-43e9-909e-352ebfb28ceb.png` puis simplification
@@ -42,7 +45,15 @@ herse centrale `exec-45d6a53d-994f-43a1-83e7-aaebb5df5126.png`. Normalisé en
   `exec-8eaa2943-cead-4a07-8574-fa81f3124898.png`, puis correction mécanique
   de l'arme `exec-40c123bd-7c8e-473f-999f-d58d560c0fd1.png`. Échelle runtime
   finale : `1.584`, soit +10 % après calibration humaine.
-- `palisade-lookout-v1.png` et `exile-blackshot-v1.png` — Guetteur mobile à
+- Reprise CDI-147 du Guetteur : source `exec-98e73dfc-48c4-4434-8256-968ec85db589.png`
+  validée le 1er octobre 2026, proportions moins chibi et dague en prise
+  classique basse. Elle remplace la prise inversée décrite dans l’historique
+  ci-dessous. Prompts et export : `cdi-147/lookout.prompt.md`.
+- Reprise CDI-147 du Trait-noir : nouvelle génération depuis l’original,
+  source `exec-d178ed0a-4f47-4fdd-8cc6-804edfe598d7.png` validée le 1er octobre
+  2026, foulard continu autour du visage et de la nuque. Références, prompt
+  et export : `cdi-147/blackshot.prompt.md`.
+- Historique initial de `palisade-lookout-v1.png` et `exile-blackshot-v1.png` — Guetteur mobile à
   l'arc et Trait-noir masqué à l'arbalète. Planche de conception
   `exec-3bc02a1a-4cfe-4380-9609-872e87b446c6.png`, source chroma
   `exec-32eb252e-8ef0-4ff6-80a7-8154f0d58f41.png`. Le Guetteur final reprend
